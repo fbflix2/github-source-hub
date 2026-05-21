@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X, Shield, User } from "lucide-react";
+import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X, Shield, User, Smartphone, Monitor, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -129,7 +129,7 @@ export default function AdminSiteEditor() {
   const queryClient = useQueryClient();
   const { data: config, isLoading } = useSiteConfig();
   const [draft, setDraft] = useState<SiteConfig>(DEFAULT_CONFIG);
-  const [activeTab, setActiveTab] = useState("hero");
+  const [activeTab, setActiveTab] = useState("logo-preview");
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -228,6 +228,9 @@ export default function AdminSiteEditor() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-black/30 border border-white/10 flex-wrap h-auto gap-1 p-1">
+          <TabsTrigger value="logo-preview" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <ImageIcon className="w-4 h-4 mr-1" /> Logos & Preview
+          </TabsTrigger>
           <TabsTrigger value="hero" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Type className="w-4 h-4 mr-1" /> Hero
           </TabsTrigger>
@@ -251,62 +254,185 @@ export default function AdminSiteEditor() {
           </TabsTrigger>
         </TabsList>
 
+        {/* ═══ LOGO PREVIEW & CONFIG ═══ */}
+        <TabsContent value="logo-preview">
+          <Section title="Ajuste de Logos em Tempo Real" desc="Configure os tamanhos e veja como o logo se comporta em cada parte do sistema">
+            <div className="flex flex-col gap-8">
+              {/* Logo Upload */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <SiteImageUpload 
+                  label="Logo Principal do Site (URL)" 
+                  value={draft.hero.logoUrl || ""} 
+                  onChange={(v) => update("hero.logoUrl", v)} 
+                />
+                <p className="text-xs text-gray-500 mt-2">Deixe vazio para usar o logo padrão do sistema.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Controls */}
+                <div className="space-y-6">
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-6">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sliders className="size-4 text-primary" /> Controles de Tamanho (px)
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-xs text-gray-400 font-medium">Landing Page: Navbar</label>
+                          <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">{draft.hero.logoHeight || "32"}px</span>
+                        </div>
+                        <input 
+                          type="range" min="16" max="100" 
+                          value={Number(draft.hero.logoHeight) || 32} 
+                          onChange={(e) => update("hero.logoHeight", e.target.value)}
+                          className="w-full accent-primary bg-white/10 rounded-lg h-1.5 appearance-none cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-xs text-gray-400 font-medium">Landing Page: Hero (Centro)</label>
+                          <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">{draft.hero.logoHeightHero || "80"}px</span>
+                        </div>
+                        <input 
+                          type="range" min="40" max="250" 
+                          value={Number(draft.hero.logoHeightHero) || 80} 
+                          onChange={(e) => update("hero.logoHeightHero", e.target.value)}
+                          className="w-full accent-primary bg-white/10 rounded-lg h-1.5 appearance-none cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field 
+                          label="Margem Esq. Navbar" 
+                          value={draft.hero.logoMarginLeftNavbar || "16"} 
+                          onChange={(v) => update("hero.logoMarginLeftNavbar", v)} 
+                        />
+                        <Field 
+                          label="Painel Cliente (Altura)" 
+                          value={draft.hero.logoHeightClient || "40"} 
+                          onChange={(v) => update("hero.logoHeightClient", v)} 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                        <Field 
+                          label="Admin Sidebar (Altura)" 
+                          value={draft.hero.logoHeightAdmin || "56"} 
+                          onChange={(v) => update("hero.logoHeightAdmin", v)} 
+                        />
+                        <Field 
+                          label="Admin (Distância Topo)" 
+                          value={draft.hero.logoMarginTopAdmin || "24"} 
+                          onChange={(v) => update("hero.logoMarginTopAdmin", v)} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Previews */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* Landing Page Navbar Preview */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3 overflow-hidden">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                        <Globe className="size-3" /> Preview: Navbar Landing Page
+                      </div>
+                      <div className="bg-[#050505] h-12 rounded-lg flex items-center px-4 border border-white/5">
+                        <img 
+                          src={draft.hero.logoUrl || "/placeholder.svg"} 
+                          style={{ 
+                            height: `${draft.hero.logoHeight || 32}px`,
+                            marginLeft: `${draft.hero.logoMarginLeftNavbar || 16}px`
+                          }} 
+                          className="w-auto object-contain opacity-100"
+                          alt="Logo Preview" 
+                        />
+                        <div className="ml-auto flex gap-3 opacity-20">
+                          <div className="w-8 h-2 bg-white/20 rounded-full" />
+                          <div className="w-8 h-2 bg-white/20 rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin Sidebar Preview */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                        <Shield className="size-3" /> Preview: Menu Lateral Admin
+                      </div>
+                      <div className="flex gap-4">
+                        {/* Expanded Sidebar */}
+                        <div className="w-32 bg-[#120808] border border-white/10 rounded-lg flex flex-col items-center overflow-hidden" style={{ minHeight: '120px' }}>
+                          <div style={{ paddingTop: `${draft.hero.logoMarginTopAdmin || 24}px` }} className="w-full flex justify-center">
+                            <img 
+                              src={draft.hero.logoUrl || "/placeholder.svg"} 
+                              style={{ height: `${draft.hero.logoHeightAdmin || 56}px` }} 
+                              className="w-auto object-contain"
+                              alt="Logo Admin" 
+                            />
+                          </div>
+                          <div className="mt-4 w-20 h-2 bg-white/5 rounded-full" />
+                          <div className="mt-2 w-20 h-2 bg-white/5 rounded-full" />
+                        </div>
+                        {/* Mobile/Collapsed Sidebar */}
+                        <div className="w-12 bg-[#120808] border border-white/10 rounded-lg flex flex-col items-center py-4">
+                          <img 
+                            src={draft.hero.logoUrl || "/placeholder.svg"} 
+                            className="h-6 w-auto object-contain opacity-50"
+                            alt="Logo Collapsed" 
+                          />
+                        </div>
+                        <div className="flex-1 text-[10px] text-gray-500 italic flex items-center">
+                          O logo do admin é ajustado para o modo expandido e recolhido automaticamente.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Client Panel Preview */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3 overflow-hidden">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                        <User className="size-3" /> Preview: Topo Painel Cliente
+                      </div>
+                      <div className="bg-[#121212] h-14 rounded-lg flex items-center px-6 border border-white/5">
+                        <img 
+                          src={draft.hero.logoUrl || "/placeholder.svg"} 
+                          style={{ height: `${draft.hero.logoHeightClient || 40}px` }} 
+                          className="w-auto object-contain"
+                          alt="Logo Client" 
+                        />
+                        <div className="ml-auto w-8 h-8 rounded-full bg-primary/20 border border-primary/30" />
+                      </div>
+                    </div>
+
+                    {/* Landing Page Hero Preview */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3 overflow-hidden">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                        <Monitor className="size-3" /> Preview: Centro da Landing Page (Hero)
+                      </div>
+                      <div className="bg-[#050505] min-h-[160px] rounded-lg flex flex-col items-center justify-center p-4 border border-white/5 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50" />
+                        <img 
+                          src={draft.hero.logoUrl || "/placeholder.svg"} 
+                          style={{ height: `${draft.hero.logoHeightHero || 80}px` }} 
+                          className="w-auto object-contain z-10 drop-shadow-[0_0_20px_rgba(255,49,49,0.2)]"
+                          alt="Logo Hero" 
+                        />
+                        <div className="mt-4 w-32 h-1 bg-white/20 rounded-full z-10" />
+                        <div className="mt-2 w-48 h-2 bg-white/10 rounded-full z-10" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Section>
+        </TabsContent>
+
         {/* ═══ HERO ═══ */}
         <TabsContent value="hero">
           <Section title="Seção Hero" desc="Configure o título, subtítulo e botões da primeira tela">
-            <SiteImageUpload label="Logo do Site (Deixe vazio para usar o padrão)" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field 
-                label="Altura do Logo (Navbar - px)" 
-                value={draft.hero.logoHeight || "32"} 
-                onChange={(v) => update("hero.logoHeight", v)} 
-              />
-              <Field 
-                label="Altura do Logo (Hero - px)" 
-                value={draft.hero.logoHeightHero || "80"} 
-                onChange={(v) => update("hero.logoHeightHero", v)} 
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
-                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                  <Globe className="size-3" /> Página Inicial
-                </h4>
-                <Field 
-                  label="Margem Esquerda Logo (Navbar)" 
-                  value={draft.hero.logoMarginLeftNavbar || "16"} 
-                  onChange={(v) => update("hero.logoMarginLeftNavbar", v)} 
-                />
-              </div>
-
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <User className="size-3" /> Painel Cliente
-                </h4>
-                <Field 
-                  label="Altura do Logo (Superior)" 
-                  value={draft.hero.logoHeightClient || "40"} 
-                  onChange={(v) => update("hero.logoHeightClient", v)} 
-                />
-              </div>
-
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
-                <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                  <Shield className="size-3" /> Painel Admin
-                </h4>
-                <Field 
-                  label="Altura do Logo (Menu Lateral)" 
-                  value={draft.hero.logoHeightAdmin || "56"} 
-                  onChange={(v) => update("hero.logoHeightAdmin", v)} 
-                />
-                <Field 
-                  label="Distância do Topo (Padding)" 
-                  value={draft.hero.logoMarginTopAdmin || "24"} 
-                  onChange={(v) => update("hero.logoMarginTopAdmin", v)} 
-                />
-              </div>
-            </div>
             <Field label="Título Principal" value={draft.hero.title} onChange={(v) => update("hero.title", v)} />
             <Field label="Palavra Destaque (italic vermelha)" value={draft.hero.titleHighlight} onChange={(v) => update("hero.titleHighlight", v)} />
             <Field label="Subtítulo" value={draft.hero.subtitle} onChange={(v) => update("hero.subtitle", v)} />
