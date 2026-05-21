@@ -179,7 +179,7 @@ const Index = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent z-10 pointer-events-none group-hover:opacity-0 transition-opacity duration-500" />
                 <iframe
                   className="w-full h-full"
-                  src="https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=1&showinfo=0&modestbranding=1&rel=0"
+                  src={cfg.hero.videoUrl || "https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=1&showinfo=0&modestbranding=1&rel=0"}
                   title="FBFLIX Video"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
