@@ -23,6 +23,8 @@ const DEFAULT_CONFIG = {
     whatsappUrl: "https://wa.me/55000000000",
     whatsappLabel: "Fale com um Especialista",
     logoUrl: "",
+    logoHeight: 32,
+    logoHeightHero: 80,
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -249,6 +251,20 @@ export default function AdminSiteEditor() {
         <TabsContent value="hero">
           <Section title="Seção Hero" desc="Configure o título, subtítulo e botões da primeira tela">
             <SiteImageUpload label="Logo do Site (Deixe vazio para usar o padrão)" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field 
+                label="Altura do Logo (Navbar - px)" 
+                type="number" 
+                value={draft.hero.logoHeight || 32} 
+                onChange={(v) => update("hero.logoHeight", Number(v))} 
+              />
+              <Field 
+                label="Altura do Logo (Hero - px)" 
+                type="number" 
+                value={draft.hero.logoHeightHero || 80} 
+                onChange={(v) => update("hero.logoHeightHero", Number(v))} 
+              />
+            </div>
             <Field label="Título Principal" value={draft.hero.title} onChange={(v) => update("hero.title", v)} />
             <Field label="Palavra Destaque (italic vermelha)" value={draft.hero.titleHighlight} onChange={(v) => update("hero.titleHighlight", v)} />
             <Field label="Subtítulo" value={draft.hero.subtitle} onChange={(v) => update("hero.subtitle", v)} />

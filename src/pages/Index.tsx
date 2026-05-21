@@ -76,6 +76,8 @@ const Index = () => {
   const navigate = useNavigate();
   const [cfg, setCfg] = useState(DEFAULTS);
   const logoUrl = cfg.hero.logoUrl || logoFbflix;
+  const logoHeight = cfg.hero.logoHeight || 32;
+  const logoHeightHero = cfg.hero.logoHeightHero || 80;
 
   useReveal();
 
@@ -110,7 +112,7 @@ const Index = () => {
       {/* ===== NAV ===== */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <img src={logoUrl} alt="FBFLIX" width={48} height={48} className="h-12 ml-4 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
+          <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeight}px` }} className="object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
           <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
             <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
             <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
@@ -158,7 +160,7 @@ const Index = () => {
           {/* Shield icon */}
           {logoUrl && (
             <div className="mb-6 flex justify-center lp-reveal">
-              <img src={logoUrl} alt="FBFLIX" width={112} height={112} className="w-28 h-28 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
+              <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeightHero}px`, width: 'auto' }} className="object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
             </div>
           )}
 

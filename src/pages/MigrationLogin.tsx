@@ -57,7 +57,7 @@ export default function MigrationLogin() {
         <div className="glass-card-static w-full max-w-[460px] rounded-3xl p-8 flex flex-col gap-6">
           {/* Header */}
           <div className="flex flex-col items-center gap-3">
-            <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
+            <img src={logoFbflix} alt="FBFLIX" className="w-14 h-14 object-contain" />
             <div className="flex items-center gap-2">
              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                  ​
