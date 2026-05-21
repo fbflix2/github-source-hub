@@ -1170,8 +1170,14 @@ Deno.serve(async (req) => {
     }
 
     // ========== EXCHANGE WEBSHARE PROXY ==========
-    if (action === "exchange-webshare-proxy" || action === "exchange-proxyfbflix-proxy") {
-      const { subscription_id, target_country: overrideCountry } = params as { subscription_id: string; target_country?: string };
+    if (action === "exchange-webshare-proxy" || action === "exchange-proxyfbflix-proxy" || action === "fix-repeated-proxy") {
+      const { subscription_id, target_country: overrideCountry, is_fix = false } = params as { 
+        subscription_id: string; 
+        target_country?: string;
+        is_fix?: boolean;
+      };
+      
+      const isFixAction = action === "fix-repeated-proxy" || is_fix;
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
       // 1. Get subscription. The UI can pass either the UUID id or the public code (WS-...).
@@ -1198,7 +1204,13 @@ Deno.serve(async (req) => {
       const raw = (subRow.raw_data || {}) as Record<string, any>;
       const freeLeft = Number(raw.exchange_quota_free ?? 0);
       const payLeft = Number(raw.exchange_quota_pay ?? 0);
-      if (freeLeft + payLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
+      
+      // Fix repeated action doesn't consume quota but has its own abuse check
+      if (isFixAction) {
+        if (raw.fix_repeated_done) throw new Error("Troca de correção já foi utilizada para este proxy.");
+      } else {
+        if (freeLeft + payLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
+      }
 
       // Determine country: override param first, then raw_data, then product tags/name
       let targetCountry = overrideCountry ? overrideCountry.toUpperCase() : (raw.country_code ? String(raw.country_code).toUpperCase() : null);
@@ -1429,10 +1441,16 @@ Deno.serve(async (req) => {
       const prevExchangeCount = raw.exchange_count ? Number(raw.exchange_count) : 0;
       let nextFree = freeLeft;
       let nextPay = payLeft;
-      if (freeLeft > 0) {
-        nextFree = freeLeft - 1;
+      
+      if (isFixAction) {
+        // Don't deduct quota
+        console.log(`[webshare-exchange] Fix action: not deducting quota`);
       } else {
-        nextPay = payLeft - 1;
+        if (freeLeft > 0) {
+          nextFree = freeLeft - 1;
+        } else {
+          nextPay = payLeft - 1;
+        }
       }
 
       const updatedRaw = {
@@ -1445,6 +1463,7 @@ Deno.serve(async (req) => {
         initial_exchange_quota_free: raw.initial_exchange_quota_free ?? (freeLeft),
         last_exchange: new Date().toISOString(),
         last_exchange_method: method,
+        fix_repeated_done: isFixAction ? true : (raw.fix_repeated_done || false),
       };
 
       const { error: updateErr } = await supabaseAdmin
