@@ -212,7 +212,7 @@ export function AdminSidebar() {
              alt="FBFLIX" 
              className={cn(
                "transition-all duration-300 object-contain",
-               collapsed ? "h-8" : "h-14"
+               collapsed ? "h-8" : "h-18"
              )} 
            />
          </div>

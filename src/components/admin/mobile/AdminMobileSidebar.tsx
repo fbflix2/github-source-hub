@@ -71,7 +71,7 @@ export function AdminMobileSidebar({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-white/5">
           <div className="flex items-center gap-2">
-            <img src={logoFbflix} alt="FBFLIX" className="h-8 w-auto" />
+            <img src={logoFbflix} alt="FBFLIX" className="h-10 w-auto" />
             <span className="text-white text-sm font-bold">
               FBFLIX <span className="text-primary">Admin</span>
             </span>
