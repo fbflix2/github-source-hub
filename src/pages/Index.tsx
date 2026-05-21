@@ -126,17 +126,22 @@ const Index = () => {
       {/* ===== HERO ===== */}
       <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/80 to-[#050505] z-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/60 to-[#050505]/90 z-10" />
           
           {/* Background Video */}
           <div className="absolute inset-0 w-full h-full">
             <iframe
-              className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-40 grayscale contrast-125"
+              className="absolute top-1/2 left-1/2 w-[160%] h-[160%] md:w-[115%] md:h-[115%] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50 grayscale contrast-125 transition-all duration-700"
               src="https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=0&showinfo=0&modestbranding=1&rel=0&enablejsapi=1"
               allow="autoplay; encrypted-media"
               style={{ border: 'none' }}
             />
           </div>
+
+          {/* Smoky bottom transition */}
+          <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent z-[11] pointer-events-none" />
+
+
 
           <img
             alt="Digital Network"
