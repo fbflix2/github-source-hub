@@ -340,7 +340,7 @@ const App = () => {
                   path="/p/:slug" 
                   element={
                     <div dangerouslySetInnerHTML={{ 
-                      __html: `<script>window.location.href = "https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + window.location.pathname.split("/").pop();</script>` 
+                      __html: `<script>window.location.replace("https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + window.location.pathname.split("/").pop());</script>` 
                     }} />
                   } 
                 />

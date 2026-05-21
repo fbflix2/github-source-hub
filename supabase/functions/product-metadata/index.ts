@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const pathParts = url.pathname.split("/");
+  const pathParts = url.pathname.split("/").filter(Boolean);
   const slug = pathParts[pathParts.length - 1];
 
   console.log(`Fetching metadata for product slug: ${slug}`);
@@ -42,23 +42,26 @@ serve(async (req) => {
     );
   }
 
-  const title = `${product.name} - FBFLIX`;
-  const description = product.description || "Confira este produto na FBFLIX!";
+  const title = product.name;
+  const description = (product.description || "Confira este produto na FBFLIX!").substring(0, 200);
   const image = product.image_url || "https://fbflix.com.br/favicon.png";
 
   const html = `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" prefix="og: http://ogp.me/ns#">
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
     <meta name="description" content="${description}">
     
     <!-- Facebook / Open Graph -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="${url.href}">
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="${url.origin}${url.pathname}">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${image}">
+    <meta property="og:site_name" content="FBFLIX">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
@@ -68,7 +71,7 @@ serve(async (req) => {
     <meta property="twitter:image" content="${image}">
 
     <!-- Redirect to actual product page after a short delay or immediately -->
-    <meta http-equiv="refresh" content="0;url=https://fbflix.com.br/produto/${slug}">
+    <script>window.location.href = "https://fbflix.com.br/produto/${slug}";</script>
 </head>
 <body>
     Redirecionando para o produto...
