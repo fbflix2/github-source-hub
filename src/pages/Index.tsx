@@ -114,7 +114,7 @@ const Index = () => {
       {/* ===== NAV ===== */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeight}px`, marginLeft: `${cfg.hero.logoMarginLeftNavbar || 16}px` }} className="object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
+          <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeight}px`, marginLeft: `${(cfg.hero as any).logoMarginLeftNavbar || 16}px` }} className="object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
           <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
             <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
             <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
