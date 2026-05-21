@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X, Shield, User, Smartphone, Monitor } from "lucide-react";
+import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X, Shield, User, Smartphone, Monitor, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
