@@ -405,6 +405,24 @@ export default function AdminSiteEditor() {
                         <div className="ml-auto w-8 h-8 rounded-full bg-primary/20 border border-primary/30" />
                       </div>
                     </div>
+
+                    {/* Landing Page Hero Preview */}
+                    <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3 overflow-hidden">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                        <Monitor className="size-3" /> Preview: Centro da Landing Page (Hero)
+                      </div>
+                      <div className="bg-[#050505] min-h-[160px] rounded-lg flex flex-col items-center justify-center p-4 border border-white/5 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50" />
+                        <img 
+                          src={draft.hero.logoUrl || "/placeholder.svg"} 
+                          style={{ height: `${draft.hero.logoHeightHero || 80}px` }} 
+                          className="w-auto object-contain z-10 drop-shadow-[0_0_20px_rgba(255,49,49,0.2)]"
+                          alt="Logo Hero" 
+                        />
+                        <div className="mt-4 w-32 h-1 bg-white/20 rounded-full z-10" />
+                        <div className="mt-2 w-48 h-2 bg-white/10 rounded-full z-10" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
