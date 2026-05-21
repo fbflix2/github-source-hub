@@ -336,6 +336,7 @@ const App = () => {
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
+                <Route path="/p/:slug" element={<Navigate to={`https://rmetppilvfrxosvxzhgj.functions.supabase.co/product-metadata/${window.location.pathname.split('/').pop()}`} replace />} />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
                 <Route path="/pagar/:code" element={<PagarInvoice />} />
