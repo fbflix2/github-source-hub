@@ -181,14 +181,30 @@ async function getAssignedProxyIds(supabase: any) {
   for (const s of (existSubs || [])) {
     const raw = (s.raw_data || {}) as Record<string, any>;
     
-    // Check various ID fields used across different versions/providers
+    // Check various ID fields used across different versions/providers at top level
     const fid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
     if (fid) assignedIds.add(String(fid));
     
-    // Check IP addresses
+    // Check IP addresses at top level
     const ip = raw.proxy_address || raw.ip;
-    if (ip) {
-      assignedIPs.add(String(ip));
+    if (ip) assignedIPs.add(String(ip));
+
+    // CRITICAL: Also check proxies inside the data array for multi-proxy packs
+    const proxiesData = raw.proxies?.data || [];
+    if (Array.isArray(proxiesData)) {
+      for (const p of proxiesData) {
+        if (p.id) assignedIds.add(String(p.id));
+        if (p.ip) assignedIPs.add(String(p.ip));
+        if (p.proxy_address) assignedIPs.add(String(p.proxy_address));
+        
+        // Also check if code contains IP:Port
+        if (p.code && typeof p.code === 'string') {
+          const parts = p.code.split(':');
+          if (parts.length >= 1 && /^\d+\.\d+\.\d+\.\d+$/.test(parts[0])) {
+            assignedIPs.add(parts[0]);
+          }
+        }
+      }
     }
   }
   
