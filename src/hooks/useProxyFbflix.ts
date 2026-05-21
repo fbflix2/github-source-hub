@@ -357,3 +357,24 @@ export function useUpsertUsageAlert() {
     onError: (err: Error) => toast.error(err.message),
   });
 }
+
+/** Fix repeated proxy exchange (no quota deduction, one-time use) */
+export function useFixRepeatedProxy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+      const result = await callProxyFbflix("fix-repeated-proxy", { 
+        subscription_id: subscriptionId,
+        is_fix: true
+      });
+      return result;
+    },
+    onSuccess: () => {
+      toast.success("Correção realizada! Seu proxy foi trocado por um novo IP.");
+      queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro na correção: ${err.message}`);
+    },
+  });
+}
