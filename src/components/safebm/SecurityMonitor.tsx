@@ -78,6 +78,21 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
     return () => clearInterval(interval);
   }, [generateLog]);
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado: " + text, {
+      duration: 2000,
+      position: "bottom-center",
+      style: {
+        fontSize: '10px',
+        padding: '8px 12px',
+        background: '#1c2025',
+        border: '1px solid rgba(16, 185, 129, 0.2)',
+        color: '#fff'
+      }
+    });
+  };
+
   return (
     <div className="rounded-xl bg-gradient-to-br from-[#0a0e13] to-[#1c2025] border border-emerald-500/20 p-4 flex flex-col justify-between overflow-hidden relative" style={{ minHeight: 180 }}>
       <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full" />
@@ -113,7 +128,15 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
                 {log.text.split(log.bmName).map((part, i, arr) => (
                   <span key={i}>
                     {part}
-                    {i < arr.length - 1 && <span className="text-emerald-400 font-bold">{log.bmName}</span>}
+                    {i < arr.length - 1 && (
+                      <span 
+                        className="text-emerald-400 font-bold cursor-pointer hover:underline decoration-emerald-400/30 underline-offset-2 transition-all active:scale-95 inline-block"
+                        onClick={() => handleCopy(log.bmName)}
+                        title="Clique para copiar"
+                      >
+                        {log.bmName}
+                      </span>
+                    )}
                   </span>
                 ))}
               </p>
