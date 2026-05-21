@@ -218,7 +218,22 @@ Deno.serve(async (req) => {
       const np = candidates[0];
       console.log(`[admin-exchange] New proxy: ${np.proxy_address}:${np.port} (${np.city_name}, ${np.country_code})`);
 
-      const updatedRaw = { ...raw, webshare_proxy_id: np.id, proxy_address: np.proxy_address, port: np.port, username: np.username, password: np.password, country_code: np.country_code, city_name: np.city_name, provider: "webshare", exchange_quota_free: Math.max(0, (raw.exchange_quota_free ?? 2) - 1), exchange_count: (raw.exchange_count ?? 0) + 1, last_exchange: new Date().toISOString(), last_exchange_method: "admin_api" };
+      const updatedRaw = { 
+        ...raw, 
+        webshare_proxy_id: np.id, 
+        proxy_address: np.proxy_address, 
+        port: np.port, 
+        username: np.username, 
+        password: np.password, 
+        country_code: np.country_code, 
+        city_name: np.city_name, 
+        provider: "webshare", 
+        used_ips: [...(raw.used_ips || []), String(raw.proxy_address || "")].filter(Boolean),
+        exchange_quota_free: Math.max(0, (raw.exchange_quota_free ?? 2) - 1), 
+        exchange_count: (raw.exchange_count ?? 0) + 1, 
+        last_exchange: new Date().toISOString(), 
+        last_exchange_method: "admin_api" 
+      };
       await supabaseAdmin.from("subscriptions").update({ raw_data: updatedRaw, product_id: new_product_id || sub.product_id, updated_at: new Date().toISOString() }).eq("id", subscription_id);
 
       if (order_item_id) {
