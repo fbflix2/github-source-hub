@@ -1,0 +1,2 @@
+-- No actual migration needed for the product metadata as it's already in the products table.
+-- This comment serves to confirm we are using existing infrastructure.
