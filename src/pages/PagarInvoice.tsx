@@ -85,7 +85,7 @@ export default function PagarInvoice() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0a0a0a] to-[#1a0a0a]">
         <div className="flex items-center gap-2 animate-pulse">
-          <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10" />
+          <img src={logoFbflix} alt="FBFLIX" className="w-16 h-16" />
           <span className="text-xl font-bold text-white">Carregando...</span>
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function PagarInvoice() {
       <div className="max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 mx-auto" />
+          <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 mx-auto" />
           <h1 className="text-xl font-black text-white tracking-tighter italic uppercase">
             FBFLIX <span className="text-primary">— PAGAMENTO</span>
           </h1>
