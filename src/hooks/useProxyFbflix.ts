@@ -273,8 +273,11 @@ function saveProxyFbflixExchangeRecord(subscriptionId: string, oldProxy: string,
 export function useExchangeProxyFbflixProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ subscriptionId, oldProxyString }: { subscriptionId: string; oldProxyString?: string }) => {
-      const result = await callProxyFbflix("exchange-proxyfbflix-proxy", { subscription_id: subscriptionId });
+    mutationFn: async ({ subscriptionId, oldProxyString, proxyId }: { subscriptionId: string; oldProxyString?: string; proxyId?: string | number }) => {
+      const result = await callProxyFbflix("exchange-proxyfbflix-proxy", { 
+        subscription_id: subscriptionId,
+        proxy_id: proxyId 
+      });
       return { result, oldProxyString, subscriptionId };
     },
     onSuccess: ({ result, oldProxyString, subscriptionId }) => {
