@@ -32,6 +32,7 @@ export default function SubscriptionManage() {
   const { data: proxyfbflixRaw, isLoading: wsLoading } = useProxyFbflixSubscriptions();
   const exchangeMutation = useExchangeProxy();
   const wsExchangeMutation = useExchangeProxyFbflixProxy();
+  const fixRepeatedMutation = useFixRepeatedProxy();
   const syncProxyFbflixCredentialsMutation = useSyncProxyFbflixProxyCredentials();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
@@ -611,6 +612,24 @@ export default function SubscriptionManage() {
                   )}
                   {freeExchanges === 0 && paidExchanges === 0 && (
                     <p className="text-text-secondary text-[10px]">Nenhuma cota de troca disponível.</p>
+                  )}
+                  {isProxyFbflix && !raw.fix_repeated_done && (
+                    <div className="pt-2 border-t border-border mt-2">
+                      <p className="text-[10px] text-muted-foreground mb-1.5 leading-tight">Recebeu um IP repetido? Solicite uma correção única sem custo.</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const subId = (sub as any).id || sub.code;
+                          fixRepeatedMutation.mutate({ subscriptionId: subId });
+                        }}
+                        disabled={fixRepeatedMutation.isPending}
+                        className="w-full h-7 text-[10px] font-bold border-dashed border-primary/40 hover:bg-primary/5 hover:text-primary transition-all"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1">bug_report</span>
+                        {fixRepeatedMutation.isPending ? "Corrigindo..." : "Solicitar Correção de IP"}
+                      </Button>
+                    </div>
                   )}
                   {freeExchanges === 0 && paidExchanges === 0 && customerPrice != null && customerPrice > 0 && (
                     <div className="mt-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-3">
