@@ -71,7 +71,7 @@ serve(async (req) => {
     <meta property="twitter:image" content="${image}">
 
     <!-- Redirect to actual product page after a short delay or immediately -->
-    <script>window.location.href = "https://fbflix.com.br/produto/${slug}";</script>
+    <script>window.location.replace("https://fbflix.com.br/produto/${slug}");</script>
 </head>
 <body>
     Redirecionando para o produto...
