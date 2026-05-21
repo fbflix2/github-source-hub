@@ -167,48 +167,54 @@ function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> 
   };
 }
 
-async function getAssignedProxyIds(supabase: any) {
+async function getAssignedProxyIds(supabase: any, userId?: string) {
   // We want to be VERY aggressive in finding assigned proxies to avoid duplicates.
   // We include ALL types that might use Webshare proxies and all "live" statuses.
   const { data: existSubs } = await supabase
     .from("subscriptions")
-    .select("raw_data")
-    .in("status", ["active", "expiring", "processing", "past_due"]);
+    .select("user_id, raw_data")
+    .in("status", ["active", "expiring", "processing", "past_due", "expired"]);
 
   const assignedIds = new Set<string>();
   const assignedIPs = new Set<string>();
+  const userIPs = new Set<string>();
   
   for (const s of (existSubs || [])) {
     const raw = (s.raw_data || {}) as Record<string, any>;
     
-    // Check various ID fields used across different versions/providers at top level
+    // Check various ID fields
     const fid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
     if (fid) assignedIds.add(String(fid));
     
-    // Check IP addresses at top level
+    // Check IP addresses
     const ip = raw.proxy_address || raw.ip;
-    if (ip) assignedIPs.add(String(ip));
+    if (ip) {
+      assignedIPs.add(String(ip));
+      if (userId && s.user_id === userId) userIPs.add(String(ip));
+    }
+
+    // Also check used_ips history for this user if available in raw_data
+    if (userId && s.user_id === userId && Array.isArray(raw.used_ips)) {
+      raw.used_ips.forEach((uip: any) => userIPs.add(String(uip)));
+    }
 
     // CRITICAL: Also check proxies inside the data array for multi-proxy packs
     const proxiesData = raw.proxies?.data || [];
     if (Array.isArray(proxiesData)) {
       for (const p of proxiesData) {
-        if (p.id) assignedIds.add(String(p.id));
-        if (p.ip) assignedIPs.add(String(p.ip));
-        if (p.proxy_address) assignedIPs.add(String(p.proxy_address));
+        const pid = p.id;
+        if (pid) assignedIds.add(String(pid));
         
-        // Also check if code contains IP:Port
-        if (p.code && typeof p.code === 'string') {
-          const parts = p.code.split(':');
-          if (parts.length >= 1 && /^\d+\.\d+\.\d+\.\d+$/.test(parts[0])) {
-            assignedIPs.add(parts[0]);
-          }
+        const pip = p.proxy_address || p.ip || (p.code?.includes(':') ? p.code.split(':')[0] : null);
+        if (pip) {
+          assignedIPs.add(String(pip));
+          if (userId && s.user_id === userId) userIPs.add(String(pip));
         }
       }
     }
   }
   
-  return { assignedIds, assignedIPs };
+  return { assignedIds, assignedIPs, userIPs };
 }
 
 Deno.serve(async (req) => {
@@ -236,7 +242,7 @@ Deno.serve(async (req) => {
       const targetCountry = iCountry?.toUpperCase() || "US";
 
       // Get assigned proxy IDs and IPs
-      const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseInternal);
+      const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseInternal, target_user_id);
 
       // Efficient search: stop as soon as we find enough proxies
       const available: any[] = [];
@@ -253,7 +259,10 @@ Deno.serve(async (req) => {
         if (results.length === 0) break;
 
         for (const p of results) {
-          if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
+          const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+          const isPreviouslyUsed = userIPs.has(String(p.proxy_address));
+
+          if (p.valid && !isAssigned && !isPreviouslyUsed) {
             available.push(p);
             // Track what we just picked to avoid duplicates within this same batch
             assignedIds.add(String(p.id));
@@ -1291,7 +1300,7 @@ Deno.serve(async (req) => {
                 pg++;
               }
 
-              const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+              const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseAdmin, subRow.user_id);
               
               // In this specific sub, we MUST exclude all other IPs we have
               const myOtherIPs = new Set<string>();
@@ -1304,10 +1313,15 @@ Deno.serve(async (req) => {
               }
 
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))
-                  && !myOtherIPs.has(String(p.proxy_address))
-                  && String(p.id) !== String(targetProxyId) && p.proxy_address !== targetProxyAddress
-                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
+                (p: any) => {
+                  const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+                  const isPreviouslyUsed = userIPs.has(String(p.proxy_address)) || (raw.used_ips && raw.used_ips.includes(p.proxy_address));
+                  
+                  return p.valid && !isAssigned && !isPreviouslyUsed
+                    && !myOtherIPs.has(String(p.proxy_address))
+                    && String(p.id) !== String(targetProxyId) && p.proxy_address !== targetProxyAddress
+                    && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry);
+                }
               );
 
               if (candidates.length > 0) {
@@ -1337,7 +1351,7 @@ Deno.serve(async (req) => {
             pg++;
           }
 
-          const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+          const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseAdmin, subRow.user_id);
           const myOtherIPs = new Set<string>();
           if (Array.isArray(proxiesData)) {
             proxiesData.forEach((p: any) => {
@@ -1348,10 +1362,15 @@ Deno.serve(async (req) => {
           }
 
           const poolCandidates = allCurrentProxies.filter(
-            (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address)) 
-              && !myOtherIPs.has(String(p.proxy_address))
-              && String(p.id) !== String(targetProxyId) && String(p.proxy_address) !== String(targetProxyAddress)
-              && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
+            (p: any) => {
+              const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+              const isPreviouslyUsed = userIPs.has(String(p.proxy_address)) || (raw.used_ips && raw.used_ips.includes(p.proxy_address));
+
+              return p.valid && !isAssigned && !isPreviouslyUsed
+                && !myOtherIPs.has(String(p.proxy_address))
+                && String(p.id) !== String(targetProxyId) && String(p.proxy_address) !== String(targetProxyAddress)
+                && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry);
+            }
           );
 
           if (poolCandidates.length > 0) {
@@ -1397,6 +1416,7 @@ Deno.serve(async (req) => {
         ...raw,
         ...newProxyData,
         proxies: { ...raw.proxies, data: updatedProxiesData, total: updatedProxiesData.length },
+        used_ips: [...(raw.used_ips || []), oldProxyStr],
         exchange_quota_free: nextFree,
         exchange_quota_pay: nextPay,
         exchange_count: prevExchangeCount + 1,
