@@ -339,13 +339,8 @@ export default function AdminPlataforma() {
               Logo & Identidade Visual
             </h2>
             <p className="text-gray-400 text-sm mt-1">
-              Gerencie os tamanhos e o logo principal em todas as posições do site.
+              Guia rápido de posições do logo. Utilize o Editor do Site para ajustes finos em tempo real.
             </p>
-          </div>
-          
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-base">info</span>
-            Para alterar esses valores, utilize o <strong>Editor do Site</strong> na aba <strong>Hero</strong>.
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -355,12 +350,8 @@ export default function AdminPlataforma() {
                 <span className="text-sm font-bold uppercase">Página Inicial</span>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-400">Logo Navbar (Superior)</p>
-                <p className="text-sm text-white font-mono">Tamanho configurável via Editor</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-400">Logo Central (Hero)</p>
-                <p className="text-sm text-white font-mono">Tamanho configurável via Editor</p>
+                <p className="text-xs text-gray-400">Posições</p>
+                <p className="text-sm text-white">Navbar Superior & Centro do Hero</p>
               </div>
             </div>
 
@@ -370,12 +361,8 @@ export default function AdminPlataforma() {
                 <span className="text-sm font-bold uppercase">Painel Cliente</span>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-400">Logo Navbar Superior</p>
-                <p className="text-sm text-white font-mono">Padrão: 32px a 40px (Responsivo)</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-400">Espaçamento</p>
-                <p className="text-sm text-white font-mono">Margem automática</p>
+                <p className="text-xs text-gray-400">Posições</p>
+                <p className="text-sm text-white">Cabeçalho (Navbar Cliente)</p>
               </div>
             </div>
 
@@ -385,27 +372,30 @@ export default function AdminPlataforma() {
                 <span className="text-sm font-bold uppercase">Painel Admin</span>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-gray-400">Logo Menu Lateral</p>
-                <p className="text-sm text-white font-mono">Padrão: 56px (Expandido) / 32px (Recolhido)</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-400">Distância Topo</p>
-                <p className="text-sm text-white font-mono">24px</p>
+                <p className="text-xs text-gray-400">Posições</p>
+                <p className="text-sm text-white">Barra Lateral (Sidebar)</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 flex justify-end">
-            <Button 
+          <div className="mt-8 flex justify-center bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center flex-col items-center">
+             <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+                <Monitor className="size-8 text-primary" />
+             </div>
+             <h3 className="text-lg font-bold text-white mb-2">Ajuste em Tempo Real</h3>
+             <p className="text-gray-400 text-sm max-w-md mb-6">
+               Agora você pode ajustar o tamanho de cada logo e ver o resultado instantaneamente através de simuladores visuais.
+             </p>
+             <Button 
               onClick={() => {
                 const link = document.querySelector('a[href="/admin/configuracoes/site"]') as HTMLElement;
                 if (link) link.click();
                 else window.location.href = "/admin/configuracoes/site";
               }}
-              className="bg-primary hover:bg-red-700 text-white font-bold px-6"
+              className="bg-primary hover:bg-red-700 text-white font-bold px-8 py-6 h-auto text-lg rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
             >
-              Ir para o Editor do Site
-              <ArrowRight className="size-4 ml-2" />
+              Abrir Simulador de Logo
+              <ArrowRight className="size-5 ml-2" />
             </Button>
           </div>
         </section>
