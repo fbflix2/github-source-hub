@@ -339,9 +339,15 @@ const App = () => {
                 <Route 
                   path="/p/:slug" 
                   element={
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: `<script>window.location.replace("https://fbflix.com.br/api/product-metadata/" + window.location.pathname.split("/").pop());</script>` 
-                    }} />
+                    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <img src={logoFbflix} alt="FBFLIX" className="w-16 h-16 object-contain animate-pulse" />
+                        <p className="text-white/60 text-sm animate-pulse">Carregando informações do produto...</p>
+                      </div>
+                      <script dangerouslySetInnerHTML={{ 
+                        __html: `window.location.replace("https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + window.location.pathname.split("/").pop());` 
+                      }} />
+                    </div>
                   } 
                 />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
