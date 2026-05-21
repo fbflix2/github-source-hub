@@ -407,9 +407,10 @@ export function useUpsertUsageAlert() {
 export function useFixRepeatedProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+    mutationFn: async ({ subscriptionId, proxyId }: { subscriptionId: string; proxyId?: string | number }) => {
       const result = await callProxyFbflix("fix-repeated-proxy", { 
         subscription_id: subscriptionId,
+        proxy_id: proxyId,
         is_fix: true
       });
       return result;
