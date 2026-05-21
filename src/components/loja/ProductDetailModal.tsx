@@ -54,17 +54,34 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
 
   if (!product) return null;
 
-  const productUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
+  const productUrl = product.id ? `${window.location.origin}/produto/${product.slug || product.id}` : null;
 
   const handleShare = async () => {
     if (!productUrl) return;
+
+    // Se estiver em um ambiente seguro e houver suporte para o Web Share API
     if (navigator.share) {
-      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url: productUrl }); } catch {}
-    } else {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Confira ${product.name} na FBFLIX!`,
+          url: productUrl,
+        });
+        return;
+      } catch (err) {
+        // Se o usuário cancelar ou houver erro, tentamos o fallback de cópia
+        console.log("Share error or cancelled", err);
+      }
+    }
+
+    // Fallback: Copiar para a área de transferência
+    try {
       await navigator.clipboard.writeText(productUrl);
       setShareCopied(true);
-      toast.success("Link copiado!");
+      toast.success("Link do produto copiado!");
       setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      toast.error("Erro ao copiar link");
     }
   };
 
