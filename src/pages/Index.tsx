@@ -76,8 +76,8 @@ const Index = () => {
   const navigate = useNavigate();
   const [cfg, setCfg] = useState(DEFAULTS);
   const logoUrl = cfg.hero.logoUrl || logoFbflix;
-  const logoHeight = cfg.hero.logoHeight || 32;
-  const logoHeightHero = cfg.hero.logoHeightHero || 80;
+  const logoHeight = Number(cfg.hero.logoHeight) || 32;
+  const logoHeightHero = Number(cfg.hero.logoHeightHero) || 80;
 
   useReveal();
 
