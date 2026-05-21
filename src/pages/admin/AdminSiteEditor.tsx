@@ -255,13 +255,13 @@ export default function AdminSiteEditor() {
               <Field 
                 label="Altura do Logo (Navbar - px)" 
                 type="number" 
-                value={draft.hero.logoHeight || 32} 
+                value={String(draft.hero.logoHeight || 32)} 
                 onChange={(v) => update("hero.logoHeight", Number(v))} 
               />
               <Field 
                 label="Altura do Logo (Hero - px)" 
                 type="number" 
-                value={draft.hero.logoHeightHero || 80} 
+                value={String(draft.hero.logoHeightHero || 80)} 
                 onChange={(v) => update("hero.logoHeightHero", Number(v))} 
               />
             </div>
