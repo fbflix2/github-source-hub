@@ -29,7 +29,27 @@ export default function ProductPage() {
       .eq("status", "active")
       .maybeSingle()
       .then(({ data }: any) => {
-        if (data) setProduct(data);
+        if (data) {
+          setProduct(data);
+          // Atualiza as meta tags dinamicamente
+          document.title = `${data.name} - FBFLIX`;
+          
+          const updateMeta = (property: string, content: string, attr = "property") => {
+            let el = document.querySelector(`meta[${attr}="${property}"]`);
+            if (!el) {
+              el = document.createElement('meta');
+              el.setAttribute(attr, property);
+              document.head.appendChild(el);
+            }
+            el.setAttribute('content', content);
+          };
+
+          updateMeta('og:title', data.name);
+          updateMeta('og:description', data.description || "Confira este produto na FBFLIX!");
+          updateMeta('og:image', data.image_url || "");
+          updateMeta('twitter:title', data.name, "name");
+          updateMeta('twitter:image', data.image_url || "", "name");
+        }
         setLoading(false);
       });
   }, [slug]);
