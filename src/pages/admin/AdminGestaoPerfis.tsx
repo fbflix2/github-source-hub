@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import {
   Search, RefreshCw, Loader2, CircleUser, Building2, Shield,
-  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy, Repeat, StickyNote
+  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy, Repeat, StickyNote, Check
 } from "lucide-react";
 import { ProfileNotesModal } from "@/components/admin/ProfileNotesModal";
 
@@ -270,6 +270,21 @@ export default function AdminGestaoPerfis() {
     toast.success("Copiado!");
   };
 
+  const toggleBmRemoved = async (item: ProfileItem, bm: string) => {
+    const current: string[] = Array.isArray(item.data?.bmRemoved) ? item.data.bmRemoved : [];
+    const next = current.includes(bm) ? current.filter(b => b !== bm) : [...current, bm];
+    const newData = { ...(item.data || {}), bmRemoved: next };
+    // optimistic
+    setItems(prev => prev.map(it => it.id === item.id ? { ...it, data: newData } : it));
+    const { error } = await supabase.from("stock_items").update({ data: newData }).eq("id", item.id);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+      setItems(prev => prev.map(it => it.id === item.id ? { ...it, data: item.data } : it));
+    } else {
+      toast.success(next.includes(bm) ? `BM ${bm} marcada como removida` : `BM ${bm} desmarcada`);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -428,11 +443,36 @@ export default function AdminGestaoPerfis() {
                         <TableCell>
                           {bmNames.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {bmNames.map((bm, i) => (
-                                <Badge key={i} variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20">
-                                  <Building2 className="size-2.5 mr-1" />{bm}
-                                </Badge>
-                              ))}
+                              {bmNames.map((bm, i) => {
+                                const removed: string[] = Array.isArray(item.data?.bmRemoved) ? item.data.bmRemoved : [];
+                                const isRemoved = removed.includes(bm);
+                                return (
+                                  <div key={i} className="inline-flex items-center gap-0.5">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); copyToClipboard(bm); }}
+                                      title="Clique para copiar"
+                                      className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                                        isRemoved
+                                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 line-through opacity-70"
+                                          : "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
+                                      }`}
+                                    >
+                                      <Building2 className="size-2.5 mr-1" />{bm}
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleBmRemoved(item, bm); }}
+                                      title={isRemoved ? "Desmarcar como removida" : "Marcar como já removida do perfil"}
+                                      className={`inline-flex items-center justify-center rounded-md border size-5 transition-colors ${
+                                        isRemoved
+                                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30"
+                                          : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                                      }`}
+                                    >
+                                      <Check className="size-2.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
