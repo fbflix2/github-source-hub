@@ -5,15 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 /* ---------- DEFAULT constants (fallback) ---------- */
 const DEFAULTS = {
-  hero: {
-    title: "CONTINGÊNCIA QUE", titleHighlight: "ESCALA",
-    subtitle: "Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento",
-    ctaText: "COMPRAR AGORA", ctaSecondary: "VER PACOTES",
-    liveCounter: "+4.872 contas rodando agora",
-    backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
-    whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
-    logoUrl: "",
-  },
+    hero: {
+      title: "CONTINGÊNCIA QUE", titleHighlight: "ESCALA",
+      subtitle: "Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento",
+      ctaText: "COMPRAR AGORA", ctaSecondary: "VER PACOTES",
+      liveCounter: "+4.872 contas rodando agora",
+      backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
+      videoUrl: "https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=1&showinfo=0&modestbranding=1&rel=0",
+      whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
+      logoUrl: "",
+    },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
     { icon: "shopping_cart", title: "Escolha o produto", desc: "Selecione entre Perfis, Proxies ou BM de acordo com sua estratégia de tráfego." },
@@ -123,12 +124,12 @@ const Index = () => {
       </nav>
 
       {/* ===== HERO ===== */}
-      <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+      <section id="home" className="relative min-h-[90vh] md:min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050505] z-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/80 to-[#050505] z-10" />
           <img
             alt="Digital Network"
-            className="w-full h-full object-cover opacity-20 grayscale contrast-125"
+            className="w-full h-full object-cover opacity-10 grayscale contrast-125"
             src={cfg.hero.backgroundImage}
             width={1920}
             height={1080}
@@ -137,41 +138,58 @@ const Index = () => {
           />
         </div>
 
-        <div className="relative z-20 max-w-7xl mx-auto px-8 w-full text-center">
-          {/* Shield icon */}
-          {logoUrl && (
-            <div className="mb-6 flex justify-center lp-reveal">
-              <img src={logoUrl} alt="FBFLIX" width={80} height={80} className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
+        <div className="relative z-20 max-w-7xl mx-auto px-8 w-full">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
+            <div className="flex-1 text-center lg:text-left">
+              {/* Shield icon */}
+              {logoUrl && (
+                <div className="mb-6 flex justify-center lg:justify-start lp-reveal">
+                  <img src={logoUrl} alt="FBFLIX" width={80} height={80} className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
+                </div>
+              )}
+
+              <h1 className="font-['Space_Grotesk'] text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
+                {cfg.hero.title} <span className="text-[#ff3131] italic">{cfg.hero.titleHighlight}</span>
+              </h1>
+              <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-2xl lg:mx-0 mx-auto mb-10 tracking-tight lp-reveal" style={{ transitionDelay: "200ms" }}>
+                {cfg.hero.subtitle}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center mb-12 lp-reveal" style={{ transitionDelay: "300ms" }}>
+                <button onClick={goAuth} className="w-full sm:w-auto bg-[#ff3131] text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:shadow-[0_0_25px_rgba(255,49,49,0.6)] transition-all duration-300">
+                  {cfg.hero.ctaText}
+                </button>
+                <button onClick={() => document.getElementById("produtos")?.scrollIntoView({ behavior: "smooth" })} className="w-full sm:w-auto border-2 border-white/20 text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:bg-white hover:text-black transition-all duration-300">
+                  {cfg.hero.ctaSecondary}
+                </button>
+              </div>
+
+              {/* Pulse */}
+              <div className="flex items-center justify-center lg:justify-start gap-3 lp-reveal" style={{ transitionDelay: "400ms" }}>
+                <div className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                </div>
+                <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">{cfg.hero.liveCounter}</span>
+              </div>
             </div>
-          )}
 
-          <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
-            {cfg.hero.title} <span className="text-[#ff3131] italic">{cfg.hero.titleHighlight}</span>
-          </h1>
-          <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-3xl mx-auto mb-10 tracking-tight whitespace-nowrap lp-reveal" style={{ transitionDelay: "200ms" }}>
-            {cfg.hero.subtitle}
-          </p>
-
-          <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-16 lp-reveal" style={{ transitionDelay: "300ms" }}>
-            <button onClick={goAuth} className="bg-[#ff3131] text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:shadow-[0_0_25px_rgba(255,49,49,0.6)] transition-all duration-300">
-              {cfg.hero.ctaText}
-            </button>
-            <button onClick={() => document.getElementById("produtos")?.scrollIntoView({ behavior: "smooth" })} className="border-2 border-white/20 text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:bg-white hover:text-black transition-all duration-300">
-              {cfg.hero.ctaSecondary}
-            </button>
-          </div>
-
-          {/* Pulse */}
-          <div className="flex items-center justify-center gap-3 lp-reveal" style={{ transitionDelay: "400ms" }}>
-            <div className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+            <div className="flex-1 w-full max-w-2xl lg:max-w-none lp-reveal" style={{ transitionDelay: "500ms" }}>
+              <div className="relative aspect-video rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(255,49,49,0.2)] border border-white/5 group">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent z-10 pointer-events-none group-hover:opacity-0 transition-opacity duration-500" />
+                <iframe
+                  className="w-full h-full"
+                  src={cfg.hero.videoUrl || "https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=1&showinfo=0&modestbranding=1&rel=0"}
+                  title="FBFLIX Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
             </div>
-            <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">{cfg.hero.liveCounter}</span>
           </div>
 
           {/* Partners */}
-          <div className="mt-24 pb-12 lp-reveal" style={{ transitionDelay: "500ms" }}>
+          <div className="mt-24 pb-12 lp-reveal" style={{ transitionDelay: "600ms" }}>
             <p className="text-[10px] font-['Space_Grotesk'] font-bold uppercase tracking-[0.4em] text-white/30 text-center mb-10 italic">Parceiros e Clientes que Confiam</p>
             <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
               {cfg.partners.map((p) => (
