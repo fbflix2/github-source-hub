@@ -181,8 +181,6 @@ const Index = () => {
             </div>
             <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">{cfg.hero.liveCounter}</span>
           </div>
-        </div>
-      </section>
 
           {/* Partners */}
           <div className="mt-24 pb-12 lp-reveal" style={{ transitionDelay: "600ms" }}>
