@@ -54,20 +54,21 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
 
   if (!product) return null;
 
-  const productUrl = product.slug ? `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}` : null;
+  const shareUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
+  const copyUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
 
   const handleShare = async () => {
-    if (!productUrl) return;
+    if (!shareUrl || !copyUrl) return;
 
     // Tenta copiar primeiro
     try {
-      await navigator.clipboard.writeText(productUrl);
+      await navigator.clipboard.writeText(copyUrl);
       setShareCopied(true);
       toast.success("Link do produto copiado!");
       setTimeout(() => setShareCopied(false), 2000);
     } catch (err) {
       const textArea = document.createElement("textarea");
-      textArea.value = productUrl;
+      textArea.value = copyUrl;
       document.body.appendChild(textArea);
       textArea.select();
       try {
@@ -87,7 +88,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
         await navigator.share({
           title: product.name,
           text: `Confira ${product.name} na FBFLIX!`,
-          url: productUrl,
+          url: shareUrl,
         });
       } catch (err) {
         console.log("Share error or cancelled", err);
@@ -129,7 +130,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 </span>
               )}
             </div>
-            {productUrl && (
+            {shareUrl && (
               <button
                 onClick={handleShare}
                 className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
