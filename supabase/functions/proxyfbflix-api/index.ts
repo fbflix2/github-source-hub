@@ -167,48 +167,54 @@ function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> 
   };
 }
 
-async function getAssignedProxyIds(supabase: any) {
+async function getAssignedProxyIds(supabase: any, userId?: string) {
   // We want to be VERY aggressive in finding assigned proxies to avoid duplicates.
   // We include ALL types that might use Webshare proxies and all "live" statuses.
   const { data: existSubs } = await supabase
     .from("subscriptions")
-    .select("raw_data")
-    .in("status", ["active", "expiring", "processing", "past_due"]);
+    .select("user_id, raw_data")
+    .in("status", ["active", "expiring", "processing", "past_due", "expired"]);
 
   const assignedIds = new Set<string>();
   const assignedIPs = new Set<string>();
+  const userIPs = new Set<string>();
   
   for (const s of (existSubs || [])) {
     const raw = (s.raw_data || {}) as Record<string, any>;
     
-    // Check various ID fields used across different versions/providers at top level
+    // Check various ID fields
     const fid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
     if (fid) assignedIds.add(String(fid));
     
-    // Check IP addresses at top level
+    // Check IP addresses
     const ip = raw.proxy_address || raw.ip;
-    if (ip) assignedIPs.add(String(ip));
+    if (ip) {
+      assignedIPs.add(String(ip));
+      if (userId && s.user_id === userId) userIPs.add(String(ip));
+    }
+
+    // Also check used_ips history for this user if available in raw_data
+    if (userId && s.user_id === userId && Array.isArray(raw.used_ips)) {
+      raw.used_ips.forEach((uip: any) => userIPs.add(String(uip)));
+    }
 
     // CRITICAL: Also check proxies inside the data array for multi-proxy packs
     const proxiesData = raw.proxies?.data || [];
     if (Array.isArray(proxiesData)) {
       for (const p of proxiesData) {
-        if (p.id) assignedIds.add(String(p.id));
-        if (p.ip) assignedIPs.add(String(p.ip));
-        if (p.proxy_address) assignedIPs.add(String(p.proxy_address));
+        const pid = p.id;
+        if (pid) assignedIds.add(String(pid));
         
-        // Also check if code contains IP:Port
-        if (p.code && typeof p.code === 'string') {
-          const parts = p.code.split(':');
-          if (parts.length >= 1 && /^\d+\.\d+\.\d+\.\d+$/.test(parts[0])) {
-            assignedIPs.add(parts[0]);
-          }
+        const pip = p.proxy_address || p.ip || (p.code?.includes(':') ? p.code.split(':')[0] : null);
+        if (pip) {
+          assignedIPs.add(String(pip));
+          if (userId && s.user_id === userId) userIPs.add(String(pip));
         }
       }
     }
   }
   
-  return { assignedIds, assignedIPs };
+  return { assignedIds, assignedIPs, userIPs };
 }
 
 Deno.serve(async (req) => {
