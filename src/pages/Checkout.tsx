@@ -1002,7 +1002,7 @@ export default function Checkout() {
 
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
-        if (!profile || profile.balance < total) {
+        if (!profile || profile.balance < chargeTotal) {
           toast.error(`Saldo insuficiente (R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")}). Redirecionando para PIX...`);
           setPaymentMethod("pix");
           return;
@@ -1021,7 +1021,7 @@ export default function Checkout() {
             body: {
            action: wsAction,
            order_id: orderId,
-           total,
+           total: chargeTotal,
            product_id: product.id,
            quantity: quantity,
            target_city: targetCity !== "all" ? targetCity : undefined,
@@ -1088,7 +1088,7 @@ export default function Checkout() {
               product_variant_id: variantId,
               quantity: proxyQuantity,
               interval: proxyInterval,
-              total,
+              total: chargeTotal,
             });
           } catch (error: any) {
             proxyError = error;
@@ -1180,12 +1180,12 @@ export default function Checkout() {
           // Still debit balance since payment was made - admin will resolve fulfillment
         }
 
-        const newBalance = profile.balance - total;
+        const newBalance = profile.balance - chargeTotal;
         await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
 
         await supabase.from("wallet_transactions").insert({
           user_id: user.id, type: "purchase", title: `Compra #${orderCode}`,
-          amount: -total, balance_after: newBalance, reference_id: orderId,
+          amount: -chargeTotal, balance_after: newBalance, reference_id: orderId,
         });
 
         if (couponApplied && coupon.trim()) {
@@ -1196,7 +1196,7 @@ export default function Checkout() {
         // Notify admin about completed order
         await supabase.from("notifications").insert({
           title: "Pedido Concluído",
-          message: `Pedido #${orderCode} finalizado — R$ ${total.toFixed(2)} (Saldo)`,
+          message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Saldo)`,
           type: "order",
           global: true,
         });
@@ -1217,7 +1217,7 @@ export default function Checkout() {
         // Pass proxy_data to create-pix-payment so server persists delivery_data (ProxyBR only)
         const proxyDataForPix = getProxyPurchaseData();
         const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
-        const pixBody: any = { amount: total, order_id: orderId };
+        const pixBody: any = { amount: chargeTotal, order_id: orderId };
         if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
@@ -1250,7 +1250,7 @@ export default function Checkout() {
          setPixData({ 
            qr_code: pixResult.qr_code, 
            qr_code_base64: pixResult.qr_code_base64, 
-           amount: total,
+           amount: chargeTotal,
            payment_link: pixResult.payment_link
          });
         setPixPaymentId(pixResult.payment_id || null);
@@ -1304,7 +1304,7 @@ export default function Checkout() {
         const proxyDataForCard = getProxyPurchaseData();
         const isProxyBRCard = product?.icon_type === 'proxy' && !!product?.external_id;
         const cardBody: any = {
-          amount: total,
+          amount: chargeTotal,
           order_id: orderId,
           token: cardToken,
         };
@@ -1348,7 +1348,7 @@ export default function Checkout() {
             const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
             const wsAction = isRotatingProxy ? "purchase-rotating-proxy" : "purchase-proxy-with-balance";
             const { data: wsResult, error: wsError } = await supabase.functions.invoke("proxyfbflix-api", {
-              body: { action: wsAction, order_id: orderId, total, product_id: product.id, quantity, skip_balance_debit: true },
+              body: { action: wsAction, order_id: orderId, total: chargeTotal, product_id: product.id, quantity, skip_balance_debit: true },
             });
             if (wsError || wsResult?.error) {
               toast.error("Pagamento aprovado mas houve erro ao ativar proxy. Contate o suporte.");
@@ -1410,7 +1410,7 @@ export default function Checkout() {
 
           await supabase.from("notifications").insert({
             title: "Pedido Concluído",
-            message: `Pedido #${orderCode} finalizado — R$ ${total.toFixed(2)} (Cartão)`,
+            message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Cartão)`,
             type: "order",
             global: true,
           });
