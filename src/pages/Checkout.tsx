@@ -943,36 +943,27 @@ export default function Checkout() {
       // order_items in DB. The in-memory `subtotal`/`total` are unreliable on
       // resume because `quantity`/`extraCartItems` are not restored from the
       // saved order, which would otherwise undercharge the customer.
-      // We shadow `subtotal`/`total` locally so every downstream use in this
-      // function (balance check, wallet debit, PIX/cartão amount, etc.) uses
-      // the corrected values.
-      // eslint-disable-next-line prefer-const
-      let subtotal: number = (this as any) /* placeholder */;
-      // eslint-disable-next-line prefer-const
-      let total: number = (this as any) /* placeholder */;
-      // Initialize from current component values
-      subtotal = (Number.isFinite(arguments[0] as any) ? 0 : 0) || ((): number => 0)() ;
-      // The above is intentionally inert; real init below.
-      subtotal = (function(){ return (arguments as any); })() && 0;
-      // --- end placeholders ---
-      subtotal = (0);
-      total = (0);
-      // Real initialization:
-      subtotal = (orderItemsToCheck && existingOrderId
-        ? orderItemsToCheck.reduce(
+      let chargeSubtotal = subtotal;
+      let chargeTotal = total;
+      if (existingOrderId && orderItemsToCheck && orderItemsToCheck.length > 0) {
+        const { data: priced } = await supabase
+          .from("order_items")
+          .select("price, quantity")
+          .eq("order_id", orderId);
+        if (priced && priced.length > 0) {
+          chargeSubtotal = priced.reduce(
             (s: number, it: any) => s + Number(it.price || 0) * Number(it.quantity || 1),
             0
-          )
-        : NaN) || NaN;
-      // If not resuming, fall back to the in-memory values from the closure.
-      // Use a different identifier alias trick: re-read via component scope.
-      // (Simpler approach below replaces this block.)
+          );
+          chargeTotal = Math.max(0, chargeSubtotal - discount);
+        }
+      }
 
       // Update draft order with final values (bumps, coupon, payment method, totals)
       const updateData: any = {
-        subtotal,
+        subtotal: chargeSubtotal,
         discount,
-        total,
+        total: chargeTotal,
         payment_method: paymentMethod,
         coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
       };
