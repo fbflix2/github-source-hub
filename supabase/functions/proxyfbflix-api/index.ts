@@ -1451,10 +1451,8 @@ Deno.serve(async (req) => {
 
       // Allow maintenance exchange for service role or if authorized
       if (!isServiceRole) {
-        if (bodyClone.action_secret !== "lovable_internal_fix") {
-          const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user?.id, _role: "admin" });
-          if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
-        }
+        const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user?.id, _role: "admin" });
+        if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
       }
 
       // Admin maintenance exchange: UUID check
