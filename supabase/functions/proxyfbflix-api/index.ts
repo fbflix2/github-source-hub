@@ -117,6 +117,12 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
     const trimmed = text.trimStart();
     if (trimmed.startsWith("<")) {
       console.error(`[webFetch] Non-JSON response from ${url} [${resp.status}]: ${trimmed.slice(0, 200)}`);
+      
+      // If the caller is expecting JSON but gets HTML, and it's a 404, we let the caller handle the 404 status
+      if (resp.status === 404) {
+        return { error: "Not Found", status: 404 };
+      }
+      
       throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente em alguns minutos.`);
     }
     try {
