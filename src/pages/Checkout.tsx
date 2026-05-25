@@ -939,11 +939,32 @@ export default function Checkout() {
       const orderId = draftOrderId;
       const orderCode = draftOrderCode;
 
+      // When resuming an existing order, recompute totals from the actual
+      // order_items in DB (the in-memory `subtotal` is unreliable because
+      // `quantity`/`extraCartItems` are not restored on resume). This prevents
+      // undercharging when the user reopens a pending order with multiple
+      // units already inserted.
+      let effectiveSubtotal = subtotal;
+      let effectiveTotal = total;
+      if (existingOrderId) {
+        const { data: existingItems } = await supabase
+          .from("order_items")
+          .select("price, quantity")
+          .eq("order_id", orderId);
+        if (existingItems && existingItems.length > 0) {
+          effectiveSubtotal = existingItems.reduce(
+            (s, it: any) => s + Number(it.price || 0) * Number(it.quantity || 1),
+            0
+          );
+          effectiveTotal = Math.max(0, effectiveSubtotal - discount);
+        }
+      }
+
       // Update draft order with final values (bumps, coupon, payment method, totals)
       const updateData: any = {
-        subtotal,
+        subtotal: effectiveSubtotal,
         discount,
-        total,
+        total: effectiveTotal,
         payment_method: paymentMethod,
         coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
       };
