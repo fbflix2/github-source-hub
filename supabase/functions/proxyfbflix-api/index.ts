@@ -2634,6 +2634,38 @@ Deno.serve(async (req) => {
 
       // Fetch current data from Webshare
       const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY);
+      
+      // If the proxy is not found (404), it might have been removed or replaced in Webshare
+      if (resp.status === 404) {
+        console.warn(`[sync-credentials] Proxy ${fbflixId} not found (404). Falling back to full list search.`);
+        
+        const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+        const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
+        
+        const providerProxy = allProxies.find((proxy: any) => (
+          String(proxy.id) === String(fbflixId) ||
+          (proxyAddress && proxy.proxy_address === proxyAddress)
+        ));
+
+        if (!providerProxy) {
+          throw new Error("Proxy não encontrado no fornecedor. Pode ter sido removido ou expirado.");
+        }
+
+        const updatedRaw = buildStaticWebshareRawData(providerProxy, raw) as Record<string, any>;
+        updatedRaw.last_sync_at = new Date().toISOString();
+
+        const { error: updateErr } = await supabaseAdmin
+          .from("subscriptions")
+          .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+          .eq("id", sSubId);
+
+        if (updateErr) throw new Error(`Erro ao salvar sincronização (fallback): ${updateErr.message}`);
+
+        return new Response(JSON.stringify({ success: true, synced: true, method: "list-search" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const data = await resp.json();
       if (!resp.ok) throw new Error(`Erro na API Proxy Fbflix [${resp.status}]`);
 
