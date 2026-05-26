@@ -2546,6 +2546,7 @@ export type Database = {
           numero: string | null
           phone: string | null
           preferred_proxy_city: string | null
+          proxy_fixed_price: number | null
           proxy_price_multiplier: number | null
           referrer_id: string | null
           rua: string | null
@@ -2580,6 +2581,7 @@ export type Database = {
           numero?: string | null
           phone?: string | null
           preferred_proxy_city?: string | null
+          proxy_fixed_price?: number | null
           proxy_price_multiplier?: number | null
           referrer_id?: string | null
           rua?: string | null
@@ -2614,6 +2616,7 @@ export type Database = {
           numero?: string | null
           phone?: string | null
           preferred_proxy_city?: string | null
+          proxy_fixed_price?: number | null
           proxy_price_multiplier?: number | null
           referrer_id?: string | null
           rua?: string | null
