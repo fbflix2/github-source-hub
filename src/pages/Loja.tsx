@@ -178,11 +178,10 @@ export default function Dashboard() {
    const getLocalProxyData = useCallback((apiProduct: any) => {
     const apiId = String(apiProduct.id);
     const apiName = apiProduct.name || "";
-    // Match by external_id first, then fallback to normalized name
+    // Match ONLY by external_id. Do NOT match by name to avoid accidental
+    // routing of local fbflix proxies to ProxyBR fulfillment.
     const match = localProxyProducts.find(
       (p) => p.external_id === apiId
-    ) || localProxyProducts.find(
-      (p) => normalizeStr(p.name) === normalizeStr(apiName)
     );
     if (match) {
       console.log(`[ProxyMatch] API id=${apiId} → local id=${match.id}, price=${match.price}, tags=${JSON.stringify(match.tags)}, desc=${match.description?.substring(0, 30)}`);
