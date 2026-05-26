@@ -1020,8 +1020,13 @@ export default function Checkout() {
           return;
         }
 
-        // Detect proxy provider: ProxyFbflix = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
-        const isProxyFbflixProduct = product?.icon_type === 'proxy' && !product?.external_id;
+        // Detect proxy provider.
+        // PRIORITY: if sessionStorage.proxy_purchase has product_variant_id, this is a ProxyBR
+        // contract (selected via Loja variant modal) and MUST route to ProxyBR even if the
+        // local product row looks like a Fbflix proxy (icon_type=proxy, no external_id).
+        const proxyDataEarly = getProxyPurchaseData();
+        const isProxyBRPurchase = !!proxyDataEarly?.product_variant_id;
+        const isProxyFbflixProduct = !isProxyBRPurchase && product?.icon_type === 'proxy' && !product?.external_id;
         const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
         if (isProxyFbflixProduct) {
           updateData.status = "processing";
