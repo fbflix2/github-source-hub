@@ -263,8 +263,11 @@ export default function Dashboard() {
 
     const standaloneLocalProxies = useMemo(() => {
       const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
-      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
-    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
+      const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
+      return proxyfbflixLocalProducts
+        .filter(p => !matchedLocalIds.has(p.id))
+        .map(p => ({ ...p, price: Number(p.price || 0) * multiplier }));
+    }, [apiProxyAsProducts, proxyfbflixLocalProducts, userProfile]);
 
     const allPurposes = useMemo(() => {
       if (activeFilter === "Proxy") return proxyPurposes;
