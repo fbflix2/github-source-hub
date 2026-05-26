@@ -740,6 +740,10 @@ export default function AdminProducts() {
             <BarChart3 className="h-3.5 w-3.5" />
             Visão de Vendas
           </TabsTrigger>
+          <TabsTrigger value="categorias" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
+            <Layers className="h-3.5 w-3.5" />
+            Categorias
+          </TabsTrigger>
           <TabsTrigger value="espera" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
             <BellRing className="h-3.5 w-3.5" />
             Produtos em Espera
