@@ -365,10 +365,16 @@ export default function AdminProducts() {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     const slug = newCategory.trim().toLowerCase().replace(/\s+/g, "-");
-    const { error } = await supabase.from("product_categories").insert({ name: newCategory.trim(), slug });
+    const restrictedTo = newCategoryRestricted.split(",").map(s => s.trim()).filter(Boolean);
+    const { error } = await supabase.from("product_categories").insert({ 
+      name: newCategory.trim(), 
+      slug,
+      restricted_to: restrictedTo.length > 0 ? restrictedTo : null
+    });
     if (error) { toast.error("Erro: " + error.message); return; }
     toast.success("Categoria criada!");
     setNewCategory("");
+    setNewCategoryRestricted("");
     fetchData();
   };
 
