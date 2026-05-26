@@ -134,6 +134,21 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               </div>
               <Switch checked={apiAuthorized} onCheckedChange={setApiAuthorized} />
             </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Multiplicador de Preço Proxy</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Ex: 0.80 = 20% de desconto; 1.0 = preço padrão</p>
+              </div>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={proxyMultiplier}
+                onChange={(e) => setProxyMultiplier(e.target.value)}
+                placeholder="1.0"
+              />
+            </div>
           </div>
 
           {documentUrl && (
