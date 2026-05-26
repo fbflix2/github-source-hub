@@ -1018,10 +1018,9 @@ export default function Checkout() {
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance, proxy_fixed_price").eq("user_id", user.id).maybeSingle();
         
-        // Rule: If customer has a fixed proxy price, they must have at least R$ 100 in balance to use it
-        const isProxy = product?.icon_type === 'proxy' || !!getProxyPurchaseData();
-        if (isProxy && profile?.proxy_fixed_price !== null && (profile?.balance || 0) < 100) {
-          toast.error("Para comprar proxies com seu preço especial, você deve ter um saldo mínimo de R$ 100,00.");
+        if (!profile || profile.balance < chargeTotal) {
+          toast.error(`Saldo insuficiente (R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")}). Redirecionando para PIX...`);
+          setPaymentMethod("pix");
           setProcessing(false);
           clearTimeout(safetyTimeout);
           return;
