@@ -297,6 +297,7 @@ export default function Dashboard() {
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
    const filteredProducts = useMemo(() => {
+     const proxyMultiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
      let base = activeFilter === "Todos"
        ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
        : products.filter((p) => {
@@ -320,8 +321,11 @@ export default function Dashboard() {
           });
         });
       }
+     if (proxyMultiplier !== 1) {
+       base = base.map(p => isLocalProxy(p) ? { ...p, price: Number(p.price || 0) * proxyMultiplier } : p);
+     }
      return base;
-   }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose]);
+   }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose, userProfile]);
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
    const getCategoryPriority = useCallback((product: Product) => {
