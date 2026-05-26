@@ -1408,6 +1408,14 @@ export default function Checkout() {
           if (createdItems) {
             for (const oi of createdItems) {
               if (!oi.product_id) continue;
+
+              // Skip products that are already being handled as proxies (they create subscriptions)
+              const { data: itemProd } = await supabase.from("products").select("icon_type").eq("id", oi.product_id).single();
+              if (itemProd?.icon_type === 'proxy') {
+                console.log(`[Checkout] Skipping fulfillment for proxy item ${oi.id} as it should be handled via subscriptions`);
+                continue;
+              }
+
               const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
               if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
               const { data: result } = await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
