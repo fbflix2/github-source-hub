@@ -217,6 +217,7 @@ export default function Dashboard() {
     const fbPurposes = ["Todos", "Black", "White", "Marketplace"];
 
     const apiProxyAsProducts: Product[] = useMemo(() => {
+      const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
       const base = proxyProducts.map((p: any) => {
         const local = getLocalProxyData(p);
         const variants = p.variant || p.variants?.data || p.variants || [];
@@ -229,7 +230,7 @@ export default function Dashboard() {
           id: local?.id || String(p.id),
           name: local?.name || p.name,
           description: local?.description || p.description || null,
-          price: Number(price),
+          price: Number(price) * multiplier,
           price_label: "mensal",
           image_url: local?.image_url || getProxyImage(p.name),
           badge_text: local?.badge_text || null,
@@ -262,8 +263,11 @@ export default function Dashboard() {
 
     const standaloneLocalProxies = useMemo(() => {
       const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
-      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
-    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
+      const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
+      return proxyfbflixLocalProducts
+        .filter(p => !matchedLocalIds.has(p.id))
+        .map(p => ({ ...p, price: Number(p.price || 0) * multiplier }));
+    }, [apiProxyAsProducts, proxyfbflixLocalProducts, userProfile]);
 
     const allPurposes = useMemo(() => {
       if (activeFilter === "Proxy") return proxyPurposes;
@@ -293,6 +297,7 @@ export default function Dashboard() {
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
    const filteredProducts = useMemo(() => {
+     const proxyMultiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
      let base = activeFilter === "Todos"
        ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
        : products.filter((p) => {
@@ -316,8 +321,11 @@ export default function Dashboard() {
           });
         });
       }
+     if (proxyMultiplier !== 1) {
+       base = base.map(p => isLocalProxy(p) ? { ...p, price: Number(p.price || 0) * proxyMultiplier } : p);
+     }
      return base;
-   }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose]);
+   }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose, userProfile]);
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
    const getCategoryPriority = useCallback((product: Product) => {
