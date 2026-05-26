@@ -44,6 +44,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  restricted_to: string[] | null;
 }
 
 type ProductIcon = "perfil" | "bm" | "proxy" | "page";
