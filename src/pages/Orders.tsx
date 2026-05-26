@@ -16,6 +16,7 @@ interface ComboProfile {
 interface OrderItem {
   id: string;
   name: string;
+  product_id?: string;
   description: string | null;
   price: number;
   quantity: number;
