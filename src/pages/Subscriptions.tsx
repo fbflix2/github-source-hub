@@ -497,18 +497,21 @@ function ProxiesPanel() {
             ))}
           </div>
         </div>
-        <button
-          onClick={() => setAdvancedOpen(prev => !prev)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
-            advancedOpen
-              ? "bg-primary/10 text-primary border-primary/30"
-              : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-border/60"
-          }`}
-          title="Filtro Avançado"
-        >
-          <SlidersHorizontal className="size-3.5" />
-          <span className="hidden sm:inline">Filtros</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <DownloadProxiesDialog subscriptions={subscriptions} />
+          <button
+            onClick={() => setAdvancedOpen(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+              advancedOpen
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-border/60"
+            }`}
+            title="Filtro Avançado"
+          >
+            <SlidersHorizontal className="size-3.5" />
+            <span className="hidden sm:inline">Filtros</span>
+          </button>
+        </div>
       </div>
 
       {/* Advanced Filters Panel */}
