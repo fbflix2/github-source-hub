@@ -579,6 +579,8 @@ export default function Dashboard() {
                       quantity={getProxyQty(String(apiProduct.id))}
                       onQuantityChange={updateProxyQty}
                       localData={getLocalProxyData(apiProduct)}
+                      multiplier={Number(userProfile?.proxy_price_multiplier ?? 1) || 1}
+                      fixedPrice={userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null}
                       onReadMore={(info) => { 
                         const variants = apiProduct.variant || apiProduct.variants?.data || apiProduct.variants || []; 
                         const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); 
