@@ -22,9 +22,20 @@ interface ProxyProductCardProps {
   onQuantityChange: (id: string, delta: number) => void;
   localData?: LocalProductData | null;
   onReadMore?: (info: { name: string; description: string | null; tags: string[] | null; image_url: string | null; price: number }) => void;
+  multiplier?: number;
+  fixedPrice?: number | null;
 }
 
-export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange, localData, onReadMore }: ProxyProductCardProps) {
+export function ProxyProductCard({ 
+  product, 
+  proxyImage, 
+  quantity, 
+  onQuantityChange, 
+  localData, 
+  onReadMore,
+  multiplier = 1,
+  fixedPrice = null
+}: ProxyProductCardProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   
@@ -34,7 +45,8 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
     ? variants.reduce((min: any, v: any) =>
         (v.price || 0) < (min.price || 0) ? v : min, variants[0])
     : null;
-  const price = (localData?.price != null && localData.price > 0) ? localData.price : (cheapestVariant?.price || product.price || 0);
+  const basePrice = (localData?.price != null && localData.price > 0) ? localData.price : (cheapestVariant?.price || product.price || 0);
+  const price = fixedPrice !== null ? fixedPrice : Number(basePrice) * multiplier;
   const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
   const productId = String(product.id);
   const typeLabel = product.type || "Proxy";

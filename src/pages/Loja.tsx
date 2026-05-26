@@ -579,6 +579,8 @@ export default function Dashboard() {
                       quantity={getProxyQty(String(apiProduct.id))}
                       onQuantityChange={updateProxyQty}
                       localData={getLocalProxyData(apiProduct)}
+                      multiplier={Number(userProfile?.proxy_price_multiplier ?? 1) || 1}
+                      fixedPrice={userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null}
                       onReadMore={(info) => { 
                         const variants = apiProduct.variant || apiProduct.variants?.data || apiProduct.variants || []; 
                         const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); 
@@ -770,7 +772,7 @@ export default function Dashboard() {
                             <span className="w-6 text-center text-xs font-medium text-foreground">{getQuantity(product.id)}</span>
                             <button onClick={() => updateQuantity(product.id, 1, product.stock)} disabled={getQuantity(product.id) >= product.stock} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition disabled:opacity-30"><span className="material-symbols-outlined text-[14px]">add</span></button>
                           </div>
-                          <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg", isProxy: (product as any).icon_type === "proxy" }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[16px]">shopping_cart</span></button>
+                          <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg", isProxy: isLocalProxy(product) }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[16px]">shopping_cart</span></button>
                           <button onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)} className="flex-1 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5"><span className="material-symbols-outlined text-[14px]">flash_on</span>Comprar</button>
                         </>
                       ) : (
@@ -794,18 +796,7 @@ export default function Dashboard() {
                 </article>
               );
             })}
-            {/* Proxy products from API in "Todos" view */}
-            {activeFilter === "Todos" && proxyProducts.map((product: any) => (
-              <ProxyProductCard
-                key={`grid-proxy-${product.id}`}
-                product={product}
-                proxyImage={getProxyImage(product.name)}
-                quantity={getProxyQty(String(product.id))}
-                onQuantityChange={updateProxyQty}
-                localData={getLocalProxyData(product)}
-                onReadMore={(info) => setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: 999, available: true, category_id: null, tags: info.tags } as any)}
-              />
-            ))}
+            {/* All items are already included in allProducts above */}
           </div>
         )}
       </section>
