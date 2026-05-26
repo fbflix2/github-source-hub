@@ -60,8 +60,9 @@ export default function Dashboard() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [inactiveProxyExternalIds, setInactiveProxyExternalIds] = useState<Set<string>>(new Set());
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<(Category & { restricted_to?: string[] | null })[]>([]);
   const [activePurpose, setActivePurpose] = useState("Todos");
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     setActivePurpose("Todos");
@@ -90,7 +91,9 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, inactiveProxiesRes] = await Promise.all([
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, inactiveProxiesRes, profileRes] = await Promise.all([
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
@@ -98,10 +101,19 @@ export default function Dashboard() {
       supabase.from("banner_categories").select("value, label").order("position"),
       // Fetch inactive proxy products to hide them from API results
       supabase.from("products").select("external_id").neq("status", "active").not("external_id", "is", null),
+      user ? supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
-    if (categoriesRes.data) setCategories(categoriesRes.data);
+    if (categoriesRes.data) {
+      const userDept = profileRes.data?.department;
+      const filteredCats = categoriesRes.data.filter((cat: any) => {
+        if (!cat.restricted_to || cat.restricted_to.length === 0) return true;
+        if (!userDept) return false;
+        return cat.restricted_to.some((dept: string) => dept.toLowerCase().trim() === userDept.toLowerCase().trim());
+      });
+      setCategories(filteredCats);
+    }
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
     if (bannersRes.data) setHeroBanners(bannersRes.data);
     if (bannerCatsRes.data) {
@@ -112,6 +124,7 @@ export default function Dashboard() {
     if (inactiveProxiesRes.data) {
       setInactiveProxyExternalIds(new Set(inactiveProxiesRes.data.map((p: any) => p.external_id).filter(Boolean)));
     }
+    if (profileRes.data) setUserProfile(profileRes.data);
     setLoading(false);
   }, []);
 

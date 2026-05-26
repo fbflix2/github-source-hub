@@ -44,6 +44,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  restricted_to: string[] | null;
 }
 
 type ProductIcon = "perfil" | "bm" | "proxy" | "page";
@@ -101,6 +102,7 @@ export default function AdminProducts() {
 
   // Category management
   const [newCategory, setNewCategory] = useState("");
+  const [newCategoryRestricted, setNewCategoryRestricted] = useState("");
 
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
@@ -363,10 +365,16 @@ export default function AdminProducts() {
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     const slug = newCategory.trim().toLowerCase().replace(/\s+/g, "-");
-    const { error } = await supabase.from("product_categories").insert({ name: newCategory.trim(), slug });
+    const restrictedTo = newCategoryRestricted.split(",").map(s => s.trim()).filter(Boolean);
+    const { error } = await supabase.from("product_categories").insert({ 
+      name: newCategory.trim(), 
+      slug,
+      restricted_to: restrictedTo.length > 0 ? restrictedTo : null
+    });
     if (error) { toast.error("Erro: " + error.message); return; }
     toast.success("Categoria criada!");
     setNewCategory("");
+    setNewCategoryRestricted("");
     fetchData();
   };
 
@@ -732,6 +740,10 @@ export default function AdminProducts() {
             <BarChart3 className="h-3.5 w-3.5" />
             Visão de Vendas
           </TabsTrigger>
+          <TabsTrigger value="categorias" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
+            <Layers className="h-3.5 w-3.5" />
+            Categorias
+          </TabsTrigger>
           <TabsTrigger value="espera" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
             <BellRing className="h-3.5 w-3.5" />
             Produtos em Espera
@@ -1022,6 +1034,55 @@ export default function AdminProducts() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="categorias" className="space-y-4">
+          <div className="glass-panel rounded-xl p-4 space-y-6">
+            <div className="flex flex-col md:flex-row items-end gap-4 border-b border-zinc-800 pb-6">
+              <div className="flex-1 space-y-1.5 w-full">
+                <label className="text-sm text-zinc-400">Novo Nome da Categoria</label>
+                <Input value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Ex: Proxy VIP" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500" />
+              </div>
+              <div className="flex-1 space-y-1.5 w-full">
+                <label className="text-sm text-zinc-400">Restrito para Departamentos (opcional, separado por vírgula)</label>
+                <Input value={newCategoryRestricted} onChange={e => setNewCategoryRestricted(e.target.value)} placeholder="Ex: VIP, B2B, Especial" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500" />
+              </div>
+              <Button onClick={handleAddCategory} className="bg-primary hover:bg-primary/90 text-white">
+                <Plus className="h-4 w-4 mr-2" /> CRIAR CATEGORIA
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-white">Gerenciar Categorias Existentes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.map(cat => (
+                  <div key={cat.id} className="p-4 bg-zinc-800/30 rounded-lg border border-zinc-700 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{cat.name}</span>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400" onClick={async () => {
+                        if (window.confirm("Excluir esta categoria?")) {
+                          const { error } = await supabase.from("product_categories").delete().eq("id", cat.id);
+                          if (error) toast.error(error.message); else fetchData();
+                        }
+                      }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-zinc-500 uppercase font-black">Restrito para:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {cat.restricted_to && cat.restricted_to.length > 0 ? (
+                          cat.restricted_to.map(dept => <Badge key={dept} variant="outline" className="text-[10px] border-primary/30 text-primary">{dept}</Badge>)
+                        ) : (
+                          <span className="text-xs text-zinc-600">Público (Todos)</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>

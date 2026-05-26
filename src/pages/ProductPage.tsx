@@ -22,37 +22,56 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!slug) return;
-    (supabase
-      .from("products")
-      .select("*") as any)
-      .eq("slug", slug)
-      .eq("status", "active")
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data) {
-          setProduct(data);
-          // Atualiza as meta tags dinamicamente
-          document.title = `${data.name} - FBFLIX`;
-          
-          const updateMeta = (property: string, content: string, attr = "property") => {
-            let el = document.querySelector(`meta[${attr}="${property}"]`);
-            if (!el) {
-              el = document.createElement('meta');
-              el.setAttribute(attr, property);
-              document.head.appendChild(el);
-            }
-            el.setAttribute('content', content);
-          };
+    (async () => {
+      const { data: productData, error: productError } = await (supabase
+        .from("products")
+        .select("*, category:category_id(*)") as any)
+        .eq("slug", slug)
+        .eq("status", "active")
+        .maybeSingle();
 
-          updateMeta('og:title', data.name);
-          updateMeta('og:description', data.description || "Confira este produto na FBFLIX!");
-          updateMeta('og:image', data.image_url || "");
-          updateMeta('twitter:title', data.name, "name");
-          updateMeta('twitter:image', data.image_url || "", "name");
+      if (productData) {
+        const category = productData.category;
+        if (category?.restricted_to && category.restricted_to.length > 0) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            navigate("/auth");
+            return;
+          }
+          const { data: profile } = await supabase.from("profiles").select("department").eq("user_id", user.id).maybeSingle();
+          const userDept = profile?.department;
+          const isAllowed = userDept && category.restricted_to.some((dept: string) => dept.toLowerCase().trim() === userDept.toLowerCase().trim());
+          
+          if (!isAllowed) {
+            toast.error("Você não tem acesso a este produto.");
+            navigate("/loja");
+            return;
+          }
         }
-        setLoading(false);
-      });
-  }, [slug]);
+        
+        setProduct(productData);
+        // Atualiza as meta tags dinamicamente
+        document.title = `${productData.name} - FBFLIX`;
+        
+        const updateMeta = (property: string, content: string, attr = "property") => {
+          let el = document.querySelector(`meta[${attr}="${property}"]`);
+          if (!el) {
+            el = document.createElement('meta');
+            el.setAttribute(attr, property);
+            document.head.appendChild(el);
+          }
+          el.setAttribute('content', content);
+        };
+
+        updateMeta('og:title', productData.name);
+        updateMeta('og:description', productData.description || "Confira este produto na FBFLIX!");
+        updateMeta('og:image', productData.image_url || "");
+        updateMeta('twitter:title', productData.name, "name");
+        updateMeta('twitter:image', productData.image_url || "", "name");
+      }
+      setLoading(false);
+    })();
+  }, [slug, navigate]);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/p/${slug}`;
