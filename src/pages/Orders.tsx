@@ -375,117 +375,80 @@ export default function Orders() {
 
                     <div className="flex flex-col gap-2">
                       {(() => {
-                        // Group BM and Page items into single rows, expand others individually
-                        const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm' && !(i.comboProfiles?.length));
-                        const pageItems = selectedOrder.items.filter(i => i.iconType === 'page' && !(i.comboProfiles?.length));
-                        const proxyItems = selectedOrder.items.filter(i => i.iconType === 'proxy' && !(i.comboProfiles?.length));
-                        const otherItems = selectedOrder.items.filter(i => (
-                          i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy'
-                        ) || !!i.comboProfiles?.length);
+                        // Group items by product_id to show them as single rows (like 5 BMs, 5 Profiles, etc.)
                         const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean; comboStockItemId?: string }[] = [];
+                        
+                        // Separate products into groups
+                        const groupedItems = new Map<string, OrderItem[]>();
+                        selectedOrder.items.forEach(item => {
+                          const key = item.product_id || item.id;
+                          if (!groupedItems.has(key)) groupedItems.set(key, []);
+                          groupedItems.get(key)!.push(item);
+                        });
 
-                        // BM: single grouped row
-                        if (bmItems.length > 0) {
-                          const totalBmPrice = bmItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-                          const totalBmQty = bmItems.reduce((sum, i) => sum + i.quantity, 0);
-                          rows.push({
-                            key: 'bm-group',
-                            name: bmItems[0].name,
-                            subtitle: totalBmQty > 1 ? `${totalBmQty} BMs neste pedido` : 'Unidade 1 de 1',
-                            price: totalBmPrice,
-                            totalPrice: totalBmPrice,
-                            itemId: bmItems[0].id,
-                            isBlocked: bmItems.some(i => i.isBlocked),
-                            isReplaced: bmItems.some(i => i.isReplaced),
-                            replacedAt: bmItems.find(i => i.replacedAt)?.replacedAt || null,
-                            isBm: true,
-                            isPage: false,
-                            isProxy: false,
-                          });
-                        }
+                        groupedItems.forEach((items, productId) => {
+                          const item = items[0];
+                          const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+                          const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                          const isBm = item.iconType === 'bm';
+                          const isPage = item.iconType === 'page';
+                          const isProxy = item.iconType === 'proxy';
 
-                        // Page: single grouped row
-                        if (pageItems.length > 0) {
-                          const totalPageQty = pageItems.reduce((sum, i) => sum + i.quantity, 0);
-                          const totalPagePrice = pageItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-                          rows.push({
-                            key: 'page-group',
-                            name: pageItems[0].name,
-                            subtitle: totalPageQty > 1 ? `${totalPageQty} páginas neste pedido` : 'Unidade 1 de 1',
-                            price: totalPagePrice,
-                            totalPrice: totalPagePrice,
-                            itemId: pageItems[0].id,
-                            isBlocked: pageItems.some(i => i.isBlocked),
-                            isReplaced: pageItems.some(i => i.isReplaced),
-                            replacedAt: pageItems.find(i => i.replacedAt)?.replacedAt || null,
-                            isBm: false,
-                            isPage: true,
-                            isProxy: false,
-                          });
-                        }
-
-                        // Proxy: grouped row linking to subscriptions
-                        if (proxyItems.length > 0) {
-                          const totalProxyPrice = proxyItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-                          const totalProxyQty = proxyItems.reduce((sum, i) => sum + i.quantity, 0);
-                          rows.push({
-                            key: 'proxy-group',
-                            name: proxyItems[0].name,
-                            subtitle: totalProxyQty > 1 ? `${totalProxyQty} proxies — ver em Assinaturas` : 'Gerenciar em Assinaturas',
-                            price: totalProxyPrice,
-                            totalPrice: totalProxyPrice,
-                            itemId: proxyItems[0].id,
-                            isBlocked: false,
-                            isReplaced: false,
-                            replacedAt: null,
-                            isBm: false,
-                            isPage: false,
-                            isProxy: true,
-                          });
-                        }
-
-                        // Others: expand as before (with combo profiles as separate rows)
-                        otherItems.forEach(item => {
-                          const comboProfiles = item.comboProfiles || [];
-
-                          if (comboProfiles.length > 0) {
-                            const unitPrice = item.price / comboProfiles.length;
-                            comboProfiles.forEach((profile, idx) => {
-                              rows.push({
-                                key: `${item.id}-combo-${profile.id}`,
-                                name: `${item.name} • Item ${idx + 1}`,
-                                subtitle: profile.identificationLink || profile.identification || profile.name,
-                                price: unitPrice,
-                                totalPrice: unitPrice,
-                                hidePrice: true,
-                                itemId: item.id,
-                                comboStockItemId: profile.id,
-                                isBlocked: !!item.isBlocked,
-                                isReplaced: !!profile.isReplaced,
-                                replacedAt: profile.isReplaced ? (item.replacedAt || null) : null,
-                                isBm: false,
-                                isPage: false,
-                                isProxy: false,
+                          // If it has combo profiles, expand them individually as they have distinct child profiles
+                          if (item.comboProfiles && item.comboProfiles.length > 0) {
+                            items.forEach(it => {
+                              it.comboProfiles?.forEach((profile, idx) => {
+                                rows.push({
+                                  key: `combo-${profile.id}`,
+                                  name: `${it.name} • Item ${idx + 1}`,
+                                  subtitle: profile.identificationLink || profile.identification || profile.name,
+                                  price: it.price,
+                                  totalPrice: it.price,
+                                  itemId: it.id,
+                                  comboStockItemId: profile.id,
+                                  isBlocked: !!it.isBlocked,
+                                  isReplaced: !!profile.isReplaced,
+                                  replacedAt: profile.isReplaced ? (it.replacedAt || null) : null,
+                                  isBm: false,
+                                  isPage: false,
+                                  isProxy: false,
+                                  hidePrice: true
+                                });
                               });
                             });
-                            return;
-                          }
-
-                          const count = item.quantity > 1 ? item.quantity : 1;
-                          for (let idx = 0; idx < count; idx++) {
+                          } else if (isProxy) {
+                            // Proxies: grouped row linking to subscriptions
                             rows.push({
-                              key: `${item.id}-${idx}`,
+                              key: `proxy-group`,
                               name: item.name,
-                              subtitle: item.description || `Unidade ${idx + 1} de ${count}`,
-                              price: item.price,
-                              totalPrice: item.price,
+                              subtitle: totalQty > 1 ? `${totalQty} proxies — ver em Assinaturas` : 'Gerenciar em Assinaturas',
+                              price: totalPrice,
+                              totalPrice: totalPrice,
                               itemId: item.id,
-                              isBlocked: !!item.isBlocked,
-                              isReplaced: !!item.isReplaced,
-                              replacedAt: item.replacedAt || null,
+                              isBlocked: false,
+                              isReplaced: false,
+                              replacedAt: null,
                               isBm: false,
                               isPage: false,
-                              isProxy: false,
+                              isProxy: true,
+                            });
+                          } else {
+                            // Group normal items (BMs, Pages, Profiles, etc.)
+                            rows.push({
+                              key: `group-${productId}`,
+                              name: item.name,
+                              subtitle: totalQty > 1 
+                                ? `${totalQty} unidades deste item` 
+                                : (item.description || 'Unidade 1 de 1'),
+                              price: totalPrice,
+                              totalPrice: totalPrice,
+                              itemId: item.id,
+                              isBlocked: items.some(i => i.isBlocked),
+                              isReplaced: items.some(i => i.isReplaced),
+                              replacedAt: items.find(i => i.replacedAt)?.replacedAt || null,
+                              isBm,
+                              isPage,
+                              isProxy,
                             });
                           }
                         });
