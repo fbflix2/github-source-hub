@@ -865,7 +865,7 @@ export default function ItemDetails() {
                     )}
                     {bmLinks.length === 0 ? (
                       <p className="text-text-secondary text-xs">Nenhum link disponível ainda.</p>
-                    ) : bmLinks.length <= 3 ? (
+                    ) : bmLinks.length <= 20 ? (
                       <div className="space-y-2">
                         {bmLinks.map((link, i) => (
                           <div key={i}>
