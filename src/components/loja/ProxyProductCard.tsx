@@ -161,10 +161,11 @@ export function ProxyProductCard({
             onClick={() => {
               // Auto-select cheapest variant and go straight to checkout
               const variant = cheapestVariant || variants[0];
+              const isAPIProduct = !!product.external_id;
               const desc = description ? `${description}${variant?.location ? ` Localização: ${variant.location}` : ""}` : `Localização: ${variant?.location || "N/A"} Protocolo: ${typeLabel}`;
               sessionStorage.setItem("proxy_purchase", JSON.stringify({
-                product_variant_id: variant?.id,
-                api_product_id: product.id,
+                product_variant_id: isAPIProduct ? variant?.id : undefined,
+                api_product_id: isAPIProduct ? product.id : undefined,
                 variant_location: variant?.location,
                 quantity,
                 interval: "monthly",
