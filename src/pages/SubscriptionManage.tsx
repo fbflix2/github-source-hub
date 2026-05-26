@@ -61,11 +61,6 @@ export default function SubscriptionManage() {
     queryFn: async () => {
       if (!realSubName) return null;
 
-      // For ProxyFbflix subs, use the price from the join
-      if ((sub as any)?.customer_price != null) {
-        return Number((sub as any).customer_price);
-      }
-
       const totalProxies = sub?.totalProxies ?? 1;
 
       // Try order_items first
@@ -77,6 +72,31 @@ export default function SubscriptionManage() {
         .maybeSingle();
       if (orderItem?.price != null) {
         return Number(orderItem.price);
+      }
+
+      // Try via subscription user/product (latest matching order_item)
+      const { data: subRow } = await supabase
+        .from("subscriptions")
+        .select("user_id, product_id")
+        .eq("name", realSubName)
+        .maybeSingle();
+      if (subRow?.user_id && subRow?.product_id) {
+        const { data: oiByProduct } = await supabase
+          .from("order_items")
+          .select("price, created_at, orders!inner(user_id)")
+          .eq("product_id", subRow.product_id)
+          .eq("orders.user_id", subRow.user_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if ((oiByProduct as any)?.price != null) {
+          return Number((oiByProduct as any).price);
+        }
+      }
+
+      // For ProxyFbflix subs, fallback to catalog price from the join
+      if ((sub as any)?.customer_price != null) {
+        return Number((sub as any).customer_price);
       }
 
       // Fallback: find product by external_id (API product id) or name match
