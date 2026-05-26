@@ -2195,18 +2195,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          restricted_to: string[] | null
           slug: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          restricted_to?: string[] | null
           slug: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          restricted_to?: string[] | null
           slug?: string
         }
         Relationships: []

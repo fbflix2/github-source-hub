@@ -60,8 +60,9 @@ export default function Dashboard() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [inactiveProxyExternalIds, setInactiveProxyExternalIds] = useState<Set<string>>(new Set());
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<(Category & { restricted_to?: string[] | null })[]>([]);
   const [activePurpose, setActivePurpose] = useState("Todos");
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     setActivePurpose("Todos");
