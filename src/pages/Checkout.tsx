@@ -1024,10 +1024,15 @@ export default function Checkout() {
         // PRIORITY: if sessionStorage.proxy_purchase has product_variant_id, this is a ProxyBR
         // contract (selected via Loja variant modal) and MUST route to ProxyBR even if the
         // local product row looks like a Fbflix proxy (icon_type=proxy, no external_id).
+        // Detect proxy provider.
+        // PRIORITY: if product has no external_id, it is a local (Fbflix) proxy.
+        // We no longer rely on isProxyBRPurchase (sessionStorage) here because 
+        // local proxies might be accidentally matched with API variants.
+        const isProxyFbflixProduct = product?.icon_type === 'proxy' && !product?.external_id;
         const proxyDataEarly = getProxyPurchaseData();
         const isProxyBRPurchase = !!proxyDataEarly?.product_variant_id;
-        const isProxyFbflixProduct = !isProxyBRPurchase && product?.icon_type === 'proxy' && !product?.external_id;
         const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
+        
         if (isProxyFbflixProduct) {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
@@ -1144,6 +1149,15 @@ export default function Checkout() {
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
+            
+            // Skip products that are already being handled as proxies (they create subscriptions)
+            // or that already have delivery data.
+            const { data: itemProd } = await supabase.from("products").select("icon_type").eq("id", oi.product_id).single();
+            if (itemProd?.icon_type === 'proxy') {
+              console.log(`[Checkout] Skipping fulfillment for proxy item ${oi.id} as it should be handled via subscriptions`);
+              continue;
+            }
+
             const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
             if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
 
@@ -1394,6 +1408,14 @@ export default function Checkout() {
           if (createdItems) {
             for (const oi of createdItems) {
               if (!oi.product_id) continue;
+
+              // Skip products that are already being handled as proxies (they create subscriptions)
+              const { data: itemProd } = await supabase.from("products").select("icon_type").eq("id", oi.product_id).single();
+              if (itemProd?.icon_type === 'proxy') {
+                console.log(`[Checkout] Skipping fulfillment for proxy item ${oi.id} as it should be handled via subscriptions`);
+                continue;
+              }
+
               const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
               if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
               const { data: result } = await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
