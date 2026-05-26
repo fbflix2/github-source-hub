@@ -434,22 +434,29 @@ export default function Orders() {
                               isProxy: true,
                             });
                           } else {
-                            // Group normal items (BMs, Pages, Profiles, etc.)
-                            rows.push({
-                              key: `group-${productId}`,
-                              name: item.name,
-                              subtitle: totalQty > 1 
-                                ? `${totalQty} unidades deste item` 
-                                : (item.description || 'Unidade 1 de 1'),
-                              price: totalPrice,
-                              totalPrice: totalPrice,
-                              itemId: item.id,
-                              isBlocked: items.some(i => i.isBlocked),
-                              isReplaced: items.some(i => i.isReplaced),
-                              replacedAt: items.find(i => i.replacedAt)?.replacedAt || null,
-                              isBm,
-                              isPage,
-                              isProxy,
+                            // Expand normal items (BMs, Pages, Profiles, etc.) — one row per unit so each has its own "Detalhes"
+                            const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0);
+                            let unitIndex = 0;
+                            items.forEach(it => {
+                              for (let q = 0; q < it.quantity; q++) {
+                                unitIndex += 1;
+                                rows.push({
+                                  key: `unit-${it.id}-${q}`,
+                                  name: totalUnits > 1 ? `${it.name} • Item ${unitIndex}` : it.name,
+                                  subtitle: totalUnits > 1
+                                    ? `Unidade ${unitIndex} de ${totalUnits}`
+                                    : (it.description || 'Unidade 1 de 1'),
+                                  price: it.price,
+                                  totalPrice: it.price,
+                                  itemId: it.id,
+                                  isBlocked: !!it.isBlocked,
+                                  isReplaced: !!it.isReplaced,
+                                  replacedAt: it.replacedAt || null,
+                                  isBm,
+                                  isPage,
+                                  isProxy,
+                                });
+                              }
                             });
                           }
                         });
