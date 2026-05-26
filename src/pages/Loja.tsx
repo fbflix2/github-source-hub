@@ -217,6 +217,7 @@ export default function Dashboard() {
     const fbPurposes = ["Todos", "Black", "White", "Marketplace"];
 
     const apiProxyAsProducts: Product[] = useMemo(() => {
+      const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
       const base = proxyProducts.map((p: any) => {
         const local = getLocalProxyData(p);
         const variants = p.variant || p.variants?.data || p.variants || [];
@@ -229,7 +230,7 @@ export default function Dashboard() {
           id: local?.id || String(p.id),
           name: local?.name || p.name,
           description: local?.description || p.description || null,
-          price: Number(price),
+          price: Number(price) * multiplier,
           price_label: "mensal",
           image_url: local?.image_url || getProxyImage(p.name),
           badge_text: local?.badge_text || null,
