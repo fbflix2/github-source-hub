@@ -102,6 +102,7 @@ export default function AdminProducts() {
 
   // Category management
   const [newCategory, setNewCategory] = useState("");
+  const [newCategoryRestricted, setNewCategoryRestricted] = useState("");
 
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
