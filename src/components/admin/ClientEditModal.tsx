@@ -33,6 +33,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [apiAuthorized, setApiAuthorized] = useState(false);
   const [proxyMultiplier, setProxyMultiplier] = useState("1.0");
+  const [proxyFixedPrice, setProxyFixedPrice] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
@@ -43,11 +44,12 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setBalance(client.balance.toString());
       setStatus(client.status);
       // Fetch card_payment_enabled
-      supabase.from("profiles").select("card_payment_enabled, is_api_authorized, document_url, proxy_price_multiplier").eq("user_id", client.user_id).single().then(({ data }) => {
+      supabase.from("profiles").select("card_payment_enabled, is_api_authorized, document_url, proxy_price_multiplier, proxy_fixed_price").eq("user_id", client.user_id).single().then(({ data }) => {
         setCardPaymentEnabled(data?.card_payment_enabled ?? false);
         setApiAuthorized((data as any)?.is_api_authorized ?? false);
         setDocumentUrl((data as any)?.document_url ?? null);
         setProxyMultiplier(String((data as any)?.proxy_price_multiplier ?? 1.0));
+        setProxyFixedPrice(data?.proxy_fixed_price ? String(data.proxy_fixed_price) : "");
       });
     }
   }, [client]);
@@ -66,6 +68,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           card_payment_enabled: cardPaymentEnabled,
           is_api_authorized: apiAuthorized,
           proxy_price_multiplier: parseFloat(proxyMultiplier) || 1.0,
+          proxy_fixed_price: proxyFixedPrice ? parseFloat(proxyFixedPrice) : null,
         })
         .eq("user_id", client.user_id);
 
@@ -147,6 +150,21 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
                 value={proxyMultiplier}
                 onChange={(e) => setProxyMultiplier(e.target.value)}
                 placeholder="1.0"
+              />
+            </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Preço Fixo Proxy (R$)</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Se definido, ignora o multiplicador e o preço base.</p>
+              </div>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={proxyFixedPrice}
+                onChange={(e) => setProxyFixedPrice(e.target.value)}
+                placeholder="Ex: 2.00"
               />
             </div>
           </div>
