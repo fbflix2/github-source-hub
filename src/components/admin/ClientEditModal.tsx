@@ -32,6 +32,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [status, setStatus] = useState("active");
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [apiAuthorized, setApiAuthorized] = useState(false);
+  const [proxyMultiplier, setProxyMultiplier] = useState("1.0");
   const [saving, setSaving] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
@@ -42,10 +43,11 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setBalance(client.balance.toString());
       setStatus(client.status);
       // Fetch card_payment_enabled
-      supabase.from("profiles").select("card_payment_enabled, is_api_authorized, document_url").eq("user_id", client.user_id).single().then(({ data }) => {
+      supabase.from("profiles").select("card_payment_enabled, is_api_authorized, document_url, proxy_price_multiplier").eq("user_id", client.user_id).single().then(({ data }) => {
         setCardPaymentEnabled(data?.card_payment_enabled ?? false);
         setApiAuthorized((data as any)?.is_api_authorized ?? false);
         setDocumentUrl((data as any)?.document_url ?? null);
+        setProxyMultiplier(String((data as any)?.proxy_price_multiplier ?? 1.0));
       });
     }
   }, [client]);
@@ -63,6 +65,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           status,
           card_payment_enabled: cardPaymentEnabled,
           is_api_authorized: apiAuthorized,
+          proxy_price_multiplier: parseFloat(proxyMultiplier) || 1.0,
         })
         .eq("user_id", client.user_id);
 
