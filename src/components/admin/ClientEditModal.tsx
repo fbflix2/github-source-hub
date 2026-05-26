@@ -35,6 +35,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [proxyMultiplier, setProxyMultiplier] = useState("1.0");
   const [proxyFixedPrice, setProxyFixedPrice] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (client) {
