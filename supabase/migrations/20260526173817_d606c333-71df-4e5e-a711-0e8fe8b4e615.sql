@@ -1,0 +1,2 @@
+UPDATE public.order_items SET product_id = '0f469662-a5ce-4761-ba70-07aab27fdf0b' WHERE order_id = (SELECT id FROM orders WHERE code = 'ORD-MPMVRKH2');
+UPDATE public.subscriptions SET product_id = '0f469662-a5ce-4761-ba70-07aab27fdf0b' WHERE name = 'WS-MPMWW56L';
