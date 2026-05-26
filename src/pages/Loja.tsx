@@ -105,7 +105,15 @@ export default function Dashboard() {
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
-    if (categoriesRes.data) setCategories(categoriesRes.data);
+    if (categoriesRes.data) {
+      const userDept = profileRes.data?.department;
+      const filteredCats = categoriesRes.data.filter((cat: any) => {
+        if (!cat.restricted_to || cat.restricted_to.length === 0) return true;
+        if (!userDept) return false;
+        return cat.restricted_to.some((dept: string) => dept.toLowerCase().trim() === userDept.toLowerCase().trim());
+      });
+      setCategories(filteredCats);
+    }
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
     if (bannersRes.data) setHeroBanners(bannersRes.data);
     if (bannerCatsRes.data) {
@@ -116,6 +124,7 @@ export default function Dashboard() {
     if (inactiveProxiesRes.data) {
       setInactiveProxyExternalIds(new Set(inactiveProxiesRes.data.map((p: any) => p.external_id).filter(Boolean)));
     }
+    if (profileRes.data) setUserProfile(profileRes.data);
     setLoading(false);
   }, []);
 
