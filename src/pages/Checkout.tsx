@@ -67,19 +67,24 @@ export default function Checkout() {
     return cartItems.filter((ci) => ci.productId !== product.id);
   }, [cartItems, product]);
 
-  // Fetch user phone on mount
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Fetch user profile on mount
   useEffect(() => {
-    async function fetchUserPhone() {
+    async function fetchUserProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUserId(user.id);
-      const { data: profile } = await supabase.from("profiles").select("phone, referrer_id").eq("user_id", user.id).maybeSingle();
-      setUserPhone(profile?.phone || null);
-      if (profile?.referrer_id && !localStorage.getItem("partner_ref_id")) {
-        localStorage.setItem("partner_ref_id", profile.referrer_id);
+      const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+      if (profile) {
+        setUserProfile(profile);
+        setUserPhone(profile.phone || null);
+        if (profile.referrer_id && !localStorage.getItem("partner_ref_id")) {
+          localStorage.setItem("partner_ref_id", profile.referrer_id);
+        }
       }
     }
-    fetchUserPhone();
+    fetchUserProfile();
   }, []);
 
   useEffect(() => {
@@ -783,10 +788,20 @@ export default function Checkout() {
 
   const subtotal = useMemo(() => {
     if (!product) return 0;
-    let total = product.price * quantity;
+    
+    const isProxy = product.icon_type === 'proxy' || !!getProxyPurchaseData();
+    const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
+    const fixedPrice = userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null;
+    
+    // Apply special pricing for proxies
+    const adjustedProductPrice = isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
+    
+    let total = adjustedProductPrice * quantity;
 
     extraCartItems.forEach((ci) => {
-      total += ci.price * ci.quantity;
+      const ciIsProxy = ci.isProxy;
+      const ciPrice = ciIsProxy && fixedPrice !== null ? fixedPrice : ci.price * (ciIsProxy ? multiplier : 1);
+      total += ciPrice * ci.quantity;
     });
 
     selectedBumps.forEach((bumpId) => {
@@ -795,7 +810,7 @@ export default function Checkout() {
     });
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile]);
 
   const total = subtotal - discount;
 

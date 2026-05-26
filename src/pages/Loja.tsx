@@ -257,7 +257,7 @@ export default function Dashboard() {
         return [];
       }
       return base;
-    }, [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages, activeFilter, activePurpose]);
+    }, [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages, activeFilter, activePurpose, userProfile]);
 
     const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
