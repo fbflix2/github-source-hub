@@ -24,19 +24,43 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem("fbflix-cart");
-    try {
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error parsing cart from localStorage:", e);
-      return [];
-    }
-  });
+  const [userId, setUserId] = useState<string | null>(null);
+  const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
-    localStorage.setItem("fbflix-cart", JSON.stringify(items));
-  }, [items]);
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      const saved = localStorage.getItem(`fbflix-cart-${userId}`);
+      try {
+        setItems(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        console.error("Error parsing cart from localStorage:", e);
+        setItems([]);
+      }
+    } else {
+      setItems([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      localStorage.setItem(`fbflix-cart-${userId}`, JSON.stringify(items));
+    }
+  }, [items, userId]);
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {
