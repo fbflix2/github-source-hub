@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 
 export interface CartItem {
@@ -23,7 +23,19 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem("fbflix-cart");
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error parsing cart from localStorage:", e);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("fbflix-cart", JSON.stringify(items));
+  }, [items]);
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {
