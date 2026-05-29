@@ -68,6 +68,13 @@ const tierColors: Record<string, string> = {
   black: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
+const typeLabels: Record<string, string> = {
+  perfil: "Perfil",
+  proxy: "Proxy",
+  bm: "BM",
+  conta: "Conta de Anúncio",
+};
+
 export default function AdminContingencia() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -246,16 +253,38 @@ export default function AdminContingencia() {
   const handleAddReplacement = async () => {
     if (!newRep.ct_client_id || !newRep.item_type) return;
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("ct_replacements").insert({
+    
+    const { data: replacement, error } = await supabase.from("ct_replacements").insert({
       ct_client_id: newRep.ct_client_id,
       item_type: newRep.item_type,
       reason: newRep.reason || null,
       performed_by: user?.id || null,
-    } as any);
-    toast({ title: "Reposição registrada!" });
-    setShowNewReplacement(false);
-    setNewRep({ ct_client_id: "", item_type: "perfil", reason: "" });
-    loadReplacements();
+    } as any).select().single();
+
+    if (!error) {
+      toast({ title: "Reposição registrada!" });
+      
+      // Notify client via WhatsApp
+      const client = clients.find(c => c.id === newRep.ct_client_id);
+      if (client) {
+        supabase.functions.invoke("wapi-send", {
+          body: {
+            action: "send-replacement-alert",
+            user_id: client.user_id,
+            client_name: client.profile?.full_name || client.telegram,
+            product_name: typeLabels[newRep.item_type] || newRep.item_type,
+            reason: newRep.reason,
+            type: "ct_replacement",
+          },
+        }).catch(err => console.error("Error sending replacement notification:", err));
+      }
+
+      setShowNewReplacement(false);
+      setNewRep({ ct_client_id: "", item_type: "perfil", reason: "" });
+      loadReplacements();
+    } else {
+      toast({ title: "Erro ao registrar reposição", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleAddTicket = async () => {

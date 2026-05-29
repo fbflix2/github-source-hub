@@ -760,7 +760,8 @@ Deno.serve(async (req) => {
 
       const nome = client_name || profile.full_name || "Cliente";
       const isExchange = type === "exchange";
-      const eventKey = isExchange ? "product_exchange" : "replacement";
+      const isCtReplacement = type === "ct_replacement";
+      const eventKey = isExchange ? "product_exchange" : (isCtReplacement ? "ct_replacement" : "replacement");
 
       // Try to fetch template from DB
       const { data: tpl } = await admin
