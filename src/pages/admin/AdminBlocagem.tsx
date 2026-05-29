@@ -2040,6 +2040,12 @@ export default function AdminBlocagem() {
                          <span><strong>BMs no item:</strong> {Array.isArray(item.data.bmNames) ? item.data.bmNames.join(", ") : item.data.bmNames}</span>
                        )}
                        <span><strong>Status:</strong> {item.status}</span>
+                        {item.status === "vendido" && item._buyer && (
+                          <span className="text-amber-400">
+                            <strong>Comprado por:</strong> {item._buyer.name}
+                            {item._buyer.order_code ? ` — ${item._buyer.order_code}` : ""}
+                          </span>
+                        )}
                      </div>
                    </div>
                    <div className="text-right flex flex-col items-end gap-2">
