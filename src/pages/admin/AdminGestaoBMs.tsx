@@ -396,7 +396,45 @@ export default function AdminGestaoBMs() {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
-      setGlobalSearchResults(matches);
+      // Enrich sold items with buyer info (order_item_id -> orders.user_id -> profiles.full_name)
+      const soldIds = matches
+        .filter((m: any) => m.status === "vendido" && m.order_item_id)
+        .map((m: any) => m.order_item_id);
+
+      const buyerByItem: Record<string, { name: string; order_code?: string; order_id?: string }> = {};
+      if (soldIds.length > 0) {
+        const { data: oiRows } = await supabase
+          .from("order_items")
+          .select("id, order_id, orders:order_id(id, code, user_id)")
+          .in("id", soldIds);
+        const userIds = [
+          ...new Set(((oiRows as any[]) || []).map((r) => r.orders?.user_id).filter(Boolean)),
+        ];
+        let nameMap: Record<string, string> = {};
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", userIds);
+          (profs || []).forEach((p: any) => {
+            if (p.full_name) nameMap[p.user_id] = p.full_name;
+          });
+        }
+        ((oiRows as any[]) || []).forEach((r) => {
+          buyerByItem[r.id] = {
+            name: nameMap[r.orders?.user_id] || "—",
+            order_code: r.orders?.code,
+            order_id: r.orders?.id,
+          };
+        });
+      }
+
+      const enriched = matches.map((m: any) => ({
+        ...m,
+        _buyer: m.order_item_id ? buyerByItem[m.order_item_id] : undefined,
+      }));
+
+      setGlobalSearchResults(enriched);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
       console.error("Global search error:", err);
@@ -763,6 +801,12 @@ export default function AdminGestaoBMs() {
                         <span><strong>BMs no item:</strong> {Array.isArray(item.data.bmNames) ? item.data.bmNames.join(", ") : item.data.bmNames}</span>
                       )}
                       <span><strong>Status:</strong> {item.status}</span>
+                      {item.status === "vendido" && item._buyer && (
+                        <span className="text-amber-400">
+                          <strong>Comprado por:</strong> {item._buyer.name}
+                          {item._buyer.order_code ? ` — ${item._buyer.order_code}` : ""}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
