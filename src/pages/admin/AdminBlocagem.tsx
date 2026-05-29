@@ -1575,7 +1575,7 @@ export default function AdminBlocagem() {
   
         const { data, error } = await supabase
           .from("stock_items")
-          .select("id, name, type, identification, identification_link, status, data, created_at")
+          .select("id, name, type, identification, identification_link, status, data, created_at, order_item_id")
           .is("deleted_at", null);
   
         if (error) throw error;
@@ -1605,7 +1605,44 @@ export default function AdminBlocagem() {
           return matchesBasic || deepSearch(itemData);
         });
   
-        setGlobalSearchResults(results);
+        // Enrich sold items with buyer info
+        const soldIds = results
+          .filter((m: any) => m.status === "vendido" && m.order_item_id)
+          .map((m: any) => m.order_item_id);
+
+        const buyerByItem: Record<string, { name: string; order_code?: string }> = {};
+        if (soldIds.length > 0) {
+          const { data: oiRows } = await supabase
+            .from("order_items")
+            .select("id, order_id, orders:order_id(code, user_id)")
+            .in("id", soldIds);
+          const userIds = [
+            ...new Set(((oiRows as any[]) || []).map((r) => r.orders?.user_id).filter(Boolean)),
+          ];
+          let nameMap: Record<string, string> = {};
+          if (userIds.length > 0) {
+            const { data: profs } = await supabase
+              .from("profiles")
+              .select("user_id, full_name")
+              .in("user_id", userIds);
+            (profs || []).forEach((p: any) => {
+              if (p.full_name) nameMap[p.user_id] = p.full_name;
+            });
+          }
+          ((oiRows as any[]) || []).forEach((r) => {
+            buyerByItem[r.id] = {
+              name: nameMap[r.orders?.user_id] || "—",
+              order_code: r.orders?.code,
+            };
+          });
+        }
+
+        const enriched = results.map((m: any) => ({
+          ...m,
+          _buyer: m.order_item_id ? buyerByItem[m.order_item_id] : undefined,
+        }));
+
+        setGlobalSearchResults(enriched);
       } catch (err: any) {
         toast.error("Erro na busca: " + err.message);
       } finally {
