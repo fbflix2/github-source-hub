@@ -188,7 +188,7 @@ const fetchBmSearchCandidates = async () => {
   while (true) {
     const { data, error } = await supabase
       .from("stock_items")
-      .select("id, name, type, identification, identification_link, status, data, created_at")
+      .select("id, name, type, identification, identification_link, status, data, created_at, order_item_id")
       .is("deleted_at", null)
       .in("type", ["perfil", "bm"])
       .range(from, from + pageSize - 1);
