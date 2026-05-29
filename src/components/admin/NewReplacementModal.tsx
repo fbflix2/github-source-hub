@@ -507,14 +507,33 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                 </div>
                 {orderItems.length > 0 && (
                   <div className="max-h-36 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
-                    {orderItems.map((oi) => (
-                      <button key={oi.id} className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
-                        onClick={() => { setSelectedOrderItem(oi); setOrderItems([]); setOrderSearch(""); }}>
-                        <p className="text-xs text-yellow-400">#{oi.order_code}</p>
-                        <p className="text-sm text-zinc-300">{oi.name}</p>
-                        <p className="text-xs text-zinc-500">R$ {oi.price.toFixed(2)}</p>
-                      </button>
-                    ))}
+                    {(() => {
+                      const counts: Record<string, number> = {};
+                      orderItems.forEach((oi) => { counts[oi.order_id] = (counts[oi.order_id] || 0) + 1; });
+                      const indexes: Record<string, number> = {};
+                      return orderItems.map((oi) => {
+                        indexes[oi.order_id] = (indexes[oi.order_id] || 0) + 1;
+                        const showIndex = counts[oi.order_id] > 1;
+                        return (
+                          <button key={oi.id} className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
+                            onClick={() => { setSelectedOrderItem(oi); setOrderItems([]); setOrderSearch(""); }}>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-yellow-400">#{oi.order_code}</p>
+                              {showIndex && (
+                                <Badge className="bg-yellow-500/20 text-yellow-300 text-[9px] h-4 px-1.5 border-yellow-500/30">
+                                  Item {indexes[oi.order_id]}/{counts[oi.order_id]}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-zinc-300">{oi.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-zinc-500">R$ {oi.price.toFixed(2)}</p>
+                              <p className="text-[10px] text-zinc-600 font-mono">ID: {oi.id.slice(0, 8)}</p>
+                            </div>
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>
