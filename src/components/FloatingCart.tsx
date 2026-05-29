@@ -7,8 +7,9 @@ export function FloatingCart() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide on checkout page or admin routes
-  if (location.pathname === "/checkout" || location.pathname.startsWith("/admin")) return null;
+  // Hide on checkout page or any admin-related routes (including subroutes)
+  const isAdminRoute = location.pathname.toLowerCase().split('/').includes('admin');
+  if (location.pathname === "/checkout" || isAdminRoute) return null;
 
   if (totalItems === 0) return null;
 
