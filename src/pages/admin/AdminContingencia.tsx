@@ -68,6 +68,13 @@ const tierColors: Record<string, string> = {
   black: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
+const typeLabels: Record<string, string> = {
+  perfil: "Perfil",
+  proxy: "Proxy",
+  bm: "BM",
+  conta: "Conta de Anúncio",
+};
+
 export default function AdminContingencia() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
