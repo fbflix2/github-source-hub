@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
- import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers } from "lucide-react";
+ import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
