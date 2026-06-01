@@ -72,11 +72,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       // Block adding a 2nd different proxy to the cart — checkout supports only
       // one proxy auto-fulfillment per order.
-      if (item.isProxy && prev.some((i) => i.isProxy)) {
+      const looksLikeProxy = (n?: string) => !!n && /\bproxy\b/i.test(n);
+      const incomingIsProxy = item.isProxy || looksLikeProxy(item.name);
+      const cartHasProxy = prev.some((i) => i.isProxy || looksLikeProxy(i.name));
+      if (incomingIsProxy && cartHasProxy) {
         toast.error("Você só pode comprar 1 proxy por vez. Finalize a compra atual antes de adicionar outro.");
         return prev;
       }
-      return [...prev, { ...item, quantity: item.quantity || 1 }];
+      return [...prev, { ...item, isProxy: incomingIsProxy || item.isProxy, quantity: item.quantity || 1 }];
     });
   };
 
