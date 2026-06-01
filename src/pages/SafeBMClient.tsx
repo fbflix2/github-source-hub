@@ -6,6 +6,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
+import SafeBmCombosSection from "@/components/safebm/CombosSection";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
  import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
  import { BMReportModal } from "@/components/safebm/BMReportModal";
@@ -158,6 +159,7 @@ export default function SafeBMClient() {
   }
 
   return (
+    <>
     <div className="p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Show config UI if some vaults are unconfigured */}
@@ -409,5 +411,10 @@ export default function SafeBMClient() {
 
 
     </div>
+    <SafeBmCombosSection
+      title="Aumente sua proteção com nossos combos"
+      subtitle="Economize até 30% protegendo várias BMs em um único plano."
+    />
+    </>
   );
 }

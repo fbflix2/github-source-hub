@@ -12,31 +12,31 @@ interface PricingModalProps {
 
 const plans = [
   {
-    name: "Starter",
-    price: "9,99",
+    name: "Essencial",
+    price: "89,90",
     productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
-    qty: 3,
-    bms: "Até 3 BMs",
-    features: ["Monitoramento 24/7", "Backup diário", "Alertas por email", "Suporte via chat"],
+    qty: 10,
+    bms: "Até 10 BMs • R$ 8,99/BM",
+    features: ["10 BMs protegidas", "Acesso parceiro redundante", "Recuperação em 24h", "Suporte via WhatsApp"],
     popular: false,
   },
   {
-    name: "Profissional",
-    price: "49,99",
+    name: "Pro",
+    price: "199,90",
     productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
-    qty: 15,
-    bms: "Até 15 BMs",
-    features: ["Tudo do Starter", "Anti-phishing avançado", "Backup em tempo real", "Suporte prioritário", "Relatórios semanais"],
+    qty: 25,
+    bms: "Até 25 BMs • R$ 7,99/BM",
+    features: ["25 BMs protegidas", "Tudo do Essencial", "Recuperação em 12h", "Gerente de conta", "Relatório mensal"],
     popular: true,
     isPromo: true,
   },
   {
     name: "Enterprise",
-    price: "297,00",
+    price: "349,90",
     productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
-    qty: 30,
-    bms: "Até 50 BMs",
-    features: ["Tudo do Profissional", "API dedicada", "Gerente de conta", "SLA 99.99%", "Auditoria completa", "Onboarding VIP"],
+    qty: 50,
+    bms: "Até 50 BMs • R$ 6,99/BM",
+    features: ["50 BMs protegidas", "Tudo do Pro", "SLA de 6h", "Suporte 24/7 exclusivo", "Auditoria trimestral"],
     popular: false,
   },
 ];
@@ -89,15 +89,15 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
               )}
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{plan.name}</h3>
-                {plan.name === "Profissional" && (
+                  {plan.name === "Pro" && (
                   <span className="px-1.5 py-0.5 rounded bg-red-500 text-white text-[8px] font-black uppercase">PROMO</span>
                 )}
               </div>
               <p className="text-[10px] text-[#c6c6c7]/60 mb-3">{plan.bms}</p>
               <div className="mb-4">
                 <div className="flex flex-col">
-                  {plan.name === "Profissional" && (
-                    <span className="text-[10px] text-red-400 line-through mb-[-4px]">R$ 99,99</span>
+                  {plan.name === "Pro" && (
+                    <span className="text-[10px] text-red-400 line-through mb-[-4px]">R$ 249,75</span>
                   )}
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-black text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>R$ {plan.price}</span>

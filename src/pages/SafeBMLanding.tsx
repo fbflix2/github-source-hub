@@ -4,6 +4,7 @@ import { AlertTriangle, DollarSign, Zap, Check, ChevronDown } from "lucide-react
 import heroVault from "@/assets/safebm-hero-vault.jpg";
 import specialistImg from "@/assets/safebm-specialist.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import SafeBmCombosSection from "@/components/safebm/CombosSection";
 
 const faqs = [
   {
@@ -299,6 +300,13 @@ export default function SafeBMLanding() {
           </div>
         </div>
       </section>
+
+      {/* ═══════ COMBOS ═══════ */}
+      <SafeBmCombosSection
+        title="Combos com desconto progressivo"
+        subtitle="Proteja várias BMs e pague menos por unidade. Ideal para agências e gestores em escala."
+        showFooter={false}
+      />
 
       {/* ═══════ SOCIAL PROOF ═══════ */}
       <section className="py-24 bg-[#0A0A0A]">
