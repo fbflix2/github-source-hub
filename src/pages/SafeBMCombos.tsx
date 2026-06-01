@@ -105,6 +105,7 @@ export default function SafeBMCombos() {
 
   return (
     <div className="bg-[#0A0A0A] text-white font-sans min-h-screen selection:bg-[#BC13FE] selection:text-white">
+      <div className="lg:scale-[0.8] lg:origin-top">
       {/* HERO */}
       <section className="relative pt-24 pb-16 overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00F0FF]/10 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
@@ -219,6 +220,7 @@ export default function SafeBMCombos() {
           </p>
         </div>
       </section>
+      </div>
     </div>
   );
 }
