@@ -241,6 +241,7 @@ export default function Dashboard() {
           category_id: proxyCategoryId || null,
           tags: local?.tags || null,
           slug: local?.slug || null,
+          icon_type: 'proxy',
         };
       }).filter(p => p.available);
 
