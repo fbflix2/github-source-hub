@@ -4573,6 +4573,20 @@ export type Database = {
           type: string
         }[]
       }
+      validate_coupon: {
+        Args: { _code: string }
+        Returns: {
+          code: string
+          discount_type: string
+          discount_value: number
+          expires_at: string
+          id: string
+          max_uses: number
+          product_id: string
+          status: string
+          used_count: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

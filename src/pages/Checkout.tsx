@@ -841,14 +841,12 @@ export default function Checkout() {
     if (!coupon.trim()) return;
     setApplyingCoupon(true);
     try {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .eq("code", coupon.trim().toUpperCase())
-        .eq("status", "active")
-        .maybeSingle();
+      const { data: rows, error } = await supabase
+        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase() });
 
       if (error) throw error;
+
+      const data = Array.isArray(rows) ? rows[0] : rows;
 
       if (!data) {
         setDiscount(0);
