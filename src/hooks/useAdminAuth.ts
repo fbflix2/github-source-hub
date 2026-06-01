@@ -70,10 +70,18 @@ export function useAdminAuth() {
         }
       } catch (err) {
         console.error("useAdminAuth check failed:", err);
-        // NEVER logout on transient/network errors — just stop loading
-        // If we already authenticated before, keep that state
+        // On transient/network errors, retry a few times before giving up
         if (!cancelled) {
-          setState(prev => prev.isAdmin ? prev : { ...prev, loading: false });
+          if (retryCount < 3) {
+            await new Promise(r => setTimeout(r, 2000));
+            return checkAdmin(retryCount + 1);
+          }
+          // If we previously authenticated, keep that state; otherwise send to login
+          setState(prev => {
+            if (prev.isAdmin) return prev;
+            navigate("/admin/login");
+            return { isAdmin: false, loading: false, role: null };
+          });
         }
       }
     };
