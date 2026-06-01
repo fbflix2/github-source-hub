@@ -377,7 +377,8 @@ export default function Orders() {
                     <div className="flex flex-col gap-2">
                       {(() => {
                         // Group items by product_id to show them as single rows (like 5 BMs, 5 Profiles, etc.)
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean; comboStockItemId?: string }[] = [];
+                        const SAFEBM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; isSafeBm?: boolean; hidePrice?: boolean; comboStockItemId?: string }[] = [];
                         
                         // Separate products into groups
                         const groupedItems = new Map<string, OrderItem[]>();
@@ -394,6 +395,26 @@ export default function Orders() {
                           const isBm = item.iconType === 'bm';
                           const isPage = item.iconType === 'page';
                           const isProxy = item.iconType === 'proxy';
+                          const isSafeBm = item.product_id === SAFEBM_PRODUCT_ID;
+
+                          if (isSafeBm) {
+                            rows.push({
+                              key: `safebm-${item.id}`,
+                              name: item.name,
+                              subtitle: totalQty > 1 ? `${totalQty} BMs protegidas — gerencie em Safe BM` : 'Proteção ativa — gerencie em Safe BM',
+                              price: totalPrice,
+                              totalPrice: totalPrice,
+                              itemId: item.id,
+                              isBlocked: false,
+                              isReplaced: false,
+                              replacedAt: null,
+                              isBm: false,
+                              isPage: false,
+                              isProxy: false,
+                              isSafeBm: true,
+                            });
+                            return;
+                          }
 
                           // If it has combo profiles, expand them individually as they have distinct child profiles
                           if (item.comboProfiles && item.comboProfiles.length > 0) {
@@ -492,7 +513,7 @@ export default function Orders() {
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-foreground font-bold text-sm">{row.hidePrice ? '' : `R$ ${row.price.toFixed(2).replace(".", ",")}`}</span>
                               {selectedOrder.status === "completed" && (
-                                row.isProxy ? (
+                                row.isSafeBm ? null : row.isProxy ? (
                                   <button
                                     onClick={() => navigate("/subscriptions")}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors text-xs shadow-sm"
