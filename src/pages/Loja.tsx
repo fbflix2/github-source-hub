@@ -146,12 +146,8 @@ export default function Dashboard() {
   }, [fetchData]);
 
    const rawProxyProductsData = useMemo(() => {
-     const data = (Array.isArray(proxyProductsData?.data)
-       ? proxyProductsData.data
-       : Array.isArray(proxyProductsData)
-       ? proxyProductsData
-       : []);
-     return data.filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
+     // ProxyBR desativado: vendemos apenas proxies internos FBFlix.
+     return [] as any[];
    }, [proxyProductsData, inactiveProxyExternalIds]);
 
   const getProxyQty = (id: string) => proxyQuantities[id] || 1;
