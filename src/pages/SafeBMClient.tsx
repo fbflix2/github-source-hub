@@ -159,6 +159,7 @@ export default function SafeBMClient() {
   }
 
   return (
+    <>
     <div className="p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Show config UI if some vaults are unconfigured */}
