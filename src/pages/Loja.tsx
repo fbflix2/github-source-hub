@@ -468,6 +468,31 @@ export default function Dashboard() {
       )}
 
       {/* Filters & Products */}
+      {/* Safe BM Combos Promo */}
+      <section
+        onClick={() => navigate("/safe-bm/combos")}
+        className="relative cursor-pointer rounded-2xl overflow-hidden border border-[#BC13FE]/40 bg-gradient-to-r from-[#0A0A0A] via-[#1a0b2e] to-[#0A0A0A] p-5 md:p-6 hover:scale-[1.005] transition-transform"
+      >
+        <div className="absolute -right-10 -top-10 w-60 h-60 bg-[#BC13FE]/20 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -left-10 -bottom-10 w-60 h-60 bg-[#00F0FF]/15 rounded-full blur-[80px] pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <span className="inline-block py-1 px-3 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] text-[10px] font-bold tracking-wider border border-[#00F0FF]/30">
+              NOVO • SAFE BM
+            </span>
+            <h3 className="text-xl md:text-2xl font-extrabold text-white">
+              Combos de Proteção: economize até <span className="text-[#00F0FF]">30%</span>
+            </h3>
+            <p className="text-sm text-gray-400 max-w-2xl">
+              Proteja 10, 25 ou 50 BMs em um único plano. Recuperação rápida, suporte prioritário e desconto progressivo por unidade.
+            </p>
+          </div>
+          <button className="flex-shrink-0 bg-gradient-to-r from-[#BC13FE] to-[#00F0FF] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-[0_0_24px_rgba(188,19,254,0.4)]">
+            Ver combos
+          </button>
+        </div>
+      </section>
+
       <section className="space-y-6">
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {filters.map((filter) => (
