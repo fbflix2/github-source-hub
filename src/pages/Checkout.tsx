@@ -1869,6 +1869,16 @@ export default function Checkout() {
                       <p className="text-sm font-semibold text-foreground leading-tight truncate">{ci.name} {ci.quantity > 1 && `(x${ci.quantity})`}</p>
                       <p className="text-xs text-muted-foreground">R$ {(ci.price * ci.quantity).toFixed(2).replace(".", ",")}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        removeItem(ci.productId);
+                        toast.success(`${ci.name} removido do carrinho`);
+                      }}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      title="Remover item"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
                 {selectedBumps.map((bumpId) => {
