@@ -301,6 +301,13 @@ export default function SafeBMLanding() {
         </div>
       </section>
 
+      {/* ═══════ COMBOS ═══════ */}
+      <SafeBmCombosSection
+        title="Combos com desconto progressivo"
+        subtitle="Proteja várias BMs e pague menos por unidade. Ideal para agências e gestores em escala."
+        showFooter={false}
+      />
+
       {/* ═══════ SOCIAL PROOF ═══════ */}
       <section className="py-24 bg-[#0A0A0A]">
         <div className="max-w-7xl mx-auto px-8 md:px-12">
