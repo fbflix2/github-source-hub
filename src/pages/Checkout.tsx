@@ -43,7 +43,7 @@ interface BumpProduct {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { items: cartItems } = useCart();
+  const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
