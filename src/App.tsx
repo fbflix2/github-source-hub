@@ -43,6 +43,7 @@ import MigrationLogin from "./pages/MigrationLogin";
 import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
 import SafeBMLanding from "./pages/SafeBMLanding";
+import SafeBMCombos from "./pages/SafeBMCombos";
 import ClientContingencia from "./pages/ClientContingencia";
 import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
@@ -370,6 +371,7 @@ const App = () => {
                 />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
+                <Route path="/safe-bm/combos" element={<SafeBMCombos />} />
                 <Route path="/pagar/:code" element={<PagarInvoice />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
