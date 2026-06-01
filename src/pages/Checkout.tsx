@@ -1839,7 +1839,20 @@ export default function Checkout() {
             })()}
             {/* Order Summary */}
             <div className="glass-panel rounded-xl p-5 flex flex-col gap-4">
-              <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
+                <button
+                  onClick={() => {
+                    clearCart();
+                    toast.success("Carrinho esvaziado");
+                    navigate("/loja");
+                  }}
+                  className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Esvaziar
+                </button>
+              </div>
               
               <div className="flex flex-col gap-3">
                 <div className="flex gap-3 items-center">
