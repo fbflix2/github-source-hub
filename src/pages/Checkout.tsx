@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
- import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers } from "lucide-react";
+ import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
@@ -43,7 +43,7 @@ interface BumpProduct {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { items: cartItems } = useCart();
+  const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
@@ -1839,7 +1839,20 @@ export default function Checkout() {
             })()}
             {/* Order Summary */}
             <div className="glass-panel rounded-xl p-5 flex flex-col gap-4">
-              <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
+                <button
+                  onClick={() => {
+                    clearCart();
+                    toast.success("Carrinho esvaziado");
+                    navigate("/loja");
+                  }}
+                  className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Esvaziar
+                </button>
+              </div>
               
               <div className="flex flex-col gap-3">
                 <div className="flex gap-3 items-center">
@@ -1856,6 +1869,16 @@ export default function Checkout() {
                       <p className="text-sm font-semibold text-foreground leading-tight truncate">{ci.name} {ci.quantity > 1 && `(x${ci.quantity})`}</p>
                       <p className="text-xs text-muted-foreground">R$ {(ci.price * ci.quantity).toFixed(2).replace(".", ",")}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        removeItem(ci.productId);
+                        toast.success(`${ci.name} removido do carrinho`);
+                      }}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      title="Remover item"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
                 {selectedBumps.map((bumpId) => {
