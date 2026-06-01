@@ -410,5 +410,10 @@ export default function SafeBMClient() {
 
 
     </div>
+    <SafeBmCombosSection
+      title="Aumente sua proteção com nossos combos"
+      subtitle="Economize até 30% protegendo várias BMs em um único plano."
+    />
+    </>
   );
 }
