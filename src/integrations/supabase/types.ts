@@ -4240,6 +4240,7 @@ export type Database = {
       whatsapp_conversations: {
         Row: {
           assigned_to: string | null
+          avatar_url: string | null
           client_user_id: string | null
           contact_name: string | null
           internal_notes: string | null
@@ -4253,6 +4254,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          avatar_url?: string | null
           client_user_id?: string | null
           contact_name?: string | null
           internal_notes?: string | null
@@ -4266,6 +4268,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          avatar_url?: string | null
           client_user_id?: string | null
           contact_name?: string | null
           internal_notes?: string | null
