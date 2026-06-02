@@ -523,32 +523,6 @@ export default function AdminWhatsAppCRM() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={importing}
-            onClick={async () => {
-              setImporting(true);
-              try {
-                const { data, error } = await supabase.functions.invoke("wapi-import", {
-                  body: { maxChats: 80, messagesPerChat: 40 },
-                });
-                if (error) throw error;
-                if (data?.error) throw new Error(data.error);
-                toast.success(`Importação: ${data?.chats_processed ?? 0} conversas, ${data?.messages_inserted ?? 0} mensagens novas`);
-                refetchConvos();
-                refetchMessages();
-              } catch (e: any) {
-                toast.error("Falha ao importar: " + (e.message || e));
-              } finally {
-                setImporting(false);
-              }
-            }}
-            title="Importar conversas existentes do WhatsApp conectado"
-          >
-            {importing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Download className="size-4 mr-1.5" />}
-            Importar do WhatsApp
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setSoundOn(s => !s)} title={soundOn ? "Silenciar alertas" : "Ativar alertas"}>
             {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
