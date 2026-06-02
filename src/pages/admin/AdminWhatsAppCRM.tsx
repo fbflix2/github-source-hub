@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,12 +56,20 @@ export default function AdminWhatsAppCRM() {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [assignFilter, setAssignFilter] = useState<"all" | "mine" | "unassigned">("all");
+  const [tagFilter, setTagFilter] = useState<string>("");
+  const [me, setMe] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastIncomingTsRef = useRef<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMe(data.user?.id || null));
+  }, []);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
     queryKey: ["wa-conversations"],
@@ -180,6 +188,9 @@ export default function AdminWhatsAppCRM() {
   const filteredConvos = useMemo(() => {
     let list = conversations;
     if (statusFilter !== "all") list = list.filter(c => c.status === statusFilter);
+    if (assignFilter === "mine" && me) list = list.filter(c => c.assigned_to === me);
+    if (assignFilter === "unassigned") list = list.filter(c => !c.assigned_to);
+    if (tagFilter) list = list.filter(c => (c.tags || []).includes(tagFilter));
     if (!search) return list;
     const q = search.toLowerCase();
     return list.filter(c =>
@@ -187,7 +198,22 @@ export default function AdminWhatsAppCRM() {
       (c.contact_name || "").toLowerCase().includes(q) ||
       (c.last_message_preview || "").toLowerCase().includes(q)
     );
-  }, [conversations, search, statusFilter]);
+  }, [conversations, search, statusFilter, assignFilter, tagFilter, me]);
+
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    conversations.forEach(c => (c.tags || []).forEach(t => s.add(t)));
+    return Array.from(s).sort();
+  }, [conversations]);
+
+  const metrics = useMemo(() => {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const unread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+    const open = conversations.filter(c => c.status === "open").length;
+    const resolvedToday = conversations.filter(c => c.status === "resolved" && new Date(c.last_message_at) >= todayStart).length;
+    const mineOpen = me ? conversations.filter(c => c.assigned_to === me && c.status === "open").length : 0;
+    return { unread, open, resolvedToday, mineOpen };
+  }, [conversations, me]);
 
   const selectedConvo = conversations.find(c => c.phone === selectedPhone);
   const assignedMember = team.find(t => t.user_id === selectedConvo?.assigned_to);
@@ -258,6 +284,23 @@ export default function AdminWhatsAppCRM() {
       toast.error("Erro ao enviar: " + (e.message || e));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleAiSuggest = async () => {
+    if (!selectedPhone || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("wa-suggest-reply", {
+        body: { phone: selectedPhone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.suggestion) setDraft(d => d ? d + "\n" + data.suggestion : data.suggestion);
+    } catch (e: any) {
+      toast.error("IA: " + (e.message || e));
+    } finally {
+      setAiLoading(false);
     }
   };
 
