@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { Check, CheckCheck } from "lucide-react";
 import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 import { AudioMessagePlayer } from "@/components/admin/AudioMessagePlayer";
@@ -71,6 +72,10 @@ export default function AdminWhatsAppCRM() {
   const [me, setMe] = useState<string | null>(null);
   const [myDeptId, setMyDeptId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [signature, setSignature] = useState<string>("");
+  const [signatureDraft, setSignatureDraft] = useState<string>("");
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [savingSignature, setSavingSignature] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -86,10 +91,13 @@ export default function AdminWhatsAppCRM() {
       if (uid) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("department_id")
+          .select("department_id, wa_signature")
           .eq("user_id", uid)
           .maybeSingle();
         setMyDeptId((prof as any)?.department_id ?? null);
+        const sig = ((prof as any)?.wa_signature ?? "").toString();
+        setSignature(sig);
+        setSignatureDraft(sig);
       }
     });
   }, []);
@@ -310,15 +318,44 @@ export default function AdminWhatsAppCRM() {
     refetchQr();
   };
 
+  const appendSignature = (text: string): string => {
+    const sig = (signature || "").trim();
+    if (!sig) return text;
+    // Avoid double-appending if user kept it in the draft
+    if (text.trimEnd().endsWith(sig)) return text;
+    return `${text.trimEnd()}\n\n${sig}`;
+  };
+
+  const saveSignature = async () => {
+    if (!me) return;
+    setSavingSignature(true);
+    try {
+      const value = signatureDraft.trim();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wa_signature: value || null })
+        .eq("user_id", me);
+      if (error) throw error;
+      setSignature(value);
+      toast.success("Assinatura salva!");
+      setSignatureOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao salvar assinatura: " + (e.message || e));
+    } finally {
+      setSavingSignature(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!selectedPhone || !draft.trim() || sending) return;
     setSending(true);
     try {
+      const message = appendSignature(draft.trim());
       const { data, error } = await supabase.functions.invoke("wapi-send", {
         body: {
           action: "send-text",
           phone: selectedPhone,
-          message: draft.trim(),
+          message,
           event_key: "crm_manual",
           user_id: selectedConvo?.client_user_id || null,
           sender_user_id: me,
@@ -418,14 +455,15 @@ export default function AdminWhatsAppCRM() {
       if (isImage) {
         payload.action = "send-image";
         payload.image_url = url;
-        if (caption) payload.caption = caption;
+        const finalCaption = appendSignature(caption);
+        if (finalCaption) payload.caption = finalCaption;
       } else if (isAudio) {
         payload.action = "send-audio";
         payload.audio_url = url;
       } else {
         // Documents: send as text with link (wapi-send sem ação de documento)
         payload.action = "send-text";
-        payload.text = (caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`;
+        payload.text = appendSignature((caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`);
       }
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
@@ -848,6 +886,26 @@ export default function AdminWhatsAppCRM() {
               </div>
 
               <div className="p-3 border-t border-border/40 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <PenLine className="size-3 shrink-0" />
+                    <span className="shrink-0">Assinatura:</span>
+                    {signature ? (
+                      <span className="truncate text-foreground/80 font-medium">{signature}</span>
+                    ) : (
+                      <span className="italic">não configurada</span>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => { setSignatureDraft(signature); setSignatureOpen(true); }}
+                  >
+                    {signature ? "Editar" : "Definir"}
+                  </Button>
+                </div>
                 {quickReplies.length > 0 && (
                   <div className="flex gap-1.5 flex-wrap">
                     <Popover>
@@ -992,6 +1050,39 @@ export default function AdminWhatsAppCRM() {
           onTransferred={() => { refetchConvos(); }}
         />
       )}
+
+      <Dialog open={signatureOpen} onOpenChange={setSignatureOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assinatura no WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Esta assinatura será anexada automaticamente ao final de cada mensagem que você enviar pelo CRM.
+            </p>
+            <Textarea
+              value={signatureDraft}
+              onChange={(e) => setSignatureDraft(e.target.value)}
+              placeholder="Ex: Fabricio | Comercial"
+              className="min-h-[100px] resize-none"
+              maxLength={200}
+            />
+            <div className="text-xs text-muted-foreground">
+              Pré-visualização:
+              <div className="mt-1 p-2 rounded bg-muted/50 whitespace-pre-wrap font-mono text-xs">
+                Sua mensagem aqui...{signatureDraft.trim() ? `\n\n${signatureDraft.trim()}` : ""}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSignatureOpen(false)}>Cancelar</Button>
+            <Button onClick={saveSignature} disabled={savingSignature}>
+              {savingSignature ? <Loader2 className="size-4 animate-spin mr-1" /> : null}
+              Salvar assinatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
