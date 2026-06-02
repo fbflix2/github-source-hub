@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown, ExternalLink, Pencil, Check } from "lucide-react";
+import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown, ExternalLink, Pencil, Check, ArrowRightLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateSupportFile } from "@/lib/file-validation";
+import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 
 interface Message {
   id: string;
@@ -11,6 +12,8 @@ interface Message {
   sender: string;
   created_at: string;
   attachment_url: string | null;
+  sender_user_id?: string | null;
+  sender_department_id?: string | null;
 }
 
 interface TicketInfo {
@@ -86,6 +89,11 @@ function QuickTemplateSelector({ clientName, onSelect }: { clientName: string; o
 export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange, onOpenSupport }: Props) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [senderInfo, setSenderInfo] = useState<Record<string, { name: string | null; department: string | null }>>({});
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [meId, setMeId] = useState<string | null>(null);
+  const [myDeptId, setMyDeptId] = useState<string | null>(null);
+  const [transfers, setTransfers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
@@ -98,6 +106,21 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      const uid = data.user?.id ?? null;
+      setMeId(uid);
+      if (uid) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("department_id")
+          .eq("user_id", uid)
+          .maybeSingle();
+        setMyDeptId((prof as any)?.department_id ?? null);
+      }
+    });
+  }, []);
 
   const handleEditMessage = useCallback(async (msgId: string) => {
     if (!editingContent.trim()) return;
@@ -142,7 +165,40 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
       .select("*")
       .eq("ticket_id", ticket.id)
       .order("created_at", { ascending: true });
-    setMessages((data ?? []) as Message[]);
+    const msgs = (data ?? []) as Message[];
+    setMessages(msgs);
+
+    // Enrich sender info
+    const senderIds = Array.from(
+      new Set(msgs.filter((m) => m.sender === "support" && m.sender_user_id).map((m) => m.sender_user_id as string)),
+    );
+    if (senderIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, department_id")
+        .in("user_id", senderIds);
+      const deptIds = Array.from(new Set((profs ?? []).map((p: any) => p.department_id).filter(Boolean))) as string[];
+      const deptMap = new Map<string, string>();
+      if (deptIds.length > 0) {
+        const { data: deps } = await supabase.from("departments" as any).select("id, name").in("id", deptIds);
+        (deps as any[] | null)?.forEach((d) => deptMap.set(d.id, d.name));
+      }
+      const map: Record<string, { name: string | null; department: string | null }> = {};
+      (profs ?? []).forEach((p: any) => {
+        map[p.user_id] = { name: p.full_name, department: p.department_id ? deptMap.get(p.department_id) ?? null : null };
+      });
+      setSenderInfo(map);
+    } else {
+      setSenderInfo({});
+    }
+
+    // Transfers history
+    const { data: tr } = await supabase
+      .from("conversation_transfers" as any)
+      .select("*")
+      .eq("ticket_id", ticket.id)
+      .order("created_at", { ascending: true });
+    setTransfers((tr as any[] | null) ?? []);
     setLoading(false);
   };
 
@@ -208,6 +264,8 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
         sender: "support",
         read: false,
         attachment_url: uploadedUrls.length >= 1 ? uploadedUrls[0] : null,
+        sender_user_id: meId,
+        sender_department_id: myDeptId,
       });
       if (error) throw error;
 
@@ -219,6 +277,8 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
           sender: "support",
           read: false,
           attachment_url: uploadedUrls[i],
+          sender_user_id: meId,
+          sender_department_id: myDeptId,
         });
       }
 
