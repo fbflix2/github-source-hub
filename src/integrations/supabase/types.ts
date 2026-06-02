@@ -4805,6 +4805,7 @@ export type Database = {
     }
     Functions: {
       _supplier_enc_key: { Args: never; Returns: string }
+      can_access_whatsapp_phone: { Args: { _phone: string }; Returns: boolean }
       check_supplier_token: { Args: { token: string }; Returns: string }
       fulfill_order_item: {
         Args: { p_order_item_id: string; p_product_id: string }
