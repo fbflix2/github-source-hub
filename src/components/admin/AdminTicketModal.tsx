@@ -366,6 +366,16 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
             })()}
             {ticket.status !== "closed" && (
               <button
+                onClick={() => setTransferOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-1.5"
+                title="Transferir atendimento"
+              >
+                <ArrowRightLeft className="size-3.5" />
+                Transferir
+              </button>
+            )}
+            {ticket.status !== "closed" && (
+              <button
                 onClick={async () => {
                   if (ticket.status === "resolved") return;
                   await supabase.from("tickets").update({ status: "resolved" }).eq("id", ticket.id);
@@ -412,7 +422,14 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                       : "bg-white/5 text-white/90 border border-white/5"
                   }`}>
                     <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 opacity-50">
-                      {isSupport ? "Suporte" : profileName}
+                      {isSupport
+                        ? (() => {
+                            const sid = (msg as any).sender_user_id as string | undefined;
+                            const info = sid ? senderInfo[sid] : undefined;
+                            const name = info?.name || "Suporte";
+                            return info?.department ? `${name} | ${info.department}` : name;
+                          })()
+                        : profileName}
                     </p>
                     {editingMsgId === msg.id ? (
                       <div className="space-y-2">
