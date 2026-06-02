@@ -631,6 +631,17 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
           </div>
         )}
       </div>
+      {transferOpen && (
+        <ConversationTransferModal
+          open={transferOpen}
+          onClose={() => setTransferOpen(false)}
+          kind="ticket"
+          ticketId={ticket.id}
+          currentAssignee={(ticket as any).assigned_to ?? null}
+          currentDepartmentId={(ticket as any).department_id ?? null}
+          onTransferred={() => { onStatusChange?.(); fetchMessages(); }}
+        />
+      )}
     </div>
   );
 }
