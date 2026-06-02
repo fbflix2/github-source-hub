@@ -1050,6 +1050,39 @@ export default function AdminWhatsAppCRM() {
           onTransferred={() => { refetchConvos(); }}
         />
       )}
+
+      <Dialog open={signatureOpen} onOpenChange={setSignatureOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assinatura no WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Esta assinatura será anexada automaticamente ao final de cada mensagem que você enviar pelo CRM.
+            </p>
+            <Textarea
+              value={signatureDraft}
+              onChange={(e) => setSignatureDraft(e.target.value)}
+              placeholder="Ex: Fabricio | Comercial"
+              className="min-h-[100px] resize-none"
+              maxLength={200}
+            />
+            <div className="text-xs text-muted-foreground">
+              Pré-visualização:
+              <div className="mt-1 p-2 rounded bg-muted/50 whitespace-pre-wrap font-mono text-xs">
+                Sua mensagem aqui...{signatureDraft.trim() ? `\n\n${signatureDraft.trim()}` : ""}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSignatureOpen(false)}>Cancelar</Button>
+            <Button onClick={saveSignature} disabled={savingSignature}>
+              {savingSignature ? <Loader2 className="size-4 animate-spin mr-1" /> : null}
+              Salvar assinatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
