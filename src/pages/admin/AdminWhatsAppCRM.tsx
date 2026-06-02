@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { Check, CheckCheck } from "lucide-react";
 import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 import { AudioMessagePlayer } from "@/components/admin/AudioMessagePlayer";
@@ -71,6 +72,10 @@ export default function AdminWhatsAppCRM() {
   const [me, setMe] = useState<string | null>(null);
   const [myDeptId, setMyDeptId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [signature, setSignature] = useState<string>("");
+  const [signatureDraft, setSignatureDraft] = useState<string>("");
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [savingSignature, setSavingSignature] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -86,10 +91,13 @@ export default function AdminWhatsAppCRM() {
       if (uid) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("department_id")
+          .select("department_id, wa_signature")
           .eq("user_id", uid)
           .maybeSingle();
         setMyDeptId((prof as any)?.department_id ?? null);
+        const sig = ((prof as any)?.wa_signature ?? "").toString();
+        setSignature(sig);
+        setSignatureDraft(sig);
       }
     });
   }, []);
