@@ -610,6 +610,63 @@ export type Database = {
           },
         ]
       }
+      conversation_transfers: {
+        Row: {
+          conversation_phone: string | null
+          created_at: string
+          created_by: string
+          from_department_id: string | null
+          from_user_id: string | null
+          id: string
+          kind: string
+          note: string | null
+          ticket_id: string | null
+          to_department_id: string | null
+          to_user_id: string | null
+        }
+        Insert: {
+          conversation_phone?: string | null
+          created_at?: string
+          created_by: string
+          from_department_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          ticket_id?: string | null
+          to_department_id?: string | null
+          to_user_id?: string | null
+        }
+        Update: {
+          conversation_phone?: string | null
+          created_at?: string
+          created_by?: string
+          from_department_id?: string | null
+          from_user_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          ticket_id?: string | null
+          to_department_id?: string | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_transfers_from_department_id_fkey"
+            columns: ["from_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_transfers_to_department_id_fkey"
+            columns: ["to_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_center: {
         Row: {
           active: boolean
@@ -962,6 +1019,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departments: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       fb_finance_caixas: {
         Row: {
@@ -2534,6 +2624,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           department: string | null
+          department_id: string | null
           document_url: string | null
           estado: string | null
           fbx_balance: number
@@ -2569,6 +2660,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           department?: string | null
+          department_id?: string | null
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number
@@ -2604,6 +2696,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           department?: string | null
+          department_id?: string | null
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number
@@ -2627,6 +2720,13 @@ export type Database = {
           verified?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_referrer_id_fkey"
             columns: ["referrer_id"]
@@ -3814,6 +3914,8 @@ export type Database = {
           id: string
           read: boolean
           sender: string
+          sender_department_id: string | null
+          sender_user_id: string | null
           ticket_id: string
         }
         Insert: {
@@ -3823,6 +3925,8 @@ export type Database = {
           id?: string
           read?: boolean
           sender?: string
+          sender_department_id?: string | null
+          sender_user_id?: string | null
           ticket_id: string
         }
         Update: {
@@ -3832,9 +3936,18 @@ export type Database = {
           id?: string
           read?: boolean
           sender?: string
+          sender_department_id?: string | null
+          sender_user_id?: string | null
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ticket_messages_sender_department_id_fkey"
+            columns: ["sender_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ticket_messages_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -3881,8 +3994,10 @@ export type Database = {
       }
       tickets: {
         Row: {
+          assigned_to: string | null
           code: string
           created_at: string
+          department_id: string | null
           id: string
           link: string | null
           priority: string
@@ -3892,8 +4007,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           code: string
           created_at?: string
+          department_id?: string | null
           id?: string
           link?: string | null
           priority?: string
@@ -3903,8 +4020,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           code?: string
           created_at?: string
+          department_id?: string | null
           id?: string
           link?: string | null
           priority?: string
@@ -3913,7 +4032,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tickets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tutorial_feedback: {
         Row: {
@@ -4243,6 +4370,7 @@ export type Database = {
           avatar_url: string | null
           client_user_id: string | null
           contact_name: string | null
+          department_id: string | null
           internal_notes: string | null
           last_message_at: string
           last_message_preview: string | null
@@ -4257,6 +4385,7 @@ export type Database = {
           avatar_url?: string | null
           client_user_id?: string | null
           contact_name?: string | null
+          department_id?: string | null
           internal_notes?: string | null
           last_message_at?: string
           last_message_preview?: string | null
@@ -4271,6 +4400,7 @@ export type Database = {
           avatar_url?: string | null
           client_user_id?: string | null
           contact_name?: string | null
+          department_id?: string | null
           internal_notes?: string | null
           last_message_at?: string
           last_message_preview?: string | null
@@ -4280,7 +4410,15 @@ export type Database = {
           unread_count?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_flow_steps: {
         Row: {
@@ -4443,6 +4581,8 @@ export type Database = {
           message_type: string | null
           phone: string
           raw: Json | null
+          sender_department_id: string | null
+          sender_user_id: string | null
           status: string | null
           wapi_message_id: string | null
         }
@@ -4458,6 +4598,8 @@ export type Database = {
           message_type?: string | null
           phone: string
           raw?: Json | null
+          sender_department_id?: string | null
+          sender_user_id?: string | null
           status?: string | null
           wapi_message_id?: string | null
         }
@@ -4473,10 +4615,20 @@ export type Database = {
           message_type?: string | null
           phone?: string
           raw?: Json | null
+          sender_department_id?: string | null
+          sender_user_id?: string | null
           status?: string | null
           wapi_message_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_sender_department_id_fkey"
+            columns: ["sender_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_quick_replies: {
         Row: {

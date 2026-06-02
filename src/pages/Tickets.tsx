@@ -338,6 +338,16 @@ export default function Tickets() {
                       {message.sender === "support" && !message.read && (
                         <span className="absolute -left-2 top-3 w-2 h-2 rounded-full bg-primary animate-pulse" />
                       )}
+                      {message.sender === "support" && (
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-primary mb-1">
+                          {(message.sender_name || "Suporte")}
+                          {message.sender_department && (
+                            <span className="text-muted-foreground font-semibold">
+                              {" "}| {message.sender_department}
+                            </span>
+                          )}
+                        </p>
+                      )}
                       <p className="text-sm whitespace-pre-wrap" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>{message.content}</p>
                       <div className="flex items-center justify-between gap-2 mt-2">
                         <p className={cn(
