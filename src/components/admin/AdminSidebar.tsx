@@ -116,6 +116,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "WhatsApp", icon: MessageCircle, path: "/admin/whatsapp" },
+  { title: "CRM WhatsApp", icon: MessageCircle, path: "/admin/whatsapp-crm" },
   { title: "Chat Equipe", icon: MessageCircle, path: "/admin/chat" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
     { title: "Editor do Site", icon: Globe, path: "/admin/configuracoes/site" },
