@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
 
     // ========= ACTION: send-text =========
     if (action === "send-text") {
-      const { phone, message, user_id, event_key, template_id, metadata } = body;
+      const { phone, message, user_id, event_key, template_id, metadata, sender_user_id, sender_department_id } = body;
       if (!phone || !message) return err("phone and message are required");
 
       let normalizedPhone = normalizePhone(phone);
@@ -331,6 +331,8 @@ Deno.serve(async (req) => {
           body: message,
           message_type: "text",
           status: "sent",
+          sender_user_id: sender_user_id || null,
+          sender_department_id: sender_department_id || null,
         });
       }
 

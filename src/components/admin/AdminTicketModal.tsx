@@ -401,6 +401,31 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
+          {transfers.length > 0 && (
+            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-white/60 uppercase tracking-wide">
+                <ArrowRightLeft className="size-3" /> Histórico de Transferências ({transfers.length})
+              </div>
+              <div className="space-y-1">
+                {transfers.map((t) => {
+                  const from = t.from_user_id ? (senderInfo[t.from_user_id]?.name || "—") : "—";
+                  const to = t.to_user_id ? (senderInfo[t.to_user_id]?.name || t.to_user_id.slice(0, 8)) : "Sem atribuição";
+                  const by = t.created_by ? (senderInfo[t.created_by]?.name || "Admin") : "Sistema";
+                  return (
+                    <div key={t.id} className="text-[11px] text-white/70 flex flex-wrap gap-x-1.5">
+                      <span className="text-white/40">
+                        {new Date(t.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span><span className="text-white/40">de</span> <span className="text-white/80">{from}</span></span>
+                      <span><span className="text-white/40">para</span> <span className="text-white/80">{to}</span></span>
+                      <span className="text-white/40">por {by}</span>
+                      {t.note && <span className="w-full text-white/50 italic">"{t.note}"</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
