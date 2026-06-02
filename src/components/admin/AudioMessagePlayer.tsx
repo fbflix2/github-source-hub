@@ -9,12 +9,7 @@ interface AudioMessagePlayerProps {
   variant?: "sent" | "received";
 }
 
-interface AudioMessagePlayerProps {
-  src: string;
-  className?: string;
-}
-
-export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) {
+export function AudioMessagePlayer({ src, className, variant = "received" }: AudioMessagePlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -23,6 +18,8 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const isSent = variant === "sent";
 
   const formatTime = (s: number) => {
     if (!isFinite(s) || s < 0) return "0:00";
@@ -61,7 +58,6 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("error", onError);
 
-    // If metadata already cached
     if (audio.readyState >= 1) onLoadedMetadata();
 
     return () => {
@@ -116,7 +112,7 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
 
   if (error) {
     return (
-      <div className={cn("flex items-center gap-2 text-xs text-red-400", className)}>
+      <div className={cn("flex items-center gap-2 text-xs text-destructive", className)}>
         <AlertCircle className="size-4 shrink-0" />
         <span>Áudio indisponível</span>
       </div>
@@ -127,7 +123,9 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
     <div
       className={cn(
         "flex items-center gap-2 rounded-full px-2.5 py-1.5 min-w-[220px] max-w-full select-none",
-        isPlaying ? "bg-green-700/40" : "bg-black/20",
+        isPlaying
+          ? isSent ? "bg-green-800/50" : "bg-muted-foreground/20"
+          : isSent ? "bg-green-800/30" : "bg-muted-foreground/10",
         className
       )}
     >
@@ -135,7 +133,12 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
         type="button"
         onClick={togglePlay}
         disabled={loading}
-        className="shrink-0 rounded-full bg-green-500 hover:bg-green-400 text-white flex items-center justify-center size-8 transition-colors disabled:opacity-50"
+        className={cn(
+          "shrink-0 rounded-full flex items-center justify-center size-8 transition-colors disabled:opacity-50",
+          isSent
+            ? "bg-white/90 hover:bg-white text-green-700"
+            : "bg-primary hover:bg-primary/90 text-primary-foreground"
+        )}
         aria-label={isPlaying ? "Pausar" : "Reproduzir"}
       >
         {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
@@ -143,8 +146,8 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
 
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center gap-2">
-          <Headphones className="size-3.5 text-white/70 shrink-0" />
-          <span className="text-[11px] text-white/80 tabular-nums">
+          <Headphones className={cn("size-3.5 shrink-0", isSent ? "text-white/70" : "text-muted-foreground")} />
+          <span className={cn("text-[11px] tabular-nums", isSent ? "text-white/90" : "text-muted-foreground")}>
             {formatTime(progress * duration)} / {formatTime(duration)}
           </span>
         </div>
@@ -161,7 +164,10 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
         <button
           type="button"
           onClick={toggleMute}
-          className="text-white/70 hover:text-white transition-colors"
+          className={cn(
+            "transition-colors",
+            isSent ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+          )}
           aria-label={isMuted ? "Ativar som" : "Silenciar"}
         >
           {isMuted || volume === 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
