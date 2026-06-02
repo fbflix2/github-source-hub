@@ -797,8 +797,18 @@ export default function AdminWhatsAppCRM() {
                         {(m.body || (!m.media_url)) && (
                           <div className="whitespace-pre-wrap break-words">{m.body || "(vazio)"}</div>
                         )}
-                        <div className={`text-[9px] mt-1 ${m.from_me ? "text-white/70" : "text-muted-foreground"}`}>
-                          {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        <div className={`flex items-center justify-end gap-1 mt-1 ${m.from_me ? "text-white/80" : "text-muted-foreground"}`}>
+                          <span className="text-[9px]">
+                            {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {m.from_me && (() => {
+                            const s = (m as any).status as string | undefined;
+                            if (s === "read") return <CheckCheck className="size-3 text-sky-300" aria-label="Lida" />;
+                            if (s === "delivered") return <CheckCheck className="size-3" aria-label="Entregue" />;
+                            if (s === "sent") return <Check className="size-3" aria-label="Enviada" />;
+                            if (s === "failed") return <X className="size-3 text-red-300" aria-label="Falhou" />;
+                            return <Clock className="size-3 opacity-70" aria-label="Pendente" />;
+                          })()}
                         </div>
                       </div>
                     </div>
