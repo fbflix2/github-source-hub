@@ -76,6 +76,8 @@ export default function AdminWhatsAppCRM() {
   const [signatureDraft, setSignatureDraft] = useState<string>("");
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [savingSignature, setSavingSignature] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -866,9 +868,18 @@ export default function AdminWhatsAppCRM() {
                           </div>
                         )}
                         {m.media_url && m.message_type === "image" && (
-                          <a href={m.media_url} target="_blank" rel="noreferrer">
-                            <img src={m.media_url} alt="" className="rounded-lg max-w-full max-h-64 mb-1" />
-                          </a>
+                          <button
+                            type="button"
+                            onClick={() => { setLightboxUrl(m.media_url!); setLightboxZoom(1); }}
+                            className="block mb-1 group"
+                            title="Clique para ampliar"
+                          >
+                            <img
+                              src={m.media_url}
+                              alt=""
+                              className="rounded-lg max-w-full max-h-[420px] w-auto h-auto object-contain cursor-zoom-in group-hover:opacity-95 transition-opacity"
+                            />
+                          </button>
                         )}
                         {m.media_url && m.message_type === "audio" && (
                           <AudioMessagePlayer src={m.media_url} className="mb-1" variant={m.from_me ? "sent" : "received"} />
@@ -1065,6 +1076,50 @@ export default function AdminWhatsAppCRM() {
           onTransferred={() => { refetchConvos(); }}
         />
       )}
+
+      {/* Image lightbox — view at real/zoomable size */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(o) => { if (!o) { setLightboxUrl(null); setLightboxZoom(1); } }}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] p-0 bg-black/95 border-none overflow-hidden flex flex-col">
+          <div className="flex items-center justify-end gap-2 px-3 py-2 bg-black/70 text-white text-xs shrink-0">
+            <button
+              onClick={() => setLightboxZoom(z => Math.max(0.25, z - 0.25))}
+              className="px-2 py-1 rounded hover:bg-white/10"
+              title="Diminuir zoom"
+            >−</button>
+            <span className="tabular-nums w-12 text-center">{Math.round(lightboxZoom * 100)}%</span>
+            <button
+              onClick={() => setLightboxZoom(z => Math.min(8, z + 0.25))}
+              className="px-2 py-1 rounded hover:bg-white/10"
+              title="Aumentar zoom"
+            >+</button>
+            <button
+              onClick={() => setLightboxZoom(1)}
+              className="px-2 py-1 rounded hover:bg-white/10"
+              title="Tamanho real (100%)"
+            >1:1</button>
+            {lightboxUrl && (
+              <a
+                href={lightboxUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2 py-1 rounded hover:bg-white/10"
+                title="Abrir original em nova aba"
+              >Abrir original</a>
+            )}
+          </div>
+          <div className="flex-1 overflow-auto flex items-center justify-center">
+            {lightboxUrl && (
+              <img
+                src={lightboxUrl}
+                alt=""
+                style={{ transform: `scale(${lightboxZoom})`, transformOrigin: "center center" }}
+                className="max-w-none transition-transform duration-100 select-none"
+                draggable={false}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={signatureOpen} onOpenChange={setSignatureOpen}>
         <DialogContent className="sm:max-w-md">
