@@ -25,6 +25,7 @@ type Conversation = {
   client_user_id: string | null;
   tags: string[] | null;
   internal_notes: string | null;
+  avatar_url: string | null;
 };
 
 type Message = {
