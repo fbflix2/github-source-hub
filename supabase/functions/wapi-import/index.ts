@@ -43,6 +43,19 @@ Deno.serve(async (req) => {
     return { ok: res.ok, status: res.status, data };
   }
 
+  async function wapiTry(method: "GET" | "POST", path: string, params: Record<string,string>, body?: any) {
+    const qs = new URLSearchParams({ instanceId: WAPI_INSTANCE_ID! });
+    if (method === "GET") for (const [k,v] of Object.entries(params)) qs.append(k, v);
+    const url = `${WAPI_BASE}${path}?${qs}`;
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${WAPI_TOKEN}`, "Content-Type": "application/json" },
+      body: method === "POST" ? JSON.stringify(body ?? params) : undefined,
+    });
+    const t = await res.text();
+    return { status: res.status, snippet: t.slice(0, 180) };
+  }
+
   if (debug) {
     const chatsRes = await wapiGet("/chats/fetch-chats", { page: 1, perPage: 3 });
     const arr: any[] = Array.isArray(chatsRes.data?.chats) ? chatsRes.data.chats
@@ -66,6 +79,24 @@ Deno.serve(async (req) => {
     for (const [p, params] of candidates) {
       const r = await wapiGet(p, params);
       tries[p] = { status: r.status, snippet: JSON.stringify(r.data).slice(0, 200) };
+    }
+    // Also try variants
+    const more: Array<[string, "GET"|"POST", Record<string,string>]> = [
+      ["/chats/fetch-messages-by-chat", "GET", { chatId: rawId }],
+      ["/chats/fetch-messages-by-chat", "GET", { phoneNumber: phone }],
+      ["/chats/get-messages", "GET", { chatId: rawId }],
+      ["/chats/messages-from-chat", "GET", { chatId: rawId }],
+      ["/chats/list-messages", "GET", { chatId: rawId }],
+      ["/messages/list", "GET", { chatId: rawId }],
+      ["/messages/chat", "GET", { chatId: rawId }],
+      ["/message/get-messages", "GET", { phoneNumber: phone }],
+      ["/chats/messages", "POST", { chatId: rawId }],
+      ["/chats/fetch-messages", "POST", { chatId: rawId }],
+      ["/message/messages-by-phone", "POST", { phoneNumber: phone }],
+    ];
+    for (const [p, m, params] of more) {
+      const r = await wapiTry(m, p, params);
+      if (r.status !== 404) tries[`${m} ${p}`] = r;
     }
     return ok({ debug: true, chats_status: chatsRes.status, chats_count: arr.length, sampleKeys, samplePhone: phone, sample, tries });
   }
