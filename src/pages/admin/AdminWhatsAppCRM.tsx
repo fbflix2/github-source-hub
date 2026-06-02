@@ -477,7 +477,27 @@ export default function AdminWhatsAppCRM() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-180px)]">
+      {/* Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Abertas", value: metrics.open, icon: Inbox, color: "text-emerald-500" },
+          { label: "Não lidas", value: metrics.unread, icon: MessageCircle, color: "text-green-500" },
+          { label: "Minhas abertas", value: metrics.mineOpen, icon: UserCheck, color: "text-blue-400" },
+          { label: "Resolvidas hoje", value: metrics.resolvedToday, icon: CheckCircle2, color: "text-emerald-400" },
+        ].map((m) => (
+          <div key={m.label} className="bg-card/60 border border-border/40 rounded-xl p-3 flex items-center gap-3">
+            <div className={`size-9 rounded-lg bg-muted/40 flex items-center justify-center ${m.color}`}>
+              <m.icon className="size-4" />
+            </div>
+            <div>
+              <div className="text-xl font-bold leading-none">{m.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">{m.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-280px)]">
         {/* Conversations list */}
         <div className="bg-card/60 border border-border/40 rounded-xl flex flex-col overflow-hidden">
           <div className="p-3 border-b border-border/40">
@@ -500,6 +520,31 @@ export default function AdminWhatsAppCRM() {
                   {s === "open" ? "Abertas" : s === "resolved" ? "Resolvidas" : "Todas"} ({counts[s]})
                 </button>
               ))}
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              <Select value={assignFilter} onValueChange={(v: any) => setAssignFilter(v)}>
+                <SelectTrigger className="h-7 text-[11px] flex-1">
+                  <Filter className="size-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos atendentes</SelectItem>
+                  <SelectItem value="mine">Atribuídas a mim</SelectItem>
+                  <SelectItem value="unassigned">Sem atribuição</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={tagFilter || "__all__"} onValueChange={(v) => setTagFilter(v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-7 text-[11px] flex-1">
+                  <TagIcon className="size-3 mr-1" />
+                  <SelectValue placeholder="Etiqueta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas etiquetas</SelectItem>
+                  {allTags.map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <ScrollArea className="flex-1">
