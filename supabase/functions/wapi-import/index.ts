@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
 
   let body: any = {};
   try { body = await req.json(); } catch { /* empty body allowed */ }
+  const debug: boolean = !!body.debug;
   const maxChats: number = Math.min(Math.max(Number(body.maxChats) || 50, 1), 200);
   const messagesPerChat: number = Math.min(Math.max(Number(body.messagesPerChat) || 30, 1), 200);
   const onlyUnread: boolean = !!body.onlyUnread;
@@ -40,6 +41,34 @@ Deno.serve(async (req) => {
     let data: any = null;
     try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 300) }; }
     return { ok: res.ok, status: res.status, data };
+  }
+
+  if (debug) {
+    const chatsRes = await wapiGet("/chats/fetch-chats", { page: 1, perPage: 3 });
+    const arr: any[] = Array.isArray(chatsRes.data?.chats) ? chatsRes.data.chats
+      : Array.isArray(chatsRes.data?.data) ? chatsRes.data.data
+      : Array.isArray(chatsRes.data) ? chatsRes.data : [];
+    const sample = arr[0] || null;
+    const sampleKeys = sample ? Object.keys(sample) : [];
+    const phone = sample ? digits(sample.phone || sample.id || sample.chatId || sample.number || "") : "";
+    const tries: Record<string, any> = {};
+    const candidates = [
+      ["/message/fetch-messages", { phone }],
+      ["/messages/fetch-messages", { phone }],
+      ["/chat/fetch-messages", { phone }],
+      ["/chats/messages", { phone }],
+      ["/message/messages-by-phone", { phoneNumber: phone }],
+      ["/message/all-messages", { phoneNumber: phone }],
+      ["/chats/fetch-messages", { phoneNumber: phone }],
+      ["/messages", { phoneNumber: phone }],
+    ] as const;
+    for (const [p, params] of candidates) {
+      const r = await wapiGet(p, params as any);
+      if (r.status !== 404) {
+        tries[p] = { status: r.status, sample: JSON.stringify(r.data).slice(0, 400) };
+      }
+    }
+    return ok({ debug: true, chats_status: chatsRes.status, chats_count: arr.length, sampleKeys, samplePhone: phone, sample, tries });
   }
 
   try {
