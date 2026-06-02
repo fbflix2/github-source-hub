@@ -392,48 +392,77 @@ export default function AdminWhatsAppCRM() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !selectedPhone) return;
-    const isImage = file.type.startsWith("image/");
-    const isAudio = file.type.startsWith("audio/");
-    if (!isImage && !isAudio) { toast.error("Envie apenas imagem ou áudio"); return; }
-    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo maior que 16MB"); return; }
+    await sendAttachment(file);
+  };
+
+  const sendAttachment = async (file: File | Blob, suggestedName?: string) => {
+    if (!selectedPhone) return;
+    const fileName = (file as File).name || suggestedName || `arquivo-${Date.now()}`;
+    const fileType = file.type || "application/octet-stream";
+    const isImage = fileType.startsWith("image/");
+    const isAudio = fileType.startsWith("audio/");
+    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo muito grande (máx. 16MB)."); return; }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || (isImage ? "jpg" : "ogg");
+      const ext = fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : (isImage ? "jpg" : isAudio ? "ogg" : "bin");
       const url = await uploadToBucket(file, ext);
       if (!url) return;
-      const action = isImage ? "send-image" : "send-audio";
-      const payload: any = {
-        action,
+      const caption = draft.trim();
+      let payload: any = {
         phone: selectedPhone,
         event_key: "crm_manual",
         user_id: selectedConvo?.client_user_id || null,
+        sender_user_id: me,
+        sender_department_id: myDeptId,
       };
-      if (isImage) { payload.image_url = url; if (draft.trim()) payload.caption = draft.trim(); }
-      else payload.audio_url = url;
-      payload.sender_user_id = me;
-      payload.sender_department_id = myDeptId;
+      if (isImage) {
+        payload.action = "send-image";
+        payload.image_url = url;
+        if (caption) payload.caption = caption;
+      } else if (isAudio) {
+        payload.action = "send-audio";
+        payload.audio_url = url;
+      } else {
+        // Documents: send as text with link (wapi-send sem ação de documento)
+        payload.action = "send-text";
+        payload.text = (caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`;
+      }
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Also log to whatsapp_messages so it appears in thread
       await supabase.from("whatsapp_messages").insert({
         phone: selectedPhone,
         direction: "out",
         from_me: true,
-        body: isImage ? (draft.trim() || null) : null,
-        message_type: isImage ? "image" : "audio",
+        body: isImage ? (caption || null) : (isAudio ? null : `📎 ${fileName}`),
+        message_type: isImage ? "image" : isAudio ? "audio" : "document",
         media_url: url,
         status: "sent",
         sender_user_id: me,
         sender_department_id: myDeptId,
       });
-      if (isImage) setDraft("");
+      setDraft("");
       if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
       refetchMessages();
     } catch (err: any) {
-      toast.error("Erro ao enviar mídia: " + (err.message || err));
+      toast.error("Falha ao enviar arquivo. " + (err.message || "Tente novamente."));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.kind === "file") {
+        const file = it.getAsFile();
+        if (file) {
+          e.preventDefault();
+          await sendAttachment(file, `colado-${Date.now()}.${(file.type.split("/")[1] || "png")}`);
+          return;
+        }
+      }
     }
   };
 
@@ -845,7 +874,7 @@ export default function AdminWhatsAppCRM() {
                   </div>
                 )}
                 <div className="flex gap-2 items-end">
-                <input ref={fileInputRef} type="file" accept="image/*,audio/*" hidden onChange={handleFilePick} />
+                <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" hidden onChange={handleFilePick} />
                 <Button
                   type="button"
                   variant="outline"
@@ -853,7 +882,7 @@ export default function AdminWhatsAppCRM() {
                   className="shrink-0 h-11 w-11"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading || recording}
-                  title="Anexar imagem ou áudio"
+                  title="Anexar imagem, áudio ou documento"
                 >
                   {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 </Button>
@@ -882,6 +911,7 @@ export default function AdminWhatsAppCRM() {
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
+                  onPaste={handlePaste}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
