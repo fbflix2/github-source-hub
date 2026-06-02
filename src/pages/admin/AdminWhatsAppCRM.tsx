@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
+import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,7 @@ export default function AdminWhatsAppCRM() {
   const [assignFilter, setAssignFilter] = useState<"all" | "mine" | "unassigned">("all");
   const [tagFilter, setTagFilter] = useState<string>("");
   const [me, setMe] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -648,6 +650,9 @@ export default function AdminWhatsAppCRM() {
                     {selectedConvo?.status === "resolved"
                       ? <><RotateCw className="size-3.5 mr-1" /> Reabrir</>
                       : <><CheckCircle2 className="size-3.5 mr-1" /> Resolver</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)} title="Transferir atendimento">
+                    <ArrowRightLeft className="size-3.5 mr-1" /> Transferir
                   </Button>
                   <Popover>
                     <PopoverTrigger asChild>
