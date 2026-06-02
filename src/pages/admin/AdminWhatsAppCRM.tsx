@@ -321,9 +321,10 @@ export default function AdminWhatsAppCRM() {
   const appendSignature = (text: string): string => {
     const sig = (signature || "").trim();
     if (!sig) return text;
+    const trimmedText = text.trimStart();
     // Avoid double-appending if user kept it in the draft
-    if (text.trimEnd().endsWith(sig)) return text;
-    return `${text.trimEnd()}\n\n${sig}`;
+    if (trimmedText.startsWith(sig)) return text;
+    return `${sig}\n\n${trimmedText}`;
   };
 
   const saveSignature = async () => {
