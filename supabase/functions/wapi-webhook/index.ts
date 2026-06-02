@@ -19,8 +19,17 @@ Deno.serve(async (req) => {
     // W-API webhook fields
     const messageId = body.messageId || body.id || body.data?.messageId || body.data?.id;
     const status = body.status || body.data?.status || body.type;
-    const replyMessage = body.message?.text || body.data?.message?.text || body.text || body.body || null;
-    const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone;
+    const mc = body.msgContent || body.data?.msgContent || {};
+    const replyMessage =
+      mc.conversation ||
+      mc.extendedTextMessage?.text ||
+      mc.imageMessage?.caption ||
+      mc.videoMessage?.caption ||
+      mc.documentMessage?.caption ||
+      mc.buttonsResponseMessage?.selectedDisplayText ||
+      mc.listResponseMessage?.title ||
+      body.message?.text || body.data?.message?.text || body.text || body.body || null;
+    const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone || body.chat?.id;
     const fromMe = body.fromMe ?? body.data?.fromMe ?? null;
     const isGroup = body.isGroup ?? body.data?.isGroup ?? false;
 
@@ -39,17 +48,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract phone number from chatId
-    const phone = chatId ? chatId.replace(/@.*/, "").replace(/\D/g, "") : null;
+    // Extract phone number from chatId (or sender)
+    const rawChat = chatId || body.chat?.id || body.sender?.id;
+    const phone = rawChat ? String(rawChat).replace(/@.*/, "").replace(/\D/g, "") : null;
+    const event = body.event || body.data?.event || body.type;
 
     // ========= CRM: persist message to whatsapp_messages =========
     if (phone && !isGroup) {
-      const isIn = fromMe === false || (fromMe == null && (body.type === "ReceivedCallback" || event === "webhookreceived"));
+      const isIn = fromMe === false || (fromMe == null && (body.type === "ReceivedCallback" || String(event || "").toLowerCase() === "webhookreceived"));
       const isOut = fromMe === true;
       if (isIn || isOut) {
-        const contactName = body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || null;
-        const mediaUrl = body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
-        const msgType = body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
+        const contactName =
+          body.sender?.pushName || body.sender?.verifiedBizName ||
+          body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || null;
+        const mediaUrl =
+          mc.imageMessage?.url || mc.audioMessage?.url || mc.videoMessage?.url || mc.documentMessage?.url ||
+          body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
+        const msgType =
+          mc.imageMessage ? "image" :
+          mc.audioMessage ? "audio" :
+          mc.videoMessage ? "video" :
+          mc.documentMessage ? "document" :
+          mc.stickerMessage ? "sticker" :
+          body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
         try {
           await admin.from("whatsapp_messages").insert({
             phone,
