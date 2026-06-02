@@ -109,6 +109,7 @@ import AdminOperadorFinanceiro from "./pages/admin/AdminOperadorFinanceiro";
 import AdminOperadorDashboard from "./pages/admin/AdminOperadorDashboard";
 import AdminSaqueOperador from "./pages/admin/AdminSaqueOperador";
 import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
+import AdminWhatsAppCRM from "./pages/admin/AdminWhatsAppCRM";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
