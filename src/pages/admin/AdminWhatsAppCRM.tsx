@@ -922,6 +922,18 @@ export default function AdminWhatsAppCRM() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {transferOpen && selectedPhone && (
+        <ConversationTransferModal
+          open={transferOpen}
+          onClose={() => setTransferOpen(false)}
+          kind="whatsapp"
+          conversationPhone={selectedPhone}
+          currentAssignee={selectedConvo?.assigned_to ?? null}
+          currentDepartmentId={(selectedConvo as any)?.department_id ?? null}
+          onTransferred={() => { refetchConvos(); }}
+        />
+      )}
     </div>
   );
 }
