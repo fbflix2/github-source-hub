@@ -138,26 +138,27 @@ Deno.serve(async (req) => {
 
     // Map W-API status to our tracking
     const normalizedStatus = (status || "").toString().toLowerCase();
-    const event = (body.event || "").toString().toLowerCase();
+    // `event` is already declared above; reuse it lowercased here
+    const eventStr = String(event || "").toLowerCase();
 
     // Status progression: sent -> delivered -> read
     const currentStatus = logEntry.status;
 
-    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || event.includes("delivery")) {
+    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || eventStr.includes("delivery")) {
       if (currentStatus === "sent" || currentStatus === "delivered") {
         updates.delivered_at = now;
         updates.status = "delivered";
       }
     }
 
-    if (normalizedStatus === "read" || normalizedStatus === "viewed" || event.includes("read")) {
+    if (normalizedStatus === "read" || normalizedStatus === "viewed" || eventStr.includes("read")) {
       updates.delivered_at = updates.delivered_at || now;
       updates.read_at = now;
       updates.status = "read";
     }
 
     // Incoming message = reply (not from us)
-    if (fromMe === false || body.type === "ReceivedCallback" || body.event === "messages.upsert" || event === "webhookreceived") {
+    if (fromMe === false || body.type === "ReceivedCallback" || body.event === "messages.upsert" || eventStr === "webhookreceived") {
       if (fromMe === false && !isGroup) {
         updates.replied_at = now;
         if (replyMessage) updates.reply_message = replyMessage.slice(0, 1000);
