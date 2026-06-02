@@ -318,6 +318,34 @@ export default function AdminWhatsAppCRM() {
     refetchQr();
   };
 
+  const appendSignature = (text: string): string => {
+    const sig = (signature || "").trim();
+    if (!sig) return text;
+    // Avoid double-appending if user kept it in the draft
+    if (text.trimEnd().endsWith(sig)) return text;
+    return `${text.trimEnd()}\n\n${sig}`;
+  };
+
+  const saveSignature = async () => {
+    if (!me) return;
+    setSavingSignature(true);
+    try {
+      const value = signatureDraft.trim();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wa_signature: value || null })
+        .eq("user_id", me);
+      if (error) throw error;
+      setSignature(value);
+      toast.success("Assinatura salva!");
+      setSignatureOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao salvar assinatura: " + (e.message || e));
+    } finally {
+      setSavingSignature(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!selectedPhone || !draft.trim() || sending) return;
     setSending(true);
