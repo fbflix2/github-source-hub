@@ -9,6 +9,9 @@ export interface TicketMessage {
   created_at: string;
   read: boolean;
   ticket_id: string;
+  sender_user_id?: string | null;
+  sender_name?: string | null;
+  sender_department?: string | null;
 }
 
 export interface TicketData {
@@ -91,6 +94,47 @@ export function useTickets() {
     }
 
     const messages = (messagesData || []) as TicketMessage[];
+
+    // Enrich support messages with sender name + department
+    const supportSenderIds = Array.from(
+      new Set(
+        messages
+          .filter((m) => m.sender === "support" && (m as any).sender_user_id)
+          .map((m) => (m as any).sender_user_id as string),
+      ),
+    );
+    const senderInfo = new Map<string, { name: string | null; department: string | null }>();
+    if (supportSenderIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, department_id")
+        .in("user_id", supportSenderIds);
+      const deptIds = Array.from(
+        new Set((profs ?? []).map((p: any) => p.department_id).filter(Boolean)),
+      ) as string[];
+      const deptMap = new Map<string, string>();
+      if (deptIds.length > 0) {
+        const { data: deps } = await supabase
+          .from("departments" as any)
+          .select("id, name")
+          .in("id", deptIds);
+        (deps as any[] | null)?.forEach((d) => deptMap.set(d.id, d.name));
+      }
+      (profs ?? []).forEach((p: any) =>
+        senderInfo.set(p.user_id, {
+          name: p.full_name,
+          department: p.department_id ? deptMap.get(p.department_id) ?? null : null,
+        }),
+      );
+    }
+    for (const m of messages) {
+      const sid = (m as any).sender_user_id as string | undefined;
+      if (m.sender === "support" && sid && senderInfo.has(sid)) {
+        const info = senderInfo.get(sid)!;
+        m.sender_name = info.name;
+        m.sender_department = info.department;
+      }
+    }
 
     const enrichedTickets: TicketData[] = ticketsData.map(ticket => {
       const ticketMessages = messages.filter(m => m.ticket_id === ticket.id);
