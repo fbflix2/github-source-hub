@@ -6,6 +6,12 @@ import { cn } from "@/lib/utils";
 interface AudioMessagePlayerProps {
   src: string;
   className?: string;
+  variant?: "sent" | "received";
+}
+
+interface AudioMessagePlayerProps {
+  src: string;
+  className?: string;
 }
 
 export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) {
