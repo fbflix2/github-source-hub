@@ -70,7 +70,7 @@ export default function AdminWhatsAppCRM() {
   const [me, setMe] = useState<string | null>(null);
   const [myDeptId, setMyDeptId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
