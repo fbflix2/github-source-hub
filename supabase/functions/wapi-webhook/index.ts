@@ -151,14 +151,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (normalizedStatus === "read" || normalizedStatus === "viewed" || event.includes("read")) {
+    if (normalizedStatus === "read" || normalizedStatus === "viewed" || eventStr.includes("read")) {
       updates.delivered_at = updates.delivered_at || now;
       updates.read_at = now;
       updates.status = "read";
     }
 
     // Incoming message = reply (not from us)
-    if (fromMe === false || body.type === "ReceivedCallback" || body.event === "messages.upsert" || event === "webhookreceived") {
+    if (fromMe === false || body.type === "ReceivedCallback" || body.event === "messages.upsert" || eventStr === "webhookreceived") {
       if (fromMe === false && !isGroup) {
         updates.replied_at = now;
         if (replyMessage) updates.reply_message = replyMessage.slice(0, 1000);
