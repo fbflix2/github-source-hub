@@ -54,8 +54,16 @@ Deno.serve(async (req) => {
     const event = body.event || body.data?.event || body.type;
 
     // ========= CRM: persist message to whatsapp_messages =========
-    if (phone && !isGroup) {
-      const isIn = fromMe === false || (fromMe == null && (body.type === "ReceivedCallback" || String(event || "").toLowerCase() === "webhookreceived"));
+    // Ignore WhatsApp LID (linked-id) pseudo-numbers — these are not real contacts,
+    // they are anonymized identifiers used for our own status callbacks/broadcasts.
+    const rawChatStr = String(rawChat || "");
+    const isLid = rawChatStr.includes("@lid") || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
+    const eventLower = String(event || "").toLowerCase();
+    // Only treat as a real CRM message when it is a true incoming message or a real outgoing send,
+    // NOT when it is just a delivery/read status webhook for one of OUR messages.
+    const isStatusEvent = eventLower.includes("status") || eventLower === "messagestatus" || eventLower === "webhookstatus";
+    if (phone && !isGroup && !isLid && !isStatusEvent) {
+      const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage);
       const isOut = fromMe === true;
       if (isIn || isOut) {
         const contactName =
