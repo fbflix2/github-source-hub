@@ -2646,6 +2646,7 @@ export type Database = {
           updated_at: string
           user_id: string
           verified: boolean
+          wa_signature: string | null
         }
         Insert: {
           address?: string | null
@@ -2682,6 +2683,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           verified?: boolean
+          wa_signature?: string | null
         }
         Update: {
           address?: string | null
@@ -2718,6 +2720,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           verified?: boolean
+          wa_signature?: string | null
         }
         Relationships: [
           {
