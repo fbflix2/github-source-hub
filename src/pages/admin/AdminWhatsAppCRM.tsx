@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
 import { Check, CheckCheck } from "lucide-react";
 import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
+import { AudioMessagePlayer } from "@/components/admin/AudioMessagePlayer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -788,7 +789,7 @@ export default function AdminWhatsAppCRM() {
                           </a>
                         )}
                         {m.media_url && m.message_type === "audio" && (
-                          <audio controls src={m.media_url} className="max-w-full mb-1" />
+                          <AudioMessagePlayer src={m.media_url} className="mb-1" variant={m.from_me ? "sent" : "received"} />
                         )}
                         {m.media_url && !["image","audio"].includes(m.message_type) && (
                           <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11px] underline opacity-90">
