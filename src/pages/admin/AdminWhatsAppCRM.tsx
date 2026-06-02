@@ -318,11 +318,25 @@ export default function AdminWhatsAppCRM() {
     refetchQr();
   };
 
+  // Count how many outgoing messages the current attendant has already sent
+  // in the selected conversation. The signature should only be prepended
+  // to the first 2 messages of each attendant (so when a chat is
+  // transferred, the new attendant also identifies themselves in their
+  // first 2 replies).
+  const myOutgoingCount = useMemo(() => {
+    if (!me) return 0;
+    return (messages || []).filter(
+      (m) => m.direction === "out" && m.sender_user_id === me,
+    ).length;
+  }, [messages, me]);
+
   const appendSignature = (text: string): string => {
     const sig = (signature || "").trim();
     if (!sig) return text;
+    // Only on the first 2 messages from this attendant in this convo
+    if (myOutgoingCount >= 2) return text;
     const trimmedText = text.trimStart();
-    // Avoid double-appending if user kept it in the draft
+    // Avoid double-prepending if user kept it in the draft
     if (trimmedText.startsWith(sig)) return text;
     return `${sig}\n\n${trimmedText}`;
   };
