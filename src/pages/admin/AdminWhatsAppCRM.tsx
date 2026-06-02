@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,12 +56,20 @@ export default function AdminWhatsAppCRM() {
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [assignFilter, setAssignFilter] = useState<"all" | "mine" | "unassigned">("all");
+  const [tagFilter, setTagFilter] = useState<string>("");
+  const [me, setMe] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastIncomingTsRef = useRef<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMe(data.user?.id || null));
+  }, []);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
     queryKey: ["wa-conversations"],
@@ -180,6 +188,9 @@ export default function AdminWhatsAppCRM() {
   const filteredConvos = useMemo(() => {
     let list = conversations;
     if (statusFilter !== "all") list = list.filter(c => c.status === statusFilter);
+    if (assignFilter === "mine" && me) list = list.filter(c => c.assigned_to === me);
+    if (assignFilter === "unassigned") list = list.filter(c => !c.assigned_to);
+    if (tagFilter) list = list.filter(c => (c.tags || []).includes(tagFilter));
     if (!search) return list;
     const q = search.toLowerCase();
     return list.filter(c =>
@@ -187,7 +198,22 @@ export default function AdminWhatsAppCRM() {
       (c.contact_name || "").toLowerCase().includes(q) ||
       (c.last_message_preview || "").toLowerCase().includes(q)
     );
-  }, [conversations, search, statusFilter]);
+  }, [conversations, search, statusFilter, assignFilter, tagFilter, me]);
+
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    conversations.forEach(c => (c.tags || []).forEach(t => s.add(t)));
+    return Array.from(s).sort();
+  }, [conversations]);
+
+  const metrics = useMemo(() => {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const unread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+    const open = conversations.filter(c => c.status === "open").length;
+    const resolvedToday = conversations.filter(c => c.status === "resolved" && new Date(c.last_message_at) >= todayStart).length;
+    const mineOpen = me ? conversations.filter(c => c.assigned_to === me && c.status === "open").length : 0;
+    return { unread, open, resolvedToday, mineOpen };
+  }, [conversations, me]);
 
   const selectedConvo = conversations.find(c => c.phone === selectedPhone);
   const assignedMember = team.find(t => t.user_id === selectedConvo?.assigned_to);
@@ -258,6 +284,23 @@ export default function AdminWhatsAppCRM() {
       toast.error("Erro ao enviar: " + (e.message || e));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleAiSuggest = async () => {
+    if (!selectedPhone || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("wa-suggest-reply", {
+        body: { phone: selectedPhone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.suggestion) setDraft(d => d ? d + "\n" + data.suggestion : data.suggestion);
+    } catch (e: any) {
+      toast.error("IA: " + (e.message || e));
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -434,7 +477,27 @@ export default function AdminWhatsAppCRM() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-180px)]">
+      {/* Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Abertas", value: metrics.open, icon: Inbox, color: "text-emerald-500" },
+          { label: "Não lidas", value: metrics.unread, icon: MessageCircle, color: "text-green-500" },
+          { label: "Minhas abertas", value: metrics.mineOpen, icon: UserCheck, color: "text-blue-400" },
+          { label: "Resolvidas hoje", value: metrics.resolvedToday, icon: CheckCircle2, color: "text-emerald-400" },
+        ].map((m) => (
+          <div key={m.label} className="bg-card/60 border border-border/40 rounded-xl p-3 flex items-center gap-3">
+            <div className={`size-9 rounded-lg bg-muted/40 flex items-center justify-center ${m.color}`}>
+              <m.icon className="size-4" />
+            </div>
+            <div>
+              <div className="text-xl font-bold leading-none">{m.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">{m.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-280px)]">
         {/* Conversations list */}
         <div className="bg-card/60 border border-border/40 rounded-xl flex flex-col overflow-hidden">
           <div className="p-3 border-b border-border/40">
@@ -457,6 +520,31 @@ export default function AdminWhatsAppCRM() {
                   {s === "open" ? "Abertas" : s === "resolved" ? "Resolvidas" : "Todas"} ({counts[s]})
                 </button>
               ))}
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              <Select value={assignFilter} onValueChange={(v: any) => setAssignFilter(v)}>
+                <SelectTrigger className="h-7 text-[11px] flex-1">
+                  <Filter className="size-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos atendentes</SelectItem>
+                  <SelectItem value="mine">Atribuídas a mim</SelectItem>
+                  <SelectItem value="unassigned">Sem atribuição</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={tagFilter || "__all__"} onValueChange={(v) => setTagFilter(v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-7 text-[11px] flex-1">
+                  <TagIcon className="size-3 mr-1" />
+                  <SelectValue placeholder="Etiqueta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todas etiquetas</SelectItem>
+                  {allTags.map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <ScrollArea className="flex-1">
@@ -681,6 +769,17 @@ export default function AdminWhatsAppCRM() {
                   title={recording ? "Parar gravação" : "Gravar áudio"}
                 >
                   {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={handleAiSuggest}
+                  disabled={aiLoading || uploading || recording}
+                  title="Sugestão de resposta com IA"
+                >
+                  {aiLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-violet-400" />}
                 </Button>
                 <Textarea
                   value={draft}
