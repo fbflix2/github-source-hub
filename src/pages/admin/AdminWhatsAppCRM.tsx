@@ -868,9 +868,18 @@ export default function AdminWhatsAppCRM() {
                           </div>
                         )}
                         {m.media_url && m.message_type === "image" && (
-                          <a href={m.media_url} target="_blank" rel="noreferrer">
-                            <img src={m.media_url} alt="" className="rounded-lg max-w-full max-h-64 mb-1" />
-                          </a>
+                          <button
+                            type="button"
+                            onClick={() => { setLightboxUrl(m.media_url!); setLightboxZoom(1); }}
+                            className="block mb-1 group"
+                            title="Clique para ampliar"
+                          >
+                            <img
+                              src={m.media_url}
+                              alt=""
+                              className="rounded-lg max-w-full max-h-[420px] w-auto h-auto object-contain cursor-zoom-in group-hover:opacity-95 transition-opacity"
+                            />
+                          </button>
                         )}
                         {m.media_url && m.message_type === "audio" && (
                           <AudioMessagePlayer src={m.media_url} className="mb-1" variant={m.from_me ? "sent" : "received"} />
