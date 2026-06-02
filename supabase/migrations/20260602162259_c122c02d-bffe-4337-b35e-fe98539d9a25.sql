@@ -1,0 +1,2 @@
+DELETE FROM public.whatsapp_messages WHERE phone = '141871410069570' OR chat_id ILIKE '%@lid%' OR chat_id ILIKE '%@broadcast%' OR chat_id ILIKE 'status@%';
+DELETE FROM public.whatsapp_conversations WHERE phone = '141871410069570' OR phone !~ '^[0-9]{10,15}$';
