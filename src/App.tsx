@@ -109,6 +109,7 @@ import AdminOperadorFinanceiro from "./pages/admin/AdminOperadorFinanceiro";
 import AdminOperadorDashboard from "./pages/admin/AdminOperadorDashboard";
 import AdminSaqueOperador from "./pages/admin/AdminSaqueOperador";
 import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
+import AdminWhatsAppCRM from "./pages/admin/AdminWhatsAppCRM";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
@@ -443,6 +444,7 @@ const App = () => {
                   <Route path="reposicao-fornecedor" element={<AdminReposicaoFornecedor />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
                   <Route path="whatsapp" element={<AdminWhatsApp />} />
+                  <Route path="whatsapp-crm" element={<AdminWhatsAppCRM />} />
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />

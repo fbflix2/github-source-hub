@@ -321,6 +321,19 @@ Deno.serve(async (req) => {
         message_type: "text",
       });
 
+      // CRM thread log (outgoing)
+      if (result.ok) {
+        await admin.from("whatsapp_messages").insert({
+          phone: normalizedPhone,
+          wapi_message_id: getMessageId(result),
+          direction: "out",
+          from_me: true,
+          body: message,
+          message_type: "text",
+          status: "sent",
+        });
+      }
+
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: getMessageId(result) });
     }

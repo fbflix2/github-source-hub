@@ -42,6 +42,34 @@ Deno.serve(async (req) => {
     // Extract phone number from chatId
     const phone = chatId ? chatId.replace(/@.*/, "").replace(/\D/g, "") : null;
 
+    // ========= CRM: persist message to whatsapp_messages =========
+    if (phone && !isGroup) {
+      const isIn = fromMe === false || (fromMe == null && (body.type === "ReceivedCallback" || event === "webhookreceived"));
+      const isOut = fromMe === true;
+      if (isIn || isOut) {
+        const contactName = body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || null;
+        const mediaUrl = body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
+        const msgType = body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
+        try {
+          await admin.from("whatsapp_messages").insert({
+            phone,
+            chat_id: chatId || null,
+            wapi_message_id: messageId || null,
+            direction: isIn ? "in" : "out",
+            from_me: !!isOut,
+            body: replyMessage || null,
+            message_type: msgType,
+            media_url: mediaUrl,
+            contact_name: contactName,
+            status: "received",
+            raw: body,
+          });
+        } catch (e) {
+          console.error("CRM insert error:", e);
+        }
+      }
+    }
+
     // Try to find the log entry
     let logEntry = null;
 

@@ -34,6 +34,7 @@ const allMenuOptions = [
   { path: "/admin/anuncios", label: "Anúncios" },
   { path: "/admin/notificacoes", label: "Notificações" },
   { path: "/admin/chat", label: "Chat da Equipe" },
+  { path: "/admin/whatsapp-crm", label: "CRM WhatsApp" },
   { path: "/admin/configuracoes/plataforma", label: "Configurações > Plataforma" },
   { path: "/admin/configuracoes/bloco-padrao", label: "Configurações > Bloco Padrão" },
   { path: "/admin/configuracoes/feedbacks", label: "Configurações > Feedbacks" },
