@@ -760,6 +760,11 @@ export default function AdminWhatsAppCRM() {
                           ? "bg-green-600 text-white rounded-br-sm"
                           : "bg-muted text-foreground rounded-bl-sm"
                       }`}>
+                        {m.from_me && formatSender(m.sender_user_id, m.sender_department_id) && (
+                          <div className="text-[10px] font-semibold text-white/80 mb-1 leading-tight">
+                            {formatSender(m.sender_user_id, m.sender_department_id)}
+                          </div>
+                        )}
                         {m.media_url && m.message_type === "image" && (
                           <a href={m.media_url} target="_blank" rel="noreferrer">
                             <img src={m.media_url} alt="" className="rounded-lg max-w-full max-h-64 mb-1" />
