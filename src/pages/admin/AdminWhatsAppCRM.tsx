@@ -882,7 +882,7 @@ export default function AdminWhatsAppCRM() {
                   className="shrink-0 h-11 w-11"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading || recording}
-                  title="Anexar imagem ou áudio"
+                  title="Anexar imagem, áudio ou documento"
                 >
                   {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 </Button>
