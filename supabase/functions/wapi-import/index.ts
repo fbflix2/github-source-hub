@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
 
   let body: any = {};
   try { body = await req.json(); } catch { /* empty body allowed */ }
+  const debug: boolean = !!body.debug;
   const maxChats: number = Math.min(Math.max(Number(body.maxChats) || 50, 1), 200);
   const messagesPerChat: number = Math.min(Math.max(Number(body.messagesPerChat) || 30, 1), 200);
   const onlyUnread: boolean = !!body.onlyUnread;
@@ -40,6 +41,64 @@ Deno.serve(async (req) => {
     let data: any = null;
     try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 300) }; }
     return { ok: res.ok, status: res.status, data };
+  }
+
+  async function wapiTry(method: "GET" | "POST", path: string, params: Record<string,string>, body?: any) {
+    const qs = new URLSearchParams({ instanceId: WAPI_INSTANCE_ID! });
+    if (method === "GET") for (const [k,v] of Object.entries(params)) qs.append(k, v);
+    const url = `${WAPI_BASE}${path}?${qs}`;
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${WAPI_TOKEN}`, "Content-Type": "application/json" },
+      body: method === "POST" ? JSON.stringify(body ?? params) : undefined,
+    });
+    const t = await res.text();
+    return { status: res.status, snippet: t.slice(0, 180) };
+  }
+
+  if (debug) {
+    const chatsRes = await wapiGet("/chats/fetch-chats", { page: 1, perPage: 3 });
+    const arr: any[] = Array.isArray(chatsRes.data?.chats) ? chatsRes.data.chats
+      : Array.isArray(chatsRes.data?.data) ? chatsRes.data.data
+      : Array.isArray(chatsRes.data) ? chatsRes.data : [];
+    const sample = arr[0] || null;
+    const sampleKeys = sample ? Object.keys(sample) : [];
+    const rawId = sample?.id || sample?.chatId || "";
+    const phone = digits(rawId);
+    const tries: Record<string, any> = {};
+    const candidates: Array<[string, Record<string,string>]> = [
+      ["/message/messages-by-phone-number", { phoneNumber: phone }],
+      ["/message/messages-by-phone", { phoneNumber: phone }],
+      ["/message/fetch", { phoneNumber: phone }],
+      ["/messages/by-phone", { phoneNumber: phone }],
+      ["/chats/messages-by-chat", { chatId: rawId }],
+      ["/chats/messages", { chatId: rawId }],
+      ["/chats/fetch-messages", { chatId: rawId }],
+      ["/messages/fetch", { chatId: rawId }],
+    ];
+    for (const [p, params] of candidates) {
+      const r = await wapiGet(p, params);
+      tries[p] = { status: r.status, snippet: JSON.stringify(r.data).slice(0, 200) };
+    }
+    // Also try variants
+    const more: Array<[string, "GET"|"POST", Record<string,string>]> = [
+      ["/chats/fetch-messages-by-chat", "GET", { chatId: rawId }],
+      ["/chats/fetch-messages-by-chat", "GET", { phoneNumber: phone }],
+      ["/chats/get-messages", "GET", { chatId: rawId }],
+      ["/chats/messages-from-chat", "GET", { chatId: rawId }],
+      ["/chats/list-messages", "GET", { chatId: rawId }],
+      ["/messages/list", "GET", { chatId: rawId }],
+      ["/messages/chat", "GET", { chatId: rawId }],
+      ["/message/get-messages", "GET", { phoneNumber: phone }],
+      ["/chats/messages", "POST", { chatId: rawId }],
+      ["/chats/fetch-messages", "POST", { chatId: rawId }],
+      ["/message/messages-by-phone", "POST", { phoneNumber: phone }],
+    ];
+    for (const [p, m, params] of more) {
+      const r = await wapiTry(m, p, params);
+      if (r.status !== 404) tries[`${m} ${p}`] = r;
+    }
+    return ok({ debug: true, chats_status: chatsRes.status, chats_count: arr.length, sampleKeys, samplePhone: phone, sample, tries });
   }
 
   try {
