@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -564,9 +565,12 @@ export default function AdminWhatsAppCRM() {
                     onClick={() => setSelectedPhone(c.phone)}
                     className={`w-full text-left p-3 hover:bg-white/5 transition-colors flex gap-3 ${selectedPhone === c.phone ? "bg-white/10" : ""}`}
                   >
-                    <div className="size-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <User className="size-5 text-muted-foreground" />
-                    </div>
+                    <Avatar className="size-10 shrink-0">
+                      <AvatarImage src={c.avatar_url || undefined} alt={c.contact_name || c.phone} />
+                      <AvatarFallback className="bg-muted">
+                        <User className="size-5 text-muted-foreground" />
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-sm truncate">
@@ -606,9 +610,12 @@ export default function AdminWhatsAppCRM() {
           ) : (
             <>
               <div className="p-3 border-b border-border/40 flex items-center gap-3">
-                <div className="size-9 rounded-full bg-muted flex items-center justify-center">
-                  <User className="size-4 text-muted-foreground" />
-                </div>
+                <Avatar className="size-9">
+                  <AvatarImage src={selectedConvo?.avatar_url || undefined} alt={selectedConvo?.contact_name || selectedPhone} />
+                  <AvatarFallback className="bg-muted">
+                    <User className="size-4 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm">
                     {selectedConvo?.contact_name || formatPhone(selectedPhone)}
