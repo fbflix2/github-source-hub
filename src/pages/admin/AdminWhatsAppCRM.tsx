@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +21,7 @@ type Conversation = {
   last_message_preview: string | null;
   unread_count: number;
   status: string;
+  assigned_to: string | null;
   client_user_id: string | null;
 };
 
@@ -32,12 +36,19 @@ type Message = {
   created_at: string;
 };
 
+type TeamMember = { user_id: string; full_name: string | null };
+type QuickReply = { id: string; shortcut: string; body: string };
+
 export default function AdminWhatsAppCRM() {
   const qc = useQueryClient();
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"open" | "resolved" | "all">("open");
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [newQrShortcut, setNewQrShortcut] = useState("");
+  const [newQrBody, setNewQrBody] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
@@ -69,6 +80,37 @@ export default function AdminWhatsAppCRM() {
     },
     enabled: !!selectedPhone,
     refetchInterval: 5000,
+  });
+
+  // Team members (admins + moderators) for assignment
+  const { data: team = [] } = useQuery({
+    queryKey: ["wa-team"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "moderator"]);
+      const ids = Array.from(new Set((roles || []).map((r: any) => r.user_id)));
+      if (ids.length === 0) return [] as TeamMember[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      return (profs || []) as TeamMember[];
+    },
+  });
+
+  // Quick replies
+  const { data: quickReplies = [], refetch: refetchQr } = useQuery({
+    queryKey: ["wa-quick-replies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_quick_replies")
+        .select("id, shortcut, body")
+        .order("shortcut", { ascending: true });
+      if (error) throw error;
+      return data as QuickReply[];
+    },
   });
 
   // Realtime subscription
@@ -104,16 +146,59 @@ export default function AdminWhatsAppCRM() {
   }, [selectedPhone, qc]);
 
   const filteredConvos = useMemo(() => {
-    if (!search) return conversations;
+    let list = conversations;
+    if (statusFilter !== "all") list = list.filter(c => c.status === statusFilter);
+    if (!search) return list;
     const q = search.toLowerCase();
-    return conversations.filter(c =>
+    return list.filter(c =>
       c.phone.includes(q) ||
       (c.contact_name || "").toLowerCase().includes(q) ||
       (c.last_message_preview || "").toLowerCase().includes(q)
     );
-  }, [conversations, search]);
+  }, [conversations, search, statusFilter]);
 
   const selectedConvo = conversations.find(c => c.phone === selectedPhone);
+  const assignedMember = team.find(t => t.user_id === selectedConvo?.assigned_to);
+
+  const updateConvo = async (patch: Partial<Conversation>) => {
+    if (!selectedPhone) return;
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("phone", selectedPhone);
+    if (error) { toast.error(error.message); return; }
+    refetchConvos();
+  };
+
+  const handleResolveToggle = async () => {
+    if (!selectedConvo) return;
+    const next = selectedConvo.status === "resolved" ? "open" : "resolved";
+    await updateConvo({ status: next });
+    toast.success(next === "resolved" ? "Conversa marcada como resolvida" : "Conversa reaberta");
+  };
+
+  const handleAssign = async (userId: string | null) => {
+    await updateConvo({ assigned_to: userId });
+    toast.success(userId ? "Conversa atribuída" : "Atribuição removida");
+  };
+
+  const handleCreateQr = async () => {
+    if (!newQrShortcut.trim() || !newQrBody.trim()) return;
+    const { error } = await supabase.from("whatsapp_quick_replies").insert({
+      shortcut: newQrShortcut.trim(),
+      body: newQrBody.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    setNewQrShortcut(""); setNewQrBody("");
+    refetchQr();
+    toast.success("Resposta rápida criada");
+  };
+
+  const handleDeleteQr = async (id: string) => {
+    const { error } = await supabase.from("whatsapp_quick_replies").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    refetchQr();
+  };
 
   const handleSend = async () => {
     if (!selectedPhone || !draft.trim() || sending) return;
@@ -131,6 +216,10 @@ export default function AdminWhatsAppCRM() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setDraft("");
+      // Auto-mark as open when staff replies
+      if (selectedConvo?.status === "resolved") {
+        await updateConvo({ status: "open" });
+      }
       refetchMessages();
       refetchConvos();
     } catch (e: any) {
@@ -147,6 +236,12 @@ export default function AdminWhatsAppCRM() {
     return "+" + p;
   };
 
+  const counts = useMemo(() => ({
+    open: conversations.filter(c => c.status === "open").length,
+    resolved: conversations.filter(c => c.status === "resolved").length,
+    all: conversations.length,
+  }), [conversations]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -159,9 +254,14 @@ export default function AdminWhatsAppCRM() {
             <p className="text-xs text-muted-foreground">Painel de atendimento — conversas em tempo real</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { refetchConvos(); refetchMessages(); }}>
-          <RefreshCw className="size-4 mr-1.5" /> Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setQrModalOpen(true)}>
+            <Zap className="size-4 mr-1.5" /> Respostas rápidas
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { refetchConvos(); refetchMessages(); }}>
+            <RefreshCw className="size-4 mr-1.5" /> Atualizar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-180px)]">
@@ -176,6 +276,17 @@ export default function AdminWhatsAppCRM() {
                 placeholder="Buscar conversa..."
                 className="pl-9 h-9"
               />
+            </div>
+            <div className="flex gap-1 mt-2">
+              {(["open","resolved","all"] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`flex-1 text-xs py-1.5 rounded-md transition ${statusFilter === s ? "bg-green-600 text-white" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+                >
+                  {s === "open" ? "Abertas" : s === "resolved" ? "Resolvidas" : "Todas"} ({counts[s]})
+                </button>
+              ))}
             </div>
           </div>
           <ScrollArea className="flex-1">
@@ -210,11 +321,14 @@ export default function AdminWhatsAppCRM() {
                         <span className="text-xs text-muted-foreground truncate">
                           {c.last_message_preview || "—"}
                         </span>
-                        {c.unread_count > 0 && (
-                          <Badge className="bg-green-500 text-white h-5 min-w-5 px-1.5 text-[10px]">
-                            {c.unread_count}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {c.status === "resolved" && <CheckCircle2 className="size-3 text-emerald-500" />}
+                          {c.unread_count > 0 && (
+                            <Badge className="bg-green-500 text-white h-5 min-w-5 px-1.5 text-[10px]">
+                              {c.unread_count}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -236,14 +350,39 @@ export default function AdminWhatsAppCRM() {
                 <div className="size-9 rounded-full bg-muted flex items-center justify-center">
                   <User className="size-4 text-muted-foreground" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm">
                     {selectedConvo?.contact_name || formatPhone(selectedPhone)}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {formatPhone(selectedPhone)}
                     {selectedConvo?.client_user_id && <span className="ml-2 text-green-500">• Cliente</span>}
+                    {assignedMember && <span className="ml-2 text-blue-400">• Atendente: {assignedMember.full_name || "—"}</span>}
                   </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Select value={selectedConvo?.assigned_to || "unassigned"} onValueChange={(v) => handleAssign(v === "unassigned" ? null : v)}>
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <UserCheck className="size-3.5 mr-1" />
+                      <SelectValue placeholder="Atribuir" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Sem atribuição</SelectItem>
+                      {team.map(t => (
+                        <SelectItem key={t.user_id} value={t.user_id}>{t.full_name || t.user_id.slice(0,8)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant={selectedConvo?.status === "resolved" ? "outline" : "default"}
+                    onClick={handleResolveToggle}
+                    className={selectedConvo?.status === "resolved" ? "" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+                  >
+                    {selectedConvo?.status === "resolved"
+                      ? <><RotateCw className="size-3.5 mr-1" /> Reabrir</>
+                      : <><CheckCircle2 className="size-3.5 mr-1" /> Resolver</>}
+                  </Button>
                 </div>
               </div>
 
@@ -271,7 +410,33 @@ export default function AdminWhatsAppCRM() {
                 )}
               </div>
 
-              <div className="p-3 border-t border-border/40 flex gap-2 items-end">
+              <div className="p-3 border-t border-border/40 space-y-2">
+                {quickReplies.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-7 text-xs">
+                          <Zap className="size-3 mr-1" /> Respostas rápidas
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-2" align="start">
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {quickReplies.map(qr => (
+                            <button
+                              key={qr.id}
+                              onClick={() => setDraft(d => d ? d + "\n" + qr.body : qr.body)}
+                              className="w-full text-left p-2 rounded hover:bg-muted/50"
+                            >
+                              <div className="text-xs font-medium text-primary">/{qr.shortcut}</div>
+                              <div className="text-xs text-muted-foreground line-clamp-2">{qr.body}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+                <div className="flex gap-2 items-end">
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -291,11 +456,58 @@ export default function AdminWhatsAppCRM() {
                 >
                   {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 </Button>
+                </div>
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* Quick replies management modal */}
+      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Zap className="size-5 text-primary" /> Respostas rápidas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {quickReplies.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">Nenhuma resposta rápida cadastrada</div>
+              ) : quickReplies.map(qr => (
+                <div key={qr.id} className="flex gap-2 p-2 rounded border border-border/30">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-primary">/{qr.shortcut}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">{qr.body}</div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => handleDeleteQr(qr.id)}>
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-border/30 pt-3 space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">Criar nova</div>
+              <Input
+                placeholder="Atalho (ex: saudacao)"
+                value={newQrShortcut}
+                onChange={(e) => setNewQrShortcut(e.target.value)}
+              />
+              <Textarea
+                placeholder="Mensagem completa..."
+                value={newQrBody}
+                onChange={(e) => setNewQrBody(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQrModalOpen(false)}>Fechar</Button>
+            <Button onClick={handleCreateQr} className="bg-primary text-white">
+              <Plus className="size-4 mr-1" /> Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
