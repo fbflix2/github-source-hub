@@ -886,6 +886,26 @@ export default function AdminWhatsAppCRM() {
               </div>
 
               <div className="p-3 border-t border-border/40 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <PenLine className="size-3 shrink-0" />
+                    <span className="shrink-0">Assinatura:</span>
+                    {signature ? (
+                      <span className="truncate text-foreground/80 font-medium">{signature}</span>
+                    ) : (
+                      <span className="italic">não configurada</span>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => { setSignatureDraft(signature); setSignatureOpen(true); }}
+                  >
+                    {signature ? "Editar" : "Definir"}
+                  </Button>
+                </div>
                 {quickReplies.length > 0 && (
                   <div className="flex gap-1.5 flex-wrap">
                     <Popover>
