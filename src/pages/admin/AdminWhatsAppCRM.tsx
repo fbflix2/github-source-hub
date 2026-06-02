@@ -614,8 +614,6 @@ export default function AdminWhatsAppCRM() {
               </div>
             ) : (
               <div className="divide-y divide-border/30">
-                {filteredConvos.map(c => (
-                  ((): any => null)() }
                 {filteredConvos.map(c => {
                   const unanswered = (c.unread_count || 0) > 0;
                   return (
