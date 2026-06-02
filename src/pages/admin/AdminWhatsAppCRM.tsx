@@ -422,6 +422,9 @@ export default function AdminWhatsAppCRM() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSoundOn(s => !s)} title={soundOn ? "Silenciar alertas" : "Ativar alertas"}>
+            {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setQrModalOpen(true)}>
             <Zap className="size-4 mr-1.5" /> Respostas rápidas
           </Button>
@@ -550,7 +553,47 @@ export default function AdminWhatsAppCRM() {
                       ? <><RotateCw className="size-3.5 mr-1" /> Reabrir</>
                       : <><CheckCircle2 className="size-3.5 mr-1" /> Resolver</>}
                   </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-8" title="Notas internas">
+                        <StickyNote className="size-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium flex items-center gap-1.5"><StickyNote className="size-3.5" /> Notas internas</div>
+                        <Textarea
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          placeholder="Anotações visíveis apenas para a equipe..."
+                          rows={6}
+                          className="text-xs"
+                        />
+                        <div className="text-[10px] text-muted-foreground">Salvamento automático</div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
+              </div>
+
+              {/* Tags row */}
+              <div className="px-3 py-2 border-b border-border/30 flex items-center gap-1.5 flex-wrap bg-card/40">
+                <TagIcon className="size-3 text-muted-foreground" />
+                {(selectedConvo?.tags || []).map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-[10px] gap-1 pr-1">
+                    {tag}
+                    <button onClick={() => handleRemoveTag(tag)} className="hover:text-destructive">
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTag(); } }}
+                  placeholder="+ etiqueta"
+                  className="h-6 w-28 text-[11px] px-2"
+                />
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/30">
@@ -564,10 +607,22 @@ export default function AdminWhatsAppCRM() {
                           ? "bg-green-600 text-white rounded-br-sm"
                           : "bg-muted text-foreground rounded-bl-sm"
                       }`}>
-                        {m.media_url && (
-                          <div className="text-[10px] opacity-80 mb-1">[{m.message_type}]</div>
+                        {m.media_url && m.message_type === "image" && (
+                          <a href={m.media_url} target="_blank" rel="noreferrer">
+                            <img src={m.media_url} alt="" className="rounded-lg max-w-full max-h-64 mb-1" />
+                          </a>
                         )}
-                        <div className="whitespace-pre-wrap break-words">{m.body || (m.media_url ? "(mídia)" : "(vazio)")}</div>
+                        {m.media_url && m.message_type === "audio" && (
+                          <audio controls src={m.media_url} className="max-w-full mb-1" />
+                        )}
+                        {m.media_url && !["image","audio"].includes(m.message_type) && (
+                          <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11px] underline opacity-90">
+                            Abrir mídia ({m.message_type})
+                          </a>
+                        )}
+                        {(m.body || (!m.media_url)) && (
+                          <div className="whitespace-pre-wrap break-words">{m.body || "(vazio)"}</div>
+                        )}
                         <div className={`text-[9px] mt-1 ${m.from_me ? "text-white/70" : "text-muted-foreground"}`}>
                           {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </div>
@@ -604,6 +659,29 @@ export default function AdminWhatsAppCRM() {
                   </div>
                 )}
                 <div className="flex gap-2 items-end">
+                <input ref={fileInputRef} type="file" accept="image/*,audio/*" hidden onChange={handleFilePick} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || recording}
+                  title="Anexar imagem ou áudio"
+                >
+                  {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant={recording ? "destructive" : "outline"}
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={recording ? stopRecording : startRecording}
+                  disabled={uploading}
+                  title={recording ? "Parar gravação" : "Gravar áudio"}
+                >
+                  {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
+                </Button>
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
