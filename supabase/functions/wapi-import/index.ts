@@ -50,23 +50,22 @@ Deno.serve(async (req) => {
       : Array.isArray(chatsRes.data) ? chatsRes.data : [];
     const sample = arr[0] || null;
     const sampleKeys = sample ? Object.keys(sample) : [];
-    const phone = sample ? digits(sample.phone || sample.id || sample.chatId || sample.number || "") : "";
+    const rawId = sample?.id || sample?.chatId || "";
+    const phone = digits(rawId);
     const tries: Record<string, any> = {};
-    const candidates = [
-      ["/message/fetch-messages", { phone }],
-      ["/messages/fetch-messages", { phone }],
-      ["/chat/fetch-messages", { phone }],
-      ["/chats/messages", { phone }],
+    const candidates: Array<[string, Record<string,string>]> = [
+      ["/message/messages-by-phone-number", { phoneNumber: phone }],
       ["/message/messages-by-phone", { phoneNumber: phone }],
-      ["/message/all-messages", { phoneNumber: phone }],
-      ["/chats/fetch-messages", { phoneNumber: phone }],
-      ["/messages", { phoneNumber: phone }],
-    ] as const;
+      ["/message/fetch", { phoneNumber: phone }],
+      ["/messages/by-phone", { phoneNumber: phone }],
+      ["/chats/messages-by-chat", { chatId: rawId }],
+      ["/chats/messages", { chatId: rawId }],
+      ["/chats/fetch-messages", { chatId: rawId }],
+      ["/messages/fetch", { chatId: rawId }],
+    ];
     for (const [p, params] of candidates) {
-      const r = await wapiGet(p, params as any);
-      if (r.status !== 404) {
-        tries[p] = { status: r.status, sample: JSON.stringify(r.data).slice(0, 400) };
-      }
+      const r = await wapiGet(p, params);
+      tries[p] = { status: r.status, snippet: JSON.stringify(r.data).slice(0, 200) };
     }
     return ok({ debug: true, chats_status: chatsRes.status, chats_count: arr.length, sampleKeys, samplePhone: phone, sample, tries });
   }
