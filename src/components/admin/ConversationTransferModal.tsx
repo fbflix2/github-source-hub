@@ -65,10 +65,13 @@ export function ConversationTransferModal({
     })();
   }, [open, currentAssignee, currentDepartmentId]);
 
-  const filteredMembers =
+  const filteredByDept =
     toDepartmentId === "__keep__" || toDepartmentId === "__any__"
       ? members
       : members.filter((m) => m.department_id === toDepartmentId);
+  // Fallback: if filtering by department yields no one, show all staff so
+  // the admin can still pick someone to transfer to.
+  const filteredMembers = filteredByDept.length > 0 ? filteredByDept : members;
 
   const handleSubmit = async () => {
     setSubmitting(true);
