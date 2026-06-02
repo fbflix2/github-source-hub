@@ -164,7 +164,22 @@ Deno.serve(async (req) => {
             : (mc.documentMessage?.fileName?.split(".").pop() || "bin");
 
           // 1) Try W-API decrypted download endpoint (works for encrypted WhatsApp media)
-          let decrypted = await wapiDownloadMedia({ messageId, phone, chatId });
+          //    W-API requires: mediaKey, directPath, type, mimetype
+          const mediaNode =
+            mc.imageMessage || mc.audioMessage || mc.videoMessage ||
+            mc.documentMessage || mc.stickerMessage || {};
+          const dlPayload: Record<string, any> = {
+            messageId, phone, chatId,
+            type: msgType,
+            mediaKey: mediaNode.mediaKey,
+            directPath: mediaNode.directPath,
+            url: mediaNode.url,
+            mimetype: mediaNode.mimetype || (msgType === "audio" ? "audio/ogg; codecs=opus" : undefined),
+          };
+          let decrypted: string | null = null;
+          if (dlPayload.mediaKey && dlPayload.directPath) {
+            decrypted = await wapiDownloadMedia(dlPayload);
+          }
           let publicUrl: string | null = null;
           if (decrypted) publicUrl = await rehostToStorage(decrypted, ext);
 
