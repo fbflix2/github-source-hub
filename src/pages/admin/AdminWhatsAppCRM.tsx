@@ -322,11 +322,12 @@ export default function AdminWhatsAppCRM() {
     if (!selectedPhone || !draft.trim() || sending) return;
     setSending(true);
     try {
+      const message = appendSignature(draft.trim());
       const { data, error } = await supabase.functions.invoke("wapi-send", {
         body: {
           action: "send-text",
           phone: selectedPhone,
-          message: draft.trim(),
+          message,
           event_key: "crm_manual",
           user_id: selectedConvo?.client_user_id || null,
           sender_user_id: me,
