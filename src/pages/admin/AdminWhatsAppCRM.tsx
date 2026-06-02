@@ -770,6 +770,17 @@ export default function AdminWhatsAppCRM() {
                 >
                   {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={handleAiSuggest}
+                  disabled={aiLoading || uploading || recording}
+                  title="Sugestão de resposta com IA"
+                >
+                  {aiLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-violet-400" />}
+                </Button>
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
