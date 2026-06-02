@@ -455,14 +455,15 @@ export default function AdminWhatsAppCRM() {
       if (isImage) {
         payload.action = "send-image";
         payload.image_url = url;
-        if (caption) payload.caption = caption;
+        const finalCaption = appendSignature(caption);
+        if (finalCaption) payload.caption = finalCaption;
       } else if (isAudio) {
         payload.action = "send-audio";
         payload.audio_url = url;
       } else {
         // Documents: send as text with link (wapi-send sem ação de documento)
         payload.action = "send-text";
-        payload.text = (caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`;
+        payload.text = appendSignature((caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`);
       }
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
