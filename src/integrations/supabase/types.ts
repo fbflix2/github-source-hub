@@ -4242,10 +4242,12 @@ export type Database = {
           assigned_to: string | null
           client_user_id: string | null
           contact_name: string | null
+          internal_notes: string | null
           last_message_at: string
           last_message_preview: string | null
           phone: string
           status: string
+          tags: string[]
           unread_count: number
           updated_at: string
         }
@@ -4253,10 +4255,12 @@ export type Database = {
           assigned_to?: string | null
           client_user_id?: string | null
           contact_name?: string | null
+          internal_notes?: string | null
           last_message_at?: string
           last_message_preview?: string | null
           phone: string
           status?: string
+          tags?: string[]
           unread_count?: number
           updated_at?: string
         }
@@ -4264,10 +4268,12 @@ export type Database = {
           assigned_to?: string | null
           client_user_id?: string | null
           contact_name?: string | null
+          internal_notes?: string | null
           last_message_at?: string
           last_message_preview?: string | null
           phone?: string
           status?: string
+          tags?: string[]
           unread_count?: number
           updated_at?: string
         }

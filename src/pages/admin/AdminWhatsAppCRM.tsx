@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,8 @@ type Conversation = {
   status: string;
   assigned_to: string | null;
   client_user_id: string | null;
+  tags: string[] | null;
+  internal_notes: string | null;
 };
 
 type Message = {
@@ -49,6 +51,16 @@ export default function AdminWhatsAppCRM() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [newQrShortcut, setNewQrShortcut] = useState("");
   const [newQrBody, setNewQrBody] = useState("");
+  const [notesDraft, setNotesDraft] = useState("");
+  const [newTag, setNewTag] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastIncomingTsRef = useRef<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
@@ -117,16 +129,36 @@ export default function AdminWhatsAppCRM() {
   useEffect(() => {
     const ch = supabase
       .channel("wa-crm")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "whatsapp_messages" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "whatsapp_messages" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["wa-messages"] });
         qc.invalidateQueries({ queryKey: ["wa-conversations"] });
+        const row = payload?.new;
+        if (row?.direction === "in" && soundOn) playPing();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversations" }, () => {
         qc.invalidateQueries({ queryKey: ["wa-conversations"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [qc]);
+  }, [qc, soundOn]);
+
+  // Sync notes draft when switching conversations
+  useEffect(() => {
+    const c = conversations.find(x => x.phone === selectedPhone);
+    setNotesDraft(c?.internal_notes || "");
+  }, [selectedPhone, conversations]);
+
+  // Debounced auto-save for notes
+  useEffect(() => {
+    if (!selectedPhone) return;
+    const current = conversations.find(c => c.phone === selectedPhone);
+    if ((current?.internal_notes || "") === notesDraft) return;
+    const t = setTimeout(() => {
+      updateConvo({ internal_notes: notesDraft });
+    }, 1200);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notesDraft]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -229,6 +261,141 @@ export default function AdminWhatsAppCRM() {
     }
   };
 
+  const playPing = () => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.26);
+    } catch {}
+  };
+
+  const uploadToBucket = async (file: Blob, ext: string): Promise<string | null> => {
+    if (!selectedPhone) return null;
+    const path = `crm/${selectedPhone}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error } = await supabase.storage.from("support-attachments").upload(path, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (error) { toast.error("Upload falhou: " + error.message); return null; }
+    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selectedPhone) return;
+    const isImage = file.type.startsWith("image/");
+    const isAudio = file.type.startsWith("audio/");
+    if (!isImage && !isAudio) { toast.error("Envie apenas imagem ou áudio"); return; }
+    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo maior que 16MB"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || (isImage ? "jpg" : "ogg");
+      const url = await uploadToBucket(file, ext);
+      if (!url) return;
+      const action = isImage ? "send-image" : "send-audio";
+      const payload: any = {
+        action,
+        phone: selectedPhone,
+        event_key: "crm_manual",
+        user_id: selectedConvo?.client_user_id || null,
+      };
+      if (isImage) { payload.image_url = url; if (draft.trim()) payload.caption = draft.trim(); }
+      else payload.audio_url = url;
+      const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      // Also log to whatsapp_messages so it appears in thread
+      await supabase.from("whatsapp_messages").insert({
+        phone: selectedPhone,
+        direction: "out",
+        from_me: true,
+        body: isImage ? (draft.trim() || null) : null,
+        message_type: isImage ? "image" : "audio",
+        media_url: url,
+        status: "sent",
+      });
+      if (isImage) setDraft("");
+      if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
+      refetchMessages();
+    } catch (err: any) {
+      toast.error("Erro ao enviar mídia: " + (err.message || err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      const mr = new MediaRecorder(stream, { mimeType: mime });
+      recordedChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(recordedChunksRef.current, { type: mime });
+        if (blob.size < 800) { toast.error("Áudio muito curto"); return; }
+        setUploading(true);
+        try {
+          const url = await uploadToBucket(blob, "webm");
+          if (!url || !selectedPhone) return;
+          const { data, error } = await supabase.functions.invoke("wapi-send", {
+            body: { action: "send-audio", phone: selectedPhone, audio_url: url, event_key: "crm_manual", user_id: selectedConvo?.client_user_id || null },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          await supabase.from("whatsapp_messages").insert({
+            phone: selectedPhone, direction: "out", from_me: true,
+            body: null, message_type: "audio", media_url: url, status: "sent",
+          });
+          if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
+          refetchMessages();
+        } catch (err: any) {
+          toast.error("Erro ao enviar áudio: " + (err.message || err));
+        } finally {
+          setUploading(false);
+        }
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setRecording(true);
+    } catch (e: any) {
+      toast.error("Microfone indisponível: " + (e.message || e));
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setRecording(false);
+  };
+
+  const handleAddTag = async () => {
+    const t = newTag.trim().toLowerCase();
+    if (!t || !selectedConvo) return;
+    const next = Array.from(new Set([...(selectedConvo.tags || []), t]));
+    await updateConvo({ tags: next });
+    setNewTag("");
+  };
+
+  const handleRemoveTag = async (tag: string) => {
+    if (!selectedConvo) return;
+    const next = (selectedConvo.tags || []).filter(x => x !== tag);
+    await updateConvo({ tags: next });
+  };
+
   const formatPhone = (p: string) => {
     if (p.length === 13 && p.startsWith("55")) {
       return `+55 (${p.slice(2,4)}) ${p.slice(4,9)}-${p.slice(9)}`;
@@ -255,6 +422,9 @@ export default function AdminWhatsAppCRM() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSoundOn(s => !s)} title={soundOn ? "Silenciar alertas" : "Ativar alertas"}>
+            {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setQrModalOpen(true)}>
             <Zap className="size-4 mr-1.5" /> Respostas rápidas
           </Button>
@@ -383,7 +553,47 @@ export default function AdminWhatsAppCRM() {
                       ? <><RotateCw className="size-3.5 mr-1" /> Reabrir</>
                       : <><CheckCircle2 className="size-3.5 mr-1" /> Resolver</>}
                   </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-8" title="Notas internas">
+                        <StickyNote className="size-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium flex items-center gap-1.5"><StickyNote className="size-3.5" /> Notas internas</div>
+                        <Textarea
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          placeholder="Anotações visíveis apenas para a equipe..."
+                          rows={6}
+                          className="text-xs"
+                        />
+                        <div className="text-[10px] text-muted-foreground">Salvamento automático</div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
+              </div>
+
+              {/* Tags row */}
+              <div className="px-3 py-2 border-b border-border/30 flex items-center gap-1.5 flex-wrap bg-card/40">
+                <TagIcon className="size-3 text-muted-foreground" />
+                {(selectedConvo?.tags || []).map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-[10px] gap-1 pr-1">
+                    {tag}
+                    <button onClick={() => handleRemoveTag(tag)} className="hover:text-destructive">
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTag(); } }}
+                  placeholder="+ etiqueta"
+                  className="h-6 w-28 text-[11px] px-2"
+                />
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/30">
@@ -397,10 +607,22 @@ export default function AdminWhatsAppCRM() {
                           ? "bg-green-600 text-white rounded-br-sm"
                           : "bg-muted text-foreground rounded-bl-sm"
                       }`}>
-                        {m.media_url && (
-                          <div className="text-[10px] opacity-80 mb-1">[{m.message_type}]</div>
+                        {m.media_url && m.message_type === "image" && (
+                          <a href={m.media_url} target="_blank" rel="noreferrer">
+                            <img src={m.media_url} alt="" className="rounded-lg max-w-full max-h-64 mb-1" />
+                          </a>
                         )}
-                        <div className="whitespace-pre-wrap break-words">{m.body || (m.media_url ? "(mídia)" : "(vazio)")}</div>
+                        {m.media_url && m.message_type === "audio" && (
+                          <audio controls src={m.media_url} className="max-w-full mb-1" />
+                        )}
+                        {m.media_url && !["image","audio"].includes(m.message_type) && (
+                          <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11px] underline opacity-90">
+                            Abrir mídia ({m.message_type})
+                          </a>
+                        )}
+                        {(m.body || (!m.media_url)) && (
+                          <div className="whitespace-pre-wrap break-words">{m.body || "(vazio)"}</div>
+                        )}
                         <div className={`text-[9px] mt-1 ${m.from_me ? "text-white/70" : "text-muted-foreground"}`}>
                           {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </div>
@@ -437,6 +659,29 @@ export default function AdminWhatsAppCRM() {
                   </div>
                 )}
                 <div className="flex gap-2 items-end">
+                <input ref={fileInputRef} type="file" accept="image/*,audio/*" hidden onChange={handleFilePick} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || recording}
+                  title="Anexar imagem ou áudio"
+                >
+                  {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant={recording ? "destructive" : "outline"}
+                  size="icon"
+                  className="shrink-0 h-11 w-11"
+                  onClick={recording ? stopRecording : startRecording}
+                  disabled={uploading}
+                  title={recording ? "Parar gravação" : "Gravar áudio"}
+                >
+                  {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
+                </Button>
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
