@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
     const messageId = body.messageId || body.id || body.data?.messageId || body.data?.id;
     const status = body.status || body.data?.status || body.type;
     const mc = body.msgContent || body.data?.msgContent || {};
+    const reactionEmoji = mc.reactionMessage?.text || null;
     const replyMessage =
       mc.conversation ||
       mc.extendedTextMessage?.text ||
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
       mc.documentMessage?.caption ||
       mc.buttonsResponseMessage?.selectedDisplayText ||
       mc.listResponseMessage?.title ||
+      (reactionEmoji ? `Reagiu com ${reactionEmoji}` : null) ||
       body.message?.text || body.data?.message?.text || body.text || body.body || null;
     const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone || body.chat?.id;
     const fromMe = body.fromMe ?? body.data?.fromMe ?? null;
@@ -127,8 +129,14 @@ Deno.serve(async (req) => {
     // Only treat as a real CRM message when it is a true incoming message or a real outgoing send,
     // NOT when it is just a delivery/read status webhook for one of OUR messages.
     const isStatusEvent = eventLower.includes("status") || eventLower === "messagestatus" || eventLower === "webhookstatus";
-    if (phone && !isGroup && !isLid && !isStatusEvent) {
-      const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage);
+    // Skip protocol/edit/encrypted meta-messages that have no real visible content.
+    // These produce empty bubbles in the CRM (WhatsApp message edits, deletes, key rotations, etc.).
+    const mcKeys = Object.keys(mc || {}).filter((k) => k !== "messageContextInfo");
+    const isProtocolOnly =
+      mcKeys.length === 0 ||
+      mcKeys.every((k) => k === "protocolMessage" || k === "senderKeyDistributionMessage" || k === "secretEncryptedMessage");
+    if (phone && !isGroup && !isLid && !isStatusEvent && !isProtocolOnly) {
+      const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage || !!mc?.reactionMessage || !!mc?.stickerMessage);
       const isOut = fromMe === true;
       if (isIn || isOut) {
         const contactName =
@@ -138,6 +146,7 @@ Deno.serve(async (req) => {
           mc.imageMessage?.url || mc.audioMessage?.url || mc.videoMessage?.url || mc.documentMessage?.url ||
           body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
         const msgType =
+          mc.reactionMessage ? "reaction" :
           mc.imageMessage ? "image" :
           mc.audioMessage ? "audio" :
           mc.videoMessage ? "video" :
