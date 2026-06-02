@@ -48,7 +48,8 @@ import {
   Receipt,
   HelpCircle,
   Wallet,
-  BarChart3
+  BarChart3,
+  Building2
 } from "lucide-react";
 
 interface SubItem {
