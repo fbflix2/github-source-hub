@@ -789,7 +789,7 @@ export default function AdminWhatsAppCRM() {
                           </a>
                         )}
                         {m.media_url && m.message_type === "audio" && (
-                          <audio controls src={m.media_url} className="max-w-full mb-1" />
+                          <AudioMessagePlayer src={m.media_url} className="mb-1" />
                         )}
                         {m.media_url && !["image","audio"].includes(m.message_type) && (
                           <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11px] underline opacity-90">
