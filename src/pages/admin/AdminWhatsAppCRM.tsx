@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft, Download } from "lucide-react";
+import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
 import { Check, CheckCheck } from "lucide-react";
 import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,7 +70,7 @@ export default function AdminWhatsAppCRM() {
   const [me, setMe] = useState<string | null>(null);
   const [myDeptId, setMyDeptId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -523,32 +523,6 @@ export default function AdminWhatsAppCRM() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={importing}
-            onClick={async () => {
-              setImporting(true);
-              try {
-                const { data, error } = await supabase.functions.invoke("wapi-import", {
-                  body: { maxChats: 80, messagesPerChat: 40 },
-                });
-                if (error) throw error;
-                if (data?.error) throw new Error(data.error);
-                toast.success(`Importação: ${data?.chats_processed ?? 0} conversas, ${data?.messages_inserted ?? 0} mensagens novas`);
-                refetchConvos();
-                refetchMessages();
-              } catch (e: any) {
-                toast.error("Falha ao importar: " + (e.message || e));
-              } finally {
-                setImporting(false);
-              }
-            }}
-            title="Importar conversas existentes do WhatsApp conectado"
-          >
-            {importing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Download className="size-4 mr-1.5" />}
-            Importar do WhatsApp
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setSoundOn(s => !s)} title={soundOn ? "Silenciar alertas" : "Ativar alertas"}>
             {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </Button>
