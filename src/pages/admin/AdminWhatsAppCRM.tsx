@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Search, User, Loader2, RefreshCw, CheckCircle2, RotateCw, Zap, Plus, Trash2, UserCheck, Paperclip, Mic, Square, StickyNote, Tag as TagIcon, X, Volume2, VolumeX, Sparkles, Filter, Inbox, Clock, ArrowRightLeft } from "lucide-react";
+import { Check, CheckCheck } from "lucide-react";
 import { ConversationTransferModal } from "@/components/admin/ConversationTransferModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -614,10 +615,20 @@ export default function AdminWhatsAppCRM() {
             ) : (
               <div className="divide-y divide-border/30">
                 {filteredConvos.map(c => (
+                  ((): any => null)() }
+                {filteredConvos.map(c => {
+                  const unanswered = (c.unread_count || 0) > 0;
+                  return (
                   <button
                     key={c.phone}
                     onClick={() => setSelectedPhone(c.phone)}
-                    className={`w-full text-left p-3 hover:bg-white/5 transition-colors flex gap-3 ${selectedPhone === c.phone ? "bg-white/10" : ""}`}
+                    className={`w-full text-left p-3 hover:bg-white/5 transition-colors flex gap-3 border-l-2 ${
+                      selectedPhone === c.phone
+                        ? "bg-white/10 border-l-green-500"
+                        : unanswered
+                          ? "bg-green-500/[0.04] border-l-green-500/70"
+                          : "border-l-transparent"
+                    }`}
                   >
                     <Avatar className="size-10 shrink-0">
                       <AvatarImage src={c.avatar_url || undefined} alt={c.contact_name || c.phone} />
@@ -627,15 +638,15 @@ export default function AdminWhatsAppCRM() {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-sm truncate">
+                        <span className={`text-sm truncate ${unanswered ? "font-bold text-foreground" : "font-medium"}`}>
                           {c.contact_name || formatPhone(c.phone)}
                         </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
+                        <span className={`text-[10px] shrink-0 ${unanswered ? "text-green-500 font-semibold" : "text-muted-foreground"}`}>
                           {formatDistanceToNow(new Date(c.last_message_at), { locale: ptBR, addSuffix: false })}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <span className="text-xs text-muted-foreground truncate">
+                        <span className={`text-xs truncate ${unanswered ? "text-foreground/90" : "text-muted-foreground"}`}>
                           {c.last_message_preview || "—"}
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
@@ -647,9 +658,16 @@ export default function AdminWhatsAppCRM() {
                           )}
                         </div>
                       </div>
+                      {unanswered && (
+                        <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-green-500">
+                          <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                          Aguardando resposta
+                        </div>
+                      )}
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
