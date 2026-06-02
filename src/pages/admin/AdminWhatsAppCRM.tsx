@@ -39,9 +39,13 @@ type Message = {
   message_type: string;
   media_url: string | null;
   created_at: string;
+  sender_user_id?: string | null;
+  sender_department_id?: string | null;
 };
 
 type TeamMember = { user_id: string; full_name: string | null };
+type TeamMemberFull = TeamMember & { department_id: string | null };
+type Department = { id: string; name: string; color: string | null };
 type QuickReply = { id: string; shortcut: string; body: string };
 
 export default function AdminWhatsAppCRM() {
@@ -63,6 +67,7 @@ export default function AdminWhatsAppCRM() {
   const [assignFilter, setAssignFilter] = useState<"all" | "mine" | "unassigned">("all");
   const [tagFilter, setTagFilter] = useState<string>("");
   const [me, setMe] = useState<string | null>(null);
+  const [myDeptId, setMyDeptId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -72,7 +77,18 @@ export default function AdminWhatsAppCRM() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMe(data.user?.id || null));
+    supabase.auth.getUser().then(async ({ data }) => {
+      const uid = data.user?.id || null;
+      setMe(uid);
+      if (uid) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("department_id")
+          .eq("user_id", uid)
+          .maybeSingle();
+        setMyDeptId((prof as any)?.department_id ?? null);
+      }
+    });
   }, []);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
@@ -95,7 +111,7 @@ export default function AdminWhatsAppCRM() {
       if (!selectedPhone) return [];
       const { data, error } = await supabase
         .from("whatsapp_messages")
-        .select("id, phone, direction, from_me, body, message_type, media_url, created_at")
+        .select("id, phone, direction, from_me, body, message_type, media_url, created_at, sender_user_id, sender_department_id")
         .eq("phone", selectedPhone)
         .order("created_at", { ascending: true })
         .limit(500);
@@ -118,11 +134,40 @@ export default function AdminWhatsAppCRM() {
       if (ids.length === 0) return [] as TeamMember[];
       const { data: profs } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, department_id")
         .in("user_id", ids);
-      return (profs || []) as TeamMember[];
+      return (profs || []) as TeamMemberFull[];
     },
   });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["wa-departments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("departments" as any).select("id, name, color");
+      return ((data as any) ?? []) as Department[];
+    },
+  });
+  const deptMap = useMemo(() => {
+    const m = new Map<string, Department>();
+    departments.forEach(d => m.set(d.id, d));
+    return m;
+  }, [departments]);
+  const memberMap = useMemo(() => {
+    const m = new Map<string, TeamMemberFull>();
+    (team as TeamMemberFull[]).forEach(t => m.set(t.user_id, t));
+    return m;
+  }, [team]);
+
+  const formatSender = (uid?: string | null, did?: string | null): string | null => {
+    if (!uid && !did) return null;
+    const member = uid ? memberMap.get(uid) : undefined;
+    const dept = did ? deptMap.get(did) : (member?.department_id ? deptMap.get(member.department_id) : undefined);
+    const name = member?.full_name?.trim();
+    if (name && dept?.name) return `${name} | ${dept.name}`;
+    if (name) return name;
+    if (dept?.name) return dept.name;
+    return null;
+  };
 
   // Quick replies
   const { data: quickReplies = [], refetch: refetchQr } = useQuery({
@@ -273,6 +318,8 @@ export default function AdminWhatsAppCRM() {
           message: draft.trim(),
           event_key: "crm_manual",
           user_id: selectedConvo?.client_user_id || null,
+          sender_user_id: me,
+          sender_department_id: myDeptId,
         },
       });
       if (error) throw error;
@@ -360,6 +407,8 @@ export default function AdminWhatsAppCRM() {
       };
       if (isImage) { payload.image_url = url; if (draft.trim()) payload.caption = draft.trim(); }
       else payload.audio_url = url;
+      payload.sender_user_id = me;
+      payload.sender_department_id = myDeptId;
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -372,6 +421,8 @@ export default function AdminWhatsAppCRM() {
         message_type: isImage ? "image" : "audio",
         media_url: url,
         status: "sent",
+        sender_user_id: me,
+        sender_department_id: myDeptId,
       });
       if (isImage) setDraft("");
       if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
@@ -399,13 +450,14 @@ export default function AdminWhatsAppCRM() {
           const url = await uploadToBucket(blob, "webm");
           if (!url || !selectedPhone) return;
           const { data, error } = await supabase.functions.invoke("wapi-send", {
-            body: { action: "send-audio", phone: selectedPhone, audio_url: url, event_key: "crm_manual", user_id: selectedConvo?.client_user_id || null },
+            body: { action: "send-audio", phone: selectedPhone, audio_url: url, event_key: "crm_manual", user_id: selectedConvo?.client_user_id || null, sender_user_id: me, sender_department_id: myDeptId },
           });
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
           await supabase.from("whatsapp_messages").insert({
             phone: selectedPhone, direction: "out", from_me: true,
             body: null, message_type: "audio", media_url: url, status: "sent",
+            sender_user_id: me, sender_department_id: myDeptId,
           });
           if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
           refetchMessages();
