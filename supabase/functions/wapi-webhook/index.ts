@@ -138,12 +138,13 @@ Deno.serve(async (req) => {
 
     // Map W-API status to our tracking
     const normalizedStatus = (status || "").toString().toLowerCase();
-    const event = (body.event || "").toString().toLowerCase();
+    // `event` is already declared above; reuse it lowercased here
+    const eventStr = String(event || "").toLowerCase();
 
     // Status progression: sent -> delivered -> read
     const currentStatus = logEntry.status;
 
-    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || event.includes("delivery")) {
+    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || eventStr.includes("delivery")) {
       if (currentStatus === "sent" || currentStatus === "delivered") {
         updates.delivered_at = now;
         updates.status = "delivered";
