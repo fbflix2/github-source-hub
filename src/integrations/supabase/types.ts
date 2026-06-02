@@ -4237,6 +4237,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_conversations: {
+        Row: {
+          assigned_to: string | null
+          client_user_id: string | null
+          contact_name: string | null
+          last_message_at: string
+          last_message_preview: string | null
+          phone: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_user_id?: string | null
+          contact_name?: string | null
+          last_message_at?: string
+          last_message_preview?: string | null
+          phone: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_user_id?: string | null
+          contact_name?: string | null
+          last_message_at?: string
+          last_message_preview?: string | null
+          phone?: string
+          status?: string
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_flow_steps: {
         Row: {
           content: string | null
@@ -4384,6 +4420,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_messages: {
+        Row: {
+          body: string | null
+          chat_id: string | null
+          contact_name: string | null
+          created_at: string
+          direction: string
+          from_me: boolean
+          id: string
+          media_url: string | null
+          message_type: string | null
+          phone: string
+          raw: Json | null
+          status: string | null
+          wapi_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          chat_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction: string
+          from_me?: boolean
+          id?: string
+          media_url?: string | null
+          message_type?: string | null
+          phone: string
+          raw?: Json | null
+          status?: string | null
+          wapi_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          chat_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction?: string
+          from_me?: boolean
+          id?: string
+          media_url?: string | null
+          message_type?: string | null
+          phone?: string
+          raw?: Json | null
+          status?: string | null
+          wapi_message_id?: string | null
+        }
+        Relationships: []
       }
       whatsapp_templates: {
         Row: {
