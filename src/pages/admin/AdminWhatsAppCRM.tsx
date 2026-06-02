@@ -76,6 +76,8 @@ export default function AdminWhatsAppCRM() {
   const [signatureDraft, setSignatureDraft] = useState<string>("");
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [savingSignature, setSavingSignature] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
