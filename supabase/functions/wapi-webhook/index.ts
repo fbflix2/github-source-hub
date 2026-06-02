@@ -11,6 +11,71 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const WAPI_TOKEN = Deno.env.get("WAPI_TOKEN");
+  const WAPI_INSTANCE_ID = Deno.env.get("WAPI_INSTANCE_ID");
+  const WAPI_BASE = "https://api.w-api.app/v1";
+
+  // Ensure storage bucket exists (idempotent, cheap on hot starts)
+  try {
+    await admin.storage.createBucket("whatsapp-media", { public: true });
+  } catch (_) { /* already exists */ }
+
+  // Try W-API native download endpoint; returns { fileLink } or base64
+  async function wapiDownloadMedia(payload: Record<string, any>): Promise<string | null> {
+    if (!WAPI_TOKEN || !WAPI_INSTANCE_ID) return null;
+    try {
+      const url = `${WAPI_BASE}/message/download-media?instanceId=${WAPI_INSTANCE_ID}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${WAPI_TOKEN}` },
+        body: JSON.stringify(payload),
+      });
+      const txt = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(txt); } catch { return null; }
+      // Common shapes: { fileLink }, { url }, { mediaUrl }, { base64, mimetype }
+      const link = data?.fileLink || data?.url || data?.mediaUrl || data?.data?.fileLink || data?.data?.url;
+      if (link && typeof link === "string") return link;
+      const b64 = data?.base64 || data?.data?.base64;
+      const mime = data?.mimetype || data?.data?.mimetype || "application/octet-stream";
+      if (b64) return `data:${mime};base64,${b64}`;
+      return null;
+    } catch (e) {
+      console.error("download-media error:", e);
+      return null;
+    }
+  }
+
+  // Upload a remote URL (http or data:) to whatsapp-media bucket and return public URL
+  async function rehostToStorage(srcUrl: string, ext: string): Promise<string | null> {
+    try {
+      let bytes: Uint8Array;
+      let contentType = "application/octet-stream";
+      if (srcUrl.startsWith("data:")) {
+        const m = srcUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!m) return null;
+        contentType = m[1];
+        const bin = atob(m[2]);
+        bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      } else {
+        const r = await fetch(srcUrl);
+        if (!r.ok) return null;
+        contentType = r.headers.get("content-type") || contentType;
+        bytes = new Uint8Array(await r.arrayBuffer());
+      }
+      const path = `${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await admin.storage.from("whatsapp-media").upload(path, bytes, {
+        contentType, upsert: false,
+      });
+      if (error) { console.error("storage upload error:", error); return null; }
+      const { data } = admin.storage.from("whatsapp-media").getPublicUrl(path);
+      return data.publicUrl;
+    } catch (e) {
+      console.error("rehost error:", e);
+      return null;
+    }
+  }
 
   try {
     const body = await req.json();
@@ -69,7 +134,7 @@ Deno.serve(async (req) => {
         const contactName =
           body.sender?.pushName || body.sender?.verifiedBizName ||
           body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || null;
-        const mediaUrl =
+        let mediaUrl: string | null =
           mc.imageMessage?.url || mc.audioMessage?.url || mc.videoMessage?.url || mc.documentMessage?.url ||
           body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
         const msgType =
@@ -79,6 +144,30 @@ Deno.serve(async (req) => {
           mc.documentMessage ? "document" :
           mc.stickerMessage ? "sticker" :
           body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
+
+        // The raw mmg.whatsapp.net URLs are encrypted and not directly playable/viewable.
+        // Rehost media to public Supabase Storage so the CRM can render it.
+        if (["image","audio","video","document","sticker"].includes(msgType)) {
+          const ext = msgType === "image" ? "jpg"
+            : msgType === "audio" ? "ogg"
+            : msgType === "video" ? "mp4"
+            : msgType === "sticker" ? "webp"
+            : (mc.documentMessage?.fileName?.split(".").pop() || "bin");
+
+          // 1) Try W-API decrypted download endpoint (works for encrypted WhatsApp media)
+          let decrypted = await wapiDownloadMedia({ messageId, phone, chatId });
+          let publicUrl: string | null = null;
+          if (decrypted) publicUrl = await rehostToStorage(decrypted, ext);
+
+          // 2) Image fallback: use the inline jpegThumbnail (always present in payload)
+          if (!publicUrl && msgType === "image" && mc.imageMessage?.jpegThumbnail) {
+            publicUrl = await rehostToStorage(
+              `data:image/jpeg;base64,${mc.imageMessage.jpegThumbnail}`, "jpg",
+            );
+          }
+
+          if (publicUrl) mediaUrl = publicUrl;
+        }
         try {
           await admin.from("whatsapp_messages").insert({
             phone,
