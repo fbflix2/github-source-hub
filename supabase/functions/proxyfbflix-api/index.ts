@@ -2664,13 +2664,8 @@ Deno.serve(async (req) => {
       const fbflixId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
       if (!fbflixId) throw new Error("Este proxy não possui um ID de fornecedor vinculado");
 
-      // Fetch current data from Webshare
-      const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY);
-      
-      // If the proxy is not found (404), it might have been removed or replaced in Webshare
-      if (resp.status === 404) {
-        console.warn(`[sync-credentials] Proxy ${fbflixId} not found (404). Falling back to full list search.`);
-        
+      const syncFromList = async (reason: string) => {
+        console.warn(`[sync-credentials] Falling back to full list search for proxy ${fbflixId}: ${reason}`);
         const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
         const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
         
@@ -2696,6 +2691,15 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ success: true, synced: true, method: "list-search" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      };
+
+      // Fetch current data from Webshare. The detail endpoint can intermittently return 5xx,
+      // so keep sync usable by falling back to the paginated list endpoint.
+      const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY, "GET", undefined, { throwOnServerError: false });
+      
+      // If the detail endpoint fails or the proxy is not found, try the full list search.
+      if (resp.status === 404 || resp.status >= 500) {
+        return await syncFromList(`detail endpoint returned ${resp.status}`);
       }
 
       const data = await resp.json();
