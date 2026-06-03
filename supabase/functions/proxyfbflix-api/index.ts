@@ -720,37 +720,51 @@ Deno.serve(async (req) => {
 
     // ========== GET BANDWIDTH STATS ==========
     if (action === "get-bandwidth-stats") {
-      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-      const subData = await subResp.json();
-      if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
+      try {
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
 
-      const startDate = subData.start_date;
-      const endDate = subData.end_date;
+        const startDate = subData.start_date;
+        const endDate = subData.end_date;
 
-      // Fetch aggregate stats for the current billing cycle
-      const aggResp = await webFetch(
-        `/stats/aggregate/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
-        WEBSHARE_API_KEY
-      );
-      const aggData = await aggResp.json();
-      if (!aggResp.ok) throw new Error(`Webshare stats error [${aggResp.status}]`);
+        // Fetch aggregate stats for the current billing cycle
+        const aggResp = await webFetch(
+          `/stats/aggregate/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+          WEBSHARE_API_KEY
+        );
+        const aggData = await aggResp.json();
+        if (!aggResp.ok) throw new Error(`Webshare stats error [${aggResp.status}]`);
 
-      // Fetch daily stats for chart
-      const statsResp = await webFetch(
-        `/stats/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
-        WEBSHARE_API_KEY
-      );
-      const statsData = await statsResp.json();
-      if (!statsResp.ok) throw new Error(`Webshare stats error [${statsResp.status}]`);
+        // Fetch daily stats for chart
+        const statsResp = await webFetch(
+          `/stats/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+          WEBSHARE_API_KEY
+        );
+        const statsData = await statsResp.json();
+        if (!statsResp.ok) throw new Error(`Webshare stats error [${statsResp.status}]`);
 
-      return new Response(JSON.stringify({
-        aggregate: aggData,
-        hourly: statsData,
-        billing_start: startDate,
-        billing_end: endDate,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        return new Response(JSON.stringify({
+          aggregate: aggData,
+          hourly: statsData,
+          billing_start: startDate,
+          billing_end: endDate,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        const now = new Date();
+        const fallbackStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        return new Response(JSON.stringify(providerOfflinePayload(e, {
+          aggregate: {},
+          hourly: [],
+          billing_start: fallbackStart,
+          billing_end: now.toISOString(),
+        })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== REPLACE PROXY ==========
