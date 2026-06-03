@@ -2822,6 +2822,18 @@ Deno.serve(async (req) => {
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
+    let requestAction: string | undefined;
+    try {
+      requestAction = JSON.parse(bodyText || "{}").action;
+    } catch {
+      requestAction = undefined;
+    }
+    if (requestAction && SAFE_SUPPLIER_READ_ACTIONS.has(requestAction) && isSupplierOutageError(err)) {
+      return new Response(
+        JSON.stringify(providerOfflinePayload(err, { data: [], results: [], total: 0 })),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: err.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
