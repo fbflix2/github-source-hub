@@ -31,6 +31,66 @@ const SERVICES = [
 
 type ServiceKey = (typeof SERVICES)[number]["key"];
 
+// ---------------------------------------------------------------------------
+// Webshare Statuspage mirror — Webshare powers our proxy network, so we mirror
+// their public status page (status.webshare.io) and rebrand it as FBFlix.
+// ---------------------------------------------------------------------------
+const WS_STATUSPAGE = "https://status.webshare.io/api/v2";
+
+function rebrand(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/Webshare Proxy/gi, "Proxy FBFlix")
+    .replace(/Webshare/gi, "Proxy FBFlix");
+}
+
+async function fetchUpstreamStatus() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const [summaryResp, incidentsResp] = await Promise.all([
+      fetch(`${WS_STATUSPAGE}/summary.json`, { signal: controller.signal }),
+      fetch(`${WS_STATUSPAGE}/incidents.json?limit=20`, { signal: controller.signal }),
+    ]);
+    clearTimeout(timeout);
+    if (!summaryResp.ok) return null;
+    const summary = await summaryResp.json();
+    const incidentsJson = incidentsResp.ok ? await incidentsResp.json() : { incidents: [] };
+
+    return {
+      status: {
+        indicator: summary?.status?.indicator || "none", // none|minor|major|critical
+        description: rebrand(summary?.status?.description) || "Todos os sistemas operacionais",
+      },
+      components: (summary?.components || [])
+        .filter((c: any) => !c.group_id) // skip groups
+        .map((c: any) => ({
+          id: c.id,
+          name: rebrand(c.name),
+          status: c.status, // operational|degraded_performance|partial_outage|major_outage|under_maintenance
+        })),
+      incidents: ((incidentsJson?.incidents || []) as any[]).slice(0, 10).map((i) => ({
+        id: i.id,
+        name: rebrand(i.name),
+        status: i.status, // investigating|identified|monitoring|resolved|postmortem
+        impact: i.impact, // none|minor|major|critical
+        created_at: i.created_at,
+        updated_at: i.updated_at,
+        resolved_at: i.resolved_at,
+        shortlink: null, // hide upstream link
+        updates: (i.incident_updates || []).slice(0, 6).map((u: any) => ({
+          status: u.status,
+          body: rebrand(u.body),
+          created_at: u.created_at,
+        })),
+      })),
+    };
+  } catch (e) {
+    console.warn("[proxy-status] upstream fetch failed", (e as any)?.message);
+    return null;
+  }
+}
+
 async function probe(url: string, healthy: readonly number[]) {
   const start = Date.now();
   try {
@@ -136,8 +196,23 @@ Deno.serve(async (req) => {
       ? "degraded"
       : "operational";
 
+    const upstream = await fetchUpstreamStatus();
+
+    // If upstream reports a non-operational status, escalate our overall.
+    let finalOverall = overall;
+    if (upstream) {
+      const ind = upstream.status.indicator;
+      if (ind === "critical" || ind === "major") finalOverall = "down";
+      else if (ind === "minor" && finalOverall === "operational") finalOverall = "degraded";
+    }
+
     return new Response(
-      JSON.stringify({ overall, services: Object.values(byService), generated_at: new Date().toISOString() }),
+      JSON.stringify({
+        overall: finalOverall,
+        services: Object.values(byService),
+        upstream,
+        generated_at: new Date().toISOString(),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
