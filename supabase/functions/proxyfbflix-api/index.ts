@@ -304,6 +304,7 @@ async function getAssignedProxyIds(supabase: any, userId?: string) {
 }
 
 Deno.serve(async (req) => {
+  let bodyText = "";
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -313,7 +314,7 @@ Deno.serve(async (req) => {
     if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY não configurada");
 
     // ========== INTERNAL ADMIN ALLOCATE (no user JWT needed) ==========
-    const bodyText = await req.text();
+    bodyText = await req.text();
     const bodyClone = JSON.parse(bodyText || "{}");
 
     if (bodyClone.action === "internal-allocate-proxy") {
