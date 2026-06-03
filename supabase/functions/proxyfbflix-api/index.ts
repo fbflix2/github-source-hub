@@ -93,13 +93,15 @@ async function webFetch(
   };
   if (body) headers["Content-Type"] = "application/json";
 
-  const maxAttempts = Math.max(1, options.retries ?? (method === "GET" ? 3 : 1));
+  const maxAttempts = Math.max(1, options.retries ?? (method === "GET" ? 2 : 1));
   let resp: Response | null = null;
   let lastError: any = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    // Keep per-attempt timeout low so total (attempts * timeout + backoff)
+    // stays well under the 150s edge-function idle limit.
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
     try {
       resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
