@@ -124,6 +124,7 @@ import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
+import Status from "./pages/Status";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
