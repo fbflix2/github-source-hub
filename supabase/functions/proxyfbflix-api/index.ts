@@ -168,6 +168,28 @@ async function webFetch(
   return resp;
 }
 
+function isSupplierOutageError(error: unknown): boolean {
+  const message = String((error as any)?.message || error || "").toLowerCase();
+  return (
+    message.includes("fornecedor") ||
+    message.includes("webshare") ||
+    message.includes("proxy fbflix api indisponível") ||
+    message.includes("proxy fbflix api error") ||
+    message.includes("proxy fbflix retornou resposta inválida") ||
+    message.includes("aborterror") ||
+    message.includes("timeout")
+  );
+}
+
+function providerOfflinePayload(error: unknown, extra: Record<string, unknown> = {}) {
+  return {
+    provider_unavailable: true,
+    warning: "Fornecedor de proxies temporariamente instável. Os dados ao vivo serão retomados automaticamente quando normalizar.",
+    upstream_error: String((error as any)?.message || error || "Erro no fornecedor"),
+    ...extra,
+  };
+}
+
 async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbone" = "direct") {
   const proxies: any[] = [];
   let page = 1;
