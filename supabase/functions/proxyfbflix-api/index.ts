@@ -2679,7 +2679,15 @@ Deno.serve(async (req) => {
 
       const syncFromList = async (reason: string) => {
         console.warn(`[sync-credentials] Falling back to full list search for proxy ${fbflixId}: ${reason}`);
-        const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+        let allProxies: any[] = [];
+        try {
+          allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+        } catch (e: any) {
+          console.error(`[sync-credentials] fallback list fetch failed:`, e?.message);
+          throw new Error(
+            "Não foi possível sincronizar com o fornecedor agora (API instável). Tente novamente em alguns minutos.",
+          );
+        }
         const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
         
         const providerProxy = allProxies.find((proxy: any) => (
