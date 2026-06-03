@@ -79,7 +79,13 @@ function buildRotatingUsername(rawUsername: string, countryCode = "BR", cityName
   return u;
 }
 
-async function webFetch(path: string, apiKey: string, method = "GET", body?: string) {
+async function webFetch(
+  path: string,
+  apiKey: string,
+  method = "GET",
+  body?: string,
+  options: { throwOnServerError?: boolean; retries?: number } = {},
+) {
   const url = path.startsWith("http") ? path : `${WEBSHARE_BASE}${path}`;
   const headers: Record<string, string> = {
     Authorization: `Token ${apiKey}`,
@@ -87,25 +93,45 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   };
   if (body) headers["Content-Type"] = "application/json";
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const maxAttempts = Math.max(1, options.retries ?? (method === "GET" ? 3 : 1));
+  let resp: Response | null = null;
+  let lastError: any = null;
 
-  let resp: Response;
-  try {
-    resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
-  } catch (e: any) {
-    clearTimeout(timeout);
-    if (e.name === "AbortError") {
-      throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
+    try {
+      resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
+    } catch (e: any) {
+      clearTimeout(timeout);
+      lastError = e;
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+        continue;
+      }
+      if (e.name === "AbortError") {
+        throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
+      }
+      throw e;
     }
-    throw e;
+    clearTimeout(timeout);
+
+    if (resp.status >= 500 && attempt < maxAttempts) {
+      console.warn(`[webFetch] ${url} returned ${resp.status}, retrying attempt ${attempt + 1}/${maxAttempts}`);
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      continue;
+    }
+
+    break;
   }
-  clearTimeout(timeout);
+
+  if (!resp) throw lastError || new Error("Proxy Fbflix API indisponível. Tente novamente.");
 
   if (resp.status === 429) {
     throw new Error("Proxy Fbflix rate limit atingido. Tente novamente em 60s.");
   }
-  if (resp.status >= 500) {
+  if (resp.status >= 500 && options.throwOnServerError !== false) {
     throw new Error(`Proxy Fbflix API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
   // Safe JSON wrapper: prevents "Unexpected token '<'" crashes when Webshare
@@ -2638,13 +2664,8 @@ Deno.serve(async (req) => {
       const fbflixId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
       if (!fbflixId) throw new Error("Este proxy não possui um ID de fornecedor vinculado");
 
-      // Fetch current data from Webshare
-      const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY);
-      
-      // If the proxy is not found (404), it might have been removed or replaced in Webshare
-      if (resp.status === 404) {
-        console.warn(`[sync-credentials] Proxy ${fbflixId} not found (404). Falling back to full list search.`);
-        
+      const syncFromList = async (reason: string) => {
+        console.warn(`[sync-credentials] Falling back to full list search for proxy ${fbflixId}: ${reason}`);
         const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
         const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
         
@@ -2670,6 +2691,15 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ success: true, synced: true, method: "list-search" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      };
+
+      // Fetch current data from Webshare. The detail endpoint can intermittently return 5xx,
+      // so keep sync usable by falling back to the paginated list endpoint.
+      const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY, "GET", undefined, { throwOnServerError: false });
+      
+      // If the detail endpoint fails or the proxy is not found, try the full list search.
+      if (resp.status === 404 || resp.status >= 500) {
+        return await syncFromList(`detail endpoint returned ${resp.status}`);
       }
 
       const data = await resp.json();
