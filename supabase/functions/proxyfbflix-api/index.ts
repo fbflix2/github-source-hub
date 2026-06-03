@@ -537,18 +537,25 @@ Deno.serve(async (req) => {
 
     // ========== GET PLAN ==========
     if (action === "get-plan") {
-      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-      const subData = await subResp.json();
-      if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
-      const planId = subData.plan;
-      if (!planId) throw new Error("Nenhum plano ativo encontrado");
+      try {
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
+        const planId = subData.plan;
+        if (!planId) throw new Error("Nenhum plano ativo encontrado");
 
-      const planResp = await webFetch(`/subscription/plan/${planId}/`, WEBSHARE_API_KEY);
-      const planData = await planResp.json();
-      if (!planResp.ok) throw new Error(`Webshare API error [${planResp.status}]`);
-      return new Response(JSON.stringify({ subscription: subData, plan: planData }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        const planResp = await webFetch(`/subscription/plan/${planId}/`, WEBSHARE_API_KEY);
+        const planData = await planResp.json();
+        if (!planResp.ok) throw new Error(`Webshare API error [${planResp.status}]`);
+        return new Response(JSON.stringify({ subscription: subData, plan: planData }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        return new Response(JSON.stringify(providerOfflinePayload(e, { subscription: null, plan: null })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== GET PROXY LIST ==========
@@ -570,29 +577,36 @@ Deno.serve(async (req) => {
 
     // ========== GET ALL PROXIES (paginated fetch) ==========
     if (action === "get-all-proxies") {
-      const mode = params.mode || "direct";
-      const allProxies: any[] = [];
-      let page = 1;
-      const pageSize = 250;
+      try {
+        const mode = params.mode || "direct";
+        const allProxies: any[] = [];
+        let page = 1;
+        const pageSize = 250;
 
-      while (true) {
-        const resp = await webFetch(
-          `/proxy/list/?mode=${mode}&page=${page}&page_size=${pageSize}`,
-          WEBSHARE_API_KEY
-        );
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+        while (true) {
+          const resp = await webFetch(
+            `/proxy/list/?mode=${mode}&page=${page}&page_size=${pageSize}`,
+            WEBSHARE_API_KEY
+          );
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
 
-        if (data.results?.length) {
-          allProxies.push(...data.results);
+          if (data.results?.length) {
+            allProxies.push(...data.results);
+          }
+          if (!data.next) break;
+          page++;
         }
-        if (!data.next) break;
-        page++;
-      }
 
-      return new Response(JSON.stringify({ data: allProxies, total: allProxies.length }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        return new Response(JSON.stringify({ data: allProxies, total: allProxies.length }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        return new Response(JSON.stringify(providerOfflinePayload(e, { data: [], total: 0 })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== GET USAGE STATS (Top 10) ==========
