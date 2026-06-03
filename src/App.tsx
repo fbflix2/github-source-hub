@@ -380,6 +380,7 @@ const App = () => {
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
+                <Route path="/status" element={<Status />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
