@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -140,17 +139,21 @@ export default function Status() {
   const overall = data?.overall || (loading ? "unknown" : "down");
   const copy = STATUS_COPY[overall];
 
+  useEffect(() => {
+    document.title = "Status dos Serviços FBFlix";
+    const meta = document.querySelector('meta[name="description"]');
+    const original = meta?.getAttribute("content");
+    meta?.setAttribute(
+      "content",
+      "Acompanhe em tempo real o status dos proxies, API e painel da FBFlix.",
+    );
+    return () => {
+      if (meta && original) meta.setAttribute("content", original);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Helmet>
-        <title>Status dos Serviços FBFlix</title>
-        <meta
-          name="description"
-          content="Acompanhe em tempo real o status dos proxies, API e painel da FBFlix."
-        />
-        <link rel="canonical" href="https://fbflix.com.br/status" />
-      </Helmet>
-
       <header className="border-b border-border/60 bg-card/40 backdrop-blur">
         <div className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
