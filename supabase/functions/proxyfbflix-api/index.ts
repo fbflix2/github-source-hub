@@ -167,14 +167,27 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
   let page = 1;
 
   while (true) {
-    const resp = await webFetch(`/proxy/list/?mode=${mode}&page=${page}&page_size=250`, apiKey);
-    if (!resp.ok) throw new Error(`Proxy Fbflix API error [${resp.status}]`);
-    const text = await resp.text();
+    const resp = await webFetch(
+      `/proxy/list/?mode=${mode}&page=${page}&page_size=250`,
+      apiKey,
+      "GET",
+      undefined,
+      { throwOnServerError: false },
+    );
+    // Tolerate transient 404/5xx on the list endpoint: stop paging instead of failing the whole sync.
+    if (resp.status === 404) {
+      console.warn(`[fetchAllWebshareProxies] list endpoint returned 404 on page ${page}; stopping pagination`);
+      break;
+    }
+    if (!resp.ok) {
+      throw new Error(`Proxy Fbflix API error [${resp.status}]`);
+    }
     let data: any;
     try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente.`);
+      data = await resp.json();
+    } catch (e: any) {
+      // The overridden resp.json() already logs the offending body; surface a friendly message.
+      throw new Error(e?.message || `Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente.`);
     }
 
     if (data.results?.length) proxies.push(...data.results);
@@ -2666,7 +2679,15 @@ Deno.serve(async (req) => {
 
       const syncFromList = async (reason: string) => {
         console.warn(`[sync-credentials] Falling back to full list search for proxy ${fbflixId}: ${reason}`);
-        const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+        let allProxies: any[] = [];
+        try {
+          allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+        } catch (e: any) {
+          console.error(`[sync-credentials] fallback list fetch failed:`, e?.message);
+          throw new Error(
+            "Não foi possível sincronizar com o fornecedor agora (API instável). Tente novamente em alguns minutos.",
+          );
+        }
         const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
         
         const providerProxy = allProxies.find((proxy: any) => (
