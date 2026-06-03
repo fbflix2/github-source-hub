@@ -168,6 +168,41 @@ async function webFetch(
   return resp;
 }
 
+function isSupplierOutageError(error: unknown): boolean {
+  const message = String((error as any)?.message || error || "").toLowerCase();
+  return (
+    message.includes("fornecedor") ||
+    message.includes("webshare") ||
+    message.includes("proxy fbflix api indisponível") ||
+    message.includes("proxy fbflix api error") ||
+    message.includes("proxy fbflix retornou resposta inválida") ||
+    message.includes("aborterror") ||
+    message.includes("timeout")
+  );
+}
+
+function providerOfflinePayload(error: unknown, extra: Record<string, unknown> = {}) {
+  return {
+    provider_unavailable: true,
+    warning: "Fornecedor de proxies temporariamente instável. Os dados ao vivo serão retomados automaticamente quando normalizar.",
+    upstream_error: String((error as any)?.message || error || "Erro no fornecedor"),
+    ...extra,
+  };
+}
+
+const SAFE_SUPPLIER_READ_ACTIONS = new Set([
+  "get-profile",
+  "get-subscription",
+  "get-plan",
+  "get-proxy-list",
+  "get-all-proxies",
+  "get-usage-stats",
+  "get-proxy-config",
+  "get-bandwidth-stats",
+  "get-rotating-credentials",
+  "get-internal-proxy-config",
+]);
+
 async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbone" = "direct") {
   const proxies: any[] = [];
   let page = 1;
@@ -269,6 +304,7 @@ async function getAssignedProxyIds(supabase: any, userId?: string) {
 }
 
 Deno.serve(async (req) => {
+  let bodyText = "";
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -278,7 +314,7 @@ Deno.serve(async (req) => {
     if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY não configurada");
 
     // ========== INTERNAL ADMIN ALLOCATE (no user JWT needed) ==========
-    const bodyText = await req.text();
+    bodyText = await req.text();
     const bodyClone = JSON.parse(bodyText || "{}");
 
     if (bodyClone.action === "internal-allocate-proxy") {
@@ -515,18 +551,25 @@ Deno.serve(async (req) => {
 
     // ========== GET PLAN ==========
     if (action === "get-plan") {
-      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-      const subData = await subResp.json();
-      if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
-      const planId = subData.plan;
-      if (!planId) throw new Error("Nenhum plano ativo encontrado");
+      try {
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
+        const planId = subData.plan;
+        if (!planId) throw new Error("Nenhum plano ativo encontrado");
 
-      const planResp = await webFetch(`/subscription/plan/${planId}/`, WEBSHARE_API_KEY);
-      const planData = await planResp.json();
-      if (!planResp.ok) throw new Error(`Webshare API error [${planResp.status}]`);
-      return new Response(JSON.stringify({ subscription: subData, plan: planData }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        const planResp = await webFetch(`/subscription/plan/${planId}/`, WEBSHARE_API_KEY);
+        const planData = await planResp.json();
+        if (!planResp.ok) throw new Error(`Webshare API error [${planResp.status}]`);
+        return new Response(JSON.stringify({ subscription: subData, plan: planData }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        return new Response(JSON.stringify(providerOfflinePayload(e, { subscription: null, plan: null })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== GET PROXY LIST ==========
@@ -548,29 +591,36 @@ Deno.serve(async (req) => {
 
     // ========== GET ALL PROXIES (paginated fetch) ==========
     if (action === "get-all-proxies") {
-      const mode = params.mode || "direct";
-      const allProxies: any[] = [];
-      let page = 1;
-      const pageSize = 250;
+      try {
+        const mode = params.mode || "direct";
+        const allProxies: any[] = [];
+        let page = 1;
+        const pageSize = 250;
 
-      while (true) {
-        const resp = await webFetch(
-          `/proxy/list/?mode=${mode}&page=${page}&page_size=${pageSize}`,
-          WEBSHARE_API_KEY
-        );
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+        while (true) {
+          const resp = await webFetch(
+            `/proxy/list/?mode=${mode}&page=${page}&page_size=${pageSize}`,
+            WEBSHARE_API_KEY
+          );
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
 
-        if (data.results?.length) {
-          allProxies.push(...data.results);
+          if (data.results?.length) {
+            allProxies.push(...data.results);
+          }
+          if (!data.next) break;
+          page++;
         }
-        if (!data.next) break;
-        page++;
-      }
 
-      return new Response(JSON.stringify({ data: allProxies, total: allProxies.length }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        return new Response(JSON.stringify({ data: allProxies, total: allProxies.length }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        return new Response(JSON.stringify(providerOfflinePayload(e, { data: [], total: 0 })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== GET USAGE STATS (Top 10) ==========
@@ -684,37 +734,51 @@ Deno.serve(async (req) => {
 
     // ========== GET BANDWIDTH STATS ==========
     if (action === "get-bandwidth-stats") {
-      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-      const subData = await subResp.json();
-      if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
+      try {
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
 
-      const startDate = subData.start_date;
-      const endDate = subData.end_date;
+        const startDate = subData.start_date;
+        const endDate = subData.end_date;
 
-      // Fetch aggregate stats for the current billing cycle
-      const aggResp = await webFetch(
-        `/stats/aggregate/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
-        WEBSHARE_API_KEY
-      );
-      const aggData = await aggResp.json();
-      if (!aggResp.ok) throw new Error(`Webshare stats error [${aggResp.status}]`);
+        // Fetch aggregate stats for the current billing cycle
+        const aggResp = await webFetch(
+          `/stats/aggregate/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+          WEBSHARE_API_KEY
+        );
+        const aggData = await aggResp.json();
+        if (!aggResp.ok) throw new Error(`Webshare stats error [${aggResp.status}]`);
 
-      // Fetch daily stats for chart
-      const statsResp = await webFetch(
-        `/stats/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
-        WEBSHARE_API_KEY
-      );
-      const statsData = await statsResp.json();
-      if (!statsResp.ok) throw new Error(`Webshare stats error [${statsResp.status}]`);
+        // Fetch daily stats for chart
+        const statsResp = await webFetch(
+          `/stats/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+          WEBSHARE_API_KEY
+        );
+        const statsData = await statsResp.json();
+        if (!statsResp.ok) throw new Error(`Webshare stats error [${statsResp.status}]`);
 
-      return new Response(JSON.stringify({
-        aggregate: aggData,
-        hourly: statsData,
-        billing_start: startDate,
-        billing_end: endDate,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        return new Response(JSON.stringify({
+          aggregate: aggData,
+          hourly: statsData,
+          billing_start: startDate,
+          billing_end: endDate,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!isSupplierOutageError(e)) throw e;
+        const now = new Date();
+        const fallbackStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        return new Response(JSON.stringify(providerOfflinePayload(e, {
+          aggregate: {},
+          hourly: [],
+          billing_start: fallbackStart,
+          billing_end: now.toISOString(),
+        })), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ========== REPLACE PROXY ==========
@@ -2759,6 +2823,18 @@ Deno.serve(async (req) => {
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
+    let requestAction: string | undefined;
+    try {
+      requestAction = JSON.parse(bodyText || "{}").action;
+    } catch {
+      requestAction = undefined;
+    }
+    if (requestAction && SAFE_SUPPLIER_READ_ACTIONS.has(requestAction) && isSupplierOutageError(err)) {
+      return new Response(
+        JSON.stringify(providerOfflinePayload(err, { data: [], results: [], total: 0 })),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: err.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

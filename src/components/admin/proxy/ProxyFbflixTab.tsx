@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Globe, Server, Wifi, ChevronLeft, ChevronRight, Copy, CheckCircle2, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Repeat, Users } from "lucide-react";
+import { RefreshCw, Globe, Server, Wifi, ChevronLeft, ChevronRight, Copy, CheckCircle2, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Repeat, Users, AlertTriangle } from "lucide-react";
 import ProxyFbflixBandwidthCard from "./ProxyFbflixBandwidthCard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
@@ -52,6 +52,8 @@ export default function ProxyFbflixProxyTab() {
   const plan = planData?.plan;
   const allProxies: any[] = allProxiesData?.results || allProxiesData?.data || (Array.isArray(allProxiesData) ? allProxiesData : []);
   const totalProxies = allProxies.length || allProxiesData?.count || 0;
+  const supplierOffline = Boolean(planData?.provider_unavailable || allProxiesData?.provider_unavailable);
+  const supplierWarning = planData?.warning || allProxiesData?.warning || "Fornecedor de proxies temporariamente instável.";
 
   // Fetch all proxyfbflix subscriptions (sold to clients)
   const { data: wsSubs } = useQuery({
@@ -299,6 +301,18 @@ export default function ProxyFbflixProxyTab() {
           <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
         </Button>
       </div>
+
+      {supplierOffline && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-3 flex items-start gap-2">
+            <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Proxy FBFlix em instabilidade no fornecedor</p>
+              <p className="text-xs text-muted-foreground">{supplierWarning} A página pública /status acompanha a normalização em tempo real.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
