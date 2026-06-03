@@ -79,7 +79,13 @@ function buildRotatingUsername(rawUsername: string, countryCode = "BR", cityName
   return u;
 }
 
-async function webFetch(path: string, apiKey: string, method = "GET", body?: string) {
+async function webFetch(
+  path: string,
+  apiKey: string,
+  method = "GET",
+  body?: string,
+  options: { throwOnServerError?: boolean; retries?: number } = {},
+) {
   const url = path.startsWith("http") ? path : `${WEBSHARE_BASE}${path}`;
   const headers: Record<string, string> = {
     Authorization: `Token ${apiKey}`,
@@ -87,25 +93,45 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   };
   if (body) headers["Content-Type"] = "application/json";
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const maxAttempts = Math.max(1, options.retries ?? (method === "GET" ? 3 : 1));
+  let resp: Response | null = null;
+  let lastError: any = null;
 
-  let resp: Response;
-  try {
-    resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
-  } catch (e: any) {
-    clearTimeout(timeout);
-    if (e.name === "AbortError") {
-      throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
+    try {
+      resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
+    } catch (e: any) {
+      clearTimeout(timeout);
+      lastError = e;
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+        continue;
+      }
+      if (e.name === "AbortError") {
+        throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
+      }
+      throw e;
     }
-    throw e;
+    clearTimeout(timeout);
+
+    if (resp.status >= 500 && attempt < maxAttempts) {
+      console.warn(`[webFetch] ${url} returned ${resp.status}, retrying attempt ${attempt + 1}/${maxAttempts}`);
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      continue;
+    }
+
+    break;
   }
-  clearTimeout(timeout);
+
+  if (!resp) throw lastError || new Error("Proxy Fbflix API indisponível. Tente novamente.");
 
   if (resp.status === 429) {
     throw new Error("Proxy Fbflix rate limit atingido. Tente novamente em 60s.");
   }
-  if (resp.status >= 500) {
+  if (resp.status >= 500 && options.throwOnServerError !== false) {
     throw new Error(`Proxy Fbflix API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
   // Safe JSON wrapper: prevents "Unexpected token '<'" crashes when Webshare
