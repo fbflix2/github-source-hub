@@ -99,7 +99,7 @@ async function webFetch(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
     try {
       resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
@@ -111,7 +111,7 @@ async function webFetch(
         continue;
       }
       if (e.name === "AbortError") {
-        throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
+        throw new Error("API do fornecedor (Proxy Fbflix/Webshare) está lenta/fora do ar. Aguarde alguns minutos e tente novamente.");
       }
       throw e;
     }
