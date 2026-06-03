@@ -124,6 +124,7 @@ import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
+import Status from "./pages/Status";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -379,6 +380,7 @@ const App = () => {
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
+                <Route path="/status" element={<Status />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />

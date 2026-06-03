@@ -1,0 +1,264 @@
+import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import logoFbflix from "@/assets/logo-fbflix.webp";
+
+type ServiceStatus = "operational" | "degraded" | "down" | "unknown";
+
+interface HistoryPoint {
+  service: string;
+  status: ServiceStatus;
+  latency_ms: number | null;
+  checked_at: string;
+}
+
+interface ServiceSummary {
+  key: string;
+  label: string;
+  current: ServiceStatus;
+  latency_ms: number | null;
+  last_check: string | null;
+  uptime_24h: number;
+  history: HistoryPoint[];
+}
+
+interface StatusPayload {
+  overall: ServiceStatus;
+  services: ServiceSummary[];
+  generated_at: string;
+}
+
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const ENDPOINT = `https://${PROJECT_ID}.supabase.co/functions/v1/proxy-status`;
+
+const STATUS_COPY: Record<ServiceStatus, { label: string; description: string; tone: string }> = {
+  operational: {
+    label: "Tudo operando normalmente",
+    description: "Todos os sistemas estão funcionando como esperado.",
+    tone: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/40 text-emerald-300",
+  },
+  degraded: {
+    label: "Performance reduzida",
+    description: "Estamos observando lentidão em parte dos serviços.",
+    tone: "from-amber-500/20 to-amber-500/5 border-amber-500/40 text-amber-300",
+  },
+  down: {
+    label: "Estamos enfrentando problemas",
+    description: "Um ou mais serviços estão fora do ar. Já estamos acompanhando.",
+    tone: "from-red-500/20 to-red-500/5 border-red-500/40 text-red-300",
+  },
+  unknown: {
+    label: "Coletando informações",
+    description: "Aguardando primeira verificação dos serviços.",
+    tone: "from-muted/30 to-muted/5 border-border text-muted-foreground",
+  },
+};
+
+function StatusIcon({ status, className }: { status: ServiceStatus; className?: string }) {
+  if (status === "operational")
+    return <CheckCircle2 className={cn("text-emerald-400", className)} />;
+  if (status === "degraded")
+    return <AlertTriangle className={cn("text-amber-400", className)} />;
+  if (status === "down") return <XCircle className={cn("text-red-400", className)} />;
+  return <Loader2 className={cn("text-muted-foreground animate-spin", className)} />;
+}
+
+function HistoryBar({ history }: { history: HistoryPoint[] }) {
+  // Always render 90 slots; fill missing on the left with "unknown" placeholders.
+  const slots: (HistoryPoint | null)[] = [];
+  const padding = Math.max(0, 90 - history.length);
+  for (let i = 0; i < padding; i++) slots.push(null);
+  slots.push(...history);
+
+  return (
+    <div className="flex items-end gap-[2px] h-9 w-full">
+      {slots.map((p, i) => {
+        const color = !p
+          ? "bg-muted/30"
+          : p.status === "operational"
+          ? "bg-emerald-500"
+          : p.status === "degraded"
+          ? "bg-amber-500"
+          : p.status === "down"
+          ? "bg-red-500"
+          : "bg-muted/40";
+        return (
+          <div
+            key={i}
+            className={cn("flex-1 h-full rounded-[2px] transition-colors", color)}
+            title={
+              p
+                ? `${new Date(p.checked_at).toLocaleString("pt-BR")} • ${p.status}`
+                : "Sem dados"
+            }
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function timeAgo(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `há ${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  return `há ${h}h`;
+}
+
+export default function Status() {
+  const [data, setData] = useState<StatusPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setError(null);
+      const res = await fetch(ENDPOINT, { method: "GET" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as StatusPayload;
+      setData(json);
+    } catch (e: any) {
+      setError(e?.message || "Falha ao buscar status");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 45_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const overall = data?.overall || (loading ? "unknown" : "down");
+  const copy = STATUS_COPY[overall];
+
+  useEffect(() => {
+    document.title = "Status dos Serviços FBFlix";
+    const meta = document.querySelector('meta[name="description"]');
+    const original = meta?.getAttribute("content");
+    meta?.setAttribute(
+      "content",
+      "Acompanhe em tempo real o status dos proxies, API e painel da FBFlix.",
+    );
+    return () => {
+      if (meta && original) meta.setAttribute("content", original);
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border/60 bg-card/40 backdrop-blur">
+        <div className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={logoFbflix} alt="FBFlix" className="w-9 h-9 object-contain" />
+            <span className="font-bold text-lg tracking-tight">FBFLIX</span>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={load}
+            disabled={loading}
+            className="gap-2"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            Atualizar
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+        <h1 className="sr-only">Status dos Serviços FBFlix</h1>
+
+        <div
+          className={cn(
+            "rounded-2xl border bg-gradient-to-br p-6 flex items-start gap-4",
+            copy.tone,
+          )}
+        >
+          <StatusIcon status={overall} className="w-8 h-8 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">
+              {copy.label}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">{copy.description}</p>
+            {data && (
+              <p className="text-xs text-muted-foreground/80 mt-3">
+                Última verificação {timeAgo(data.generated_at)} • atualiza a cada 45s
+              </p>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            Não foi possível carregar o status: {error}
+          </div>
+        )}
+
+        <section className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/60 flex items-center justify-between">
+            <h2 className="font-semibold">Status dos sistemas</h2>
+            <span className="text-xs text-muted-foreground">
+              Histórico das últimas 24h
+            </span>
+          </div>
+          <div className="divide-y divide-border/60">
+            {(data?.services || []).map((s) => (
+              <div key={s.key} className="px-6 py-5 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <StatusIcon status={s.current} className="w-5 h-5 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{s.label}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {s.current === "operational" && "Operacional"}
+                        {s.current === "degraded" && "Performance reduzida"}
+                        {s.current === "down" && "Fora do ar"}
+                        {s.current === "unknown" && "Aguardando dados"}
+                        {s.latency_ms != null && ` • ${s.latency_ms}ms`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {s.uptime_24h.toFixed(2)}%
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      uptime 24h
+                    </div>
+                  </div>
+                </div>
+                <HistoryBar history={s.history} />
+              </div>
+            ))}
+            {!data && loading && (
+              <div className="px-6 py-10 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Verificando serviços...
+              </div>
+            )}
+          </div>
+        </section>
+
+        <footer className="text-center text-xs text-muted-foreground pt-6 pb-10">
+          <p>
+            Atualizamos esta página automaticamente. Para problemas urgentes, fale
+            com nosso{" "}
+            <Link to="/suporte" className="underline hover:text-foreground">
+              suporte
+            </Link>
+            .
+          </p>
+          <p className="mt-2">© {new Date().getFullYear()} FBFlix</p>
+        </footer>
+      </main>
+    </div>
+  );
+}
