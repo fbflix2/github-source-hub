@@ -190,6 +190,19 @@ function providerOfflinePayload(error: unknown, extra: Record<string, unknown> =
   };
 }
 
+const SAFE_SUPPLIER_READ_ACTIONS = new Set([
+  "get-profile",
+  "get-subscription",
+  "get-plan",
+  "get-proxy-list",
+  "get-all-proxies",
+  "get-usage-stats",
+  "get-proxy-config",
+  "get-bandwidth-stats",
+  "get-rotating-credentials",
+  "get-internal-proxy-config",
+]);
+
 async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbone" = "direct") {
   const proxies: any[] = [];
   let page = 1;
