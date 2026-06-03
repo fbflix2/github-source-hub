@@ -141,6 +141,10 @@ async function webFetch(
     const text = await resp.text();
     if (!text || !text.trim()) return {};
     const trimmed = text.trimStart();
+    // Webshare upstream outage: API returns plain-text "404 page not found" on all v2 endpoints.
+    if (resp.status === 404 && /404 page not found/i.test(trimmed)) {
+      throw new Error("API do fornecedor (Proxy Fbflix/Webshare) está fora do ar no momento. Aguarde alguns minutos e tente novamente.");
+    }
     if (trimmed.startsWith("<")) {
       console.error(`[webFetch] Non-JSON response from ${url} [${resp.status}]: ${trimmed.slice(0, 200)}`);
       
@@ -155,7 +159,7 @@ async function webFetch(
       return JSON.parse(text);
     } catch {
       console.error(`[webFetch] Invalid JSON from ${url}: ${text.slice(0, 200)}`);
-      throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente.`);
+      throw new Error("API do fornecedor (Proxy Fbflix/Webshare) está fora do ar no momento. Aguarde alguns minutos e tente novamente.");
     }
   };
   void originalJson;
