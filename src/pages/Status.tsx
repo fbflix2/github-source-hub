@@ -1,6 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  XCircle,
+  Activity,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import logoFbflix from "@/assets/logo-fbflix.webp";
@@ -27,7 +35,37 @@ interface ServiceSummary {
 interface StatusPayload {
   overall: ServiceStatus;
   services: ServiceSummary[];
+  upstream?: UpstreamPayload | null;
   generated_at: string;
+}
+
+type UpstreamIndicator = "none" | "minor" | "major" | "critical";
+type UpstreamCompStatus =
+  | "operational"
+  | "degraded_performance"
+  | "partial_outage"
+  | "major_outage"
+  | "under_maintenance";
+type UpstreamIncidentStatus =
+  | "investigating"
+  | "identified"
+  | "monitoring"
+  | "resolved"
+  | "postmortem";
+
+interface UpstreamPayload {
+  status: { indicator: UpstreamIndicator; description: string };
+  components: { id: string; name: string; status: UpstreamCompStatus }[];
+  incidents: {
+    id: string;
+    name: string;
+    status: UpstreamIncidentStatus;
+    impact: UpstreamIndicator;
+    created_at: string;
+    updated_at: string;
+    resolved_at: string | null;
+    updates: { status: UpstreamIncidentStatus; body: string; created_at: string }[];
+  }[];
 }
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -108,8 +146,26 @@ function timeAgo(iso: string | null) {
   const m = Math.floor(s / 60);
   if (m < 60) return `há ${m}min`;
   const h = Math.floor(m / 60);
-  return `há ${h}h`;
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d}d`;
 }
+
+const COMP_STATUS_COPY: Record<UpstreamCompStatus, { label: string; color: string; dot: string }> = {
+  operational: { label: "Operacional", color: "text-emerald-300", dot: "bg-emerald-500" },
+  degraded_performance: { label: "Performance reduzida", color: "text-amber-300", dot: "bg-amber-500" },
+  partial_outage: { label: "Interrupção parcial", color: "text-orange-300", dot: "bg-orange-500" },
+  major_outage: { label: "Interrupção total", color: "text-red-300", dot: "bg-red-500" },
+  under_maintenance: { label: "Em manutenção", color: "text-sky-300", dot: "bg-sky-500" },
+};
+
+const INC_STATUS_COPY: Record<UpstreamIncidentStatus, { label: string; tone: string }> = {
+  investigating: { label: "Investigando", tone: "bg-red-500/15 text-red-300 border-red-500/30" },
+  identified: { label: "Identificado", tone: "bg-orange-500/15 text-orange-300 border-orange-500/30" },
+  monitoring: { label: "Monitorando", tone: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  resolved: { label: "Resolvido", tone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  postmortem: { label: "Análise pós-incidente", tone: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
+};
 
 export default function Status() {
   const [data, setData] = useState<StatusPayload | null>(null);
@@ -202,6 +258,22 @@ export default function Status() {
           </div>
         )}
 
+        {data?.upstream && data.upstream.incidents.filter((i) => i.status !== "resolved").length > 0 && (
+          <section className="rounded-2xl border border-amber-500/30 bg-amber-500/5 overflow-hidden">
+            <div className="px-6 py-4 border-b border-amber-500/20 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-300" />
+              <h2 className="font-semibold text-amber-200">Incidentes em andamento</h2>
+            </div>
+            <div className="divide-y divide-amber-500/10">
+              {data.upstream.incidents
+                .filter((i) => i.status !== "resolved")
+                .map((inc) => (
+                  <IncidentBlock key={inc.id} incident={inc} />
+                ))}
+            </div>
+          </section>
+        )}
+
         <section className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur overflow-hidden">
           <div className="px-6 py-4 border-b border-border/60 flex items-center justify-between">
             <h2 className="font-semibold">Status dos sistemas</h2>
@@ -247,6 +319,51 @@ export default function Status() {
           </div>
         </section>
 
+        {data?.upstream && data.upstream.components.length > 0 && (
+          <section className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/60 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <h2 className="font-semibold">Componentes da rede de proxies</h2>
+            </div>
+            <div className="divide-y divide-border/60">
+              {data.upstream.components.map((c) => {
+                const copy = COMP_STATUS_COPY[c.status] || COMP_STATUS_COPY.operational;
+                return (
+                  <div
+                    key={c.id}
+                    className="px-6 py-3.5 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", copy.dot)} />
+                      <span className="truncate text-sm">{c.name}</span>
+                    </div>
+                    <span className={cn("text-xs font-medium shrink-0", copy.color)}>
+                      {copy.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {data?.upstream && data.upstream.incidents.some((i) => i.status === "resolved") && (
+          <section className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/60 flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-muted-foreground" />
+              <h2 className="font-semibold">Histórico de incidentes resolvidos</h2>
+            </div>
+            <div className="divide-y divide-border/60">
+              {data.upstream.incidents
+                .filter((i) => i.status === "resolved")
+                .slice(0, 6)
+                .map((inc) => (
+                  <IncidentBlock key={inc.id} incident={inc} compact />
+                ))}
+            </div>
+          </section>
+        )}
+
         <footer className="text-center text-xs text-muted-foreground pt-6 pb-10">
           <p>
             Atualizamos esta página automaticamente. Para problemas urgentes, fale
@@ -259,6 +376,44 @@ export default function Status() {
           <p className="mt-2">© {new Date().getFullYear()} FBFlix</p>
         </footer>
       </main>
+    </div>
+  );
+}
+
+function IncidentBlock({
+  incident,
+  compact,
+}: {
+  incident: UpstreamPayload["incidents"][number];
+  compact?: boolean;
+}) {
+  const status = INC_STATUS_COPY[incident.status] || INC_STATUS_COPY.investigating;
+  const latest = incident.updates[0];
+  return (
+    <div className="px-6 py-4 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-medium text-sm leading-snug flex-1">{incident.name}</h3>
+        <span
+          className={cn(
+            "shrink-0 text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border",
+            status.tone,
+          )}
+        >
+          {status.label}
+        </span>
+      </div>
+      {latest && !compact && (
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+          {latest.body}
+        </p>
+      )}
+      <div className="text-[11px] text-muted-foreground/80">
+        {incident.status === "resolved" && incident.resolved_at
+          ? `Resolvido ${timeAgo(incident.resolved_at)}`
+          : `Atualizado ${timeAgo(incident.updated_at)}`}
+        {" • "}
+        Iniciado em {new Date(incident.created_at).toLocaleString("pt-BR")}
+      </div>
     </div>
   );
 }
