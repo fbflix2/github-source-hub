@@ -2432,9 +2432,20 @@ Deno.serve(async (req) => {
 
       const lockedPrice = Number(raw.renewal_price ?? raw.original_full_price ?? NaN);
       const safeDefault = 21; // dedicated proxy standard price (BR/US)
+      // Guard: never use the linked product's price when its rotating/dedicated
+      // type does not match the subscription type (e.g. a dedicated sub mistakenly
+      // pointing to the rotating R$50 SKU). Falls back to the correctly typed
+      // matched product, or the safe default.
+      const productInfoTypeMatches =
+        productInfo && (isRotatingSub === isRotatingProduct(productInfo));
+      const productInfoPrice = productInfoTypeMatches ? Number(productInfo?.price) : NaN;
       const renewalPrice = Number.isFinite(lockedPrice) && lockedPrice > 0
         ? lockedPrice
-        : Number(productInfo?.price || matchedProduct?.price || safeDefault);
+        : Number(
+            (Number.isFinite(productInfoPrice) && productInfoPrice > 0 ? productInfoPrice : null)
+            ?? matchedProduct?.price
+            ?? safeDefault
+          );
 
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} (locked=${Number.isFinite(lockedPrice) ? lockedPrice : "no"} product=${matchedProduct?.name || "fallback"} isRotatingSub=${isRotatingSub})`);
 
