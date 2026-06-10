@@ -706,58 +706,36 @@ export default function ItemDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
-          {/* Lauth Integration Section */}
-           {stockData.idPerfil && !isBlocked && (
+          {/* Esteira de Aquecimento Disclaimer */}
+          {stockData.idPerfil && !isBlocked && (
             <div className="glass-panel rounded-xl p-4 border-amber-500/20 bg-amber-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-amber-500 text-[20px]">rocket_launch</span>
+                  <span className="material-symbols-outlined text-amber-500 text-[20px]">shield</span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Entrega Direta no Lauth</h3>
-                  <p className="text-[10px] text-muted-foreground">Receba este perfil logado no seu multilogin</p>
+                  <h3 className="text-sm font-bold text-foreground">Garantia & Reposição</h3>
+                  <p className="text-[10px] text-muted-foreground">Siga a esteira para manter sua garantia ativa</p>
                 </div>
               </div>
 
-              {lauthDelivered ? (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-green-500">verified</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Perfil Enviado!</p>
-                    <p className="text-[10px] text-muted-foreground">Enviado em {new Date(lauthDeliveredAt!).toLocaleString('pt-BR')}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="p-2.5 rounded-lg bg-background/50 border border-border">
-                    <label className="text-[10px] text-muted-foreground mb-1 block">Seu E-mail do Lauth</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={lauthEmail}
-                        onChange={(e) => setLauthEmail(e.target.value)}
-                        className="flex-1 bg-muted/30 px-3 py-2 rounded-lg border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                      />
-                      <button
-                        onClick={handleLauthTransfer}
-                        disabled={deliveringLauth || !lauthEmail.trim()}
-                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black font-bold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                      >
-                        {deliveringLauth ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <span className="material-symbols-outlined text-[16px]">send</span>
-                        )}
-                        {deliveringLauth ? "Enviando..." : "Receber no Lauth"}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    O perfil será transferido da nossa conta diretamente para a sua.
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-background/50 border border-amber-500/20">
+                  <p className="text-xs text-foreground leading-relaxed">
+                    <strong className="text-amber-500">Atenção:</strong> para ter direito à <strong>garantia e reposição</strong> deste perfil, é obrigatório seguir todas as etapas da nossa <strong>Esteira de Aquecimento</strong> e as recomendações de uso. O não cumprimento das orientações invalida a reposição.
                   </p>
                 </div>
-              )}
+                <a
+                  href="https://fbflix.com.br/esteira-aquecimento"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold px-4 py-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+                >
+                  <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
+                  Acessar Esteira de Aquecimento
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
             </div>
           )}
 
