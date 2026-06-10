@@ -719,21 +719,19 @@ export default function ItemDetails() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-background/50 border border-amber-500/20">
-                  <p className="text-xs text-foreground leading-relaxed">
-                    <strong className="text-amber-500">Atenção:</strong> para ter direito à <strong>garantia e reposição</strong> deste perfil, é obrigatório seguir todas as etapas da nossa <strong>Esteira de Aquecimento</strong> e as recomendações de uso. O não cumprimento das orientações invalida a reposição.
-                  </p>
-                </div>
+              <div className="p-3 rounded-lg bg-background/50 border border-amber-500/20">
+                <p className="text-xs text-foreground leading-relaxed">
+                  <strong className="text-amber-500">Atenção:</strong> para ter direito à <strong>garantia e reposição</strong> deste perfil, é obrigatório seguir todas as etapas da nossa <strong>Esteira de Aquecimento</strong> e as recomendações de uso. O não cumprimento das orientações invalida a reposição.
+                </p>
                 <a
                   href="https://fbflix.com.br/esteira-aquecimento"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold px-4 py-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+                  className="mt-2 inline-flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 font-semibold px-2.5 py-1 rounded-md text-[11px] transition-all border border-amber-500/30"
                 >
-                  <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
-                  Acessar Esteira de Aquecimento
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                  Acessar Esteira
+                  <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
                 </a>
               </div>
             </div>
