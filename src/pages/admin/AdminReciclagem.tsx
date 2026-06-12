@@ -33,11 +33,46 @@ interface BlockedItem {
   hasReplacement?: boolean;
   productPrice?: number;
   // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
-  derivedBms?: { name: string; link?: string | null }[];
+  derivedBms?: { name: string; link?: string | null; matriz?: string | null }[];
+  derivedMatriz?: string | null;
 }
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+type LinkedBm = { name: string; link?: string | null; matriz?: string | null };
+
+const cleanText = (value: unknown) => String(value ?? "").trim();
+
+const parseLinkedBms = (data: any): LinkedBm[] => {
+  const names = Array.isArray(data?.bmNames)
+    ? data.bmNames
+    : cleanText(data?.bmNames)
+      ? [data.bmNames]
+      : [];
+  const links = Array.isArray(data?.bmLinks)
+    ? data.bmLinks
+    : cleanText(data?.bmLinks)
+      ? [data.bmLinks]
+      : [];
+  const matriz = cleanText(data?.perfilMatriz || data?.perfilBackup) || null;
+  const size = Math.max(names.length, links.length);
+  return Array.from({ length: size }, (_, i) => ({
+    name: cleanText(names[i]) || cleanText(links[i]) || "BM",
+    link: cleanText(links[i]) || null,
+    matriz,
+  })).filter((bm) => bm.name !== "BM" || bm.link);
+};
+
+const mergeLinkedBms = (...groups: LinkedBm[][]): LinkedBm[] => {
+  const seen = new Set<string>();
+  return groups.flat().filter((bm) => {
+    const key = `${bm.name.toLowerCase()}|${bm.link || ""}|${bm.matriz || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
@@ -83,26 +118,40 @@ export default function AdminReciclagem() {
         ? supabase.from("products").select("id, name, price").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
-        ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
+        ? supabase.from("order_items").select("id, order_id, delivery_data").in("id", orderItemIds)
         : Promise.resolve({ data: [] }),
       stockItemIds.length > 0
-        ? supabase.from("replacements").select("stock_item_id").in("stock_item_id", stockItemIds)
+        ? supabase.from("replacements").select("stock_item_id, order_item_id, order_id").in("stock_item_id", stockItemIds)
         : Promise.resolve({ data: [] }),
     ]);
 
-    const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
+    const replacementRows = (replacementsRes.data || []) as any[];
+    const replacedStockIds = new Set(replacementRows.map(r => r.stock_item_id));
+    const replacementOrderItemIds = [...new Set(replacementRows.map(r => r.order_item_id).filter(Boolean))];
+    const missingReplacementOrderItemIds = replacementOrderItemIds.filter((id) => !orderItemIds.includes(id));
+    const { data: replacementOrderItems } = missingReplacementOrderItemIds.length > 0
+      ? await supabase.from("order_items").select("id, order_id, delivery_data").in("id", missingReplacementOrderItemIds)
+      : { data: [] };
+    const allOrderItems = [...((orderItemsRes.data || []) as any[]), ...((replacementOrderItems || []) as any[])];
+    const replacementOrderItemByStock = new Map(
+      replacementRows
+        .filter(r => r.stock_item_id && r.order_item_id)
+        .map(r => [r.stock_item_id, allOrderItems.find((oi: any) => oi.id === r.order_item_id) || null])
+    );
 
-    const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p.name]));
+    const productRows = (productsRes.data || []) as any[];
+    const productMap = new Map(productRows.map((p: any) => [p.id, p.name]));
     const productPriceMap = new Map((productsRes.data || []).map((p: any) => [p.id, Number(p.price) || 0]));
 
     // Get order codes and user ids
-    const orderIds = [...new Set((orderItemsRes.data || []).filter(oi => oi.order_id).map(oi => oi.order_id))];
+    const orderIds = [...new Set(allOrderItems.filter(oi => oi.order_id).map(oi => oi.order_id))];
     const { data: orders } = orderIds.length > 0
       ? await supabase.from("orders").select("id, code, user_id").in("id", orderIds)
       : { data: [] };
 
     const orderMap = new Map((orders || []).map(o => [o.id, o]));
-    const orderItemToOrder = new Map((orderItemsRes.data || []).map(oi => [oi.id, orderMap.get(oi.order_id)]));
+    const orderItemToOrder = new Map(allOrderItems.map(oi => [oi.id, orderMap.get(oi.order_id)]));
+    const orderItemDataMap = new Map(allOrderItems.map(oi => [oi.id, oi.delivery_data as any]));
 
     // Get client names
     const userIds = [...new Set((orders || []).filter(o => o.user_id).map(o => o.user_id))];
@@ -122,50 +171,70 @@ export default function AdminReciclagem() {
     ]);
 
     const bmStockMap = new Map<string, any>();
-    const bmsByMatrizText: { matriz: string; bm: { name: string; link?: string | null } }[] = [];
+    const bmsByMatrizText: { matriz: string; bm: LinkedBm }[] = [];
     for (const bm of ((allBmStocksRes.data || []) as any[])) {
       bmStockMap.set(bm.id, bm);
       const matriz = bm.data?.perfilMatriz?.trim?.();
       if (matriz) {
         bmsByMatrizText.push({
           matriz: matriz.toLowerCase(),
-          bm: { name: bm.name || bm.identification || "BM", link: bm.identification_link },
+          bm: { name: bm.name || bm.identification || "BM", link: bm.identification_link, matriz },
         });
       }
     }
 
-    const bmsByOrder = new Map<string, { name: string; link?: string | null }[]>();
+    const bmsByOrder = new Map<string, LinkedBm[]>();
     for (const bt of (((bmTracksRes as any).data) || []) as any[]) {
       if (!bt.order_id) continue;
       const stk = bt.stock_item_id ? bmStockMap.get(bt.stock_item_id) : null;
       const name = stk?.name || stk?.identification || bt.product_name || "BM";
       const link = stk?.identification_link || bt.bm_link;
+      const matriz = stk?.data?.perfilMatriz || stk?.data?.perfilBackup || null;
       const arr = bmsByOrder.get(bt.order_id) || [];
-      arr.push({ name, link });
+      arr.push({ name, link, matriz });
       bmsByOrder.set(bt.order_id, arr);
     }
 
     const enriched: BlockedItem[] = stockItems.map(item => {
-      const order = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
-      let derivedBms: { name: string; link?: string | null }[] = [];
+      const directOrder = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
+      const replacementOrderItem = replacementOrderItemByStock.get(item.id) as any;
+      const replacementOrder = replacementOrderItem?.order_id ? orderMap.get(replacementOrderItem.order_id) : null;
+      const order = directOrder || replacementOrder || null;
+      let derivedBms: LinkedBm[] = [];
+      let derivedMatriz: string | null = null;
       // Only profile-type items aggregate child BMs — BM items don't list other BMs
       if (item.type !== "bm") {
         const fromOrder = order ? (bmsByOrder.get(order.id) || []) : [];
+        const fromDelivery = item.order_item_id ? parseLinkedBms(orderItemDataMap.get(item.order_item_id)) : [];
+        const fromReplacementDelivery = replacementOrderItem?.id ? parseLinkedBms(orderItemDataMap.get(replacementOrderItem.id)) : [];
         // Also match BMs whose perfilMatriz text contains this profile's name or identification
         const itemData = item.data as any;
+        const snapshotBms = parseLinkedBms(itemData);
         const needles = [item.name, item.identification, itemData?.nomePerfil]
           .filter(Boolean).map((s: any) => String(s).toLowerCase().trim()).filter(s => s.length > 2);
         const fromMatriz = bmsByMatrizText
           .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
           .map(({ bm }) => bm);
-        // De-dupe by name+link
-        const seen = new Set<string>();
-        derivedBms = [...fromOrder, ...fromMatriz].filter(b => {
-          const k = `${b.name}|${b.link || ""}`;
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        });
+        derivedBms = snapshotBms.length ? [] : mergeLinkedBms(fromDelivery, fromReplacementDelivery, fromOrder, fromMatriz);
+        const productName = item.product_id ? cleanText(productMap.get(item.product_id)) : "";
+        const combinedProductText = [productName, itemData?.nomeProduto, ...(itemData?.tags || [])].join(" ").toLowerCase();
+        const expectedBmCount = Number(combinedProductText.match(/(?:com|\+)\s*(\d+)\s*bm/i)?.[1] || 0);
+        if (!snapshotBms.length && expectedBmCount > derivedBms.length) {
+          const missingCount = expectedBmCount - derivedBms.length;
+          derivedBms = [
+            ...derivedBms,
+            ...Array.from({ length: missingCount }, (_, idx) => ({
+              name: `BM vinculada não registrada #${derivedBms.length + idx + 1}`,
+              link: null,
+              matriz: null,
+            })),
+          ];
+        }
+        derivedMatriz = cleanText(itemData?.perfilMatriz || itemData?.perfilBackup)
+          || cleanText(orderItemDataMap.get(item.order_item_id || "")?.perfilMatriz)
+          || cleanText(orderItemDataMap.get(replacementOrderItem?.id || "")?.perfilMatriz)
+          || cleanText(derivedBms.find(b => b.matriz)?.matriz)
+          || null;
       }
       return {
         ...item,
@@ -176,6 +245,7 @@ export default function AdminReciclagem() {
         blockedAt: item.updated_at,
         hasReplacement: replacedStockIds.has(item.id),
         derivedBms,
+        derivedMatriz,
       };
     });
 
@@ -476,17 +546,16 @@ export default function AdminReciclagem() {
                     <p className="text-[10px] text-muted-foreground mt-0.5">Produto: {item.productName}</p>
                   )}
                   {(() => {
-                    const manualBms = Array.isArray(item.data?.bmNames) ? item.data!.bmNames.filter((b: string) => b?.trim()) : [];
-                    const derived = (item.derivedBms || []).map(b => b.name).filter(Boolean);
-                    const bms = manualBms.length ? manualBms : derived;
-                    const matriz = item.data?.perfilMatriz?.trim?.();
+                    const bms = mergeLinkedBms(parseLinkedBms(item.data), item.derivedBms || []);
+                    const matriz = cleanText(item.data?.perfilMatriz || item.data?.perfilBackup) || item.derivedMatriz;
                     if (!bms.length && !matriz) return null;
                     return (
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        {bms.map((bm: string, i: number) => (
+                        {bms.map((bm, i: number) => (
                           <Badge key={i} className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] gap-1">
                             <span className="material-symbols-outlined text-[11px]">business_center</span>
-                            {bm}
+                            {bm.name}
+                            {bm.matriz && !matriz && <span className="text-blue-300/70">• {bm.matriz}</span>}
                           </Badge>
                         ))}
                         {matriz && (
@@ -586,10 +655,8 @@ export default function AdminReciclagem() {
 
               {/* BMs atribuídas e Perfil Matriz */}
               {(() => {
-                const manualBms = Array.isArray(selectedItem.data?.bmNames) ? selectedItem.data!.bmNames.filter((b: string) => b?.trim()) : [];
-                const derived = selectedItem.derivedBms || [];
-                const bms = manualBms.length ? manualBms.map((n: string) => ({ name: n, link: null as string | null })) : derived;
-                const matriz = selectedItem.data?.perfilMatriz?.trim?.();
+                const bms = mergeLinkedBms(parseLinkedBms(selectedItem.data), selectedItem.derivedBms || []);
+                const matriz = cleanText(selectedItem.data?.perfilMatriz || selectedItem.data?.perfilBackup) || selectedItem.derivedMatriz;
                 if (!bms.length && !matriz) return null;
                 return (
                   <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
@@ -602,6 +669,7 @@ export default function AdminReciclagem() {
                           <Badge key={i} className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[11px] gap-1 cursor-pointer" onClick={() => copyToClipboard(bm.link || bm.name)} title="Copiar BM">
                             <span className="material-symbols-outlined text-[11px]">business_center</span>
                             {bm.name}
+                            {bm.matriz && <span className="text-purple-200/80">• Matriz: {bm.matriz}</span>}
                           </Badge>
                         ))}
                       </div>
