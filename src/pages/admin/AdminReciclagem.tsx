@@ -122,6 +122,20 @@ export default function AdminReciclagem() {
 
   const handleViewDetails = async (item: BlockedItem) => {
     setSelectedItem(item);
+    setEditMode(false);
+    setEditData({
+      nomePerfil: item.data?.nomePerfil ?? "",
+      emailAcesso: item.data?.emailAcesso ?? "",
+      emailAlternativo: item.data?.emailAlternativo ?? "",
+      senha: item.data?.senha ?? item.data?.senhaFB ?? "",
+      senhaEmail: item.data?.senhaEmail ?? "",
+      token2fa: item.data?.token2fa ?? "",
+      dataNascimento: item.data?.dataNascimento ?? "",
+      genero: item.data?.genero ?? "",
+      cookies: item.data?.cookies ?? "",
+      idPerfil: item.identification ?? item.data?.idPerfil ?? "",
+      linkPerfil: item.identification_link ?? item.data?.linkPerfil ?? "",
+    });
 
     // Fetch block template and generate content
     const { data: tpl } = await supabase
@@ -131,36 +145,73 @@ export default function AdminReciclagem() {
       .maybeSingle();
 
     if (tpl?.content && item.data) {
-      const d = item.data;
-      const replacements: Record<string, string> = {
-        "{{nomePerfil}}": d.nomePerfil || "—",
-        "{{emailAcesso}}": d.emailAcesso || "—",
-        "{{emailAlternativo}}": d.emailAlternativo || "—",
-        "{{senha}}": d.senha || "—",
-        "{{senhaEmail}}": d.senhaEmail || "—",
-        "{{token2fa}}": d.token2fa || "—",
-        "{{dataNascimento}}": d.dataNascimento || "—",
-        "{{genero}}": d.genero || "—",
-        "{{tempoPlataforma}}": d.tempoPlataforma || "—",
-        "{{statusAtual}}": d.statusAtual || "—",
-        "{{descricao}}": d.descricao || "—",
-        "{{cookies}}": d.cookies || "—",
-        "{{linkDocumento}}": d.linkDocumento || "—",
-        "{{linkPerfil}}": item.identification_link || d.linkPerfil || "—",
-        "{{idPerfil}}": item.identification || d.idPerfil || "—",
-        "{{pedido}}": "—",
-        "{{data}}": "—",
-        "{{nomeProduto}}": "—",
-      };
-      let content = tpl.content;
-      for (const [key, val] of Object.entries(replacements)) {
-        content = content.split(key).join(val);
-      }
-      setBlocoContent(content);
+      setBlocoTemplate(tpl.content);
+      setBlocoContent(renderTemplate(tpl.content, item.data, item));
     } else {
+      setBlocoTemplate("");
       setBlocoContent("Template padrão não encontrado ou item sem dados.");
     }
   };
+
+  function renderTemplate(tpl: string, d: any, item: BlockedItem): string {
+    const replacements: Record<string, string> = {
+      "{{nomePerfil}}": d.nomePerfil || "—",
+      "{{emailAcesso}}": d.emailAcesso || "—",
+      "{{emailAlternativo}}": d.emailAlternativo || "—",
+      "{{senha}}": d.senha || "—",
+      "{{senhaEmail}}": d.senhaEmail || "—",
+      "{{token2fa}}": d.token2fa || "—",
+      "{{dataNascimento}}": d.dataNascimento || "—",
+      "{{genero}}": d.genero || "—",
+      "{{tempoPlataforma}}": d.tempoPlataforma || "—",
+      "{{statusAtual}}": d.statusAtual || "—",
+      "{{descricao}}": d.descricao || "—",
+      "{{cookies}}": d.cookies || "—",
+      "{{linkDocumento}}": d.linkDocumento || "—",
+      "{{linkPerfil}}": item.identification_link || d.linkPerfil || "—",
+      "{{idPerfil}}": item.identification || d.idPerfil || "—",
+      "{{pedido}}": "—",
+      "{{data}}": "—",
+      "{{nomeProduto}}": "—",
+    };
+    let content = tpl;
+    for (const [key, val] of Object.entries(replacements)) {
+      content = content.split(key).join(val);
+    }
+    return content;
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedItem) return;
+    setSavingEdit(true);
+    const newData = { ...(selectedItem.data || {}), ...editData };
+    // Keep legacy field in sync
+    if (editData.senha) (newData as any).senhaFB = editData.senha;
+    const updates: any = { data: newData };
+    if (editData.idPerfil !== (selectedItem.identification ?? "")) {
+      updates.identification = editData.idPerfil || null;
+    }
+    if (editData.linkPerfil !== (selectedItem.identification_link ?? "")) {
+      updates.identification_link = editData.linkPerfil || null;
+    }
+    const { error } = await supabase.from("stock_items").update(updates).eq("id", selectedItem.id);
+    setSavingEdit(false);
+    if (error) {
+      toast.error("Erro ao salvar alterações");
+      return;
+    }
+    const updatedItem: BlockedItem = {
+      ...selectedItem,
+      data: newData,
+      identification: updates.identification ?? selectedItem.identification,
+      identification_link: updates.identification_link ?? selectedItem.identification_link,
+    };
+    setSelectedItem(updatedItem);
+    setItems((prev) => prev.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+    if (blocoTemplate) setBlocoContent(renderTemplate(blocoTemplate, newData, updatedItem));
+    setEditMode(false);
+    toast.success("Bloco atualizado");
+  }
 
   const handleRecycle = async (item: BlockedItem) => {
     const confirmed = window.confirm(
