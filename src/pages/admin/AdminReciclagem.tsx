@@ -111,22 +111,62 @@ export default function AdminReciclagem() {
       : { data: [] };
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p.full_name]));
 
-    // Fetch all BMs sold in the same orders (fallback to show which BMs are inside each recycled profile)
+    // Fetch all BMs (from bm_tracking + their stock_items) to derive BMs vinculadas a cada perfil
     const allOrderIds = [...new Set((orders || []).map(o => o.id))];
-    const { data: bmTracks } = allOrderIds.length > 0
-      ? await supabase.from("bm_tracking").select("order_id, product_name, bm_link").in("order_id", allOrderIds)
-      : { data: [] };
+    const [bmTracksRes, allBmStocksRes] = await Promise.all([
+      allOrderIds.length > 0
+        ? supabase.from("bm_tracking").select("order_id, stock_item_id, product_name, bm_link").in("order_id", allOrderIds)
+        : Promise.resolve({ data: [] as any[] }),
+      // BM stock_items with a perfilMatriz set (used to match by matriz ILIKE)
+      supabase.from("stock_items").select("id, name, identification, identification_link, data").eq("type", "bm").not("data->>perfilMatriz", "is", null),
+    ]);
+
+    const bmStockMap = new Map<string, any>();
+    const bmsByMatrizText: { matriz: string; bm: { name: string; link?: string | null } }[] = [];
+    for (const bm of ((allBmStocksRes.data || []) as any[])) {
+      bmStockMap.set(bm.id, bm);
+      const matriz = bm.data?.perfilMatriz?.trim?.();
+      if (matriz) {
+        bmsByMatrizText.push({
+          matriz: matriz.toLowerCase(),
+          bm: { name: bm.name || bm.identification || "BM", link: bm.identification_link },
+        });
+      }
+    }
+
     const bmsByOrder = new Map<string, { name: string; link?: string | null }[]>();
-    for (const bt of (bmTracks || []) as any[]) {
+    for (const bt of (((bmTracksRes as any).data) || []) as any[]) {
       if (!bt.order_id) continue;
+      const stk = bt.stock_item_id ? bmStockMap.get(bt.stock_item_id) : null;
+      const name = stk?.name || stk?.identification || bt.product_name || "BM";
+      const link = stk?.identification_link || bt.bm_link;
       const arr = bmsByOrder.get(bt.order_id) || [];
-      arr.push({ name: bt.product_name || "BM", link: bt.bm_link });
+      arr.push({ name, link });
       bmsByOrder.set(bt.order_id, arr);
     }
 
     const enriched: BlockedItem[] = stockItems.map(item => {
       const order = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
-      const derivedBms = order ? (bmsByOrder.get(order.id) || []) : [];
+      let derivedBms: { name: string; link?: string | null }[] = [];
+      // Only profile-type items aggregate child BMs — BM items don't list other BMs
+      if (item.type !== "bm") {
+        const fromOrder = order ? (bmsByOrder.get(order.id) || []) : [];
+        // Also match BMs whose perfilMatriz text contains this profile's name or identification
+        const itemData = item.data as any;
+        const needles = [item.name, item.identification, itemData?.nomePerfil]
+          .filter(Boolean).map((s: any) => String(s).toLowerCase().trim()).filter(s => s.length > 2);
+        const fromMatriz = bmsByMatrizText
+          .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
+          .map(({ bm }) => bm);
+        // De-dupe by name+link
+        const seen = new Set<string>();
+        derivedBms = [...fromOrder, ...fromMatriz].filter(b => {
+          const k = `${b.name}|${b.link || ""}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+      }
       return {
         ...item,
         data: item.data as Record<string, any> | null,
