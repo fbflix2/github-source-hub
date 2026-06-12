@@ -240,6 +240,7 @@ export default function AdminReciclagem() {
         ...item,
         data: item.data as Record<string, any> | null,
         productName: item.product_id ? productMap.get(item.product_id) || "—" : "—",
+        productPrice: item.product_id ? (productPriceMap.get(item.product_id) || 0) : 0,
         clientName: order ? profileMap.get(order.user_id) || "—" : "—",
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
