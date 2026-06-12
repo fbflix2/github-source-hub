@@ -126,6 +126,8 @@ export default function AdminReciclagem() {
   const handleViewDetails = async (item: BlockedItem) => {
     setSelectedItem(item);
     setEditMode(false);
+    setNoteOpen(false);
+    setNoteDraft(item.data?._observation_note ?? "");
     setEditData({
       nomePerfil: item.data?.nomePerfil ?? "",
       emailAcesso: item.data?.emailAcesso ?? "",
