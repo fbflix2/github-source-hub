@@ -118,26 +118,39 @@ export default function AdminReciclagem() {
         ? supabase.from("products").select("id, name, price").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
-        ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
+        ? supabase.from("order_items").select("id, order_id, delivery_data").in("id", orderItemIds)
         : Promise.resolve({ data: [] }),
       stockItemIds.length > 0
-        ? supabase.from("replacements").select("stock_item_id").in("stock_item_id", stockItemIds)
+        ? supabase.from("replacements").select("stock_item_id, order_item_id, order_id").in("stock_item_id", stockItemIds)
         : Promise.resolve({ data: [] }),
     ]);
 
-    const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
+    const replacementRows = (replacementsRes.data || []) as any[];
+    const replacedStockIds = new Set(replacementRows.map(r => r.stock_item_id));
+    const replacementOrderItemIds = [...new Set(replacementRows.map(r => r.order_item_id).filter(Boolean))];
+    const missingReplacementOrderItemIds = replacementOrderItemIds.filter((id) => !orderItemIds.includes(id));
+    const { data: replacementOrderItems } = missingReplacementOrderItemIds.length > 0
+      ? await supabase.from("order_items").select("id, order_id, delivery_data").in("id", missingReplacementOrderItemIds)
+      : { data: [] };
+    const allOrderItems = [...((orderItemsRes.data || []) as any[]), ...((replacementOrderItems || []) as any[])];
+    const replacementOrderItemByStock = new Map(
+      replacementRows
+        .filter(r => r.stock_item_id && r.order_item_id)
+        .map(r => [r.stock_item_id, allOrderItems.find((oi: any) => oi.id === r.order_item_id) || null])
+    );
 
     const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p.name]));
     const productPriceMap = new Map((productsRes.data || []).map((p: any) => [p.id, Number(p.price) || 0]));
 
     // Get order codes and user ids
-    const orderIds = [...new Set((orderItemsRes.data || []).filter(oi => oi.order_id).map(oi => oi.order_id))];
+    const orderIds = [...new Set(allOrderItems.filter(oi => oi.order_id).map(oi => oi.order_id))];
     const { data: orders } = orderIds.length > 0
       ? await supabase.from("orders").select("id, code, user_id").in("id", orderIds)
       : { data: [] };
 
     const orderMap = new Map((orders || []).map(o => [o.id, o]));
-    const orderItemToOrder = new Map((orderItemsRes.data || []).map(oi => [oi.id, orderMap.get(oi.order_id)]));
+    const orderItemToOrder = new Map(allOrderItems.map(oi => [oi.id, orderMap.get(oi.order_id)]));
+    const orderItemDataMap = new Map(allOrderItems.map(oi => [oi.id, oi.delivery_data as any]));
 
     // Get client names
     const userIds = [...new Set((orders || []).filter(o => o.user_id).map(o => o.user_id))];
@@ -164,28 +177,35 @@ export default function AdminReciclagem() {
       if (matriz) {
         bmsByMatrizText.push({
           matriz: matriz.toLowerCase(),
-          bm: { name: bm.name || bm.identification || "BM", link: bm.identification_link },
+          bm: { name: bm.name || bm.identification || "BM", link: bm.identification_link, matriz },
         });
       }
     }
 
-    const bmsByOrder = new Map<string, { name: string; link?: string | null }[]>();
+    const bmsByOrder = new Map<string, LinkedBm[]>();
     for (const bt of (((bmTracksRes as any).data) || []) as any[]) {
       if (!bt.order_id) continue;
       const stk = bt.stock_item_id ? bmStockMap.get(bt.stock_item_id) : null;
       const name = stk?.name || stk?.identification || bt.product_name || "BM";
       const link = stk?.identification_link || bt.bm_link;
+      const matriz = stk?.data?.perfilMatriz || stk?.data?.perfilBackup || null;
       const arr = bmsByOrder.get(bt.order_id) || [];
-      arr.push({ name, link });
+      arr.push({ name, link, matriz });
       bmsByOrder.set(bt.order_id, arr);
     }
 
     const enriched: BlockedItem[] = stockItems.map(item => {
-      const order = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
-      let derivedBms: { name: string; link?: string | null }[] = [];
+      const directOrder = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
+      const replacementOrderItem = replacementOrderItemByStock.get(item.id) as any;
+      const replacementOrder = replacementOrderItem?.order_id ? orderMap.get(replacementOrderItem.order_id) : null;
+      const order = directOrder || replacementOrder || null;
+      let derivedBms: LinkedBm[] = [];
+      let derivedMatriz: string | null = null;
       // Only profile-type items aggregate child BMs — BM items don't list other BMs
       if (item.type !== "bm") {
         const fromOrder = order ? (bmsByOrder.get(order.id) || []) : [];
+        const fromDelivery = item.order_item_id ? parseLinkedBms(orderItemDataMap.get(item.order_item_id)) : [];
+        const fromReplacementDelivery = replacementOrderItem?.id ? parseLinkedBms(orderItemDataMap.get(replacementOrderItem.id)) : [];
         // Also match BMs whose perfilMatriz text contains this profile's name or identification
         const itemData = item.data as any;
         const needles = [item.name, item.identification, itemData?.nomePerfil]
@@ -193,14 +213,12 @@ export default function AdminReciclagem() {
         const fromMatriz = bmsByMatrizText
           .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
           .map(({ bm }) => bm);
-        // De-dupe by name+link
-        const seen = new Set<string>();
-        derivedBms = [...fromOrder, ...fromMatriz].filter(b => {
-          const k = `${b.name}|${b.link || ""}`;
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        });
+        derivedBms = mergeLinkedBms(fromDelivery, fromReplacementDelivery, fromOrder, fromMatriz);
+        derivedMatriz = cleanText(itemData?.perfilMatriz || itemData?.perfilBackup)
+          || cleanText(orderItemDataMap.get(item.order_item_id || "")?.perfilMatriz)
+          || cleanText(orderItemDataMap.get(replacementOrderItem?.id || "")?.perfilMatriz)
+          || cleanText(derivedBms.find(b => b.matriz)?.matriz)
+          || null;
       }
       return {
         ...item,
@@ -211,6 +229,7 @@ export default function AdminReciclagem() {
         blockedAt: item.updated_at,
         hasReplacement: replacedStockIds.has(item.id),
         derivedBms,
+        derivedMatriz,
       };
     });
 
