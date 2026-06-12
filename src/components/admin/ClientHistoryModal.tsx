@@ -59,6 +59,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
   const [walletTxs, setWalletTxs] = useState<WalletItem[]>([]);
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [activeTab, setActiveTab] = useState<"orders" | "wallet" | "notes">("orders");
@@ -73,7 +74,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
   const fetchAll = async () => {
     if (!client) return;
     setLoading(true);
-    const [ordersRes, walletRes, notesRes] = await Promise.all([
+    const [ordersRes, walletRes, notesRes, presenceRes] = await Promise.all([
       supabase
         .from("orders")
         .select("id, code, total, status, created_at")
@@ -91,6 +92,11 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
         .select("id, content, created_at")
         .eq("user_id", client.user_id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("user_presence")
+        .select("last_seen_at")
+        .eq("user_id", client.user_id)
+        .maybeSingle(),
     ]);
 
     const ords = ordersRes.data ?? [];
@@ -102,6 +108,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
     );
     setWalletTxs(walletRes.data ?? []);
     setNotes(notesRes.data ?? []);
+    setLastSeenAt(presenceRes.data?.last_seen_at ?? null);
     setLoading(false);
   };
 
@@ -188,6 +195,11 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
               </span>
               <span className="flex items-center gap-1">
                 <ShoppingBag className="size-3" /> Total gasto: {formatCurrency(totalSpent)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" /> Último acesso: {lastSeenAt
+                  ? new Date(lastSeenAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                  : "Nunca"}
               </span>
             </div>
           </div>
