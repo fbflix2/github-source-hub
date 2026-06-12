@@ -453,6 +453,26 @@ export default function AdminReciclagem() {
                           </Button>
                         );
                       })}
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => {
+                          const safeName = (selectedItem.name || "perfil").replace(/[^\w.-]+/g, "_");
+                          const blob = new Blob([blocoContent], { type: "text/plain;charset=utf-8" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${safeName}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="h-7 text-xs gap-1.5 ml-auto"
+                        title="Baixar bloco de notas em .txt"
+                      >
+                        <Download className="size-3" /> Baixar Bloco
+                      </Button>
                     </div>
                   );
                 })()}
