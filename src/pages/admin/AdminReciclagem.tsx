@@ -159,10 +159,27 @@ export default function AdminReciclagem() {
   };
 
   const handleRecycle = async (item: BlockedItem) => {
+    const confirmed = window.confirm(
+      "Liberar este item para venda novamente?\n\n" +
+      "Isso irá:\n" +
+      "• Desvincular do pedido anterior\n" +
+      "• Voltar para o estoque como 'revisado'\n" +
+      "• Limpar a trava de credenciais acessadas (item volta a ser vendável na loja)\n\n" +
+      "Confirme que a senha/2FA já foram trocados antes de prosseguir."
+    );
+    if (!confirmed) return;
+
+    // Clean compromised-stock flag so the item can actually be sold again
+    const cleanedData = { ...(item.data || {}) };
+    delete (cleanedData as any)._credentials_accessed_at;
+    delete (cleanedData as any)._blocked_at;
+    delete (cleanedData as any)._blocked_by;
+    delete (cleanedData as any)._blocked_reason;
+
     // Reset item: unlink from order, set status back to 'revisado' so it can be resold
     const { error } = await supabase
       .from("stock_items")
-      .update({ status: "revisado", order_item_id: null })
+      .update({ status: "revisado", order_item_id: null, data: cleanedData })
       .eq("id", item.id);
 
     if (error) {
@@ -186,7 +203,7 @@ export default function AdminReciclagem() {
       }
     }
 
-    toast.success("Item reciclado! Voltou ao estoque para revenda.");
+    toast.success("Item liberado! Disponível para nova venda na loja.");
     setSelectedItem(null);
     fetchItems();
   };
