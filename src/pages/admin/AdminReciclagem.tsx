@@ -269,6 +269,7 @@ export default function AdminReciclagem() {
     delete (cleanedData as any)._blocked_at;
     delete (cleanedData as any)._blocked_by;
     delete (cleanedData as any)._blocked_reason;
+    (cleanedData as any)._recycled_at = new Date().toISOString();
 
     // Reset item: unlink from order, set status back to 'revisado' so it can be resold
     const { error } = await supabase
