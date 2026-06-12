@@ -33,11 +33,46 @@ interface BlockedItem {
   hasReplacement?: boolean;
   productPrice?: number;
   // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
-  derivedBms?: { name: string; link?: string | null }[];
+  derivedBms?: { name: string; link?: string | null; matriz?: string | null }[];
+  derivedMatriz?: string | null;
 }
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+type LinkedBm = { name: string; link?: string | null; matriz?: string | null };
+
+const cleanText = (value: unknown) => String(value ?? "").trim();
+
+const parseLinkedBms = (data: any): LinkedBm[] => {
+  const names = Array.isArray(data?.bmNames)
+    ? data.bmNames
+    : cleanText(data?.bmNames)
+      ? [data.bmNames]
+      : [];
+  const links = Array.isArray(data?.bmLinks)
+    ? data.bmLinks
+    : cleanText(data?.bmLinks)
+      ? [data.bmLinks]
+      : [];
+  const matriz = cleanText(data?.perfilMatriz || data?.perfilBackup) || null;
+  const size = Math.max(names.length, links.length);
+  return Array.from({ length: size }, (_, i) => ({
+    name: cleanText(names[i]) || cleanText(links[i]) || "BM",
+    link: cleanText(links[i]) || null,
+    matriz,
+  })).filter((bm) => bm.name !== "BM" || bm.link);
+};
+
+const mergeLinkedBms = (...groups: LinkedBm[][]): LinkedBm[] => {
+  const seen = new Set<string>();
+  return groups.flat().filter((bm) => {
+    const key = `${bm.name.toLowerCase()}|${bm.link || ""}|${bm.matriz || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
