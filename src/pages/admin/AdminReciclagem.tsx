@@ -31,6 +31,8 @@ interface BlockedItem {
   orderCode?: string;
   blockedAt?: string;
   hasReplacement?: boolean;
+  // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
+  derivedBms?: { name: string; link?: string | null }[];
 }
 
 const formatDate = (d: string) =>
@@ -106,8 +108,22 @@ export default function AdminReciclagem() {
       : { data: [] };
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p.full_name]));
 
+    // Fetch all BMs sold in the same orders (fallback to show which BMs are inside each recycled profile)
+    const allOrderIds = [...new Set((orders || []).map(o => o.id))];
+    const { data: bmTracks } = allOrderIds.length > 0
+      ? await supabase.from("bm_tracking").select("order_id, product_name, bm_link").in("order_id", allOrderIds)
+      : { data: [] };
+    const bmsByOrder = new Map<string, { name: string; link?: string | null }[]>();
+    for (const bt of (bmTracks || []) as any[]) {
+      if (!bt.order_id) continue;
+      const arr = bmsByOrder.get(bt.order_id) || [];
+      arr.push({ name: bt.product_name || "BM", link: bt.bm_link });
+      bmsByOrder.set(bt.order_id, arr);
+    }
+
     const enriched: BlockedItem[] = stockItems.map(item => {
       const order = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
+      const derivedBms = order ? (bmsByOrder.get(order.id) || []) : [];
       return {
         ...item,
         data: item.data as Record<string, any> | null,
@@ -116,6 +132,7 @@ export default function AdminReciclagem() {
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
         hasReplacement: replacedStockIds.has(item.id),
+        derivedBms,
       };
     });
 
@@ -385,7 +402,9 @@ export default function AdminReciclagem() {
                     <p className="text-[10px] text-muted-foreground mt-0.5">Produto: {item.productName}</p>
                   )}
                   {(() => {
-                    const bms = Array.isArray(item.data?.bmNames) ? item.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                    const manualBms = Array.isArray(item.data?.bmNames) ? item.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                    const derived = (item.derivedBms || []).map(b => b.name).filter(Boolean);
+                    const bms = manualBms.length ? manualBms : derived;
                     const matriz = item.data?.perfilMatriz?.trim?.();
                     if (!bms.length && !matriz) return null;
                     return (
@@ -493,7 +512,9 @@ export default function AdminReciclagem() {
 
               {/* BMs atribuídas e Perfil Matriz */}
               {(() => {
-                const bms = Array.isArray(selectedItem.data?.bmNames) ? selectedItem.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                const manualBms = Array.isArray(selectedItem.data?.bmNames) ? selectedItem.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                const derived = selectedItem.derivedBms || [];
+                const bms = manualBms.length ? manualBms.map((n: string) => ({ name: n, link: null as string | null })) : derived;
                 const matriz = selectedItem.data?.perfilMatriz?.trim?.();
                 if (!bms.length && !matriz) return null;
                 return (
@@ -503,9 +524,10 @@ export default function AdminReciclagem() {
                     </h4>
                     {bms.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
-                        {bms.map((bm: string, i: number) => (
-                          <Badge key={i} className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[11px] gap-1 cursor-pointer" onClick={() => copyToClipboard(bm)} title="Copiar nome da BM">
-                            {bm}
+                        {bms.map((bm, i) => (
+                          <Badge key={i} className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[11px] gap-1 cursor-pointer" onClick={() => copyToClipboard(bm.link || bm.name)} title="Copiar BM">
+                            <span className="material-symbols-outlined text-[11px]">business_center</span>
+                            {bm.name}
                           </Badge>
                         ))}
                       </div>
