@@ -31,6 +31,8 @@ interface BlockedItem {
   orderCode?: string;
   blockedAt?: string;
   hasReplacement?: boolean;
+  // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
+  derivedBms?: { name: string; link?: string | null }[];
 }
 
 const formatDate = (d: string) =>
