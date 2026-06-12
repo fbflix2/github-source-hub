@@ -139,6 +139,22 @@ export default function AdminReciclagem() {
 
     setItems(enriched);
     setLoading(false);
+
+    // Recycled KPI: items previously blocked and now returned to store
+    const { data: recycled } = await supabase
+      .from("stock_items")
+      .select("product_id, data")
+      .eq("status", "revisado")
+      .not("data->>_recycled_at", "is", null);
+
+    const recycledList = (recycled || []) as any[];
+    const recycledProductIds = [...new Set(recycledList.filter(r => r.product_id).map(r => r.product_id))];
+    const { data: recycledProducts } = recycledProductIds.length > 0
+      ? await supabase.from("products").select("id, price").in("id", recycledProductIds)
+      : { data: [] };
+    const priceMap = new Map((recycledProducts || []).map((p: any) => [p.id, Number(p.price) || 0]));
+    const recycledValue = recycledList.reduce((sum, r) => sum + (priceMap.get(r.product_id) || 0), 0);
+    setRecycledStats({ count: recycledList.length, value: recycledValue });
   }
 
   const handleViewDetails = async (item: BlockedItem) => {
