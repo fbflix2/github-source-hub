@@ -105,13 +105,13 @@
           if (itemId) {
             const { data: oi } = await supabase
               .from('order_items')
-              .select('product_name, order_id, orders:order_id(user_id, code)')
+              .select('name, order_id, orders:order_id(user_id, code)')
               .eq('id', itemId)
               .maybeSingle();
 
             const userId = (oi as any)?.orders?.user_id;
             const orderCode = (oi as any)?.orders?.code;
-            const productName = (oi as any)?.product_name || 'seu perfil';
+            const productName = (oi as any)?.name || 'seu perfil';
 
             if (userId) {
               const { data: prof } = await supabase
