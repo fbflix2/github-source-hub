@@ -384,6 +384,26 @@ export default function AdminReciclagem() {
                   {item.productName !== "—" && (
                     <p className="text-[10px] text-muted-foreground mt-0.5">Produto: {item.productName}</p>
                   )}
+                  {(() => {
+                    const bms = Array.isArray(item.data?.bmNames) ? item.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                    const matriz = item.data?.perfilMatriz?.trim?.();
+                    if (!bms.length && !matriz) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        {bms.map((bm: string, i: number) => (
+                          <Badge key={i} className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] gap-1">
+                            <span className="material-symbols-outlined text-[11px]">business_center</span>
+                            {bm}
+                          </Badge>
+                        ))}
+                        {matriz && (
+                          <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/20 text-[10px] gap-1">
+                            <Shield className="size-3" /> Matriz: {matriz}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
