@@ -464,6 +464,14 @@ export default function AdminReciclagem() {
                     Bloco de Notas
                   </h4>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant={editMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setEditMode((v) => !v)}
+                      className="text-xs h-7"
+                    >
+                      {editMode ? (<><X className="size-3 mr-1" /> Cancelar</>) : (<><Pencil className="size-3 mr-1" /> Editar</>)}
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => copyToClipboard(blocoContent)} className="text-xs h-7">
                       <Copy className="size-3 mr-1" /> Copiar
                     </Button>
@@ -547,9 +555,52 @@ export default function AdminReciclagem() {
                   );
                 })()}
 
-                <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
-                  {blocoContent}
-                </pre>
+                {editMode ? (
+                  <div className="space-y-2 bg-muted/30 border border-border rounded-lg p-3 max-h-80 overflow-y-auto">
+                    {([
+                      ["nomePerfil", "Nome do Perfil"],
+                      ["idPerfil", "ID do Perfil"],
+                      ["linkPerfil", "Link do Perfil"],
+                      ["emailAcesso", "Email"],
+                      ["senha", "Senha FB"],
+                      ["token2fa", "Token 2FA"],
+                      ["senhaEmail", "Senha Email"],
+                      ["emailAlternativo", "Email Alternativo"],
+                      ["dataNascimento", "Data Nascimento"],
+                      ["genero", "Gênero"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-3 gap-2 items-center">
+                        <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+                        <Input
+                          value={editData[key] ?? ""}
+                          onChange={(e) => setEditData((p) => ({ ...p, [key]: e.target.value }))}
+                          className="col-span-2 h-7 text-xs font-mono"
+                        />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground">Cookies</label>
+                      <textarea
+                        value={editData.cookies ?? ""}
+                        onChange={(e) => setEditData((p) => ({ ...p, cookies: e.target.value }))}
+                        className="w-full mt-1 p-2 rounded-md border border-border bg-background text-xs font-mono min-h-[80px]"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button variant="ghost" size="sm" onClick={() => setEditMode(false)} className="h-7 text-xs">
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={savingEdit} className="h-7 text-xs">
+                        <Save className="size-3 mr-1" />
+                        {savingEdit ? "Salvando..." : "Salvar alterações"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
+                    {blocoContent}
+                  </pre>
+                )}
               </div>
 
               {/* Actions */}
