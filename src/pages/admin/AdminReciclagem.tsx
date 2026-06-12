@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -374,30 +374,6 @@ export default function AdminReciclagem() {
                 )}
               </div>
 
-              {/* Raw Data */}
-              {selectedItem.data && Object.keys(selectedItem.data).length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Dados do Item</h4>
-                  <div className="space-y-1.5">
-                    {Object.entries(selectedItem.data).map(([key, val]) => {
-                      if (!val || key === "foto_url") return null;
-                      const strVal = typeof val === "string" ? val : JSON.stringify(val);
-                      return (
-                        <div key={key} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border text-xs group">
-                          <div className="min-w-0 flex-1">
-                            <span className="text-muted-foreground">{key}:</span>{" "}
-                            <span className="text-foreground font-mono break-all">{strVal.substring(0, 200)}</span>
-                          </div>
-                          <button onClick={() => copyToClipboard(strVal)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
-                            <Copy className="size-3 text-muted-foreground" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Block Template Content */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -405,9 +381,30 @@ export default function AdminReciclagem() {
                     <FileText className="size-3.5" />
                     Bloco de Notas
                   </h4>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(blocoContent)} className="text-xs h-7">
-                    <Copy className="size-3 mr-1" /> Copiar
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(blocoContent)} className="text-xs h-7">
+                      <Copy className="size-3 mr-1" /> Copiar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const safeName = (selectedItem.name || "perfil").replace(/[^\w.-]+/g, "_");
+                        const blob = new Blob([blocoContent], { type: "text/plain;charset=utf-8" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${safeName}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="text-xs h-7"
+                    >
+                      <Download className="size-3 mr-1" /> Baixar .txt
+                    </Button>
+                  </div>
                 </div>
                 <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
                   {blocoContent}
