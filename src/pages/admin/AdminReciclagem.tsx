@@ -363,6 +363,11 @@ export default function AdminReciclagem() {
                          <ClipboardList className="size-3" /> EM ANÁLISE
                        </Badge>
                      )}
+                      {item.data?._under_observation && (
+                        <Badge className="bg-sky-500/20 text-sky-400 border-sky-500/30 text-[10px] gap-1">
+                          <Eye className="size-3" /> EM OBSERVAÇÃO
+                        </Badge>
+                      )}
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
                     <span>Cliente: {item.clientName}</span>
@@ -415,6 +420,11 @@ export default function AdminReciclagem() {
               {selectedItem?.data?._under_analysis && (
                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] gap-1">
                   <ClipboardList className="size-3" /> EM ANÁLISE
+                </Badge>
+              )}
+              {selectedItem?.data?._under_observation && (
+                <Badge className="bg-sky-500/20 text-sky-400 border-sky-500/30 text-[10px] gap-1">
+                  <Eye className="size-3" /> EM OBSERVAÇÃO
                 </Badge>
               )}
             </DialogTitle>
@@ -550,6 +560,30 @@ export default function AdminReciclagem() {
                       >
                         <ClipboardList className="size-3" />
                         {selectedItem.data?._under_analysis ? "Em Análise" : "Marcar em Análise"}
+                      </Button>
+                      <Button
+                        variant={selectedItem.data?._under_observation ? "default" : "outline"}
+                        size="sm"
+                        onClick={async () => {
+                          const newFlag = !selectedItem.data?._under_observation;
+                          const newData = { ...(selectedItem.data || {}), _under_observation: newFlag };
+                          const { error } = await supabase
+                            .from("stock_items")
+                            .update({ data: newData })
+                            .eq("id", selectedItem.id);
+                          if (error) {
+                            toast.error("Erro ao atualizar observação");
+                            return;
+                          }
+                          toast.success(newFlag ? "Marcado em observação" : "Observação removida");
+                          setSelectedItem({ ...selectedItem, data: newData });
+                          setItems((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...i, data: newData } : i)));
+                        }}
+                        className={`h-7 text-xs gap-1.5 ${selectedItem.data?._under_observation ? "bg-sky-500 hover:bg-sky-600 text-white" : ""}`}
+                        title="Item revisado, mas mantido em observação interna"
+                      >
+                        <Eye className="size-3" />
+                        {selectedItem.data?._under_observation ? "Em Observação" : "Marcar Observação"}
                       </Button>
                     </div>
                   );
