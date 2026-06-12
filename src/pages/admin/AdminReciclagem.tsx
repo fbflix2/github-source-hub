@@ -530,17 +530,16 @@ export default function AdminReciclagem() {
                     <p className="text-[10px] text-muted-foreground mt-0.5">Produto: {item.productName}</p>
                   )}
                   {(() => {
-                    const manualBms = Array.isArray(item.data?.bmNames) ? item.data!.bmNames.filter((b: string) => b?.trim()) : [];
-                    const derived = (item.derivedBms || []).map(b => b.name).filter(Boolean);
-                    const bms = manualBms.length ? manualBms : derived;
-                    const matriz = item.data?.perfilMatriz?.trim?.();
+                    const bms = mergeLinkedBms(parseLinkedBms(item.data), item.derivedBms || []);
+                    const matriz = cleanText(item.data?.perfilMatriz || item.data?.perfilBackup) || item.derivedMatriz;
                     if (!bms.length && !matriz) return null;
                     return (
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        {bms.map((bm: string, i: number) => (
+                        {bms.map((bm, i: number) => (
                           <Badge key={i} className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] gap-1">
                             <span className="material-symbols-outlined text-[11px]">business_center</span>
-                            {bm}
+                            {bm.name}
+                            {bm.matriz && !matriz && <span className="text-blue-300/70">• {bm.matriz}</span>}
                           </Badge>
                         ))}
                         {matriz && (
@@ -640,10 +639,8 @@ export default function AdminReciclagem() {
 
               {/* BMs atribuídas e Perfil Matriz */}
               {(() => {
-                const manualBms = Array.isArray(selectedItem.data?.bmNames) ? selectedItem.data!.bmNames.filter((b: string) => b?.trim()) : [];
-                const derived = selectedItem.derivedBms || [];
-                const bms = manualBms.length ? manualBms.map((n: string) => ({ name: n, link: null as string | null })) : derived;
-                const matriz = selectedItem.data?.perfilMatriz?.trim?.();
+                const bms = mergeLinkedBms(parseLinkedBms(selectedItem.data), selectedItem.derivedBms || []);
+                const matriz = cleanText(selectedItem.data?.perfilMatriz || selectedItem.data?.perfilBackup) || selectedItem.derivedMatriz;
                 if (!bms.length && !matriz) return null;
                 return (
                   <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
@@ -656,6 +653,7 @@ export default function AdminReciclagem() {
                           <Badge key={i} className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[11px] gap-1 cursor-pointer" onClick={() => copyToClipboard(bm.link || bm.name)} title="Copiar BM">
                             <span className="material-symbols-outlined text-[11px]">business_center</span>
                             {bm.name}
+                            {bm.matriz && <span className="text-purple-200/80">• Matriz: {bm.matriz}</span>}
                           </Badge>
                         ))}
                       </div>
