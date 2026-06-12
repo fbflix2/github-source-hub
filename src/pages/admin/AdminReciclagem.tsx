@@ -152,7 +152,8 @@ export default function AdminReciclagem() {
       if (item.type !== "bm") {
         const fromOrder = order ? (bmsByOrder.get(order.id) || []) : [];
         // Also match BMs whose perfilMatriz text contains this profile's name or identification
-        const needles = [item.name, item.identification, item.data?.nomePerfil]
+        const itemData = item.data as any;
+        const needles = [item.name, item.identification, itemData?.nomePerfil]
           .filter(Boolean).map((s: any) => String(s).toLowerCase().trim()).filter(s => s.length > 2);
         const fromMatriz = bmsByMatrizText
           .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
