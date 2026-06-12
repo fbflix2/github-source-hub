@@ -561,6 +561,30 @@ export default function AdminReciclagem() {
                         <ClipboardList className="size-3" />
                         {selectedItem.data?._under_analysis ? "Em Análise" : "Marcar em Análise"}
                       </Button>
+                      <Button
+                        variant={selectedItem.data?._under_observation ? "default" : "outline"}
+                        size="sm"
+                        onClick={async () => {
+                          const newFlag = !selectedItem.data?._under_observation;
+                          const newData = { ...(selectedItem.data || {}), _under_observation: newFlag };
+                          const { error } = await supabase
+                            .from("stock_items")
+                            .update({ data: newData })
+                            .eq("id", selectedItem.id);
+                          if (error) {
+                            toast.error("Erro ao atualizar observação");
+                            return;
+                          }
+                          toast.success(newFlag ? "Marcado em observação" : "Observação removida");
+                          setSelectedItem({ ...selectedItem, data: newData });
+                          setItems((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...i, data: newData } : i)));
+                        }}
+                        className={`h-7 text-xs gap-1.5 ${selectedItem.data?._under_observation ? "bg-sky-500 hover:bg-sky-600 text-white" : ""}`}
+                        title="Item revisado, mas mantido em observação interna"
+                      >
+                        <Eye className="size-3" />
+                        {selectedItem.data?._under_observation ? "Em Observação" : "Marcar Observação"}
+                      </Button>
                     </div>
                   );
                 })()}
