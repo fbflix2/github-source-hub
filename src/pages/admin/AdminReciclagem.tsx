@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -300,9 +300,14 @@ export default function AdminReciclagem() {
                     {item.hasReplacement && (
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">REPOSTO</Badge>
                     )}
-                    {item.identification && (
-                      <Badge variant="outline" className="text-[10px] font-mono">{item.identification}</Badge>
-                    )}
+                     {item.identification && (
+                       <Badge variant="outline" className="text-[10px] font-mono">{item.identification}</Badge>
+                     )}
+                     {item.data?._under_analysis && (
+                       <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] gap-1">
+                         <ClipboardList className="size-3" /> EM ANÁLISE
+                       </Badge>
+                     )}
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
                     <span>Cliente: {item.clientName}</span>
@@ -352,6 +357,11 @@ export default function AdminReciclagem() {
             <DialogTitle className="flex items-center gap-3">
               <Recycle className="size-5 text-amber-500" />
               {selectedItem?.name}
+              {selectedItem?.data?._under_analysis && (
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] gap-1">
+                  <ClipboardList className="size-3" /> EM ANÁLISE
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -455,24 +465,28 @@ export default function AdminReciclagem() {
                         );
                       })}
                       <Button
-                        variant="default"
+                        variant={selectedItem.data?._under_analysis ? "default" : "outline"}
                         size="sm"
-                        onClick={() => {
-                          const safeName = (selectedItem.name || "perfil").replace(/[^\w.-]+/g, "_");
-                          const blob = new Blob([blocoContent], { type: "text/plain;charset=utf-8" });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = `${safeName}.txt`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
+                        onClick={async () => {
+                          const newFlag = !selectedItem.data?._under_analysis;
+                          const newData = { ...(selectedItem.data || {}), _under_analysis: newFlag };
+                          const { error } = await supabase
+                            .from("stock_items")
+                            .update({ data: newData })
+                            .eq("id", selectedItem.id);
+                          if (error) {
+                            toast.error("Erro ao atualizar status");
+                            return;
+                          }
+                          toast.success(newFlag ? "Marcado em análise" : "Análise removida");
+                          setSelectedItem({ ...selectedItem, data: newData });
+                          setItems((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...i, data: newData } : i)));
                         }}
-                        className="h-7 text-xs gap-1.5 ml-auto"
-                        title="Baixar bloco de notas em .txt"
+                        className={`h-7 text-xs gap-1.5 ml-auto ${selectedItem.data?._under_analysis ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                        title="Marcar este perfil como em análise interna"
                       >
-                        <Download className="size-3" /> Baixar Bloco
+                        <ClipboardList className="size-3" />
+                        {selectedItem.data?._under_analysis ? "Em Análise" : "Marcar em Análise"}
                       </Button>
                     </div>
                   );
