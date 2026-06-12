@@ -40,6 +40,7 @@ const formatDate = (d: string) =>
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
+  const [recycledStats, setRecycledStats] = useState<{ count: number; value: number }>({ count: 0, value: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
