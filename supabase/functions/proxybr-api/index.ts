@@ -1911,6 +1911,16 @@ Deno.serve(async (req) => {
     }
 
     if (!response.ok) {
+      // Graceful degradation for read-only catalog endpoints when upstream is down.
+      // ProxyBR catalog is disabled on the storefront, so returning an empty list
+      // avoids blank-screen crashes on /loja and other consumers.
+      if (action === "get-products") {
+        console.warn(`[get-products] upstream ${response.status}, returning empty list`);
+        return new Response(
+          JSON.stringify({ data: [] }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: `ProxyBR API error [${response.status}]`, details: data }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
