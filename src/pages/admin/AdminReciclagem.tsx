@@ -357,7 +357,7 @@ export default function AdminReciclagem() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Total Bloqueados</p>
           <p className="text-2xl font-bold text-foreground">{items.length}</p>
@@ -369,6 +369,20 @@ export default function AdminReciclagem() {
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Sem Produto</p>
           <p className="text-2xl font-bold text-foreground">{items.filter(i => !i.product_id).length}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+          <p className="text-xs text-emerald-400">Reciclados (volta p/ loja)</p>
+          <p className="text-2xl font-bold text-emerald-300">{recycledStats.count}</p>
+          <p className="text-[11px] text-emerald-400/80 mt-0.5">
+            R$ {recycledStats.value.toFixed(2).replace(".", ",")}
+          </p>
+        </div>
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+          <p className="text-xs text-red-400">Não Reciclados (perda)</p>
+          <p className="text-2xl font-bold text-red-300">
+            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+          </p>
+          <p className="text-[11px] text-red-400/80 mt-0.5">Valor preso em estoque bloqueado</p>
         </div>
       </div>
 
