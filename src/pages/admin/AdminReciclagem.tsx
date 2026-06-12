@@ -79,7 +79,7 @@ export default function AdminReciclagem() {
 
     const [productsRes, orderItemsRes, replacementsRes] = await Promise.all([
       productIds.length > 0
-        ? supabase.from("products").select("id, name").in("id", productIds)
+        ? supabase.from("products").select("id, name, price").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
         ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
@@ -91,7 +91,8 @@ export default function AdminReciclagem() {
 
     const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
 
-    const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
+    const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p.name]));
+    const productPriceMap = new Map((productsRes.data || []).map((p: any) => [p.id, Number(p.price) || 0]));
 
     // Get order codes and user ids
     const orderIds = [...new Set((orderItemsRes.data || []).filter(oi => oi.order_id).map(oi => oi.order_id))];
