@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -423,6 +423,40 @@ export default function AdminReciclagem() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Quick copy shortcuts */}
+                {(() => {
+                  const d: any = selectedItem.data || {};
+                  const chips: { label: string; value?: string; icon: any }[] = [
+                    { label: "Senha", value: d.senhaFB || d.senha, icon: KeyRound },
+                    { label: "2FA", value: d.token2fa || d.tokenFb, icon: Shield },
+                    { label: "Email", value: d.emailAcesso || d.email, icon: Mail },
+                    { label: "Senha Email", value: d.senhaEmail, icon: KeyRound },
+                    { label: "ID", value: selectedItem.identification || d.idPerfil, icon: Hash },
+                    { label: "Link", value: selectedItem.identification_link || d.linkPerfil, icon: LinkIcon },
+                  ].filter(c => c.value);
+                  if (!chips.length) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {chips.map((c) => {
+                        const Icon = c.icon;
+                        return (
+                          <Button
+                            key={c.label}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(String(c.value))}
+                            className="h-7 text-xs gap-1.5"
+                            title={`Copiar ${c.label}`}
+                          >
+                            <Icon className="size-3" /> {c.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
                   {blocoContent}
                 </pre>
