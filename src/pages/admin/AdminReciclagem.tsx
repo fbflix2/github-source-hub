@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -434,6 +434,7 @@ export default function AdminReciclagem() {
                     { label: "Senha Email", value: d.senhaEmail, icon: KeyRound },
                     { label: "ID", value: selectedItem.identification || d.idPerfil, icon: Hash },
                     { label: "Link", value: selectedItem.identification_link || d.linkPerfil, icon: LinkIcon },
+                    { label: "Cookies", value: d.cookies || d.cookie || d.cookieFb, icon: Cookie },
                   ].filter(c => c.value);
                   if (!chips.length) return null;
                   return (
