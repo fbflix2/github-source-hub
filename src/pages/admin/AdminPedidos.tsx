@@ -27,6 +27,27 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { extractBmNameFromInput } from "@/lib/bm-link";
+
+function extractBmNamesFromDelivery(data: any): string[] {
+  if (!data || typeof data !== "object") return [];
+  const names: string[] = [];
+  const push = (raw: any) => {
+    if (!raw) return;
+    if (typeof raw === "string") {
+      const n = extractBmNameFromInput(raw);
+      if (n) names.push(n);
+    } else if (typeof raw === "object") {
+      const candidate = raw.rawBmInput || raw.raw_input || raw.identification_link || raw.identificationLink || raw.link || raw.name;
+      const n = extractBmNameFromInput(typeof candidate === "string" ? candidate : "") || (typeof raw.name === "string" ? raw.name : "");
+      if (n) names.push(n);
+    }
+  };
+  if (Array.isArray(data.bmLinks)) data.bmLinks.forEach(push);
+  if (data.rawBmInput) push(data.rawBmInput);
+  // de-dup
+  return Array.from(new Set(names.filter(Boolean)));
+}
 
 interface OrderWithDetails {
   id: string;
@@ -491,6 +512,23 @@ export default function AdminPedidos() {
                         <div>
                           <p className="font-medium text-foreground">{item.name}</p>
                           <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
+                          {(() => {
+                            const bmNames = extractBmNamesFromDelivery(item.delivery_data);
+                            if (bmNames.length === 0) return null;
+                            return (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {bmNames.map((n, i) => (
+                                  <span
+                                    key={`${item.id}-bm-${i}`}
+                                    className="inline-flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-300"
+                                  >
+                                    <Package className="size-2.5" />
+                                    {n}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
                           {subCode && (
                             <p className="text-xs text-primary/80 mt-1 font-mono">
                               Assinatura: {subCode}
