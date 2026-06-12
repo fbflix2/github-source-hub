@@ -422,6 +422,11 @@ export default function AdminReciclagem() {
                   <ClipboardList className="size-3" /> EM ANÁLISE
                 </Badge>
               )}
+              {selectedItem?.data?._under_observation && (
+                <Badge className="bg-sky-500/20 text-sky-400 border-sky-500/30 text-[10px] gap-1">
+                  <Eye className="size-3" /> EM OBSERVAÇÃO
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 
