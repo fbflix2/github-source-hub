@@ -590,9 +590,85 @@ export default function AdminReciclagem() {
                         <Eye className="size-3" />
                         {selectedItem.data?._under_observation ? "Em Observação" : "Marcar Observação"}
                       </Button>
+                      <Button
+                        variant={selectedItem.data?._observation_note ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setNoteDraft(selectedItem.data?._observation_note ?? "");
+                          setNoteOpen((v) => !v);
+                        }}
+                        className={`h-7 text-xs gap-1.5 ${selectedItem.data?._observation_note ? "bg-violet-500 hover:bg-violet-600 text-white" : ""}`}
+                        title="Adicionar nota de observação"
+                      >
+                        <StickyNote className="size-3" />
+                        {selectedItem.data?._observation_note ? "Nota" : "Adicionar Nota"}
+                      </Button>
                     </div>
                   );
                 })()}
+
+                {noteOpen && selectedItem && (
+                  <div className="space-y-2 bg-violet-500/5 border border-violet-500/20 rounded-lg p-3">
+                    <label className="text-xs font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <StickyNote className="size-3" /> Nota de Observação Interna
+                    </label>
+                    <textarea
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="Descreva o motivo da observação (ex: perfil instável, aguardando verificação...)"
+                      className="w-full min-h-[80px] p-2 rounded-md bg-black/30 border border-white/5 text-sm text-zinc-200 placeholder:text-zinc-600 resize-y outline-none focus:border-violet-500/40 transition-colors"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      {selectedItem.data?._observation_note && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-red-400 hover:text-red-300"
+                          disabled={savingNote}
+                          onClick={async () => {
+                            setSavingNote(true);
+                            const newData = { ...(selectedItem.data || {}) };
+                            delete newData._observation_note;
+                            const { error } = await supabase
+                              .from("stock_items")
+                              .update({ data: newData })
+                              .eq("id", selectedItem.id);
+                            setSavingNote(false);
+                            if (error) { toast.error("Erro ao remover nota"); return; }
+                            toast.success("Nota removida");
+                            setNoteDraft("");
+                            setNoteOpen(false);
+                            setSelectedItem({ ...selectedItem, data: newData });
+                            setItems((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...i, data: newData } : i)));
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs gap-1.5 bg-violet-500 hover:bg-violet-600 text-white"
+                        disabled={savingNote}
+                        onClick={async () => {
+                          setSavingNote(true);
+                          const newData = { ...(selectedItem.data || {}), _observation_note: noteDraft.trim() };
+                          const { error } = await supabase
+                            .from("stock_items")
+                            .update({ data: newData })
+                            .eq("id", selectedItem.id);
+                          setSavingNote(false);
+                          if (error) { toast.error("Erro ao salvar nota"); return; }
+                          toast.success("Nota salva");
+                          setNoteOpen(false);
+                          setSelectedItem({ ...selectedItem, data: newData });
+                          setItems((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...i, data: newData } : i)));
+                        }}
+                      >
+                        <Save className="size-3" /> Salvar Nota
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {editMode ? (
                   <div className="space-y-2 bg-muted/30 border border-border rounded-lg p-3 max-h-80 overflow-y-auto">
