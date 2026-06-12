@@ -209,16 +209,17 @@ export default function AdminReciclagem() {
         const fromReplacementDelivery = replacementOrderItem?.id ? parseLinkedBms(orderItemDataMap.get(replacementOrderItem.id)) : [];
         // Also match BMs whose perfilMatriz text contains this profile's name or identification
         const itemData = item.data as any;
+        const snapshotBms = parseLinkedBms(itemData);
         const needles = [item.name, item.identification, itemData?.nomePerfil]
           .filter(Boolean).map((s: any) => String(s).toLowerCase().trim()).filter(s => s.length > 2);
         const fromMatriz = bmsByMatrizText
           .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
           .map(({ bm }) => bm);
-        derivedBms = mergeLinkedBms(fromDelivery, fromReplacementDelivery, fromOrder, fromMatriz);
+        derivedBms = snapshotBms.length ? [] : mergeLinkedBms(fromDelivery, fromReplacementDelivery, fromOrder, fromMatriz);
         const productName = item.product_id ? cleanText(productMap.get(item.product_id)) : "";
         const combinedProductText = [productName, itemData?.nomeProduto, ...(itemData?.tags || [])].join(" ").toLowerCase();
         const expectedBmCount = Number(combinedProductText.match(/(?:com|\+)\s*(\d+)\s*bm/i)?.[1] || 0);
-        if (expectedBmCount > derivedBms.length) {
+        if (!snapshotBms.length && expectedBmCount > derivedBms.length) {
           const missingCount = expectedBmCount - derivedBms.length;
           derivedBms = [
             ...derivedBms,
