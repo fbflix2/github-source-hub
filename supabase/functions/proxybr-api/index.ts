@@ -1921,6 +1921,13 @@ Deno.serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      if (action === "get-me") {
+        console.warn(`[get-me] upstream ${response.status}, returning null balance`);
+        return new Response(
+          JSON.stringify({ current_balance: null, upstream_error: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: `ProxyBR API error [${response.status}]`, details: data }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
