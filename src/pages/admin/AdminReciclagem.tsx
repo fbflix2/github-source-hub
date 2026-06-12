@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie, ClipboardList } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie, ClipboardList, Pencil, Save, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,10 @@ export default function AdminReciclagem() {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
   const [blocoContent, setBlocoContent] = useState("");
+  const [blocoTemplate, setBlocoTemplate] = useState<string>("");
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState<Record<string, string>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -118,6 +122,20 @@ export default function AdminReciclagem() {
 
   const handleViewDetails = async (item: BlockedItem) => {
     setSelectedItem(item);
+    setEditMode(false);
+    setEditData({
+      nomePerfil: item.data?.nomePerfil ?? "",
+      emailAcesso: item.data?.emailAcesso ?? "",
+      emailAlternativo: item.data?.emailAlternativo ?? "",
+      senha: item.data?.senha ?? item.data?.senhaFB ?? "",
+      senhaEmail: item.data?.senhaEmail ?? "",
+      token2fa: item.data?.token2fa ?? "",
+      dataNascimento: item.data?.dataNascimento ?? "",
+      genero: item.data?.genero ?? "",
+      cookies: item.data?.cookies ?? "",
+      idPerfil: item.identification ?? item.data?.idPerfil ?? "",
+      linkPerfil: item.identification_link ?? item.data?.linkPerfil ?? "",
+    });
 
     // Fetch block template and generate content
     const { data: tpl } = await supabase
@@ -127,36 +145,73 @@ export default function AdminReciclagem() {
       .maybeSingle();
 
     if (tpl?.content && item.data) {
-      const d = item.data;
-      const replacements: Record<string, string> = {
-        "{{nomePerfil}}": d.nomePerfil || "—",
-        "{{emailAcesso}}": d.emailAcesso || "—",
-        "{{emailAlternativo}}": d.emailAlternativo || "—",
-        "{{senha}}": d.senha || "—",
-        "{{senhaEmail}}": d.senhaEmail || "—",
-        "{{token2fa}}": d.token2fa || "—",
-        "{{dataNascimento}}": d.dataNascimento || "—",
-        "{{genero}}": d.genero || "—",
-        "{{tempoPlataforma}}": d.tempoPlataforma || "—",
-        "{{statusAtual}}": d.statusAtual || "—",
-        "{{descricao}}": d.descricao || "—",
-        "{{cookies}}": d.cookies || "—",
-        "{{linkDocumento}}": d.linkDocumento || "—",
-        "{{linkPerfil}}": item.identification_link || d.linkPerfil || "—",
-        "{{idPerfil}}": item.identification || d.idPerfil || "—",
-        "{{pedido}}": "—",
-        "{{data}}": "—",
-        "{{nomeProduto}}": "—",
-      };
-      let content = tpl.content;
-      for (const [key, val] of Object.entries(replacements)) {
-        content = content.split(key).join(val);
-      }
-      setBlocoContent(content);
+      setBlocoTemplate(tpl.content);
+      setBlocoContent(renderTemplate(tpl.content, item.data, item));
     } else {
+      setBlocoTemplate("");
       setBlocoContent("Template padrão não encontrado ou item sem dados.");
     }
   };
+
+  function renderTemplate(tpl: string, d: any, item: BlockedItem): string {
+    const replacements: Record<string, string> = {
+      "{{nomePerfil}}": d.nomePerfil || "—",
+      "{{emailAcesso}}": d.emailAcesso || "—",
+      "{{emailAlternativo}}": d.emailAlternativo || "—",
+      "{{senha}}": d.senha || "—",
+      "{{senhaEmail}}": d.senhaEmail || "—",
+      "{{token2fa}}": d.token2fa || "—",
+      "{{dataNascimento}}": d.dataNascimento || "—",
+      "{{genero}}": d.genero || "—",
+      "{{tempoPlataforma}}": d.tempoPlataforma || "—",
+      "{{statusAtual}}": d.statusAtual || "—",
+      "{{descricao}}": d.descricao || "—",
+      "{{cookies}}": d.cookies || "—",
+      "{{linkDocumento}}": d.linkDocumento || "—",
+      "{{linkPerfil}}": item.identification_link || d.linkPerfil || "—",
+      "{{idPerfil}}": item.identification || d.idPerfil || "—",
+      "{{pedido}}": "—",
+      "{{data}}": "—",
+      "{{nomeProduto}}": "—",
+    };
+    let content = tpl;
+    for (const [key, val] of Object.entries(replacements)) {
+      content = content.split(key).join(val);
+    }
+    return content;
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedItem) return;
+    setSavingEdit(true);
+    const newData = { ...(selectedItem.data || {}), ...editData };
+    // Keep legacy field in sync
+    if (editData.senha) (newData as any).senhaFB = editData.senha;
+    const updates: any = { data: newData };
+    if (editData.idPerfil !== (selectedItem.identification ?? "")) {
+      updates.identification = editData.idPerfil || null;
+    }
+    if (editData.linkPerfil !== (selectedItem.identification_link ?? "")) {
+      updates.identification_link = editData.linkPerfil || null;
+    }
+    const { error } = await supabase.from("stock_items").update(updates).eq("id", selectedItem.id);
+    setSavingEdit(false);
+    if (error) {
+      toast.error("Erro ao salvar alterações");
+      return;
+    }
+    const updatedItem: BlockedItem = {
+      ...selectedItem,
+      data: newData,
+      identification: updates.identification ?? selectedItem.identification,
+      identification_link: updates.identification_link ?? selectedItem.identification_link,
+    };
+    setSelectedItem(updatedItem);
+    setItems((prev) => prev.map((i) => (i.id === updatedItem.id ? updatedItem : i)));
+    if (blocoTemplate) setBlocoContent(renderTemplate(blocoTemplate, newData, updatedItem));
+    setEditMode(false);
+    toast.success("Bloco atualizado");
+  }
 
   const handleRecycle = async (item: BlockedItem) => {
     const confirmed = window.confirm(
@@ -409,6 +464,14 @@ export default function AdminReciclagem() {
                     Bloco de Notas
                   </h4>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant={editMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setEditMode((v) => !v)}
+                      className="text-xs h-7"
+                    >
+                      {editMode ? (<><X className="size-3 mr-1" /> Cancelar</>) : (<><Pencil className="size-3 mr-1" /> Editar</>)}
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => copyToClipboard(blocoContent)} className="text-xs h-7">
                       <Copy className="size-3 mr-1" /> Copiar
                     </Button>
@@ -492,9 +555,52 @@ export default function AdminReciclagem() {
                   );
                 })()}
 
-                <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
-                  {blocoContent}
-                </pre>
+                {editMode ? (
+                  <div className="space-y-2 bg-muted/30 border border-border rounded-lg p-3 max-h-80 overflow-y-auto">
+                    {([
+                      ["nomePerfil", "Nome do Perfil"],
+                      ["idPerfil", "ID do Perfil"],
+                      ["linkPerfil", "Link do Perfil"],
+                      ["emailAcesso", "Email"],
+                      ["senha", "Senha FB"],
+                      ["token2fa", "Token 2FA"],
+                      ["senhaEmail", "Senha Email"],
+                      ["emailAlternativo", "Email Alternativo"],
+                      ["dataNascimento", "Data Nascimento"],
+                      ["genero", "Gênero"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-3 gap-2 items-center">
+                        <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+                        <Input
+                          value={editData[key] ?? ""}
+                          onChange={(e) => setEditData((p) => ({ ...p, [key]: e.target.value }))}
+                          className="col-span-2 h-7 text-xs font-mono"
+                        />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground">Cookies</label>
+                      <textarea
+                        value={editData.cookies ?? ""}
+                        onChange={(e) => setEditData((p) => ({ ...p, cookies: e.target.value }))}
+                        className="w-full mt-1 p-2 rounded-md border border-border bg-background text-xs font-mono min-h-[80px]"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button variant="ghost" size="sm" onClick={() => setEditMode(false)} className="h-7 text-xs">
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={savingEdit} className="h-7 text-xs">
+                        <Save className="size-3 mr-1" />
+                        {savingEdit ? "Salvando..." : "Salvar alterações"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs font-mono text-foreground bg-muted/30 border border-border rounded-lg p-4 max-h-60 overflow-y-auto">
+                    {blocoContent}
+                  </pre>
+                )}
               </div>
 
               {/* Actions */}
