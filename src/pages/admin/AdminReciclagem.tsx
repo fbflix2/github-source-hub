@@ -139,7 +139,8 @@ export default function AdminReciclagem() {
         .map(r => [r.stock_item_id, allOrderItems.find((oi: any) => oi.id === r.order_item_id) || null])
     );
 
-    const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p.name]));
+    const productRows = (productsRes.data || []) as any[];
+    const productMap = new Map(productRows.map((p: any) => [p.id, p.name]));
     const productPriceMap = new Map((productsRes.data || []).map((p: any) => [p.id, Number(p.price) || 0]));
 
     // Get order codes and user ids
@@ -214,6 +215,20 @@ export default function AdminReciclagem() {
           .filter(({ matriz }) => needles.some(n => matriz.includes(n)))
           .map(({ bm }) => bm);
         derivedBms = mergeLinkedBms(fromDelivery, fromReplacementDelivery, fromOrder, fromMatriz);
+        const productName = item.product_id ? cleanText(productMap.get(item.product_id)) : "";
+        const combinedProductText = [productName, itemData?.nomeProduto, ...(itemData?.tags || [])].join(" ").toLowerCase();
+        const expectedBmCount = Number(combinedProductText.match(/(?:com|\+)\s*(\d+)\s*bm/i)?.[1] || 0);
+        if (expectedBmCount > derivedBms.length) {
+          const missingCount = expectedBmCount - derivedBms.length;
+          derivedBms = [
+            ...derivedBms,
+            ...Array.from({ length: missingCount }, (_, idx) => ({
+              name: `BM vinculada não registrada #${derivedBms.length + idx + 1}`,
+              link: null,
+              matriz: null,
+            })),
+          ];
+        }
         derivedMatriz = cleanText(itemData?.perfilMatriz || itemData?.perfilBackup)
           || cleanText(orderItemDataMap.get(item.order_item_id || "")?.perfilMatriz)
           || cleanText(orderItemDataMap.get(replacementOrderItem?.id || "")?.perfilMatriz)
