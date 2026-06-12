@@ -31,6 +31,7 @@ interface BlockedItem {
   orderCode?: string;
   blockedAt?: string;
   hasReplacement?: boolean;
+  productPrice?: number;
   // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
   derivedBms?: { name: string; link?: string | null }[];
 }
@@ -40,6 +41,7 @@ const formatDate = (d: string) =>
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
+  const [recycledStats, setRecycledStats] = useState<{ count: number; value: number }>({ count: 0, value: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
@@ -78,7 +80,7 @@ export default function AdminReciclagem() {
 
     const [productsRes, orderItemsRes, replacementsRes] = await Promise.all([
       productIds.length > 0
-        ? supabase.from("products").select("id, name").in("id", productIds)
+        ? supabase.from("products").select("id, name, price").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
         ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
@@ -90,7 +92,8 @@ export default function AdminReciclagem() {
 
     const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
 
-    const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
+    const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p.name]));
+    const productPriceMap = new Map((productsRes.data || []).map((p: any) => [p.id, Number(p.price) || 0]));
 
     // Get order codes and user ids
     const orderIds = [...new Set((orderItemsRes.data || []).filter(oi => oi.order_id).map(oi => oi.order_id))];
@@ -138,6 +141,22 @@ export default function AdminReciclagem() {
 
     setItems(enriched);
     setLoading(false);
+
+    // Recycled KPI: items previously blocked and now returned to store
+    const { data: recycled } = await supabase
+      .from("stock_items")
+      .select("product_id, data")
+      .eq("status", "revisado")
+      .not("data->>_recycled_at", "is", null);
+
+    const recycledList = (recycled || []) as any[];
+    const recycledProductIds = [...new Set(recycledList.filter(r => r.product_id).map(r => r.product_id))];
+    const { data: recycledProducts } = recycledProductIds.length > 0
+      ? await supabase.from("products").select("id, price").in("id", recycledProductIds)
+      : { data: [] };
+    const priceMap = new Map((recycledProducts || []).map((p: any) => [p.id, Number(p.price) || 0]));
+    const recycledValue = recycledList.reduce((sum, r) => sum + (priceMap.get(r.product_id) || 0), 0);
+    setRecycledStats({ count: recycledList.length, value: recycledValue });
   }
 
   const handleViewDetails = async (item: BlockedItem) => {
@@ -252,6 +271,7 @@ export default function AdminReciclagem() {
     delete (cleanedData as any)._blocked_at;
     delete (cleanedData as any)._blocked_by;
     delete (cleanedData as any)._blocked_reason;
+    (cleanedData as any)._recycled_at = new Date().toISOString();
 
     // Reset item: unlink from order, set status back to 'revisado' so it can be resold
     const { error } = await supabase
@@ -337,7 +357,7 @@ export default function AdminReciclagem() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Total Bloqueados</p>
           <p className="text-2xl font-bold text-foreground">{items.length}</p>
@@ -349,6 +369,20 @@ export default function AdminReciclagem() {
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Sem Produto</p>
           <p className="text-2xl font-bold text-foreground">{items.filter(i => !i.product_id).length}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+          <p className="text-xs text-emerald-400">Reciclados (volta p/ loja)</p>
+          <p className="text-2xl font-bold text-emerald-300">{recycledStats.count}</p>
+          <p className="text-[11px] text-emerald-400/80 mt-0.5">
+            R$ {recycledStats.value.toFixed(2).replace(".", ",")}
+          </p>
+        </div>
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+          <p className="text-xs text-red-400">Não Reciclados (perda)</p>
+          <p className="text-2xl font-bold text-red-300">
+            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+          </p>
+          <p className="text-[11px] text-red-400/80 mt-0.5">Valor preso em estoque bloqueado</p>
         </div>
       </div>
 
