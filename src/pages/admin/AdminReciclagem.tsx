@@ -170,7 +170,7 @@ export default function AdminReciclagem() {
     ]);
 
     const bmStockMap = new Map<string, any>();
-    const bmsByMatrizText: { matriz: string; bm: { name: string; link?: string | null } }[] = [];
+    const bmsByMatrizText: { matriz: string; bm: LinkedBm }[] = [];
     for (const bm of ((allBmStocksRes.data || []) as any[])) {
       bmStockMap.set(bm.id, bm);
       const matriz = bm.data?.perfilMatriz?.trim?.();
