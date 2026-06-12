@@ -100,6 +100,46 @@
      const result = await response.json()
 
      if (response.ok) {
+        // Dispara WhatsApp de confirmação ao cliente (não bloqueia resposta)
+        try {
+          if (itemId) {
+            const { data: oi } = await supabase
+              .from('order_items')
+              .select('product_name, order_id, orders:order_id(user_id, code)')
+              .eq('id', itemId)
+              .maybeSingle();
+
+            const userId = (oi as any)?.orders?.user_id;
+            const orderCode = (oi as any)?.orders?.code;
+            const productName = (oi as any)?.product_name || 'seu perfil';
+
+            if (userId) {
+              const { data: prof } = await supabase
+                .from('profiles')
+                .select('phone, full_name')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+              const phone = (prof?.phone || '').replace(/\D/g, '');
+              if (phone) {
+                const firstName = (prof?.full_name || '').split(' ')[0] || 'cliente';
+                const message =
+                  `Olá, ${firstName}! 👋\n\n` +
+                  `Sua compra *${productName}*${orderCode ? ` (pedido ${orderCode})` : ''} ` +
+                  `acaba de ser entregue diretamente no seu *Lauth* (${email}). ✅\n\n` +
+                  `Basta acessar sua conta no Lauth para começar a usar.\n\n` +
+                  `Obrigado pela compra! 💚\n_FBFlix_`;
+
+                await supabase.functions.invoke('wapi-send', {
+                  body: { action: 'send-text', phone, message },
+                });
+              }
+            }
+          }
+        } catch (notifyErr) {
+          console.error('Falha ao enviar WhatsApp de confirmação Lauth:', notifyErr);
+        }
+
        return new Response(JSON.stringify({ success: true, data: result }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 200
