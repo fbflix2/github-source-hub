@@ -491,6 +491,37 @@ export default function AdminReciclagem() {
                 )}
               </div>
 
+              {/* BMs atribuídas e Perfil Matriz */}
+              {(() => {
+                const bms = Array.isArray(selectedItem.data?.bmNames) ? selectedItem.data!.bmNames.filter((b: string) => b?.trim()) : [];
+                const matriz = selectedItem.data?.perfilMatriz?.trim?.();
+                if (!bms.length && !matriz) return null;
+                return (
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Shield className="size-3.5" /> BMs vinculadas a este perfil
+                    </h4>
+                    {bms.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {bms.map((bm: string, i: number) => (
+                          <Badge key={i} className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[11px] gap-1 cursor-pointer" onClick={() => copyToClipboard(bm)} title="Copiar nome da BM">
+                            {bm}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {matriz && (
+                      <div className="flex items-center gap-2 text-xs text-foreground">
+                        <span className="text-muted-foreground">Perfil matriz das BMs:</span>
+                        <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[11px] cursor-pointer" onClick={() => copyToClipboard(matriz)} title="Copiar matriz">
+                          {matriz}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Block Template Content */}
               <div>
                 <div className="flex items-center justify-between mb-2">
