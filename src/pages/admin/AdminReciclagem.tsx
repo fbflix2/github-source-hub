@@ -108,8 +108,22 @@ export default function AdminReciclagem() {
       : { data: [] };
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p.full_name]));
 
+    // Fetch all BMs sold in the same orders (fallback to show which BMs are inside each recycled profile)
+    const allOrderIds = [...new Set((orders || []).map(o => o.id))];
+    const { data: bmTracks } = allOrderIds.length > 0
+      ? await supabase.from("bm_tracking").select("order_id, product_name, bm_link").in("order_id", allOrderIds)
+      : { data: [] };
+    const bmsByOrder = new Map<string, { name: string; link?: string | null }[]>();
+    for (const bt of (bmTracks || []) as any[]) {
+      if (!bt.order_id) continue;
+      const arr = bmsByOrder.get(bt.order_id) || [];
+      arr.push({ name: bt.product_name || "BM", link: bt.bm_link });
+      bmsByOrder.set(bt.order_id, arr);
+    }
+
     const enriched: BlockedItem[] = stockItems.map(item => {
       const order = item.order_item_id ? orderItemToOrder.get(item.order_item_id) : null;
+      const derivedBms = order ? (bmsByOrder.get(order.id) || []) : [];
       return {
         ...item,
         data: item.data as Record<string, any> | null,
@@ -118,6 +132,7 @@ export default function AdminReciclagem() {
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
         hasReplacement: replacedStockIds.has(item.id),
+        derivedBms,
       };
     });
 
