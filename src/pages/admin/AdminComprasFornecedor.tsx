@@ -295,6 +295,9 @@ export default function AdminComprasFornecedor() {
     return batches
       .filter((b) => {
         if (batchSupplierFilter !== "all" && b.supplier_id !== batchSupplierFilter) return false;
+        if (batchIdFilter !== "all" && b.id !== batchIdFilter) return false;
+        if (batchReviewedFilter === "reviewed" && !b.reviewed) return false;
+        if (batchReviewedFilter === "not_reviewed" && b.reviewed) return false;
         if (batchSearch.trim()) {
           const q = batchSearch.toLowerCase();
           const supplierName = (supplierMap[b.supplier_id]?.name || "").toLowerCase();
@@ -335,7 +338,7 @@ export default function AdminComprasFornecedor() {
         };
       })
       .sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || ""));
-  }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, supplierMap]);
+  }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, batchIdFilter, batchReviewedFilter, supplierMap]);
 
   const worstBatch = useMemo(() => {
     return [...batchStats].filter((b) => b.total > 0).sort((a, z) => z.taxaProb - a.taxaProb)[0];
