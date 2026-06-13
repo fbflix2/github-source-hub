@@ -252,7 +252,12 @@ export default function AdminComprasFornecedor() {
     return accounts.filter(a => {
       if (filterSupplier !== "all" && a.supplier_id !== filterSupplier) return false;
       if (filterBatch !== "all" && a.batch_id !== filterBatch) return false;
-      if (filterStatus !== "all" && a.status !== filterStatus) return false;
+      if (filterStatus === "all") {
+        // Por padrão, contas aprovadas ficam ocultas da fila (já estão finalizadas).
+        if (a.status === "aprovado") return false;
+      } else if (a.status !== filterStatus) {
+        return false;
+      }
       if (filterLoginResult !== "all" && a.login_result !== filterLoginResult) return false;
       if (filterSold === "sold" && !a.sold) return false;
       if (filterSold === "not_sold" && a.sold) return false;
@@ -265,6 +270,15 @@ export default function AdminComprasFornecedor() {
         ) return false;
       }
       return true;
+    }).sort((a, b) => {
+      // Fila ordenada e estável: por lote e depois pela data de criação (mais antigas primeiro).
+      const batchA = a.batch_id || "";
+      const batchB = b.batch_id || "";
+      if (batchA !== batchB) return batchA.localeCompare(batchB);
+      const ca = a.created_at || "";
+      const cb = b.created_at || "";
+      if (ca !== cb) return ca.localeCompare(cb);
+      return a.id.localeCompare(b.id);
     });
   }, [accounts, filterSupplier, filterBatch, filterStatus, filterLoginResult, filterSold, search]);
 
