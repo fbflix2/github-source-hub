@@ -168,6 +168,8 @@ export default function AdminComprasFornecedor() {
   const [batchDateTo, setBatchDateTo] = useState("");
   const [batchSupplierFilter, setBatchSupplierFilter] = useState<string>("all");
   const [batchSearch, setBatchSearch] = useState("");
+  const [batchIdFilter, setBatchIdFilter] = useState<string>("all");
+  const [batchReviewedFilter, setBatchReviewedFilter] = useState<string>("all"); // all | reviewed | not_reviewed
 
   // Convert a timestamp to YYYY-MM-DD in Brazil timezone (America/Sao_Paulo, UTC-3)
   const toBrazilDate = (ts: string | null | undefined): string => {
