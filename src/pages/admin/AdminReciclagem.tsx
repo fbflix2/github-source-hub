@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie, ClipboardList, Pencil, Save, X, StickyNote } from "lucide-react";
+import { Recycle, Eye, RotateCcw, Trash2, FileText, Copy, Search, Download, KeyRound, Mail, Hash, Shield, Link as LinkIcon, Cookie, ClipboardList, Pencil, Save, X, StickyNote, ShoppingCart, Loader2, User as UserIcon, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +88,7 @@ export default function AdminReciclagem() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [sellItem, setSellItem] = useState<BlockedItem | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -582,6 +583,16 @@ export default function AdminReciclagem() {
                   title="Reciclar (devolver ao estoque)"
                 >
                   <RotateCcw className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSellItem(item)}
+                  className="text-emerald-500 hover:text-emerald-400"
+                  title="Vender este perfil para um cliente"
+                  disabled={!item.product_id}
+                >
+                  <ShoppingCart className="size-4" />
                 </Button>
                 <Button
                   variant="ghost"
