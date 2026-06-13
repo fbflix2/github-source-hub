@@ -1100,12 +1100,9 @@ export default function AdminComprasFornecedor() {
                     {a.country && <Badge className="bg-white/10 text-white/70 border border-white/20 px-1.5 py-0">{a.country}</Badge>}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-3 gap-1">
                     <Button size="sm" variant="outline" className="h-7 px-1 text-[10px]" onClick={() => quickUpdate(a.id, { logged_in: true })} title="Loguei">
                       <Clock className="size-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 px-1 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => quickUpdate(a.id, { status: "aprovado", login_result: "ok", logged_in: true })} title="Aprovado">
-                      <CheckCircle2 className="size-3" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 px-1 text-[10px] border-amber-500/30 text-amber-400 hover:bg-amber-500/10" onClick={() => quickUpdate(a.id, { status: "reprovado", login_result: "checkpoint", logged_in: true })} title="Checkpoint">
                       <AlertTriangle className="size-3" />
@@ -1114,6 +1111,21 @@ export default function AdminComprasFornecedor() {
                       <XCircle className="size-3" />
                     </Button>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-[11px] font-semibold border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/15 mt-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (a.status === "aprovado") return;
+                      if (!confirm(`Marcar conta "${a.login || a.id}" como APROVADA? Ela sairá da fila.`)) return;
+                      quickUpdate(a.id, { status: "aprovado", login_result: "ok", logged_in: true });
+                    }}
+                    title="Marcar como aprovada (requer confirmação)"
+                  >
+                    <CheckCircle2 className="size-3 mr-1" /> Aprovar conta
+                  </Button>
 
                   <div className="flex justify-between items-center pt-1">
                     <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setAccountModal({ open: true, account: a })}>
