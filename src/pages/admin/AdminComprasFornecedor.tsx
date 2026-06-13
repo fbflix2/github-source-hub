@@ -426,6 +426,17 @@ export default function AdminComprasFornecedor() {
     loadAll();
   };
 
+  const toggleBatchReviewed = async (b: Batch) => {
+    const next = !b.reviewed;
+    const { error } = await supabase
+      .from("supplier_batches")
+      .update({ reviewed: next, reviewed_at: next ? new Date().toISOString() : null })
+      .eq("id", b.id);
+    if (error) { toast.error(error.message); return; }
+    setBatches((prev) => prev.map((x) => x.id === b.id ? { ...x, reviewed: next, reviewed_at: next ? new Date().toISOString() : null } : x));
+    toast.success(next ? "Lote marcado como revisado" : "Lote marcado como não revisado");
+  };
+
   // ===== Import .txt (auto-detect formats) =====
   // Supports:
   //   ID|SENHA_FB|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT  (5 parts)
