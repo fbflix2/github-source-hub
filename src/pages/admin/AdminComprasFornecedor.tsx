@@ -43,6 +43,8 @@ type Batch = {
   notes: string | null;
   purchased_at: string;
   created_at: string;
+  reviewed?: boolean;
+  reviewed_at?: string | null;
 };
 
 type Account = {

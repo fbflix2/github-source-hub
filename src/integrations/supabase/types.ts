@@ -3672,6 +3672,9 @@ export type Database = {
           name: string
           notes: string | null
           purchased_at: string
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           supplier_id: string
           type: string | null
           updated_at: string
@@ -3683,6 +3686,9 @@ export type Database = {
           name: string
           notes?: string | null
           purchased_at?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           supplier_id: string
           type?: string | null
           updated_at?: string
@@ -3694,6 +3700,9 @@ export type Database = {
           name?: string
           notes?: string | null
           purchased_at?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           supplier_id?: string
           type?: string | null
           updated_at?: string
