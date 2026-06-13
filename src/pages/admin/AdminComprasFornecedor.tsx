@@ -252,7 +252,12 @@ export default function AdminComprasFornecedor() {
     return accounts.filter(a => {
       if (filterSupplier !== "all" && a.supplier_id !== filterSupplier) return false;
       if (filterBatch !== "all" && a.batch_id !== filterBatch) return false;
-      if (filterStatus !== "all" && a.status !== filterStatus) return false;
+      if (filterStatus === "all") {
+        // Por padrão, contas aprovadas ficam ocultas da fila (já estão finalizadas).
+        if (a.status === "aprovado") return false;
+      } else if (a.status !== filterStatus) {
+        return false;
+      }
       if (filterLoginResult !== "all" && a.login_result !== filterLoginResult) return false;
       if (filterSold === "sold" && !a.sold) return false;
       if (filterSold === "not_sold" && a.sold) return false;
@@ -265,6 +270,15 @@ export default function AdminComprasFornecedor() {
         ) return false;
       }
       return true;
+    }).sort((a, b) => {
+      // Fila ordenada e estável: por lote e depois pela data de criação (mais antigas primeiro).
+      const batchA = a.batch_id || "";
+      const batchB = b.batch_id || "";
+      if (batchA !== batchB) return batchA.localeCompare(batchB);
+      const ca = a.created_at || "";
+      const cb = b.created_at || "";
+      if (ca !== cb) return ca.localeCompare(cb);
+      return a.id.localeCompare(b.id);
     });
   }, [accounts, filterSupplier, filterBatch, filterStatus, filterLoginResult, filterSold, search]);
 
@@ -362,9 +376,18 @@ export default function AdminComprasFornecedor() {
 
   // ===== Quick action =====
   const quickUpdate = async (id: string, patch: Partial<Account>) => {
+    // Atualização otimista — UI reage imediatamente (card aprovado some sem delay).
+    const previous = accounts.find((a) => a.id === id);
+    setAccounts((prev) => prev.map((a) => (a.id === id ? ({ ...a, ...patch } as Account) : a)));
     const { error } = await supabase.from("supplier_accounts").update(patch).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...patch } as Account : a));
+    if (error) {
+      // Reverte caso falhe
+      if (previous) {
+        setAccounts((prev) => prev.map((a) => (a.id === id ? previous : a)));
+      }
+      toast.error(error.message);
+      return;
+    }
     toast.success("Atualizado");
   };
 
@@ -1078,7 +1101,7 @@ export default function AdminComprasFornecedor() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-1">
-                    <Button size="sm" variant="outline" className="h-7 px-1 text-[10px]" onClick={() => quickUpdate(a.id, { logged_in: true, status: "em_teste" })} title="Loguei">
+                    <Button size="sm" variant="outline" className="h-7 px-1 text-[10px]" onClick={() => quickUpdate(a.id, { logged_in: true })} title="Loguei">
                       <Clock className="size-3" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 px-1 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => quickUpdate(a.id, { status: "aprovado", login_result: "ok", logged_in: true })} title="Aprovado">
