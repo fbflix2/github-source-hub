@@ -967,6 +967,283 @@ export default function AdminReciclagem() {
           )}
         </DialogContent>
       </Dialog>
+
+      <SellModal
+        item={sellItem}
+        onClose={() => setSellItem(null)}
+        onSold={() => {
+          setSellItem(null);
+          fetchItems();
+        }}
+      />
     </div>
+  );
+}
+
+function SellModal({ item, onClose, onSold }: { item: BlockedItem | null; onClose: () => void; onSold: () => void }) {
+  const [clientSearch, setClientSearch] = useState("");
+  const [clients, setClients] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [price, setPrice] = useState<number>(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (item) {
+      setPrice(Number(item.productPrice || 0));
+      setSelectedClient(null);
+      setClientSearch("");
+      setClients([]);
+      setShareLink(null);
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (clientSearch.trim().length < 2) { setClients([]); return; }
+    const t = setTimeout(async () => {
+      const q = clientSearch.trim();
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone, cpf")
+        .or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,cpf.ilike.%${q}%`)
+        .limit(8);
+      setClients(data || []);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [clientSearch]);
+
+  if (!item) return null;
+
+  const handleSell = async () => {
+    if (!selectedClient) { toast.error("Selecione um cliente"); return; }
+    if (!price || price < 1) { toast.error("Defina um preço válido (mín. R$1)"); return; }
+    if (!item.product_id) { toast.error("Item sem produto vinculado"); return; }
+
+    setSubmitting(true);
+    try {
+      // 1. Generate new order code (always new, even if same client owned profile before)
+      const code = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+      // 2. Create order (pending_payment)
+      const { data: order, error: orderErr } = await supabase
+        .from("orders")
+        .insert({
+          code,
+          user_id: selectedClient.user_id,
+          subtotal: price,
+          total: price,
+          discount: 0,
+          status: "pending_payment",
+          payment_method: "pix",
+        })
+        .select("id, code")
+        .single();
+      if (orderErr) throw orderErr;
+
+      // 3. Create order item
+      const { data: orderItem, error: itemErr } = await supabase
+        .from("order_items")
+        .insert({
+          order_id: order.id,
+          name: item.productName || item.name,
+          price,
+          quantity: 1,
+          product_id: item.product_id,
+          description: `Venda de perfil reciclado: ${item.name}`,
+        })
+        .select("id")
+        .single();
+      if (itemErr) throw itemErr;
+
+      // 4. Recycle this specific stock_item AND force it to be the first picked by FIFO
+      const cleanedData = { ...(item.data || {}) };
+      delete (cleanedData as any)._credentials_accessed_at;
+      delete (cleanedData as any)._blocked_at;
+      delete (cleanedData as any)._blocked_by;
+      delete (cleanedData as any)._blocked_reason;
+      (cleanedData as any)._recycled_at = new Date().toISOString();
+      (cleanedData as any)._resold_to = selectedClient.user_id;
+      (cleanedData as any)._resold_order_code = order.code;
+      // Set created_at to epoch so fulfill_order_item (ORDER BY created_at ASC) picks THIS item first
+      const { error: stockErr } = await supabase
+        .from("stock_items")
+        .update({
+          status: "revisado",
+          order_item_id: null,
+          data: cleanedData,
+          created_at: "1970-01-01T00:00:00Z",
+        })
+        .eq("id", item.id);
+      if (stockErr) throw stockErr;
+
+      // 5. Bump product stock so fulfill_order_item passes the stock check
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock")
+        .eq("id", item.product_id)
+        .maybeSingle();
+      if (product) {
+        await supabase
+          .from("products")
+          .update({ stock: (product.stock || 0) + 1, available: true })
+          .eq("id", item.product_id);
+      }
+
+      // 6. Generate PIX payment linked to this order
+      const { data: pixData, error: pixErr } = await supabase.functions.invoke("create-pix-payment", {
+        body: { amount: price, order_id: order.id },
+      });
+      if (pixErr) throw new Error(pixErr.message || "Erro ao gerar PIX");
+      if (pixData?.error) throw new Error(pixData.error);
+
+      // 7. Create invoice link for sharing
+      const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const { data: authData } = await supabase.auth.getUser();
+      const { data: inv } = await supabase
+        .from("invoice_links" as any)
+        .insert({
+          code: invoiceCode,
+          client_user_id: selectedClient.user_id,
+          client_name: selectedClient.full_name || null,
+          product_name: item.productName || item.name,
+          product_id: item.product_id,
+          amount: price,
+          reference_date: new Date().toISOString().split("T")[0],
+          description: `Recuperação perfil: ${item.name} (Pedido ${order.code})`,
+          status: "pending",
+          payment_id: pixData.payment_id,
+          mp_payment_id: pixData.openpix_charge_id || null,
+          qr_code: pixData.qr_code || null,
+          qr_code_base64: pixData.qr_code_base64 || null,
+          expires_at: expiresAt,
+          created_by: authData.user?.id,
+        })
+        .select("code")
+        .single();
+
+      const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
+        ? "https://fbflix.com.br"
+        : window.location.origin;
+      const link = inv ? `${origin}/pagar/${(inv as any).code}` : (pixData.payment_link || null);
+      setShareLink(link);
+      if (link) {
+        try { await navigator.clipboard.writeText(link); } catch {}
+        toast.success(`Pedido ${order.code} criado! Link copiado.`);
+      } else {
+        toast.success(`Pedido ${order.code} criado!`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro: " + (err.message || "falha ao vender"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingCart className="size-5 text-emerald-500" />
+            Vender perfil recuperado
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+            <p className="text-muted-foreground">Perfil</p>
+            <p className="font-semibold text-foreground">{item.name}</p>
+            <p className="text-muted-foreground mt-1">Produto: <span className="text-foreground">{item.productName}</span></p>
+          </div>
+
+          {!shareLink && (
+            <>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Cliente</label>
+                {selectedClient ? (
+                  <div className="flex items-center justify-between p-2 rounded-md border border-emerald-500/30 bg-emerald-500/5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <UserIcon className="size-4 text-emerald-400" />
+                      <div>
+                        <p className="font-medium text-foreground">{selectedClient.full_name || "Sem nome"}</p>
+                        <p className="text-[11px] text-muted-foreground">{selectedClient.phone || selectedClient.cpf || ""}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedClient(null)}>
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome, telefone ou CPF..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="pl-10"
+                      autoFocus
+                    />
+                    {clients.length > 0 && (
+                      <div className="absolute z-10 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
+                        {clients.map((c) => (
+                          <button
+                            key={c.user_id}
+                            onClick={() => { setSelectedClient(c); setClients([]); setClientSearch(""); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent border-b border-border/40 last:border-0"
+                          >
+                            <p className="font-medium text-foreground">{c.full_name || "Sem nome"}</p>
+                            <p className="text-[11px] text-muted-foreground">{c.phone || c.cpf || ""}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Preço (R$)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={price || ""}
+                  onChange={(e) => setPrice(Number(e.target.value))}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Sugerido pela categoria do produto: R$ {Number(item.productPrice || 0).toFixed(2).replace(".", ",")}</p>
+              </div>
+
+              <Button
+                onClick={handleSell}
+                disabled={submitting || !selectedClient || !price}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {submitting ? (<><Loader2 className="size-4 mr-2 animate-spin" /> Gerando...</>) : (<><ShoppingCart className="size-4 mr-2" /> Gerar pedido e link de pagamento</>)}
+              </Button>
+            </>
+          )}
+
+          {shareLink && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                <p className="text-xs text-emerald-300 font-semibold">Pedido criado! Compartilhe o link com o cliente:</p>
+                <div className="flex items-center gap-1">
+                  <Input value={shareLink} readOnly className="text-xs font-mono" />
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Link copiado!"); }}>
+                    <Copy className="size-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => window.open(shareLink, "_blank")}>
+                    <ExternalLink className="size-3" />
+                  </Button>
+                </div>
+              </div>
+              <Button onClick={onSold} className="w-full">Fechar e atualizar lista</Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
