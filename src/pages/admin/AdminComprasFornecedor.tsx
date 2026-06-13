@@ -43,6 +43,8 @@ type Batch = {
   notes: string | null;
   purchased_at: string;
   created_at: string;
+  reviewed?: boolean;
+  reviewed_at?: string | null;
 };
 
 type Account = {
@@ -166,6 +168,8 @@ export default function AdminComprasFornecedor() {
   const [batchDateTo, setBatchDateTo] = useState("");
   const [batchSupplierFilter, setBatchSupplierFilter] = useState<string>("all");
   const [batchSearch, setBatchSearch] = useState("");
+  const [batchIdFilter, setBatchIdFilter] = useState<string>("all");
+  const [batchReviewedFilter, setBatchReviewedFilter] = useState<string>("all"); // all | reviewed | not_reviewed
 
   // Convert a timestamp to YYYY-MM-DD in Brazil timezone (America/Sao_Paulo, UTC-3)
   const toBrazilDate = (ts: string | null | undefined): string => {
@@ -291,6 +295,9 @@ export default function AdminComprasFornecedor() {
     return batches
       .filter((b) => {
         if (batchSupplierFilter !== "all" && b.supplier_id !== batchSupplierFilter) return false;
+        if (batchIdFilter !== "all" && b.id !== batchIdFilter) return false;
+        if (batchReviewedFilter === "reviewed" && !b.reviewed) return false;
+        if (batchReviewedFilter === "not_reviewed" && b.reviewed) return false;
         if (batchSearch.trim()) {
           const q = batchSearch.toLowerCase();
           const supplierName = (supplierMap[b.supplier_id]?.name || "").toLowerCase();
@@ -331,7 +338,7 @@ export default function AdminComprasFornecedor() {
         };
       })
       .sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || ""));
-  }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, supplierMap]);
+  }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, batchIdFilter, batchReviewedFilter, supplierMap]);
 
   const worstBatch = useMemo(() => {
     return [...batchStats].filter((b) => b.total > 0).sort((a, z) => z.taxaProb - a.taxaProb)[0];
@@ -417,6 +424,17 @@ export default function AdminComprasFornecedor() {
     if (error) { toast.error(error.message); return; }
     toast.success("Excluído");
     loadAll();
+  };
+
+  const toggleBatchReviewed = async (b: Batch) => {
+    const next = !b.reviewed;
+    const { error } = await supabase
+      .from("supplier_batches")
+      .update({ reviewed: next, reviewed_at: next ? new Date().toISOString() : null })
+      .eq("id", b.id);
+    if (error) { toast.error(error.message); return; }
+    setBatches((prev) => prev.map((x) => x.id === b.id ? { ...x, reviewed: next, reviewed_at: next ? new Date().toISOString() : null } : x));
+    toast.success(next ? "Lote marcado como revisado" : "Lote marcado como não revisado");
   };
 
   // ===== Import .txt (auto-detect formats) =====
@@ -729,6 +747,31 @@ export default function AdminComprasFornecedor() {
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={batchIdFilter} onValueChange={setBatchIdFilter}>
+                  <SelectTrigger className="w-[220px] h-9 bg-white/5 border-white/10">
+                    <SelectValue placeholder="Lote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os lotes</SelectItem>
+                    {batches
+                      .filter(b => batchSupplierFilter === "all" || b.supplier_id === batchSupplierFilter)
+                      .map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.reviewed ? "✓ " : ""}{b.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Select value={batchReviewedFilter} onValueChange={setBatchReviewedFilter}>
+                  <SelectTrigger className="w-[170px] h-9 bg-white/5 border-white/10">
+                    <SelectValue placeholder="Revisão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos (revisão)</SelectItem>
+                    <SelectItem value="not_reviewed">Não revisados</SelectItem>
+                    <SelectItem value="reviewed">Revisados</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button onClick={loadAll} size="sm" variant="outline">
                   Atualizar
                 </Button>
@@ -757,10 +800,11 @@ export default function AdminComprasFornecedor() {
                   onChange={(e) => setBatchDateTo(e.target.value)}
                   className="h-8 w-[150px] bg-white/5 border-white/10 [color-scheme:dark]"
                 />
-                {(batchDateFrom || batchDateTo || batchSupplierFilter !== "all" || batchSearch) && (
+                {(batchDateFrom || batchDateTo || batchSupplierFilter !== "all" || batchSearch || batchIdFilter !== "all" || batchReviewedFilter !== "all") && (
                   <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => {
                     setBatchDateFrom(""); setBatchDateTo("");
                     setBatchSupplierFilter("all"); setBatchSearch("");
+                    setBatchIdFilter("all"); setBatchReviewedFilter("all");
                   }}>
                     Limpar tudo
                   </Button>
@@ -795,6 +839,9 @@ export default function AdminComprasFornecedor() {
                               {b.name}
                               {(b as any).type === "replacement" && (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[9px] px-1.5 py-0">Reposição</Badge>
+                              )}
+                              {b.reviewed && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5 py-0">Revisado</Badge>
                               )}
                             </div>
                             <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
@@ -878,6 +925,15 @@ export default function AdminComprasFornecedor() {
                           setTab("accounts");
                         }}>
                           <Eye className="size-3.5 mr-1" /> Ver contas do lote
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={b.reviewed ? "secondary" : "default"}
+                          className={`w-full ${b.reviewed ? "" : "bg-emerald-600 hover:bg-emerald-500 text-white"}`}
+                          onClick={() => toggleBatchReviewed(b)}
+                        >
+                          <ShieldCheck className="size-3.5 mr-1" />
+                          {b.reviewed ? "Desmarcar revisão" : "Marcar como revisado"}
                         </Button>
                       </CardContent>
                     </Card>
