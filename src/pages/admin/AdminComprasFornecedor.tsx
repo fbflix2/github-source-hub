@@ -747,6 +747,31 @@ export default function AdminComprasFornecedor() {
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={batchIdFilter} onValueChange={setBatchIdFilter}>
+                  <SelectTrigger className="w-[220px] h-9 bg-white/5 border-white/10">
+                    <SelectValue placeholder="Lote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os lotes</SelectItem>
+                    {batches
+                      .filter(b => batchSupplierFilter === "all" || b.supplier_id === batchSupplierFilter)
+                      .map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.reviewed ? "✓ " : ""}{b.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Select value={batchReviewedFilter} onValueChange={setBatchReviewedFilter}>
+                  <SelectTrigger className="w-[170px] h-9 bg-white/5 border-white/10">
+                    <SelectValue placeholder="Revisão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos (revisão)</SelectItem>
+                    <SelectItem value="not_reviewed">Não revisados</SelectItem>
+                    <SelectItem value="reviewed">Revisados</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button onClick={loadAll} size="sm" variant="outline">
                   Atualizar
                 </Button>
@@ -775,10 +800,11 @@ export default function AdminComprasFornecedor() {
                   onChange={(e) => setBatchDateTo(e.target.value)}
                   className="h-8 w-[150px] bg-white/5 border-white/10 [color-scheme:dark]"
                 />
-                {(batchDateFrom || batchDateTo || batchSupplierFilter !== "all" || batchSearch) && (
+                {(batchDateFrom || batchDateTo || batchSupplierFilter !== "all" || batchSearch || batchIdFilter !== "all" || batchReviewedFilter !== "all") && (
                   <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => {
                     setBatchDateFrom(""); setBatchDateTo("");
                     setBatchSupplierFilter("all"); setBatchSearch("");
+                    setBatchIdFilter("all"); setBatchReviewedFilter("all");
                   }}>
                     Limpar tudo
                   </Button>
