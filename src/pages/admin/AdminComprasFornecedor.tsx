@@ -840,6 +840,9 @@ export default function AdminComprasFornecedor() {
                               {(b as any).type === "replacement" && (
                                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[9px] px-1.5 py-0">Reposição</Badge>
                               )}
+                              {b.reviewed && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5 py-0">Revisado</Badge>
+                              )}
                             </div>
                             <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
                             <div className="text-[10px] text-white/40 mt-0.5">
@@ -922,6 +925,15 @@ export default function AdminComprasFornecedor() {
                           setTab("accounts");
                         }}>
                           <Eye className="size-3.5 mr-1" /> Ver contas do lote
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={b.reviewed ? "secondary" : "default"}
+                          className={`w-full ${b.reviewed ? "" : "bg-emerald-600 hover:bg-emerald-500 text-white"}`}
+                          onClick={() => toggleBatchReviewed(b)}
+                        >
+                          <ShieldCheck className="size-3.5 mr-1" />
+                          {b.reviewed ? "Desmarcar revisão" : "Marcar como revisado"}
                         </Button>
                       </CardContent>
                     </Card>
