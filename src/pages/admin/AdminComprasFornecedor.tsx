@@ -376,9 +376,18 @@ export default function AdminComprasFornecedor() {
 
   // ===== Quick action =====
   const quickUpdate = async (id: string, patch: Partial<Account>) => {
+    // Atualização otimista — UI reage imediatamente (card aprovado some sem delay).
+    const previous = accounts.find((a) => a.id === id);
+    setAccounts((prev) => prev.map((a) => (a.id === id ? ({ ...a, ...patch } as Account) : a)));
     const { error } = await supabase.from("supplier_accounts").update(patch).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...patch } as Account : a));
+    if (error) {
+      // Reverte caso falhe
+      if (previous) {
+        setAccounts((prev) => prev.map((a) => (a.id === id ? previous : a)));
+      }
+      toast.error(error.message);
+      return;
+    }
     toast.success("Atualizado");
   };
 
@@ -1092,7 +1101,7 @@ export default function AdminComprasFornecedor() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-1">
-                    <Button size="sm" variant="outline" className="h-7 px-1 text-[10px]" onClick={() => quickUpdate(a.id, { logged_in: true, status: "em_teste" })} title="Loguei">
+                    <Button size="sm" variant="outline" className="h-7 px-1 text-[10px]" onClick={() => quickUpdate(a.id, { logged_in: true })} title="Loguei">
                       <Clock className="size-3" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 px-1 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => quickUpdate(a.id, { status: "aprovado", login_result: "ok", logged_in: true })} title="Aprovado">
