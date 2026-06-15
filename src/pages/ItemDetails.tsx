@@ -534,6 +534,12 @@ export default function ItemDetails() {
    const isBM = (product?.icon_type === "bm" || orderItem?.name?.toLowerCase().includes("bm")) && !isInstagram;
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
+  // E-mail simples: só login e senha, sem campos de perfil/2FA/esteira
+  const _nameForEmail = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
+  const _tagsForEmail = (product?.tags || []).map((t: string) => String(t).toLowerCase());
+  const isEmailOnly =
+    !isBM && !isInstagram && !isPage &&
+    (/(^|\s)e[-\s]?mail(\s|$)/.test(_nameForEmail) || _tagsForEmail.some((t) => t.includes("e-mail") || t.includes("email")));
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
@@ -714,7 +720,7 @@ export default function ItemDetails() {
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
           {/* Esteira de Aquecimento Disclaimer */}
-          {stockData.idPerfil && !isBlocked && (
+          {stockData.idPerfil && !isBlocked && !isEmailOnly && (
             <div className="glass-panel rounded-xl p-4 border-amber-500/20 bg-amber-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
@@ -1190,7 +1196,7 @@ export default function ItemDetails() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Senha FB</label>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">{isEmailOnly ? "Senha" : "Senha FB"}</label>
                           <div className="flex items-center gap-1">
                             <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
                             <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
@@ -1204,7 +1210,7 @@ export default function ItemDetails() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         {!isInstagram && (
+                         {!isInstagram && !isEmailOnly && (
                            <>
                              <div>
                                <label className="text-[10px] text-text-secondary mb-0.5 block">Email Alternativo</label>
@@ -1228,7 +1234,7 @@ export default function ItemDetails() {
                          )}
                       </div>
 
-                      <div>
+                      {!isEmailOnly && (<div>
                         <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
                         <div className="flex items-center gap-1">
                           <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
@@ -1241,7 +1247,7 @@ export default function ItemDetails() {
                             <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
                           </button>
                         </div>
-                      </div>
+                      </div>)}
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex gap-2">
                       {stockData.cookies && (
