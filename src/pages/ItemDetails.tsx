@@ -534,6 +534,12 @@ export default function ItemDetails() {
    const isBM = (product?.icon_type === "bm" || orderItem?.name?.toLowerCase().includes("bm")) && !isInstagram;
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
+  // E-mail simples: só login e senha, sem campos de perfil/2FA/esteira
+  const _nameForEmail = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
+  const _tagsForEmail = (product?.tags || []).map((t: string) => String(t).toLowerCase());
+  const isEmailOnly =
+    !isBM && !isInstagram && !isPage &&
+    (/(^|\s)e[-\s]?mail(\s|$)/.test(_nameForEmail) || _tagsForEmail.some((t) => t.includes("e-mail") || t.includes("email")));
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
