@@ -1234,7 +1234,7 @@ export default function ItemDetails() {
                          )}
                       </div>
 
-                      <div>
+                      {!isEmailOnly && (<div>
                         <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
                         <div className="flex items-center gap-1">
                           <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
@@ -1247,7 +1247,7 @@ export default function ItemDetails() {
                             <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
                           </button>
                         </div>
-                      </div>
+                      </div>)}
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex gap-2">
                       {stockData.cookies && (
