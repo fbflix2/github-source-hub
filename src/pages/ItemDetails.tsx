@@ -516,9 +516,16 @@ export default function ItemDetails() {
     ? `${orderItem?.name || product?.name || "Item"} • ${stockData.nomePerfil}`
     : (orderItem?.name || product?.name || "Item");
   const bmMatrixProfile = stockData.perfilMatriz || stockData.perfilBackup || "";
-  const email = stockData.emailAcesso || "—";
+  // Fallback: produtos de e-mail antigos guardam credenciais em "email:senha" em dadosAdicionais/idPerfil
+  const _rawCombo = (stockData as any).dadosAdicionais || (stockData as any).idPerfil || "";
+  const _comboMatch = typeof _rawCombo === "string" && _rawCombo.includes(":") && _rawCombo.includes("@")
+    ? _rawCombo.split(":")
+    : null;
+  const _fallbackEmail = _comboMatch ? _comboMatch[0].trim() : "";
+  const _fallbackSenha = _comboMatch ? _comboMatch.slice(1).join(":").trim() : "";
+  const email = stockData.emailAcesso || _fallbackEmail || "—";
   const emailAlternativo = stockData.emailAlternativo || (stockData as any).alternateEmail || (stockData as any).alternative_email || "—";
-  const senha = stockData.senha || "—";
+  const senha = stockData.senha || _fallbackSenha || "—";
   const senhaEmail = stockData.senhaEmail || "—";
   const token2fa = stockData.token2fa || "—";
   const descricao = stockData.descricao || product?.description || "";
