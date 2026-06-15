@@ -1210,7 +1210,7 @@ export default function ItemDetails() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         {!isInstagram && (
+                         {!isInstagram && !isEmailOnly && (
                            <>
                              <div>
                                <label className="text-[10px] text-text-secondary mb-0.5 block">Email Alternativo</label>
