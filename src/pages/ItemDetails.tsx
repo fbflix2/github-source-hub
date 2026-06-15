@@ -1196,7 +1196,7 @@ export default function ItemDetails() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Senha FB</label>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">{isEmailOnly ? "Senha" : "Senha FB"}</label>
                           <div className="flex items-center gap-1">
                             <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
                             <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
