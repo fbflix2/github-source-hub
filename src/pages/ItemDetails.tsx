@@ -720,7 +720,7 @@ export default function ItemDetails() {
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
           {/* Esteira de Aquecimento Disclaimer */}
-          {stockData.idPerfil && !isBlocked && (
+          {stockData.idPerfil && !isBlocked && !isEmailOnly && (
             <div className="glass-panel rounded-xl p-4 border-amber-500/20 bg-amber-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
