@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias" | "inicio" | "custom">("hoje");
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
-  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null }[]>([]);
+  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null; source?: string }[]>([]);
   const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string; name?: string; slug?: string }[]>([]);
   const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
@@ -251,9 +251,9 @@ export default function AdminDashboard() {
         }));
 
        const allRevenue = [
-         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null })),
-         ...paidInvoices,
-         ...walletPurchases.map(w => ({ ...w, product_name: null })),
+         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null, source: "order" })),
+         ...paidInvoices.map(p => ({ ...p, source: "invoice" })),
+         ...walletPurchases.map(w => ({ ...w, product_name: null, source: "wallet_proxy" })),
        ];
 
       // Calculate today's revenue
