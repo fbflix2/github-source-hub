@@ -571,6 +571,29 @@ export default function AdminDashboard() {
       revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) 
     });
 
+    // Proxy: order items in proxy category + wallet proxy renewals (period-filtered)
+    const proxyCatId = categoryList.find(c => c.slug === "proxy" || c.name.toLowerCase().includes("proxy"))?.id;
+    const proxyItems = proxyCatId ? filtered.filter(i => i.catId === proxyCatId) : [];
+    const proxyWallet = filteredRevenue.filter(o => o.source === "wallet_proxy");
+    const proxySales = proxyItems.reduce((s, i) => s + i.qty, 0) + proxyWallet.length;
+    const proxyRevenue = proxyItems.reduce((s, i) => s + i.revenue, 0) + proxyWallet.reduce((s, o) => s + o.total, 0);
+    // Remove auto-generated proxy entry from result to avoid duplication
+    const proxyIdx = result.findIndex(r => r.name.toLowerCase().includes("proxy"));
+    if (proxyIdx >= 0) result.splice(proxyIdx, 1);
+    result.push({ name: "Proxy", sales: proxySales, revenue: proxyRevenue });
+
+    // Cobranças Avulsas: paid invoices that aren't Safe BM or Contingência
+    const avulsaInvoices = filteredRevenue.filter(o =>
+      o.source === "invoice" &&
+      !isSafeBmName(o.product_name) &&
+      !isContingenciaServiceName(o.product_name)
+    );
+    result.push({
+      name: "Cobranças Avulsas",
+      sales: avulsaInvoices.length,
+      revenue: avulsaInvoices.reduce((s, o) => s + o.total, 0),
+    });
+
     return result;
   }, [allCategoryItems, categoryList, allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
