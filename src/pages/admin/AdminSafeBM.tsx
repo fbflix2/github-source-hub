@@ -439,7 +439,10 @@ export default function AdminSafeBM() {
 
       const vault = vaults.find(v => v.id === renewal.vault_id);
       const currentExpiry = vault?.next_billing_at ? new Date(vault.next_billing_at) : new Date(vault?.protection_start || Date.now());
-      const baseDate = isBefore(currentExpiry, new Date()) ? new Date() : currentExpiry;
+      // Base = vencimento anterior (se ainda futuro) OU data do pagamento da renovação
+      // Nunca usar a data de verificação do admin, pois o cliente já pagou antes.
+      const renewalPaidAt = renewal.paid_at ? new Date(renewal.paid_at) : new Date(renewal.created_at);
+      const baseDate = isBefore(currentExpiry, renewalPaidAt) ? renewalPaidAt : currentExpiry;
       const newExpiry = addDays(baseDate, 30);
 
       const { error: vaultError } = await supabase
