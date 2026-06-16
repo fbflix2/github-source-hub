@@ -258,6 +258,36 @@ export default function ClientContingencia() {
 
         {/* ===== VISÃO GERAL ===== */}
         <TabsContent value="visao-geral" className="space-y-4">
+          {/* Overdue billing alert */}
+          {(() => {
+            const overdueDays = getOverdueDays(ctClient.next_billing);
+            if (overdueDays <= 0) return null;
+            return (
+              <Card className="border border-red-500/40 bg-red-500/10">
+                <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-5">
+                  <AlertTriangle className="h-10 w-10 text-red-400 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-base text-red-300">
+                      Sua assinatura está atrasada há {overdueDays} dia{overdueDays > 1 ? "s" : ""}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Renove agora para evitar a suspensão da sua estrutura e manter seus ativos funcionando.
+                    </p>
+                  </div>
+                  <Button
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                    onClick={() => {
+                      const trigger = document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]');
+                      trigger?.click();
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" /> Renovar agora
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Status hero */}
           <Card className={`border ${hasBlocks ? "border-amber-500/40 bg-amber-500/5" : "border-emerald-500/40 bg-emerald-500/5"}`}>
             <CardContent className="flex items-center gap-4 py-6">
