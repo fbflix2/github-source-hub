@@ -78,7 +78,8 @@ const mergeLinkedBms = (...groups: LinkedBm[][]): LinkedBm[] => {
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
-  const [recycledStats, setRecycledStats] = useState<{ count: number; value: number }>({ count: 0, value: 0 });
+  const [recycledRaw, setRecycledRaw] = useState<{ price: number; recycledAt: string | null }[]>([]);
+  const [period, setPeriod] = useState<"all" | "week" | "month" | "year">("all");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
@@ -276,8 +277,10 @@ export default function AdminReciclagem() {
       ? await supabase.from("products").select("id, price").in("id", recycledProductIds)
       : { data: [] };
     const priceMap = new Map((recycledProducts || []).map((p: any) => [p.id, Number(p.price) || 0]));
-    const recycledValue = recycledList.reduce((sum, r) => sum + (priceMap.get(r.product_id) || 0), 0);
-    setRecycledStats({ count: recycledList.length, value: recycledValue });
+    setRecycledRaw(recycledList.map((r) => ({
+      price: priceMap.get(r.product_id) || 0,
+      recycledAt: r.data?._recycled_at ?? null,
+    })));
   }
 
   const handleViewDetails = async (item: BlockedItem) => {
