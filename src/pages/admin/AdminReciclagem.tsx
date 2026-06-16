@@ -78,7 +78,8 @@ const mergeLinkedBms = (...groups: LinkedBm[][]): LinkedBm[] => {
 
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
-  const [recycledStats, setRecycledStats] = useState<{ count: number; value: number }>({ count: 0, value: 0 });
+  const [recycledRaw, setRecycledRaw] = useState<{ price: number; recycledAt: string | null }[]>([]);
+  const [period, setPeriod] = useState<"all" | "week" | "month" | "year">("all");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
@@ -276,8 +277,10 @@ export default function AdminReciclagem() {
       ? await supabase.from("products").select("id, price").in("id", recycledProductIds)
       : { data: [] };
     const priceMap = new Map((recycledProducts || []).map((p: any) => [p.id, Number(p.price) || 0]));
-    const recycledValue = recycledList.reduce((sum, r) => sum + (priceMap.get(r.product_id) || 0), 0);
-    setRecycledStats({ count: recycledList.length, value: recycledValue });
+    setRecycledRaw(recycledList.map((r) => ({
+      price: priceMap.get(r.product_id) || 0,
+      recycledAt: r.data?._recycled_at ?? null,
+    })));
   }
 
   const handleViewDetails = async (item: BlockedItem) => {
@@ -445,7 +448,28 @@ export default function AdminReciclagem() {
     toast.success("Copiado!");
   };
 
-  const filtered = items.filter(i =>
+  const periodStart = (() => {
+    const now = new Date();
+    if (period === "week") { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+    if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
+    if (period === "year") return new Date(now.getFullYear(), 0, 1);
+    return null;
+  })();
+
+  const inPeriod = (dateStr?: string | null) => {
+    if (!periodStart) return true;
+    if (!dateStr) return false;
+    return new Date(dateStr) >= periodStart;
+  };
+
+  const periodItems = items.filter(i => inPeriod(i.blockedAt));
+  const periodRecycled = recycledRaw.filter(r => inPeriod(r.recycledAt));
+  const recycledStats = {
+    count: periodRecycled.length,
+    value: periodRecycled.reduce((s, r) => s + r.price, 0),
+  };
+
+  const filtered = periodItems.filter(i =>
     i.name.toLowerCase().includes(search.toLowerCase()) ||
     i.clientName?.toLowerCase().includes(search.toLowerCase()) ||
     i.orderCode?.toLowerCase().includes(search.toLowerCase()) ||
@@ -477,25 +501,48 @@ export default function AdminReciclagem() {
         />
       </div>
 
+      {/* Period filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-muted-foreground">Período:</span>
+        {([
+          { k: "all", l: "Tudo" },
+          { k: "week", l: "Semana" },
+          { k: "month", l: "Mês" },
+          { k: "year", l: "Ano" },
+        ] as const).map(({ k, l }) => (
+          <button
+            key={k}
+            onClick={() => setPeriod(k)}
+            className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              period === k
+                ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                : "bg-card border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Total Bloqueados</p>
-          <p className="text-2xl font-bold text-foreground">{items.length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+            R$ {periodItems.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
           </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Com Produto Vinculado</p>
-          <p className="text-2xl font-bold text-foreground">{items.filter(i => i.product_id).length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.filter(i => i.product_id).length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            R$ {items.filter(i => i.product_id).reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+            R$ {periodItems.filter(i => i.product_id).reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
           </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Sem Produto</p>
-          <p className="text-2xl font-bold text-foreground">{items.filter(i => !i.product_id).length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.filter(i => !i.product_id).length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             Sem valor estimado
           </p>
@@ -509,9 +556,9 @@ export default function AdminReciclagem() {
         </div>
         <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
           <p className="text-xs text-red-400">Não Reciclados (perda)</p>
-          <p className="text-2xl font-bold text-red-300">{items.length}</p>
+          <p className="text-2xl font-bold text-red-300">{periodItems.length}</p>
           <p className="text-[11px] text-red-400/80 mt-0.5">
-            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")} preso em estoque
+            R$ {periodItems.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")} preso em estoque
           </p>
         </div>
       </div>
