@@ -796,7 +796,7 @@ export default function AdminSafeBM() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map(v => {
-                        const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at);
+                        const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at, v.link_health);
                         return (
                           <TableRow key={v.id} className="border-border hover:bg-muted/5">
                             <TableCell>
