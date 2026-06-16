@@ -2982,10 +2982,12 @@ export type Database = {
           id: string
           new_bm_link: string | null
           order_id: string | null
+          paid_at: string | null
           status: string
           updated_at: string
           user_id: string
           vault_id: string | null
+          verified_at: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -2994,10 +2996,12 @@ export type Database = {
           id?: string
           new_bm_link?: string | null
           order_id?: string | null
+          paid_at?: string | null
           status?: string
           updated_at?: string
           user_id: string
           vault_id?: string | null
+          verified_at?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -3006,10 +3010,12 @@ export type Database = {
           id?: string
           new_bm_link?: string | null
           order_id?: string | null
+          paid_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string
           vault_id?: string | null
+          verified_at?: string | null
         }
         Relationships: [
           {
