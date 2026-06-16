@@ -632,6 +632,19 @@ export default function AdminNovaVenda() {
 
       const currentBalance = profile?.balance || 0;
 
+      // If payment is from wallet balance, deduct it from profile
+      if (!isCourtesy && paymentMethod === "saldo") {
+        const newBalance = Number(currentBalance) - Number(subtotal);
+        const { error: balErr } = await supabase
+          .from("profiles")
+          .update({ balance: newBalance })
+          .eq("user_id", selectedClient.user_id);
+        if (balErr) {
+          console.error("Erro ao debitar saldo:", balErr);
+          toast.warning("Venda registrada, mas falha ao debitar saldo. Verifique manualmente.");
+        }
+      }
+
       await supabase.from("wallet_transactions").insert({
         user_id: selectedClient.user_id,
         type: isCourtesy ? "info" : "debit",
@@ -640,7 +653,9 @@ export default function AdminNovaVenda() {
           ? `🎁 Cortesia — ${code} (valor: R$ ${subtotal.toFixed(2)})`
           : `Compra via ${paymentMethods.find(m => m.value === paymentMethod)?.label || paymentMethod} — ${code}`,
         reference_id: order.id,
-        balance_after: currentBalance,
+        balance_after: !isCourtesy && paymentMethod === "saldo"
+          ? Number(currentBalance) - Number(subtotal)
+          : currentBalance,
       });
 
       toast.success(isCourtesy
