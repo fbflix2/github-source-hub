@@ -268,7 +268,6 @@ export default function AdminReciclagem() {
     const { data: recycled } = await supabase
       .from("stock_items")
       .select("product_id, data")
-      .eq("status", "revisado")
       .not("data->>_recycled_at", "is", null);
 
     const recycledList = (recycled || []) as any[];
