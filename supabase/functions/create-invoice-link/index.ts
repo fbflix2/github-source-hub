@@ -6,6 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const sanitizeOpenPixComment = (value: string) => {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 .,_\-\/]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 140);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,6 +72,7 @@ Deno.serve(async (req) => {
     // Create invoice link record
     const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const openPixComment = sanitizeOpenPixComment(`Cobranca - ${product_name} - ${invoiceCode}`);
 
     // Create payment record for this invoice
     const paymentCode = `PIX-INV-${Date.now()}`;
@@ -93,10 +104,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(Number(amount) * 100), // Em centavos
-        comment: `Cobranca - ${product_name} - ${invoiceCode}`
-          // OpenPix rejeita emojis no comentário
-          .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}\u{FE0F}\u{200D}]/gu, '')
-          .slice(0, 140),
+        comment: openPixComment,
       }),
     });
 
