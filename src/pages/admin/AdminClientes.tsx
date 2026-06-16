@@ -97,7 +97,7 @@ export default function AdminClientes() {
     // Also count Safe BM vaults and Contingência Total clients as "assinantes"
     const [{ data: safeBmActive }, { data: ctActive }] = await Promise.all([
       supabase.from("safe_bm_vaults").select("user_id").eq("status", "active"),
-      supabase.from("ct_clients").select("user_id").eq("status", "active"),
+      supabase.from("ct_clients").select("user_id").eq("status", "ativo"),
     ]);
     (safeBmActive || []).forEach((r: any) => r.user_id && activeSubUserIds.add(r.user_id));
     (ctActive || []).forEach((r: any) => r.user_id && activeSubUserIds.add(r.user_id));
