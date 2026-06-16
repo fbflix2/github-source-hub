@@ -100,9 +100,6 @@ function getBackupLinkTimeLeft(setAt: string | null, linkHealth?: string | null)
   const now = Date.now();
   const remaining = expires - now;
   if (remaining <= 0) {
-    // If the link was verified healthy, the FB invite token is still working —
-    // don't show "Expirado" just because 15 days passed.
-    if (linkHealth === "healthy") return { expired: false, text: "Ativo", percent: 100 };
     return { expired: true, text: "Expirado", percent: 0 };
   }
   const totalMs = 15 * 24 * 60 * 60 * 1000;
