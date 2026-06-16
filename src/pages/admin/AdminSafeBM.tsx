@@ -126,6 +126,8 @@ export default function AdminSafeBM() {
   const [activeTab, setActiveTab] = useState<TabType>("monitoramento");
   const [pendingSearch, setPendingSearch] = useState("");
   const [renewals, setRenewals] = useState<any[]>([]);
+  const [renewalLinkInputs, setRenewalLinkInputs] = useState<Record<string, string>>({});
+  const [settingRenewalId, setSettingRenewalId] = useState<string | null>(null);
 
 
   const [formClientEmail, setFormClientEmail] = useState("");
@@ -423,9 +425,15 @@ export default function AdminSafeBM() {
 
   const verifyRenewal = async (renewal: any) => {
     try {
+      const newLink = (renewalLinkInputs[renewal.id] || renewal.new_bm_link || "").trim();
+      if (!newLink) {
+        toast.error("Informe o novo link de acesso antes de setar.");
+        return;
+      }
+      setSettingRenewalId(renewal.id);
       const { error: renewalError } = await supabase
         .from("safe_bm_renewals")
-        .update({ status: 'verified' })
+        .update({ status: 'verified', new_bm_link: newLink, verified_at: new Date().toISOString() })
         .eq("id", renewal.id);
       if (renewalError) throw renewalError;
 
@@ -439,16 +447,22 @@ export default function AdminSafeBM() {
         .update({ 
           next_billing_at: newExpiry.toISOString(),
           last_billing_at: new Date().toISOString(),
-          status: 'active'
+          status: 'active',
+          billing_status: 'paid',
+          bm_link: newLink,
+          backup_link: newLink,
+          backup_link_set_at: new Date().toISOString(),
         })
         .eq("id", renewal.vault_id);
       if (vaultError) throw vaultError;
 
-      toast.success("Renovação verificada e prazo estendido!");
+      toast.success("Novo acesso setado! Cofre renovado e protegido.");
       fetchRenewals();
       fetchVaults();
     } catch (err: any) {
       toast.error("Erro ao verificar renovação: " + err.message);
+    } finally {
+      setSettingRenewalId(null);
     }
   };
 
