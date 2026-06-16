@@ -501,10 +501,10 @@ export default function AdminReciclagem() {
         </div>
         <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
           <p className="text-xs text-red-400">Não Reciclados (perda)</p>
-          <p className="text-2xl font-bold text-red-300">
-            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+          <p className="text-2xl font-bold text-red-300">{items.length}</p>
+          <p className="text-[11px] text-red-400/80 mt-0.5">
+            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")} preso em estoque
           </p>
-          <p className="text-[11px] text-red-400/80 mt-0.5">Valor preso em estoque bloqueado</p>
         </div>
       </div>
 
