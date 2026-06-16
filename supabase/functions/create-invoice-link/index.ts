@@ -93,7 +93,10 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(Number(amount) * 100), // Em centavos
-        comment: `Cobrança - ${product_name} - ${invoiceCode}`,
+        comment: `Cobranca - ${product_name} - ${invoiceCode}`
+          // OpenPix rejeita emojis no comentário
+          .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}\u{FE0F}\u{200D}]/gu, '')
+          .slice(0, 140),
       }),
     });
 
