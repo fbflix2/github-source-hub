@@ -483,14 +483,23 @@ export default function AdminReciclagem() {
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Total Bloqueados</p>
           <p className="text-2xl font-bold text-foreground">{items.length}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+          </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Com Produto Vinculado</p>
           <p className="text-2xl font-bold text-foreground">{items.filter(i => i.product_id).length}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            R$ {items.filter(i => i.product_id).reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+          </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Sem Produto</p>
           <p className="text-2xl font-bold text-foreground">{items.filter(i => !i.product_id).length}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Sem valor estimado
+          </p>
         </div>
         <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
           <p className="text-xs text-emerald-400">Reciclados (volta p/ loja)</p>
