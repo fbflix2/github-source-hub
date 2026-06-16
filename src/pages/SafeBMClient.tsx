@@ -32,6 +32,7 @@ interface SafeBmVault {
    last_billing_at?: string;
   backup_link: string | null;
   link_health: string | null;
+  billing_status?: string | null;
   bm_tracking?: {
     bm_link: string;
   } | null;
