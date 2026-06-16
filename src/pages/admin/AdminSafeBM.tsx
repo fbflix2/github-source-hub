@@ -126,6 +126,8 @@ export default function AdminSafeBM() {
   const [activeTab, setActiveTab] = useState<TabType>("monitoramento");
   const [pendingSearch, setPendingSearch] = useState("");
   const [renewals, setRenewals] = useState<any[]>([]);
+  const [renewalLinkInputs, setRenewalLinkInputs] = useState<Record<string, string>>({});
+  const [settingRenewalId, setSettingRenewalId] = useState<string | null>(null);
 
 
   const [formClientEmail, setFormClientEmail] = useState("");
@@ -423,9 +425,15 @@ export default function AdminSafeBM() {
 
   const verifyRenewal = async (renewal: any) => {
     try {
+      const newLink = (renewalLinkInputs[renewal.id] || renewal.new_bm_link || "").trim();
+      if (!newLink) {
+        toast.error("Informe o novo link de acesso antes de setar.");
+        return;
+      }
+      setSettingRenewalId(renewal.id);
       const { error: renewalError } = await supabase
         .from("safe_bm_renewals")
-        .update({ status: 'verified' })
+        .update({ status: 'verified', new_bm_link: newLink, verified_at: new Date().toISOString() })
         .eq("id", renewal.id);
       if (renewalError) throw renewalError;
 
@@ -439,16 +447,22 @@ export default function AdminSafeBM() {
         .update({ 
           next_billing_at: newExpiry.toISOString(),
           last_billing_at: new Date().toISOString(),
-          status: 'active'
+          status: 'active',
+          billing_status: 'paid',
+          bm_link: newLink,
+          backup_link: newLink,
+          backup_link_set_at: new Date().toISOString(),
         })
         .eq("id", renewal.vault_id);
       if (vaultError) throw vaultError;
 
-      toast.success("Renovação verificada e prazo estendido!");
+      toast.success("Novo acesso setado! Cofre renovado e protegido.");
       fetchRenewals();
       fetchVaults();
     } catch (err: any) {
       toast.error("Erro ao verificar renovação: " + err.message);
+    } finally {
+      setSettingRenewalId(null);
     }
   };
 
@@ -1069,6 +1083,8 @@ export default function AdminSafeBM() {
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">BM / Cofre</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data Pedido</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data Pagto</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Novo Link de Acesso</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
                     </TableRow>
@@ -1088,6 +1104,24 @@ export default function AdminSafeBM() {
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
                         </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {r.paid_at ? format(new Date(r.paid_at), "dd/MM/yyyy HH:mm") : <span className="text-muted-foreground/40">—</span>}
+                        </TableCell>
+                        <TableCell>
+                          {r.status === 'verified' ? (
+                            <a href={r.new_bm_link} target="_blank" rel="noreferrer" className="text-xs text-emerald-400 underline truncate max-w-[200px] inline-block">
+                              {r.new_bm_link || '—'}
+                            </a>
+                          ) : (
+                            <Input
+                              placeholder="https://business.facebook.com/..."
+                              className="h-8 text-xs w-[240px]"
+                              value={renewalLinkInputs[r.id] ?? r.new_bm_link ?? ""}
+                              onChange={(e) => setRenewalLinkInputs(prev => ({ ...prev, [r.id]: e.target.value }))}
+                              disabled={r.status === 'pending'}
+                            />
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge className={`text-[9px] px-2 py-0.5 ${
                             r.status === 'verified' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
@@ -1101,15 +1135,19 @@ export default function AdminSafeBM() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {r.status !== 'verified' && (
+                          {r.status === 'paid' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
                               className="gap-1.5 h-8 text-xs border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400"
                               onClick={() => verifyRenewal(r)}
+                              disabled={settingRenewalId === r.id}
                             >
-                              <Check className="size-3" /> Verificar e Ativar
+                              <Check className="size-3" /> {settingRenewalId === r.id ? "Setando..." : "Setar Novo Acesso"}
                             </Button>
+                          )}
+                          {r.status === 'pending' && (
+                            <span className="text-[10px] text-muted-foreground">Aguardando pagamento</span>
                           )}
                         </TableCell>
                       </TableRow>

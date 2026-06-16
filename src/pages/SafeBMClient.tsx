@@ -32,6 +32,7 @@ interface SafeBmVault {
    last_billing_at?: string;
   backup_link: string | null;
   link_health: string | null;
+  billing_status?: string | null;
   bm_tracking?: {
     bm_link: string;
   } | null;
@@ -276,6 +277,7 @@ export default function SafeBMClient() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
           {filtered.map(v => {
              const isActive = v.status === "active";
+             const isRenewing = v.billing_status === "renewing";
              // Use next_billing_at if available
              const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
              const daysRemaining = differenceInDays(expiryDate, new Date());
@@ -342,7 +344,11 @@ export default function SafeBMClient() {
                              <MaterialIcon name="report_problem" className="!text-[12px]" />
                            </button>
                          )}
-                         {isExpiringSoon ? (
+                         {isRenewing ? (
+                           <div className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                             Renovando
+                           </div>
+                         ) : isExpiringSoon ? (
                            <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
                              Crítico
                            </div>
