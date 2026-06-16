@@ -537,7 +537,23 @@ export default function AdminContingencia() {
                         </Select>
                       </td>
                       <td className="p-3 text-white/60">{format(new Date(client.start_date), "dd/MM/yyyy")}</td>
-                      <td className="p-3 text-white/60">{client.next_billing ? format(new Date(client.next_billing), "dd/MM/yyyy") : "—"}</td>
+                      <td className="p-3 text-white/60">
+                        {client.next_billing ? format(new Date(client.next_billing), "dd/MM/yyyy") : "—"}
+                        {(() => {
+                          if (!client.next_billing) return null;
+                          const due = new Date(client.next_billing).getTime();
+                          const today = new Date(); today.setHours(0,0,0,0);
+                          const days = Math.floor((today.getTime() - due) / 86400000);
+                          if (days <= 0) return null;
+                          return (
+                            <div className="mt-1">
+                              <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px]">
+                                Atrasado há {days} dia{days > 1 ? "s" : ""}
+                              </Badge>
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="p-3 text-right text-emerald-400 font-medium">R$ {client.monthly_value.toFixed(2)}</td>
                       <td className="p-3 text-center text-white/60">{client.items_count}</td>
                       <td className="p-3 text-center">
