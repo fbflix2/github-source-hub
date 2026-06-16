@@ -501,25 +501,48 @@ export default function AdminReciclagem() {
         />
       </div>
 
+      {/* Period filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-muted-foreground">Período:</span>
+        {([
+          { k: "all", l: "Tudo" },
+          { k: "week", l: "Semana" },
+          { k: "month", l: "Mês" },
+          { k: "year", l: "Ano" },
+        ] as const).map(({ k, l }) => (
+          <button
+            key={k}
+            onClick={() => setPeriod(k)}
+            className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              period === k
+                ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                : "bg-card border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Total Bloqueados</p>
-          <p className="text-2xl font-bold text-foreground">{items.length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+            R$ {periodItems.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
           </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Com Produto Vinculado</p>
-          <p className="text-2xl font-bold text-foreground">{items.filter(i => i.product_id).length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.filter(i => i.product_id).length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            R$ {items.filter(i => i.product_id).reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
+            R$ {periodItems.filter(i => i.product_id).reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")}
           </p>
         </div>
         <div className="p-4 rounded-xl bg-card border border-border">
           <p className="text-xs text-muted-foreground">Sem Produto</p>
-          <p className="text-2xl font-bold text-foreground">{items.filter(i => !i.product_id).length}</p>
+          <p className="text-2xl font-bold text-foreground">{periodItems.filter(i => !i.product_id).length}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             Sem valor estimado
           </p>
@@ -533,9 +556,9 @@ export default function AdminReciclagem() {
         </div>
         <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
           <p className="text-xs text-red-400">Não Reciclados (perda)</p>
-          <p className="text-2xl font-bold text-red-300">{items.length}</p>
+          <p className="text-2xl font-bold text-red-300">{periodItems.length}</p>
           <p className="text-[11px] text-red-400/80 mt-0.5">
-            R$ {items.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")} preso em estoque
+            R$ {periodItems.reduce((s, i) => s + (i.productPrice || 0), 0).toFixed(2).replace(".", ",")} preso em estoque
           </p>
         </div>
       </div>
