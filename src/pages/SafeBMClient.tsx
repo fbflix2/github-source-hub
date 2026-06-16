@@ -385,7 +385,15 @@ export default function SafeBMClient() {
                     </div>
                   </div>
 
-                  {isExpiringSoon ? (
+                  {isRenewing ? (
+                    <button
+                      disabled
+                      className="w-full py-2 bg-blue-500/15 text-blue-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed animate-pulse"
+                    >
+                      <MaterialIcon name="autorenew" className="!text-sm" />
+                      Renovando seu cofre
+                    </button>
+                  ) : isExpiringSoon ? (
                     <button 
                       onClick={() => { setSelectedRenewalVaultId(v.id); setShowRenewalModal(true); }}
                       className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2"
