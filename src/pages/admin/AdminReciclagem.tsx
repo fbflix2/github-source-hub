@@ -32,6 +32,8 @@ interface BlockedItem {
   blockedAt?: string;
   hasReplacement?: boolean;
   productPrice?: number;
+  replacementReason?: string | null;
+  replacementNotes?: string | null;
   // BMs do mesmo pedido (fallback quando data.bmNames não foi preenchido)
   derivedBms?: { name: string; link?: string | null; matriz?: string | null }[];
   derivedMatriz?: string | null;
@@ -122,12 +124,18 @@ export default function AdminReciclagem() {
         ? supabase.from("order_items").select("id, order_id, delivery_data").in("id", orderItemIds)
         : Promise.resolve({ data: [] }),
       stockItemIds.length > 0
-        ? supabase.from("replacements").select("stock_item_id, order_item_id, order_id").in("stock_item_id", stockItemIds)
+        ? supabase.from("replacements").select("stock_item_id, order_item_id, order_id, reason, notes, created_at").in("stock_item_id", stockItemIds).order("created_at", { ascending: false })
         : Promise.resolve({ data: [] }),
     ]);
 
     const replacementRows = (replacementsRes.data || []) as any[];
     const replacedStockIds = new Set(replacementRows.map(r => r.stock_item_id));
+    const replacementInfoByStock = new Map<string, { reason: string | null; notes: string | null }>();
+    for (const r of replacementRows) {
+      if (r.stock_item_id && !replacementInfoByStock.has(r.stock_item_id)) {
+        replacementInfoByStock.set(r.stock_item_id, { reason: r.reason ?? null, notes: r.notes ?? null });
+      }
+    }
     const replacementOrderItemIds = [...new Set(replacementRows.map(r => r.order_item_id).filter(Boolean))];
     const missingReplacementOrderItemIds = replacementOrderItemIds.filter((id) => !orderItemIds.includes(id));
     const { data: replacementOrderItems } = missingReplacementOrderItemIds.length > 0
@@ -246,6 +254,8 @@ export default function AdminReciclagem() {
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
         hasReplacement: replacedStockIds.has(item.id),
+        replacementReason: replacementInfoByStock.get(item.id)?.reason ?? null,
+        replacementNotes: replacementInfoByStock.get(item.id)?.notes ?? null,
         derivedBms,
         derivedMatriz,
       };
@@ -546,6 +556,16 @@ export default function AdminReciclagem() {
                   </div>
                   {item.productName !== "—" && (
                     <p className="text-[10px] text-muted-foreground mt-0.5">Produto: {item.productName}</p>
+                  )}
+                  {item.replacementReason && (
+                    <p className="text-[11px] text-amber-400/90 mt-0.5">
+                      Motivo: <span className="text-amber-300">{item.replacementReason}</span>
+                    </p>
+                  )}
+                  {item.replacementNotes && (
+                    <p className="text-[11px] text-muted-foreground italic mt-0.5">
+                      Obs: {item.replacementNotes}
+                    </p>
                   )}
                   {(() => {
                     const bms = mergeLinkedBms(parseLinkedBms(item.data), item.derivedBms || []);
