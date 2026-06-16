@@ -20,6 +20,15 @@ import {
   History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight
 } from "lucide-react";
 
+function getOverdueDays(nextBilling: string | null | undefined): number {
+  if (!nextBilling) return 0;
+  const due = new Date(nextBilling).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = today.getTime() - due;
+  return diff > 0 ? Math.floor(diff / 86400000) : 0;
+}
+
 const statusColors: Record<string, string> = {
   ativo: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   block: "bg-red-500/20 text-red-400 border-red-500/30",
