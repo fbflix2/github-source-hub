@@ -448,7 +448,28 @@ export default function AdminReciclagem() {
     toast.success("Copiado!");
   };
 
-  const filtered = items.filter(i =>
+  const periodStart = (() => {
+    const now = new Date();
+    if (period === "week") { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
+    if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
+    if (period === "year") return new Date(now.getFullYear(), 0, 1);
+    return null;
+  })();
+
+  const inPeriod = (dateStr?: string | null) => {
+    if (!periodStart) return true;
+    if (!dateStr) return false;
+    return new Date(dateStr) >= periodStart;
+  };
+
+  const periodItems = items.filter(i => inPeriod(i.blockedAt));
+  const periodRecycled = recycledRaw.filter(r => inPeriod(r.recycledAt));
+  const recycledStats = {
+    count: periodRecycled.length,
+    value: periodRecycled.reduce((s, r) => s + r.price, 0),
+  };
+
+  const filtered = periodItems.filter(i =>
     i.name.toLowerCase().includes(search.toLowerCase()) ||
     i.clientName?.toLowerCase().includes(search.toLowerCase()) ||
     i.orderCode?.toLowerCase().includes(search.toLowerCase()) ||
