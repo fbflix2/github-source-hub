@@ -1045,9 +1045,9 @@ export default function AdminSafeBM() {
                   </TableHeader>
                   <TableBody>
                     {expiringVaults.map(v => {
-                      const expiry = addDays(new Date(v.protection_start), 30);
-                      const now = new Date();
-                      const diffMs = expiry.getTime() - now.getTime();
+                      const protection = getVaultProtectionWindow(v);
+                      const expiry = protection.expiry;
+                      const diffMs = expiry.getTime() - Date.now();
                       const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
                       const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
                       const isExpired = diffMs <= 0;
@@ -1065,7 +1065,7 @@ export default function AdminSafeBM() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
+                            {format(protection.start, "dd MMM, yyyy", { locale: ptBR })}
                           </TableCell>
                           <TableCell>
                             <Badge className={`text-[10px] px-2 py-0.5 ${isExpired
