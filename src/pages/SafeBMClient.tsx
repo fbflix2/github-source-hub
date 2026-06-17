@@ -295,7 +295,7 @@ export default function SafeBMClient() {
               const protection = getVaultProtectionWindow(v);
               const expiryDate = protection.expiry;
               const daysRemaining = protection.daysRemaining;
-              const isExpiringSoon = isActive && !protection.expired && daysRemaining <= 5;
+              const isExpired = isActive && protection.expired;
              
              // Calculate progress based on last_billing_at and next_billing_at if possible
              const progressPercent = protection.elapsedPercent;
@@ -308,9 +308,9 @@ export default function SafeBMClient() {
             const bmIdMatch = effectiveBmLink.match(/(\d{10,})/);
             const bmId = bmIdMatch ? bmIdMatch[1] : v.id.slice(0, 12);
 
-            const iconName = isExpiringSoon ? "warning" : isActive ? "verified_user" : "shield";
-            const iconColor = isExpiringSoon ? "text-[#ffb4ab]" : "text-[#ffb4aa]";
-            const borderHoverColor = isExpiringSoon ? "hover:border-[#ffb4ab]/30" : "hover:border-[#ffb4aa]/30";
+             const iconName = isExpired ? "warning" : isActive ? "verified_user" : "shield";
+             const iconColor = isExpired ? "text-[#ffb4ab]" : "text-[#ffb4aa]";
+             const borderHoverColor = isExpired ? "hover:border-[#ffb4ab]/30" : "hover:border-[#ffb4aa]/30";
 
             return (
               <div
@@ -318,11 +318,11 @@ export default function SafeBMClient() {
                 className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300`}
               >
                 {/* Vault door silhouette */}
-                <div className="relative flex items-center justify-center pt-5 pb-3">
-                  <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpiringSoon ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
+                  <div className="relative flex items-center justify-center pt-5 pb-3">
+                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
                     <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
-                      <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpiringSoon ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
-                        <MaterialIcon name={isExpiringSoon ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
+                       <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpired ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
+                         <MaterialIcon name={isExpired ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
                       </div>
                     </div>
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
@@ -353,9 +353,9 @@ export default function SafeBMClient() {
                            <div className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[9px] font-bold uppercase tracking-wider animate-pulse">
                              Renovando
                            </div>
-                         ) : isExpiringSoon ? (
+                          ) : isExpired ? (
                            <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
-                             Crítico
+                              Expirada
                            </div>
                          ) : isActive ? (
                            <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
@@ -372,10 +372,10 @@ export default function SafeBMClient() {
 
                     <div className="space-y-1 mb-2">
                        <div className="flex justify-between text-[10px]">
-                         {isExpiringSoon ? (
-                           <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, daysRemaining)}d</span>
+                         {isExpired ? (
+                            <span className="text-[#ffb4ab] font-bold">Proteção expirada</span>
                          ) : (
-                           <span className="text-[#c6c6c7]/60">Data de Expiração</span>
+                            <span className="text-emerald-400 font-bold">Protegida • faltam {daysRemaining}d</span>
                          )}
                          <span className="text-[#e0e2ea] font-medium">
                            {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
@@ -383,7 +383,7 @@ export default function SafeBMClient() {
                       </div>
                       <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
                         <div
-                          className={`h-full ${isExpiringSoon ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
+                           className={`h-full ${isExpired ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>
@@ -398,7 +398,7 @@ export default function SafeBMClient() {
                       <MaterialIcon name="autorenew" className="!text-sm" />
                       Renovando seu cofre
                     </button>
-                  ) : isExpiringSoon ? (
+                   ) : isExpired ? (
                     <button 
                       onClick={() => { setSelectedRenewalVaultId(v.id); setShowRenewalModal(true); }}
                       className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2"
