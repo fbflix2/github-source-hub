@@ -4,7 +4,6 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
 import { WapiDisconnectedAlert } from "./WapiDisconnectedAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
 import { PendingSafeBMPopup } from "./PendingSafeBMPopup";
@@ -87,7 +86,6 @@ export function AdminLayout() {
           <Outlet />
         </main>
         <AdminMobileBottomNav />
-        <ProxyBRLowBalanceAlert />
         <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
@@ -115,7 +113,6 @@ export function AdminLayout() {
             <Outlet />
           </div>
         </div>
-        <ProxyBRLowBalanceAlert />
         <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
