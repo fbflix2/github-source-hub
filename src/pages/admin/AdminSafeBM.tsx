@@ -1054,7 +1054,13 @@ export default function AdminSafeBM() {
                       const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
                       const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
                       const isExpired = diffMs <= 0;
-                      const timeText = isExpired ? "Expirado" : diffDays > 0 ? `${diffDays}d ${diffHours}h` : `${diffHours}h`;
+                      const overdueDays = Math.floor(Math.abs(diffMs) / (24 * 60 * 60 * 1000));
+                      const overdueHours = Math.floor((Math.abs(diffMs) % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                      const timeText = isExpired
+                        ? overdueDays > 0
+                          ? `Expirado há ${overdueDays}d ${overdueHours}h`
+                          : `Expirado há ${overdueHours}h`
+                        : diffDays > 0 ? `${diffDays}d ${diffHours}h` : `${diffHours}h`;
 
                       return (
                         <TableRow key={v.id} className="border-border hover:bg-muted/5">
