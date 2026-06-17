@@ -292,22 +292,13 @@ export default function SafeBMClient() {
           {filtered.map(v => {
              const isActive = v.status === "active";
              const isRenewing = v.billing_status === "renewing";
-             // Use next_billing_at if available
-             const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-             const daysRemaining = differenceInDays(expiryDate, new Date());
-             const isExpiringSoon = isActive && daysRemaining <= 5;
+              const protection = getVaultProtectionWindow(v);
+              const expiryDate = protection.expiry;
+              const daysRemaining = protection.daysRemaining;
+              const isExpiringSoon = isActive && !protection.expired && daysRemaining <= 5;
              
              // Calculate progress based on last_billing_at and next_billing_at if possible
-             let progressPercent = 0;
-             if (v.last_billing_at && v.next_billing_at) {
-               const start = new Date(v.last_billing_at).getTime();
-               const end = new Date(v.next_billing_at).getTime();
-               const now = new Date().getTime();
-               progressPercent = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
-             } else {
-               const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
-               progressPercent = Math.min(100, (daysSinceProtection / 30) * 100);
-             }
+             const progressPercent = protection.elapsedPercent;
             const effectiveBmLink =
               v.backup_link ||
               (v.bm_link !== GENERIC_BM_LINK ? v.bm_link : "") ||
