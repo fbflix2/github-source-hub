@@ -933,18 +933,21 @@ export default function AdminSafeBM() {
                               {v.backup_link ? (
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5">
-                                    <Timer className={`size-3 ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`} />
-                                    <span className={`text-xs font-medium ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`}>{linkStatus.text}</span>
-                                    {linkStatus.expired && (
+                                    <Timer className={`size-3 ${protection.expired ? "text-red-400" : "text-emerald-400"}`} />
+                                    <span className={`text-xs font-medium ${protection.expired ? "text-red-400" : "text-emerald-400"}`}>{protection.text}</span>
+                                    {protection.expired && (
                                       <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">
                                         <AlertTriangle className="size-2.5 mr-0.5" /> Renovar
                                       </Badge>
                                     )}
                                   </div>
                                   <div className="w-20 h-1 rounded-full bg-muted-foreground/20">
-                                    <div className={`h-1 rounded-full transition-all ${linkStatus.expired ? "bg-red-500" : linkStatus.percent < 30 ? "bg-yellow-500" : "bg-emerald-500"}`}
-                                      style={{ width: `${linkStatus.percent}%` }} />
+                                    <div className={`h-1 rounded-full transition-all ${protection.expired ? "bg-red-500" : protection.daysRemaining <= 3 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                      style={{ width: `${100 - protection.percent}%` }} />
                                   </div>
+                                  {linkStatus.expired && !protection.expired && (
+                                    <p className="text-[9px] text-muted-foreground/50">Convite expirado, proteção ativa</p>
+                                  )}
                                   <button onClick={() => { navigator.clipboard.writeText(v.backup_link!); toast.success("Link copiado!"); }}
                                     className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary">
                                     <Copy className="size-2.5" /> Copiar link
