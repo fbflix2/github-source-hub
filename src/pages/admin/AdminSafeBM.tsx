@@ -821,6 +821,7 @@ export default function AdminSafeBM() {
                     <TableBody>
                       {filtered.map(v => {
                         const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at, v.link_health);
+                        const protection = getVaultProtectionWindow(v);
                         return (
                           <TableRow key={v.id} className="border-border hover:bg-muted/5">
                             <TableCell>
@@ -873,7 +874,14 @@ export default function AdminSafeBM() {
                                 <span className="text-[10px] text-muted-foreground/50 italic">Manual</span>
                               )}
                             </TableCell>
-                            <TableCell>{getStatusBadge(v.status)}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {getStatusBadge(v.status)}
+                                {v.status === "active" && !protection.expired && (
+                                  <p className="text-[10px] font-medium text-emerald-400">Protegida • {protection.text}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {checkingIds.has(v.id) ? (
                                 <div className="flex items-center gap-1.5">
@@ -955,7 +963,12 @@ export default function AdminSafeBM() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
+                              <div className="space-y-1">
+                                <p>{format(protection.start, "dd MMM, yyyy", { locale: ptBR })}</p>
+                                <Badge className={`${protection.expired ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"} text-[9px] px-1.5 py-0 w-fit`}>
+                                  {protection.text}
+                                </Badge>
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
