@@ -185,7 +185,7 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
   const [filter2fa, setFilter2fa] = useState<"all" | "with" | "without" | "friends">("all");
   const [filterStock, setFilterStock] = useState<"all" | "available" | "out">("all");
   const [filterCountry, setFilterCountry] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "stock_desc" | "stock_asc" | "name_asc">("default");
+  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "stock_desc" | "stock_asc" | "name_asc" | "age_oldest" | "age_newest">("default");
   const { favorites, toggle: toggleFavorite } = useFavorites();
 
   const filteredCategories = (categories || []).map((cat) => {
@@ -230,12 +230,20 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
         const pb = parseFloat(String(b.price)) || 0;
         const sa = Number(a.amount) || 0;
         const sb = Number(b.amount) || 0;
+        const extractYear = (name: string): number => {
+          const m = name.match(/(19|20)\d{2}/);
+          return m ? parseInt(m[0], 10) : 9999;
+        };
+        const ya = extractYear(a.name);
+        const yb = extractYear(b.name);
         switch (sortBy) {
           case "price_asc": return pa - pb;
           case "price_desc": return pb - pa;
           case "stock_desc": return sb - sa;
           case "stock_asc": return sa - sb;
           case "name_asc": return a.name.localeCompare(b.name);
+          case "age_oldest": return ya - yb;
+          case "age_newest": return yb - ya;
           default: return 0;
         }
       });
@@ -423,6 +431,8 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
           <option value="stock_desc">Estoque: maior → menor</option>
           <option value="stock_asc">Estoque: menor → maior</option>
           <option value="name_asc">Nome: A → Z</option>
+          <option value="age_oldest">Mais antigos primeiro</option>
+          <option value="age_newest">Mais novos primeiro</option>
         </select>
         <select
           className="border rounded-md px-3 py-2 text-sm bg-background"
