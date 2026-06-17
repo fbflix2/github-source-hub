@@ -308,8 +308,6 @@ export default function SafeBMClient() {
             const bmIdMatch = effectiveBmLink.match(/(\d{10,})/);
             const bmId = bmIdMatch ? bmIdMatch[1] : v.id.slice(0, 12);
 
-             const iconName = isExpired ? "warning" : isActive ? "verified_user" : "shield";
-             const iconColor = isExpired ? "text-[#ffb4ab]" : "text-[#ffb4aa]";
              const borderHoverColor = isExpired ? "hover:border-[#ffb4ab]/30" : "hover:border-[#ffb4aa]/30";
 
             return (
