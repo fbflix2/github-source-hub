@@ -67,8 +67,21 @@ export default function SafeBMRenewalModal({ open, onClose, vaults, initialSelec
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Create renewal records
-      const renewals = selectedIds.map(id => {
+      // Evita duplicar: se já existir renovação pendente p/ o cofre, reaproveita
+      const { data: existingPending } = await supabase
+        .from("safe_bm_renewals")
+        .select("id, vault_id")
+        .in("vault_id", selectedIds)
+        .eq("status", "pending");
+
+      const existingByVault = new Map<string, string>(
+        (existingPending || []).map((r: any) => [r.vault_id, r.id])
+      );
+
+      const toCreate = selectedIds.filter(id => !existingByVault.has(id));
+
+      // Create renewal records (apenas para cofres sem pendência)
+      const renewals = toCreate.map(id => {
         const v = expiredOrExpiring.find(x => x.id === id);
         return {
           vault_id: id,
@@ -78,17 +91,25 @@ export default function SafeBMRenewalModal({ open, onClose, vaults, initialSelec
         };
       });
 
-      const { data, error } = await supabase
-        .from("safe_bm_renewals")
-        .insert(renewals)
-        .select();
+      let createdIds: string[] = [];
+      if (renewals.length > 0) {
+        const { data, error } = await supabase
+          .from("safe_bm_renewals")
+          .insert(renewals)
+          .select();
+        if (error) throw error;
+        createdIds = (data || []).map((r: any) => r.id);
+      }
 
-      if (error) throw error;
+      const allRenewalIds = [
+        ...createdIds,
+        ...Array.from(existingByVault.values()),
+      ];
 
       toast.success("Solicitação de renovação criada! Redirecionando para o pagamento...");
       
       // Store renewal IDs in session storage for checkout to know what we're paying for
-      sessionStorage.setItem("pending_safe_bm_renewals", JSON.stringify(data.map(r => r.id)));
+      sessionStorage.setItem("pending_safe_bm_renewals", JSON.stringify(allRenewalIds));
 
       // Redirect to checkout
       // We'll use a virtual product ID or just a generic one. 

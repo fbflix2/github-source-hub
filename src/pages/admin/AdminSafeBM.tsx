@@ -176,7 +176,18 @@ export default function AdminSafeBM() {
       .select("*, vault:vault_id(bm_name, bm_link, backup_link)")
       .order("created_at", { ascending: false });
     if (error) toast.error("Erro ao carregar renovações: " + error.message);
-    else setRenewals(data || []);
+    else {
+      // Dedupe: para cofres com múltiplas renovações pendentes, mantém só a mais recente.
+      // Renovações já pagas/verificadas são preservadas para histórico.
+      const seenPendingVaults = new Set<string>();
+      const deduped = (data || []).filter((r: any) => {
+        if (r.status !== 'pending') return true;
+        if (seenPendingVaults.has(r.vault_id)) return false;
+        seenPendingVaults.add(r.vault_id);
+        return true;
+      });
+      setRenewals(deduped);
+    }
   };
 
 
