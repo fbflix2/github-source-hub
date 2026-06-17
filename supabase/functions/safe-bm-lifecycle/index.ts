@@ -101,7 +101,74 @@
  
          results.push({ id: vault.id, status: "paid", amount: price });
        } else {
-         // INSUFFICIENT FUNDS - GRACE PERIOD LOGIC
+        // INSUFFICIENT FUNDS - try to consume an unused (paid but never activated) vault first
+        const { data: unusedVaults } = await admin
+          .from("safe_bm_vaults")
+          .select("id, bm_name, bm_link, next_billing_at, last_billing_at")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .eq("billing_status", "paid")
+          .neq("id", vault.id)
+          .gt("next_billing_at", new Date().toISOString());
+
+        const isUnprotected = (link?: string | null) => {
+          const l = (link || "").trim().toLowerCase();
+          if (!l) return true;
+          return !l.includes("/invitation/");
+        };
+
+        const donor = (unusedVaults || []).find((v: any) => isUnprotected(v.bm_link));
+
+        if (donor) {
+          if (!dryRun) {
+            // Consume 1 month from donor
+            const donorNext = new Date(donor.next_billing_at);
+            donorNext.setMonth(donorNext.getMonth() - 1);
+            const donorUpdate: any = { next_billing_at: donorNext.toISOString(), updated_at: new Date().toISOString() };
+            // If donor has now exhausted its prepaid period, cancel it
+            if (donorNext.getTime() <= Date.now()) {
+              donorUpdate.status = "cancelled";
+              donorUpdate.billing_status = "cancelled";
+            }
+            await admin.from("safe_bm_vaults").update(donorUpdate).eq("id", donor.id);
+
+            // Renew the current vault using donor's prepaid month (no charge)
+            const nextBilling = new Date(vault.next_billing_at);
+            nextBilling.setMonth(nextBilling.getMonth() + 1);
+            await admin.from("safe_bm_vaults").update({
+              last_billing_at: new Date().toISOString(),
+              next_billing_at: nextBilling.toISOString(),
+              billing_status: "paid",
+              status: "active",
+              grace_notifications: {},
+            }).eq("id", vault.id);
+
+            // Ledger entry (zero-value, informational)
+            await admin.from("wallet_transactions").insert({
+              user_id: userId,
+              type: "adjustment",
+              title: `Renovação Safe BM (${vault.bm_name}) coberta por assinatura não utilizada de ${donor.bm_name}`,
+              amount: 0,
+              balance_after: currentBalance,
+              reference_id: vault.id,
+            });
+
+            // Notify client
+            const phone = profile.phone;
+            const nome = profile.full_name || "Cliente";
+            if (phone) {
+              waQueue.push({
+                phone: normalizePhone(phone),
+                message: `Olá ${nome} ✅\n\nA renovação do seu *Safe BM (${vault.bm_name})* foi coberta automaticamente usando 1 mês da sua assinatura *${donor.bm_name}*, que ainda não foi ativada (você não enviou o convite).\n\n👉 Envie o convite do BM *${donor.bm_name}* para ativar a proteção ou solicite cancelamento para evitar perda de saldo.\n\nfbflix.com.br/safe-bm`,
+                user_id: userId,
+              });
+            }
+          }
+          results.push({ id: vault.id, status: "covered_by_unused", donor_id: donor.id });
+          continue;
+        }
+
+        // No donor available -> GRACE PERIOD LOGIC
          const diff = daysDiff(vault.next_billing_at);
          const grace = (vault.grace_notifications || {}) as Record<string, any>;
          let stage = "";
