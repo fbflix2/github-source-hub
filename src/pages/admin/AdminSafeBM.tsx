@@ -335,12 +335,10 @@ export default function AdminSafeBM() {
 
   // ─── Expiring tab: subscriptions expiring within 3 days ───
   const expiringVaults = useMemo(() => {
-    const now = new Date();
-    const cutoff = addDays(now, 3);
     return vaults.filter(v => {
       if (v.status !== "active") return false;
-      const expiry = addDays(new Date(v.protection_start), 30);
-      return isBefore(expiry, cutoff);
+      const protection = getVaultProtectionWindow(v);
+      return protection.daysRemaining <= 3;
     });
   }, [vaults]);
 
