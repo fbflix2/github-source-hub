@@ -131,15 +131,11 @@ export default function SafeBMClient() {
   const activeVaults = configuredVaults.filter(v => v.status === "active");
    const expiringVaults = vaults.filter(v => {
      if (v.status !== "active") return false;
-     // Use next_billing_at if available, otherwise fallback to protection_start + 30 days
-     const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-     const daysRemaining = differenceInDays(expiryDate, new Date());
-     return daysRemaining <= 5;
+     return getVaultProtectionWindow(v).daysRemaining <= 5;
    });
 
   const expiredVaults = activeVaults.filter(v => {
-    const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-    return differenceInDays(expiryDate, new Date()) <= 0;
+    return getVaultProtectionWindow(v).expired;
   });
   const allExpired = activeVaults.length > 0 && expiredVaults.length === activeVaults.length;
 
@@ -227,7 +223,7 @@ export default function SafeBMClient() {
                 <div key={v.id} className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
                   <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">RENOVAÇÃO PRÓXIMA</p>
                   <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
-                    Sua BM "{v.bm_name}" expira em {Math.max(0, 30 - differenceInDays(new Date(), new Date(v.protection_start)))} dias.
+                    Sua BM "{v.bm_name}" expira em {getVaultProtectionWindow(v).daysRemaining} dias.
                   </p>
                 </div>
               ))
