@@ -2,7 +2,7 @@
 import RequestAccessButton from "@/components/safebm/RequestAccessButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, differenceInDays } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
@@ -63,6 +63,24 @@ function UptimeVault() {
       <p className="text-lg font-bold text-[#68d3fc]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
     </div>
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getVaultProtectionWindow(v: Pick<SafeBmVault, "protection_start" | "last_billing_at" | "next_billing_at">) {
+  const anchor = new Date(v.last_billing_at || v.protection_start);
+  const monthlyExpiry = addMonths(anchor, 1);
+  const storedExpiry = v.next_billing_at ? new Date(v.next_billing_at) : null;
+  const expiry = storedExpiry && storedExpiry.getTime() > monthlyExpiry.getTime() ? storedExpiry : monthlyExpiry;
+  const start = addMonths(expiry, -1);
+  const remainingMs = expiry.getTime() - Date.now();
+  const expired = remainingMs <= 0;
+  const daysRemaining = expired ? 0 : Math.max(1, Math.ceil(remainingMs / DAY_MS));
+  const totalMs = Math.max(1, expiry.getTime() - start.getTime());
+  const elapsedPercent = Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / totalMs) * 100));
+  const text = expired ? "Proteção expirada" : `Protegida • faltam ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}`;
+
+  return { start, expiry, expired, daysRemaining, elapsedPercent, text };
 }
 
 export default function SafeBMClient() {
