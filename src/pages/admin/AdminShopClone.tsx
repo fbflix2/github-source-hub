@@ -183,6 +183,9 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
   const [buyResult, setBuyResult] = useState<BuyResult | null>(null);
   const [viewTab, setViewTab] = useState<"all" | "favorites">("all");
   const [filter2fa, setFilter2fa] = useState<"all" | "with" | "without" | "friends">("all");
+  const [filterStock, setFilterStock] = useState<"all" | "available" | "out">("all");
+  const [filterCountry, setFilterCountry] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "stock_desc" | "stock_asc" | "name_asc">("default");
   const { favorites, toggle: toggleFavorite } = useFavorites();
 
   const filteredCategories = (categories || []).map((cat) => {
@@ -206,6 +209,14 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
         return n.includes("FRIEND") || n.includes("AMIGO");
       });
     }
+    if (filterStock === "available") {
+      products = products.filter(p => (Number(p.amount) || 0) > 0);
+    } else if (filterStock === "out") {
+      products = products.filter(p => (Number(p.amount) || 0) <= 0);
+    }
+    if (filterCountry !== "all") {
+      products = products.filter(p => (p.country || "").toLowerCase() === filterCountry.toLowerCase());
+    }
     if (search) {
       const q = search.toLowerCase();
       products = products.filter(p => 
@@ -213,11 +224,33 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
         String(p.id).toLowerCase().includes(q)
       );
     }
+    if (sortBy !== "default") {
+      products = [...products].sort((a, b) => {
+        const pa = parseFloat(String(a.price)) || 0;
+        const pb = parseFloat(String(b.price)) || 0;
+        const sa = Number(a.amount) || 0;
+        const sb = Number(b.amount) || 0;
+        switch (sortBy) {
+          case "price_asc": return pa - pb;
+          case "price_desc": return pb - pa;
+          case "stock_desc": return sb - sa;
+          case "stock_asc": return sa - sb;
+          case "name_asc": return a.name.localeCompare(b.name);
+          default: return 0;
+        }
+      });
+    }
     return { ...cat, accounts: products };
   }).filter(cat => {
     if (selectedCategory && cat.id !== selectedCategory) return false;
     return cat.accounts.length > 0;
   });
+
+  const availableCountries = Array.from(
+    new Set(
+      (categories || []).flatMap(c => c.accounts.map(p => p.country).filter(Boolean))
+    )
+  ).sort();
 
   const totalProducts = (categories || []).reduce((sum, c) => sum + c.accounts.length, 0);
   const totalStock = (categories || []).reduce(
@@ -357,6 +390,39 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
           <option value="with">Com 2FA</option>
           <option value="without">Sem 2FA</option>
           <option value="friends">Com Amigos</option>
+        </select>
+        <select
+          className="border rounded-md px-3 py-2 text-sm bg-background"
+          value={filterStock}
+          onChange={(e) => setFilterStock(e.target.value as "all" | "available" | "out")}
+        >
+          <option value="all">Estoque: Todos</option>
+          <option value="available">Disponível</option>
+          <option value="out">Esgotado</option>
+        </select>
+        {availableCountries.length > 0 && (
+          <select
+            className="border rounded-md px-3 py-2 text-sm bg-background"
+            value={filterCountry}
+            onChange={(e) => setFilterCountry(e.target.value)}
+          >
+            <option value="all">País: Todos</option>
+            {availableCountries.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
+        <select
+          className="border rounded-md px-3 py-2 text-sm bg-background"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+        >
+          <option value="default">Ordenar: Padrão</option>
+          <option value="price_asc">Preço: menor → maior</option>
+          <option value="price_desc">Preço: maior → menor</option>
+          <option value="stock_desc">Estoque: maior → menor</option>
+          <option value="stock_asc">Estoque: menor → maior</option>
+          <option value="name_asc">Nome: A → Z</option>
         </select>
         <select
           className="border rounded-md px-3 py-2 text-sm bg-background"
