@@ -20,7 +20,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { format, subDays, isAfter, addDays, isBefore } from "date-fns";
+import { format, subDays, isAfter, addDays, addMonths, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Progress } from "@/components/ui/progress";
 
@@ -110,6 +110,24 @@ function getBackupLinkTimeLeft(setAt: string | null, linkHealth?: string | null)
   if (days > 0) return { expired: false, text: `${days}d ${hours}h`, percent };
   if (hours > 0) return { expired: false, text: `${hours}h ${mins}m`, percent };
   return { expired: false, text: `${mins}m`, percent };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getVaultProtectionWindow(v: Pick<SafeBmVault, "protection_start" | "last_billing_at" | "next_billing_at">) {
+  const anchor = new Date(v.last_billing_at || v.protection_start);
+  const monthlyExpiry = addMonths(anchor, 1);
+  const storedExpiry = v.next_billing_at ? new Date(v.next_billing_at) : null;
+  const expiry = storedExpiry && storedExpiry.getTime() > monthlyExpiry.getTime() ? storedExpiry : monthlyExpiry;
+  const start = addMonths(expiry, -1);
+  const remainingMs = expiry.getTime() - Date.now();
+  const expired = remainingMs <= 0;
+  const daysRemaining = expired ? 0 : Math.max(1, Math.ceil(remainingMs / DAY_MS));
+  const totalMs = Math.max(1, expiry.getTime() - start.getTime());
+  const percent = Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / totalMs) * 100));
+  const text = expired ? "Expirada" : `Faltam ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}`;
+
+  return { start, expiry, expired, daysRemaining, percent, text };
 }
 
 type TabType = "pendentes" | "monitoramento" | "expirando" | "renovacoes";
