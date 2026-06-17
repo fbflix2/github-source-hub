@@ -20,7 +20,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { format, subDays, isAfter, addDays, isBefore } from "date-fns";
+import { format, subDays, isAfter, addMonths, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Progress } from "@/components/ui/progress";
 
@@ -110,6 +110,24 @@ function getBackupLinkTimeLeft(setAt: string | null, linkHealth?: string | null)
   if (days > 0) return { expired: false, text: `${days}d ${hours}h`, percent };
   if (hours > 0) return { expired: false, text: `${hours}h ${mins}m`, percent };
   return { expired: false, text: `${mins}m`, percent };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getVaultProtectionWindow(v: Pick<SafeBmVault, "protection_start" | "last_billing_at" | "next_billing_at">) {
+  const anchor = new Date(v.last_billing_at || v.protection_start);
+  const monthlyExpiry = addMonths(anchor, 1);
+  const storedExpiry = v.next_billing_at ? new Date(v.next_billing_at) : null;
+  const expiry = storedExpiry && storedExpiry.getTime() > monthlyExpiry.getTime() ? storedExpiry : monthlyExpiry;
+  const start = addMonths(expiry, -1);
+  const remainingMs = expiry.getTime() - Date.now();
+  const expired = remainingMs <= 0;
+  const daysRemaining = expired ? 0 : Math.max(1, Math.ceil(remainingMs / DAY_MS));
+  const totalMs = Math.max(1, expiry.getTime() - start.getTime());
+  const percent = Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / totalMs) * 100));
+  const text = expired ? "Expirada" : `Faltam ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}`;
+
+  return { start, expiry, expired, daysRemaining, percent, text };
 }
 
 type TabType = "pendentes" | "monitoramento" | "expirando" | "renovacoes";
@@ -317,12 +335,10 @@ export default function AdminSafeBM() {
 
   // ─── Expiring tab: subscriptions expiring within 3 days ───
   const expiringVaults = useMemo(() => {
-    const now = new Date();
-    const cutoff = addDays(now, 3);
     return vaults.filter(v => {
       if (v.status !== "active") return false;
-      const expiry = addDays(new Date(v.protection_start), 30);
-      return isBefore(expiry, cutoff);
+      const protection = getVaultProtectionWindow(v);
+      return protection.daysRemaining <= 3;
     });
   }, [vaults]);
 
@@ -456,7 +472,7 @@ export default function AdminSafeBM() {
       // Nunca usar a data de verificação do admin, pois o cliente já pagou antes.
       const renewalPaidAt = renewal.paid_at ? new Date(renewal.paid_at) : new Date(renewal.created_at);
       const baseDate = isBefore(currentExpiry, renewalPaidAt) ? renewalPaidAt : currentExpiry;
-      const newExpiry = addDays(baseDate, 30);
+      const newExpiry = addMonths(baseDate, 1);
 
       const { error: vaultError } = await supabase
         .from("safe_bm_vaults" as any)
@@ -805,6 +821,7 @@ export default function AdminSafeBM() {
                     <TableBody>
                       {filtered.map(v => {
                         const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at, v.link_health);
+                        const protection = getVaultProtectionWindow(v);
                         return (
                           <TableRow key={v.id} className="border-border hover:bg-muted/5">
                             <TableCell>
@@ -857,7 +874,14 @@ export default function AdminSafeBM() {
                                 <span className="text-[10px] text-muted-foreground/50 italic">Manual</span>
                               )}
                             </TableCell>
-                            <TableCell>{getStatusBadge(v.status)}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {getStatusBadge(v.status)}
+                                {v.status === "active" && !protection.expired && (
+                                  <p className="text-[10px] font-medium text-emerald-400">Protegida • {protection.text}</p>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {checkingIds.has(v.id) ? (
                                 <div className="flex items-center gap-1.5">
@@ -909,18 +933,21 @@ export default function AdminSafeBM() {
                               {v.backup_link ? (
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5">
-                                    <Timer className={`size-3 ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`} />
-                                    <span className={`text-xs font-medium ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`}>{linkStatus.text}</span>
-                                    {linkStatus.expired && (
+                                    <Timer className={`size-3 ${protection.expired ? "text-red-400" : "text-emerald-400"}`} />
+                                    <span className={`text-xs font-medium ${protection.expired ? "text-red-400" : "text-emerald-400"}`}>{protection.text}</span>
+                                    {protection.expired && (
                                       <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">
                                         <AlertTriangle className="size-2.5 mr-0.5" /> Renovar
                                       </Badge>
                                     )}
                                   </div>
                                   <div className="w-20 h-1 rounded-full bg-muted-foreground/20">
-                                    <div className={`h-1 rounded-full transition-all ${linkStatus.expired ? "bg-red-500" : linkStatus.percent < 30 ? "bg-yellow-500" : "bg-emerald-500"}`}
-                                      style={{ width: `${linkStatus.percent}%` }} />
+                                    <div className={`h-1 rounded-full transition-all ${protection.expired ? "bg-red-500" : protection.daysRemaining <= 3 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                      style={{ width: `${100 - protection.percent}%` }} />
                                   </div>
+                                  {linkStatus.expired && !protection.expired && (
+                                    <p className="text-[9px] text-muted-foreground/50">Convite expirado, proteção ativa</p>
+                                  )}
                                   <button onClick={() => { navigator.clipboard.writeText(v.backup_link!); toast.success("Link copiado!"); }}
                                     className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary">
                                     <Copy className="size-2.5" /> Copiar link
@@ -939,7 +966,12 @@ export default function AdminSafeBM() {
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
+                              <div className="space-y-1">
+                                <p>{format(protection.start, "dd MMM, yyyy", { locale: ptBR })}</p>
+                                <Badge className={`${protection.expired ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"} text-[9px] px-1.5 py-0 w-fit`}>
+                                  {protection.text}
+                                </Badge>
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
@@ -1016,9 +1048,9 @@ export default function AdminSafeBM() {
                   </TableHeader>
                   <TableBody>
                     {expiringVaults.map(v => {
-                      const expiry = addDays(new Date(v.protection_start), 30);
-                      const now = new Date();
-                      const diffMs = expiry.getTime() - now.getTime();
+                      const protection = getVaultProtectionWindow(v);
+                      const expiry = protection.expiry;
+                      const diffMs = expiry.getTime() - Date.now();
                       const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
                       const diffHours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
                       const isExpired = diffMs <= 0;
@@ -1036,7 +1068,7 @@ export default function AdminSafeBM() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
+                            {format(protection.start, "dd MMM, yyyy", { locale: ptBR })}
                           </TableCell>
                           <TableCell>
                             <Badge className={`text-[10px] px-2 py-0.5 ${isExpired

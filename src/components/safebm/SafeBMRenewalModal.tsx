@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format, differenceInDays } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MaterialIcon } from "./SecurityMonitor";
 import { useNavigate } from "react-router-dom";
@@ -20,8 +20,23 @@ interface SafeBmVault {
   id: string;
   bm_name: string;
   next_billing_at?: string;
+  last_billing_at?: string;
   protection_start: string;
   subscription_price: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getVaultProtectionWindow(v: Pick<SafeBmVault, "protection_start" | "last_billing_at" | "next_billing_at">) {
+  const anchor = new Date(v.last_billing_at || v.protection_start);
+  const monthlyExpiry = addMonths(anchor, 1);
+  const storedExpiry = v.next_billing_at ? new Date(v.next_billing_at) : null;
+  const expiry = storedExpiry && storedExpiry.getTime() > monthlyExpiry.getTime() ? storedExpiry : monthlyExpiry;
+  const remainingMs = expiry.getTime() - Date.now();
+  const expired = remainingMs <= 0;
+  const daysRemaining = expired ? 0 : Math.max(1, Math.ceil(remainingMs / DAY_MS));
+
+  return { expiry, expired, daysRemaining };
 }
 
 interface SafeBMRenewalModalProps {
@@ -38,9 +53,8 @@ export default function SafeBMRenewalModal({ open, onClose, vaults, initialSelec
 
   const expiredOrExpiring = useMemo(() => {
     return vaults.filter(v => {
-      const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-      const daysRemaining = differenceInDays(expiryDate, new Date());
-      return daysRemaining <= 5;
+      const protection = getVaultProtectionWindow(v);
+      return protection.daysRemaining <= 5;
     });
   }, [vaults]);
 
@@ -170,7 +184,7 @@ export default function SafeBMRenewalModal({ open, onClose, vaults, initialSelec
                     <div>
                       <p className="text-sm font-bold">{v.bm_name}</p>
                       <p className="text-[10px] text-[#c6c6c7]/60">
-                        Expiração: {format(v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000), "dd/MM/yyyy", { locale: ptBR })}
+                        Expiração: {format(getVaultProtectionWindow(v).expiry, "dd/MM/yyyy", { locale: ptBR })}
                       </p>
                     </div>
                   </div>

@@ -2,7 +2,7 @@
 import RequestAccessButton from "@/components/safebm/RequestAccessButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, differenceInDays } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
@@ -65,6 +65,24 @@ function UptimeVault() {
   );
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getVaultProtectionWindow(v: Pick<SafeBmVault, "protection_start" | "last_billing_at" | "next_billing_at">) {
+  const anchor = new Date(v.last_billing_at || v.protection_start);
+  const monthlyExpiry = addMonths(anchor, 1);
+  const storedExpiry = v.next_billing_at ? new Date(v.next_billing_at) : null;
+  const expiry = storedExpiry && storedExpiry.getTime() > monthlyExpiry.getTime() ? storedExpiry : monthlyExpiry;
+  const start = addMonths(expiry, -1);
+  const remainingMs = expiry.getTime() - Date.now();
+  const expired = remainingMs <= 0;
+  const daysRemaining = expired ? 0 : Math.max(1, Math.ceil(remainingMs / DAY_MS));
+  const totalMs = Math.max(1, expiry.getTime() - start.getTime());
+  const elapsedPercent = Math.min(100, Math.max(0, ((Date.now() - start.getTime()) / totalMs) * 100));
+  const text = expired ? "Proteção expirada" : `Protegida • faltam ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}`;
+
+  return { start, expiry, expired, daysRemaining, elapsedPercent, text };
+}
+
 export default function SafeBMClient() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,15 +131,11 @@ export default function SafeBMClient() {
   const activeVaults = configuredVaults.filter(v => v.status === "active");
    const expiringVaults = vaults.filter(v => {
      if (v.status !== "active") return false;
-     // Use next_billing_at if available, otherwise fallback to protection_start + 30 days
-     const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-     const daysRemaining = differenceInDays(expiryDate, new Date());
-     return daysRemaining <= 5;
+     return getVaultProtectionWindow(v).daysRemaining <= 5;
    });
 
   const expiredVaults = activeVaults.filter(v => {
-    const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-    return differenceInDays(expiryDate, new Date()) <= 0;
+    return getVaultProtectionWindow(v).expired;
   });
   const allExpired = activeVaults.length > 0 && expiredVaults.length === activeVaults.length;
 
@@ -209,7 +223,7 @@ export default function SafeBMClient() {
                 <div key={v.id} className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
                   <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">RENOVAÇÃO PRÓXIMA</p>
                   <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
-                    Sua BM "{v.bm_name}" expira em {Math.max(0, 30 - differenceInDays(new Date(), new Date(v.protection_start)))} dias.
+                    Sua BM "{v.bm_name}" expira em {getVaultProtectionWindow(v).daysRemaining} dias.
                   </p>
                 </div>
               ))
@@ -278,22 +292,13 @@ export default function SafeBMClient() {
           {filtered.map(v => {
              const isActive = v.status === "active";
              const isRenewing = v.billing_status === "renewing";
-             // Use next_billing_at if available
-             const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
-             const daysRemaining = differenceInDays(expiryDate, new Date());
-             const isExpiringSoon = isActive && daysRemaining <= 5;
+              const protection = getVaultProtectionWindow(v);
+              const expiryDate = protection.expiry;
+              const daysRemaining = protection.daysRemaining;
+              const isExpired = isActive && protection.expired;
              
              // Calculate progress based on last_billing_at and next_billing_at if possible
-             let progressPercent = 0;
-             if (v.last_billing_at && v.next_billing_at) {
-               const start = new Date(v.last_billing_at).getTime();
-               const end = new Date(v.next_billing_at).getTime();
-               const now = new Date().getTime();
-               progressPercent = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
-             } else {
-               const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
-               progressPercent = Math.min(100, (daysSinceProtection / 30) * 100);
-             }
+             const progressPercent = protection.elapsedPercent;
             const effectiveBmLink =
               v.backup_link ||
               (v.bm_link !== GENERIC_BM_LINK ? v.bm_link : "") ||
@@ -303,9 +308,7 @@ export default function SafeBMClient() {
             const bmIdMatch = effectiveBmLink.match(/(\d{10,})/);
             const bmId = bmIdMatch ? bmIdMatch[1] : v.id.slice(0, 12);
 
-            const iconName = isExpiringSoon ? "warning" : isActive ? "verified_user" : "shield";
-            const iconColor = isExpiringSoon ? "text-[#ffb4ab]" : "text-[#ffb4aa]";
-            const borderHoverColor = isExpiringSoon ? "hover:border-[#ffb4ab]/30" : "hover:border-[#ffb4aa]/30";
+             const borderHoverColor = isExpired ? "hover:border-[#ffb4ab]/30" : "hover:border-[#ffb4aa]/30";
 
             return (
               <div
@@ -313,11 +316,11 @@ export default function SafeBMClient() {
                 className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300`}
               >
                 {/* Vault door silhouette */}
-                <div className="relative flex items-center justify-center pt-5 pb-3">
-                  <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpiringSoon ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
+                  <div className="relative flex items-center justify-center pt-5 pb-3">
+                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
                     <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
-                      <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpiringSoon ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
-                        <MaterialIcon name={isExpiringSoon ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
+                       <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpired ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
+                         <MaterialIcon name={isExpired ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
                       </div>
                     </div>
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
@@ -348,9 +351,9 @@ export default function SafeBMClient() {
                            <div className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[9px] font-bold uppercase tracking-wider animate-pulse">
                              Renovando
                            </div>
-                         ) : isExpiringSoon ? (
+                          ) : isExpired ? (
                            <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
-                             Crítico
+                              Expirada
                            </div>
                          ) : isActive ? (
                            <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
@@ -367,10 +370,10 @@ export default function SafeBMClient() {
 
                     <div className="space-y-1 mb-2">
                        <div className="flex justify-between text-[10px]">
-                         {isExpiringSoon ? (
-                           <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, daysRemaining)}d</span>
+                         {isExpired ? (
+                            <span className="text-[#ffb4ab] font-bold">Proteção expirada</span>
                          ) : (
-                           <span className="text-[#c6c6c7]/60">Data de Expiração</span>
+                            <span className="text-emerald-400 font-bold">Protegida • faltam {daysRemaining}d</span>
                          )}
                          <span className="text-[#e0e2ea] font-medium">
                            {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
@@ -378,7 +381,7 @@ export default function SafeBMClient() {
                       </div>
                       <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
                         <div
-                          className={`h-full ${isExpiringSoon ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
+                           className={`h-full ${isExpired ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>
@@ -393,7 +396,7 @@ export default function SafeBMClient() {
                       <MaterialIcon name="autorenew" className="!text-sm" />
                       Renovando seu cofre
                     </button>
-                  ) : isExpiringSoon ? (
+                   ) : isExpired ? (
                     <button 
                       onClick={() => { setSelectedRenewalVaultId(v.id); setShowRenewalModal(true); }}
                       className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2"
