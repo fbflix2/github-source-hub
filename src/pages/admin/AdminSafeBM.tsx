@@ -20,7 +20,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { format, subDays, isAfter, addDays, addMonths, isBefore } from "date-fns";
+import { format, subDays, isAfter, addMonths, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Progress } from "@/components/ui/progress";
 
@@ -472,7 +472,7 @@ export default function AdminSafeBM() {
       // Nunca usar a data de verificação do admin, pois o cliente já pagou antes.
       const renewalPaidAt = renewal.paid_at ? new Date(renewal.paid_at) : new Date(renewal.created_at);
       const baseDate = isBefore(currentExpiry, renewalPaidAt) ? renewalPaidAt : currentExpiry;
-      const newExpiry = addDays(baseDate, 30);
+      const newExpiry = addMonths(baseDate, 1);
 
       const { error: vaultError } = await supabase
         .from("safe_bm_vaults" as any)
