@@ -531,7 +531,14 @@ export default function ItemDetails() {
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
    const isInstagram = product?.name?.toLowerCase().includes("instagram") || orderItem?.name?.toLowerCase().includes("instagram");
-   const isBM = (product?.icon_type === "bm" || orderItem?.name?.toLowerCase().includes("bm")) && !isInstagram;
+   // Only treat as BM-only product when explicitly marked as such, or when the name has no "perfil" context.
+   // Profiles that ship with a BM installed (e.g. "Perfil CA5 com bm 1.3k") must NOT be detected as BM.
+   const _combinedName = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
+   const _mentionsPerfil = _combinedName.includes("perfil");
+   const isBM =
+     !isInstagram &&
+     !_mentionsPerfil &&
+     (product?.icon_type === "bm" || /(^|\s)bm(\s|$)/.test(_combinedName));
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
   // E-mail simples: só login e senha, sem campos de perfil/2FA/esteira
