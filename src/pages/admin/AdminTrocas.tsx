@@ -178,10 +178,42 @@ export default function AdminTrocas() {
   function handleSelectItem(item: OrderItemInfo) {
     setSelectedItem(item);
     setSelectedProduct(null);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
     setProductSearch("");
     setShowPasswordStep(false);
     fetchProducts(item.product_id);
   }
+
+  async function fetchStockItems(productId: string) {
+    setLoadingStockItems(true);
+    setSelectedStockItem(null);
+
+    let query = supabase
+      .from("stock_items")
+      .select("id, name, identification, identification_link, data, created_at")
+      .eq("product_id", productId)
+      .eq("status", "revisado")
+      .is("order_item_id", null)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+
+    if (selectedItem?.stock_item_id) {
+      query = query.neq("id", selectedItem.stock_item_id);
+    }
+
+    const { data } = await query;
+    setAvailableStockItems(data || []);
+    setLoadingStockItems(false);
+  }
+
+  function handleSelectProduct(product: ProductOption) {
+    setSelectedProduct(product);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
+    fetchStockItems(product.id);
+  }
+
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(productSearch.toLowerCase())
