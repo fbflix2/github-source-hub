@@ -500,7 +500,7 @@ export default function AdminTrocas() {
                   ) : filteredProducts.map(p => (
                     <button
                       key={p.id}
-                      onClick={() => setSelectedProduct(p)}
+                      onClick={() => handleSelectProduct(p)}
                       className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors ${
                         selectedProduct?.id === p.id
                           ? "bg-primary/10 border border-primary/30"
@@ -516,6 +516,53 @@ export default function AdminTrocas() {
                   ))}
                 </div>
               )}
+
+              {/* Step 2b: Select Specific Stock Item */}
+              {selectedProduct && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">
+                    Escolha um item específico do estoque (opcional)
+                  </p>
+                  {loadingStockItems ? (
+                    <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                  ) : availableStockItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">
+                      Nenhum item individual disponível. O sistema usará o próximo do estoque automaticamente.
+                    </p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-xl p-1">
+                      {availableStockItems.map(stock => (
+                        <button
+                          key={stock.id}
+                          onClick={() => setSelectedStockItem(stock)}
+                          className={`w-full text-left rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                            selectedStockItem?.id === stock.id
+                              ? "bg-primary/10 border border-primary/30"
+                              : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {stock.name || stock.data?.nomePerfil || stock.identification || `Item #${stock.id.slice(0, 8)}`}
+                              </p>
+                              {(stock.identification || stock.identification_link) && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {stock.identification_link || stock.identification}
+                                </p>
+                              )}
+                            </div>
+                            {selectedStockItem?.id === stock.id && (
+                              <CheckCircle className="size-4 text-primary shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
 
               {/* Price difference */}
               {selectedProduct && (
