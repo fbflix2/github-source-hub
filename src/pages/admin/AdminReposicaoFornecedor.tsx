@@ -206,9 +206,12 @@ export default function AdminReposicaoFornecedor() {
         const restLinkIdx = rest.findIndex(p => /^https?:\/\//i.test(p));
         if (restLinkIdx >= 0) profile_link = rest[restLinkIdx];
 
-        const emails = rest.filter(p => p.includes("@"));
+        // Real email must contain a TLD with a dot, so passwords like
+        // "AnhSon@17103Cz" are not mistaken for an email.
+        const isRealEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
         const isPrincipalDomain = (e: string) => /@(hotmail|outlook|live|msn)\./i.test(e);
-        const isAltDomain = (e: string) => /@fviainboxes\./i.test(e);
+        const isAltDomain = (e: string) => /@(fviainboxes|fviamail)\./i.test(e);
+        const emails = rest.filter(isRealEmail);
         const principalMatch = emails.find(isPrincipalDomain);
         const altMatch = emails.find(isAltDomain);
         email_principal = principalMatch || emails[0];
@@ -217,7 +220,8 @@ export default function AdminReposicaoFornecedor() {
         if (email_principal) {
           const idxEmail = rest.indexOf(email_principal);
           const candidate = rest[idxEmail + 1];
-          if (candidate && !candidate.includes("@") && !/^https?:\/\//i.test(candidate)) {
+          // Password may contain "@"; only reject real emails / urls.
+          if (candidate && !isRealEmail(candidate) && !/^https?:\/\//i.test(candidate)) {
             email_password = candidate;
           }
         }
