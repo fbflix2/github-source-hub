@@ -27,6 +27,16 @@ interface ProductOption {
   stock: number;
 }
 
+interface StockItemOption {
+  id: string;
+  name: string | null;
+  identification: string | null;
+  identification_link: string | null;
+  data: any;
+  created_at: string;
+}
+
+
 interface ExchangeRecord {
   id: string;
   original_product_name: string;
