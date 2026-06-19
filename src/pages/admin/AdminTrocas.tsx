@@ -27,6 +27,16 @@ interface ProductOption {
   stock: number;
 }
 
+interface StockItemOption {
+  id: string;
+  name: string | null;
+  identification: string | null;
+  identification_link: string | null;
+  data: any;
+  created_at: string;
+}
+
+
 interface ExchangeRecord {
   id: string;
   original_product_name: string;
@@ -49,6 +59,12 @@ export default function AdminTrocas() {
   const [productSearch, setProductSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Specific stock item selection
+  const [availableStockItems, setAvailableStockItems] = useState<StockItemOption[]>([]);
+  const [selectedStockItem, setSelectedStockItem] = useState<StockItemOption | null>(null);
+  const [loadingStockItems, setLoadingStockItems] = useState(false);
+
 
   const [reason, setReason] = useState("");
 
@@ -162,10 +178,42 @@ export default function AdminTrocas() {
   function handleSelectItem(item: OrderItemInfo) {
     setSelectedItem(item);
     setSelectedProduct(null);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
     setProductSearch("");
     setShowPasswordStep(false);
     fetchProducts(item.product_id);
   }
+
+  async function fetchStockItems(productId: string) {
+    setLoadingStockItems(true);
+    setSelectedStockItem(null);
+
+    let query = supabase
+      .from("stock_items")
+      .select("id, name, identification, identification_link, data, created_at")
+      .eq("product_id", productId)
+      .eq("status", "revisado")
+      .is("order_item_id", null)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+
+    if (selectedItem?.stock_item_id) {
+      query = query.neq("id", selectedItem.stock_item_id);
+    }
+
+    const { data } = await query;
+    setAvailableStockItems(data || []);
+    setLoadingStockItems(false);
+  }
+
+  function handleSelectProduct(product: ProductOption) {
+    setSelectedProduct(product);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
+    fetchStockItems(product.id);
+  }
+
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(productSearch.toLowerCase())
@@ -217,29 +265,46 @@ export default function AdminTrocas() {
         }).eq("id", selectedItem.stock_item_id);
       }
 
-      // 2. Find available stock_item for new product (exclude the original to avoid swapping with itself)
-      let stockQuery = supabase
-        .from("stock_items")
-        .select("id, data, identification, identification_link")
-        .eq("product_id", selectedProduct.id)
-        .eq("status", "revisado")
-        .is("order_item_id", null)
-        .is("deleted_at", null);
-
-      if (selectedItem.stock_item_id) {
-        stockQuery = stockQuery.neq("id", selectedItem.stock_item_id);
+      // 2. Choose new stock_item (specific or next available)
+      let newStockItem: any = null;
+      if (selectedStockItem) {
+        const { data: specificStock } = await supabase
+          .from("stock_items")
+          .select("id, data, identification, identification_link")
+          .eq("id", selectedStockItem.id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null)
+          .maybeSingle();
+        newStockItem = specificStock;
       }
 
-      const { data: newStockItem, error: stockErr } = await stockQuery
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
+      if (!newStockItem) {
+        let stockQuery = supabase
+          .from("stock_items")
+          .select("id, data, identification, identification_link")
+          .eq("product_id", selectedProduct.id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null);
 
-      if (stockErr || !newStockItem) {
-        toast.error("Sem estoque disponível para o novo produto");
-        setLoading(false);
-        return;
+        if (selectedItem.stock_item_id) {
+          stockQuery = stockQuery.neq("id", selectedItem.stock_item_id);
+        }
+
+        const { data: fallbackStock, error: stockErr } = await stockQuery
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (stockErr || !fallbackStock) {
+          toast.error("Sem estoque disponível para o novo produto");
+          setLoading(false);
+          return;
+        }
+        newStockItem = fallbackStock;
       }
+
 
       // Build delivery_data
       const deliveryData: Record<string, any> = { ...(newStockItem.data as Record<string, any> || {}) };
@@ -347,12 +412,15 @@ export default function AdminTrocas() {
     setOrderItems([]);
     setSelectedItem(null);
     setSelectedProduct(null);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
     setReason("");
     setShowPasswordStep(false);
     setAdminPassword("");
     setExchangeDone(false);
     setLookupDone(false);
   }
+
 
   return (
     <div className="space-y-6 py-2">
@@ -452,7 +520,7 @@ export default function AdminTrocas() {
                   ) : filteredProducts.map(p => (
                     <button
                       key={p.id}
-                      onClick={() => setSelectedProduct(p)}
+                      onClick={() => handleSelectProduct(p)}
                       className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors ${
                         selectedProduct?.id === p.id
                           ? "bg-primary/10 border border-primary/30"
@@ -468,6 +536,53 @@ export default function AdminTrocas() {
                   ))}
                 </div>
               )}
+
+              {/* Step 2b: Select Specific Stock Item */}
+              {selectedProduct && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">
+                    Escolha um item específico do estoque (opcional)
+                  </p>
+                  {loadingStockItems ? (
+                    <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                  ) : availableStockItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">
+                      Nenhum item individual disponível. O sistema usará o próximo do estoque automaticamente.
+                    </p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-xl p-1">
+                      {availableStockItems.map(stock => (
+                        <button
+                          key={stock.id}
+                          onClick={() => setSelectedStockItem(stock)}
+                          className={`w-full text-left rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                            selectedStockItem?.id === stock.id
+                              ? "bg-primary/10 border border-primary/30"
+                              : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {stock.name || stock.data?.nomePerfil || stock.identification || `Item #${stock.id.slice(0, 8)}`}
+                              </p>
+                              {(stock.identification || stock.identification_link) && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {stock.identification_link || stock.identification}
+                                </p>
+                              )}
+                            </div>
+                            {selectedStockItem?.id === stock.id && (
+                              <CheckCircle className="size-4 text-primary shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
 
               {/* Price difference */}
               {selectedProduct && (
