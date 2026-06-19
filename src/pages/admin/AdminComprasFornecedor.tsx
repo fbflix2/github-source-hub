@@ -111,15 +111,19 @@ function normalizeAccountCredentials(account: Account): Account {
   const password = parts[1] || account.password;
   const rest = parts.slice(2);
 
-  const emails = rest.filter((p) => p.includes("@"));
+  // Real email = has @ and a TLD with a dot (e.g. user@domain.com). This excludes
+  // passwords that happen to include "@" (e.g. "AnhSon@17103Cz").
+  const isRealEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  const emails = rest.filter(isRealEmail);
   const principalEmail = emails.find((e) => /@(hotmail|outlook|live|msn)\./i.test(e)) || emails[0] || account.email_principal;
-  const altEmail = emails.find((e) => /@fviainboxes\./i.test(e)) || emails.find((e) => e !== principalEmail) || account.email_alt;
+  const altEmail = emails.find((e) => /@(fviainboxes|fviamail)\./i.test(e)) || emails.find((e) => e !== principalEmail) || account.email_alt;
 
   let emailPassword = account.email_password;
   if (principalEmail) {
     const idx = rest.indexOf(principalEmail);
     const candidate = rest[idx + 1];
-    if (candidate && !candidate.includes("@") && !/^https?:\/\//i.test(candidate)) {
+    // Password may contain "@" (e.g. AnhSon@17103Cz); only reject real emails / urls.
+    if (candidate && !isRealEmail(candidate) && !/^https?:\/\//i.test(candidate)) {
       emailPassword = candidate;
     }
   }
@@ -500,25 +504,27 @@ export default function AdminComprasFornecedor() {
         const restLinkIdx = rest.findIndex(p => /^https?:\/\//i.test(p));
         if (restLinkIdx >= 0) profile_link = rest[restLinkIdx];
 
-        // Collect emails (anything containing @) and classify by domain:
-        // - hotmail/outlook  => email_principal
-        // - fviainboxes.com  => email_alt
-        // Fallback: 1st email = principal, 2nd = alt
-        const emails = rest.filter(p => p.includes("@"));
+        // Detect REAL emails (must have TLD). Passwords like "AnhSon@17103Cz"
+        // also contain "@" but are NOT emails — exclude them via the TLD check.
+        const isRealEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
         const isPrincipalDomain = (e: string) => /@(hotmail|outlook|live|msn)\./i.test(e);
-        const isAltDomain = (e: string) => /@fviainboxes\./i.test(e);
+        const isAltDomain = (e: string) => /@(fviainboxes|fviamail)\./i.test(e);
 
+        const emails = rest.filter(isRealEmail);
         const principalMatch = emails.find(isPrincipalDomain);
         const altMatch = emails.find(isAltDomain);
         email_principal = principalMatch || emails[0];
         email_alt = altMatch && altMatch !== email_principal ? altMatch : emails.find(e => e !== email_principal);
 
-        // Email password = token immediately after the principal email
-        // Canonical format: ID|SENHA_FB|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT
+        // Email password = token immediately after the principal email.
+        // Canonical formats supported:
+        //   ID|SENHA_FB|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT
+        //   ID|SENHA_FB|2FA|COOKIES|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT
         if (email_principal) {
           const idxEmail = rest.indexOf(email_principal);
           const candidate = rest[idxEmail + 1];
-          if (candidate && !candidate.includes("@") && !/^https?:\/\//i.test(candidate)) {
+          // Password may legitimately contain "@"; only reject real emails / urls.
+          if (candidate && !isRealEmail(candidate) && !/^https?:\/\//i.test(candidate)) {
             email_password = candidate;
           }
         }
