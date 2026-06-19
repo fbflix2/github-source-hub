@@ -265,29 +265,46 @@ export default function AdminTrocas() {
         }).eq("id", selectedItem.stock_item_id);
       }
 
-      // 2. Find available stock_item for new product (exclude the original to avoid swapping with itself)
-      let stockQuery = supabase
-        .from("stock_items")
-        .select("id, data, identification, identification_link")
-        .eq("product_id", selectedProduct.id)
-        .eq("status", "revisado")
-        .is("order_item_id", null)
-        .is("deleted_at", null);
-
-      if (selectedItem.stock_item_id) {
-        stockQuery = stockQuery.neq("id", selectedItem.stock_item_id);
+      // 2. Choose new stock_item (specific or next available)
+      let newStockItem: any = null;
+      if (selectedStockItem) {
+        const { data: specificStock } = await supabase
+          .from("stock_items")
+          .select("id, data, identification, identification_link")
+          .eq("id", selectedStockItem.id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null)
+          .maybeSingle();
+        newStockItem = specificStock;
       }
 
-      const { data: newStockItem, error: stockErr } = await stockQuery
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
+      if (!newStockItem) {
+        let stockQuery = supabase
+          .from("stock_items")
+          .select("id, data, identification, identification_link")
+          .eq("product_id", selectedProduct.id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null);
 
-      if (stockErr || !newStockItem) {
-        toast.error("Sem estoque disponível para o novo produto");
-        setLoading(false);
-        return;
+        if (selectedItem.stock_item_id) {
+          stockQuery = stockQuery.neq("id", selectedItem.stock_item_id);
+        }
+
+        const { data: fallbackStock, error: stockErr } = await stockQuery
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (stockErr || !fallbackStock) {
+          toast.error("Sem estoque disponível para o novo produto");
+          setLoading(false);
+          return;
+        }
+        newStockItem = fallbackStock;
       }
+
 
       // Build delivery_data
       const deliveryData: Record<string, any> = { ...(newStockItem.data as Record<string, any> || {}) };
