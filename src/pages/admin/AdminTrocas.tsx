@@ -60,6 +60,12 @@ export default function AdminTrocas() {
   const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
+  // Specific stock item selection
+  const [availableStockItems, setAvailableStockItems] = useState<StockItemOption[]>([]);
+  const [selectedStockItem, setSelectedStockItem] = useState<StockItemOption | null>(null);
+  const [loadingStockItems, setLoadingStockItems] = useState(false);
+
+
   const [reason, setReason] = useState("");
 
   // Password step
