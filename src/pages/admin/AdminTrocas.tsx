@@ -412,12 +412,15 @@ export default function AdminTrocas() {
     setOrderItems([]);
     setSelectedItem(null);
     setSelectedProduct(null);
+    setSelectedStockItem(null);
+    setAvailableStockItems([]);
     setReason("");
     setShowPasswordStep(false);
     setAdminPassword("");
     setExchangeDone(false);
     setLookupDone(false);
   }
+
 
   return (
     <div className="space-y-6 py-2">
