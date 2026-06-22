@@ -30,6 +30,9 @@ interface Client {
   monthly_value: number; notes: string | null; created_at: string;
   plan?: Plan; profile?: { full_name: string | null; };
   items_count?: number;
+  paid_count?: number;
+  paid_total?: number;
+  last_paid_at?: string | null;
 }
 
 interface Item {
@@ -132,10 +135,18 @@ export default function AdminContingencia() {
     const planIds = [...new Set(data.map(c => c.plan_id).filter(Boolean))];
     const userIds = [...new Set(data.map(c => c.user_id))];
     
-    const [plansRes, profilesRes, itemsRes] = await Promise.all([
+    const [plansRes, profilesRes, itemsRes, invoicesRes] = await Promise.all([
       planIds.length ? supabase.from("ct_plans").select("*").in("id", planIds) : { data: [] },
       userIds.length ? supabase.from("profiles").select("user_id, full_name").in("user_id", userIds) : { data: [] },
       supabase.from("ct_items").select("ct_client_id"),
+      userIds.length
+        ? supabase
+            .from("invoice_links")
+            .select("client_user_id, amount, paid_at, product_name, status")
+            .in("client_user_id", userIds)
+            .eq("status", "paid")
+            .ilike("product_name", "%Conting%")
+        : { data: [] },
     ]);
 
     const plansMap = new Map((plansRes.data || []).map((p: any) => [p.id, p]));
@@ -144,12 +155,25 @@ export default function AdminContingencia() {
     (itemsRes.data || []).forEach((i: any) => {
       itemsCounts.set(i.ct_client_id, (itemsCounts.get(i.ct_client_id) || 0) + 1);
     });
+    const invAgg = new Map<string, { count: number; total: number; last: string | null }>();
+    (invoicesRes.data || []).forEach((inv: any) => {
+      const k = inv.client_user_id;
+      if (!k) return;
+      const cur = invAgg.get(k) || { count: 0, total: 0, last: null as string | null };
+      cur.count += 1;
+      cur.total += Number(inv.amount) || 0;
+      if (inv.paid_at && (!cur.last || inv.paid_at > cur.last)) cur.last = inv.paid_at;
+      invAgg.set(k, cur);
+    });
 
     setClients(data.map((c: any) => ({
       ...c,
       plan: plansMap.get(c.plan_id),
       profile: profilesMap.get(c.user_id),
       items_count: itemsCounts.get(c.id) || 0,
+      paid_count: invAgg.get(c.user_id)?.count || 0,
+      paid_total: invAgg.get(c.user_id)?.total || 0,
+      last_paid_at: invAgg.get(c.user_id)?.last || null,
     })));
   };
 
