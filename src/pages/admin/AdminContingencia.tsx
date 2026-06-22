@@ -526,6 +526,9 @@ export default function AdminContingencia() {
                     <th className="text-left p-3">Início</th>
                     <th className="text-left p-3">Próx. Cobrança</th>
                     <th className="text-right p-3">Valor</th>
+                    <th className="text-center p-3">Recorrências</th>
+                    <th className="text-right p-3">LTV Total</th>
+                    <th className="text-left p-3">Cliente há</th>
                     <th className="text-center p-3">Itens</th>
                     <th className="text-center p-3">Ações</th>
                   </tr>
@@ -579,6 +582,22 @@ export default function AdminContingencia() {
                         })()}
                       </td>
                       <td className="p-3 text-right text-emerald-400 font-medium">R$ {client.monthly_value.toFixed(2)}</td>
+                      <td className="p-3 text-center">
+                        <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/30 text-xs">
+                          {client.paid_count || 0}x
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right font-semibold text-emerald-300">
+                        R$ {(client.paid_total || 0).toFixed(2)}
+                      </td>
+                      <td className="p-3 text-white/60 text-xs">
+                        {(() => {
+                          const start = new Date(client.start_date).getTime();
+                          const days = Math.max(0, Math.floor((Date.now() - start) / 86400000));
+                          const months = Math.floor(days / 30);
+                          return months > 0 ? `${months} ${months === 1 ? "mês" : "meses"}` : `${days}d`;
+                        })()}
+                      </td>
                       <td className="p-3 text-center text-white/60">{client.items_count}</td>
                       <td className="p-3 text-center">
                         <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => loadClientStructure(client)}>
@@ -588,7 +607,7 @@ export default function AdminContingencia() {
                     </tr>
                   ))}
                   {filteredClients.length === 0 && (
-                    <tr><td colSpan={8} className="p-8 text-center text-white/40">Nenhum cliente encontrado</td></tr>
+                    <tr><td colSpan={11} className="p-8 text-center text-white/40">Nenhum cliente encontrado</td></tr>
                   )}
                 </tbody>
               </table>
