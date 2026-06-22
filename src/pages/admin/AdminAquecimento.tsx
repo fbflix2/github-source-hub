@@ -175,6 +175,7 @@ export default function AdminAquecimento() {
   const [reviewSearch, setReviewSearch] = useState("");
   const [reviewQualityMap, setReviewQualityMap] = useState<Record<string, any>>({});
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewEditingId, setReviewEditingId] = useState<string | null>(null);
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
@@ -1562,12 +1563,14 @@ export default function AdminAquecimento() {
               reviewFilteredProfiles.map((profile) => {
                 const q = reviewQualityMap[profile.id] || {};
                 const days = Math.max(1, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
+                const isEditing = reviewEditingId === profile.id;
                 return (
                   <div
                     key={profile.id}
-                    className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center justify-between gap-4"
+                    className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex flex-col gap-4"
                   >
-                    <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-[#1876f2]/10 flex items-center justify-center shrink-0">
                         <MIcon name="person" className="text-[#1876f2]" />
                       </div>
@@ -1577,7 +1580,7 @@ export default function AdminAquecimento() {
                           {days} dias · {profile.track_type.replace("_", " ")} · {profile.status}
                         </p>
                       </div>
-                    </div>
+                      </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       {q.has2FA && (
@@ -1600,14 +1603,17 @@ export default function AdminAquecimento() {
                     </div>
 
                     <button
-                      onClick={() => {
-                        setSelectedProfileId(profile.id);
-                        setActiveTab("esteiras");
-                      }}
+                      onClick={() => setReviewEditingId(isEditing ? null : profile.id)}
                       className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
                     >
-                      <MIcon name="edit" className="text-sm" /> Editar
+                      <MIcon name={isEditing ? "close" : "edit"} className="text-sm" /> {isEditing ? "Fechar" : "Editar"}
                     </button>
+                    </div>
+                    {isEditing && (
+                      <div className="border-t border-white/10 pt-4">
+                        <ProfileQualityMeter profileId={profile.id} profileCode={profile.profile_code} />
+                      </div>
+                    )}
                   </div>
                 );
               })
