@@ -30,6 +30,9 @@ interface Client {
   monthly_value: number; notes: string | null; created_at: string;
   plan?: Plan; profile?: { full_name: string | null; };
   items_count?: number;
+  paid_count?: number;
+  paid_total?: number;
+  last_paid_at?: string | null;
 }
 
 interface Item {
@@ -132,10 +135,18 @@ export default function AdminContingencia() {
     const planIds = [...new Set(data.map(c => c.plan_id).filter(Boolean))];
     const userIds = [...new Set(data.map(c => c.user_id))];
     
-    const [plansRes, profilesRes, itemsRes] = await Promise.all([
+    const [plansRes, profilesRes, itemsRes, invoicesRes] = await Promise.all([
       planIds.length ? supabase.from("ct_plans").select("*").in("id", planIds) : { data: [] },
       userIds.length ? supabase.from("profiles").select("user_id, full_name").in("user_id", userIds) : { data: [] },
       supabase.from("ct_items").select("ct_client_id"),
+      userIds.length
+        ? supabase
+            .from("invoice_links")
+            .select("client_user_id, amount, paid_at, product_name, status")
+            .in("client_user_id", userIds)
+            .eq("status", "paid")
+            .ilike("product_name", "%Conting%")
+        : { data: [] },
     ]);
 
     const plansMap = new Map((plansRes.data || []).map((p: any) => [p.id, p]));
@@ -144,12 +155,25 @@ export default function AdminContingencia() {
     (itemsRes.data || []).forEach((i: any) => {
       itemsCounts.set(i.ct_client_id, (itemsCounts.get(i.ct_client_id) || 0) + 1);
     });
+    const invAgg = new Map<string, { count: number; total: number; last: string | null }>();
+    (invoicesRes.data || []).forEach((inv: any) => {
+      const k = inv.client_user_id;
+      if (!k) return;
+      const cur = invAgg.get(k) || { count: 0, total: 0, last: null as string | null };
+      cur.count += 1;
+      cur.total += Number(inv.amount) || 0;
+      if (inv.paid_at && (!cur.last || inv.paid_at > cur.last)) cur.last = inv.paid_at;
+      invAgg.set(k, cur);
+    });
 
     setClients(data.map((c: any) => ({
       ...c,
       plan: plansMap.get(c.plan_id),
       profile: profilesMap.get(c.user_id),
       items_count: itemsCounts.get(c.id) || 0,
+      paid_count: invAgg.get(c.user_id)?.count || 0,
+      paid_total: invAgg.get(c.user_id)?.total || 0,
+      last_paid_at: invAgg.get(c.user_id)?.last || null,
     })));
   };
 
@@ -502,6 +526,9 @@ export default function AdminContingencia() {
                     <th className="text-left p-3">Início</th>
                     <th className="text-left p-3">Próx. Cobrança</th>
                     <th className="text-right p-3">Valor</th>
+                    <th className="text-center p-3">Recorrências</th>
+                    <th className="text-right p-3">LTV Total</th>
+                    <th className="text-left p-3">Cliente há</th>
                     <th className="text-center p-3">Itens</th>
                     <th className="text-center p-3">Ações</th>
                   </tr>
@@ -555,6 +582,22 @@ export default function AdminContingencia() {
                         })()}
                       </td>
                       <td className="p-3 text-right text-emerald-400 font-medium">R$ {client.monthly_value.toFixed(2)}</td>
+                      <td className="p-3 text-center">
+                        <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/30 text-xs">
+                          {client.paid_count || 0}x
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right font-semibold text-emerald-300">
+                        R$ {(client.paid_total || 0).toFixed(2)}
+                      </td>
+                      <td className="p-3 text-white/60 text-xs">
+                        {(() => {
+                          const start = new Date(client.start_date).getTime();
+                          const days = Math.max(0, Math.floor((Date.now() - start) / 86400000));
+                          const months = Math.floor(days / 30);
+                          return months > 0 ? `${months} ${months === 1 ? "mês" : "meses"}` : `${days}d`;
+                        })()}
+                      </td>
                       <td className="p-3 text-center text-white/60">{client.items_count}</td>
                       <td className="p-3 text-center">
                         <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => loadClientStructure(client)}>
@@ -564,7 +607,7 @@ export default function AdminContingencia() {
                     </tr>
                   ))}
                   {filteredClients.length === 0 && (
-                    <tr><td colSpan={8} className="p-8 text-center text-white/40">Nenhum cliente encontrado</td></tr>
+                    <tr><td colSpan={11} className="p-8 text-center text-white/40">Nenhum cliente encontrado</td></tr>
                   )}
                 </tbody>
               </table>
