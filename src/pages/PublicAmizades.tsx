@@ -74,15 +74,30 @@ export default function PublicAmizades() {
     };
   }, []);
 
-  const load = async () => {
+  const load = async (opts?: { silent?: boolean }) => {
     if (!allowed) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const j = await api("GET");
-    if (!j.ok) toast.error(j.error || "Erro");
-    setTargets((j.targets || []) as Target[]);
+    if (!j.ok) {
+      if (!opts?.silent) toast.error(j.error || "Erro");
+      if (!opts?.silent) setLoading(false);
+      return;
+    }
+    const incoming = (j.targets || []) as Target[];
+    // Merge preservando estado otimista local (added marcado há <10s ainda não persistido no servidor)
+    setTargets((prev) => {
+      const prevMap = new Map(prev.map((p) => [p.id, p]));
+      return incoming.map((t) => {
+        const p = prevMap.get(t.id);
+        if (!p) return t;
+        // Se localmente está added=true e o servidor ainda não refletiu, mantém local
+        if (p.added && !t.added) return { ...t, added: true, added_at: p.added_at };
+        return t;
+      });
+    });
     setBatches((j.batches || []) as Batch[]);
     setSuppliers((j.suppliers || []) as Supplier[]);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   };
 
   useEffect(() => {
@@ -90,10 +105,11 @@ export default function PublicAmizades() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed]);
 
-  // Atualiza a cada 15s para refletir mudanças do bookmarklet
+  // Atualiza em background (silencioso) a cada 30s para refletir mudanças do bookmarklet
+  // sem causar "piscar" da tela.
   useEffect(() => {
     if (!allowed) return;
-    const i = setInterval(load, 15000);
+    const i = setInterval(() => load({ silent: true }), 30000);
     return () => clearInterval(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed]);
@@ -167,6 +183,9 @@ export default function PublicAmizades() {
   const openProfile = (t: Target) => {
     window.open(t.profile_url, "_blank", "noopener,noreferrer");
     setOpened((p) => ({ ...p, [t.id]: true }));
+    // Marca automaticamente como solicitado ao abrir o perfil (fluxo: abrir → adicionar amigo no FB).
+    // Caso o operador não tenha enviado a solicitação, basta clicar em "Refazer (desmarcar)".
+    if (!t.added) setAdded(t, true);
   };
 
   if (!allowed) {
@@ -247,8 +266,8 @@ export default function PublicAmizades() {
             onClick={() => {
               const pending = filtered.filter((t) => !t.added).slice(0, 10);
               if (!pending.length) { toast.message("Nenhum perfil pendente."); return; }
-              pending.forEach((t) => window.open(t.profile_url, "_blank", "noopener,noreferrer"));
-              toast.success(`${pending.length} perfis abertos`);
+              pending.forEach((t) => openProfile(t));
+              toast.success(`${pending.length} perfis abertos e marcados como solicitados`);
             }}
           >
             <FolderOpen className="size-4" /> Abrir próximos 10
