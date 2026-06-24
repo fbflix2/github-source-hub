@@ -73,12 +73,6 @@ export default function AdminSolicitacoesAmizade() {
       const results = await Promise.all(
         missing.map(async (t) => {
           try {
-            const { data } = await supabase.functions.invoke("fb-photo", {
-              body: null,
-              method: "GET",
-              // @ts-ignore - supabase-js supports query via headers fallback
-            });
-            // Fallback: chamar via fetch direto (a função usa querystring)
             const url = `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-photo?url=${encodeURIComponent(t.profile_url)}`;
             const r = await fetch(url);
             const j = await r.json();
