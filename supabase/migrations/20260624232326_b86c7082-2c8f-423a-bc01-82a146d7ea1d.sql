@@ -1,0 +1,1 @@
+ALTER TABLE public.friend_request_targets ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT false; ALTER TABLE public.friend_request_targets ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMPTZ; ALTER TABLE public.friend_request_targets ADD COLUMN IF NOT EXISTS blocked_reason TEXT;

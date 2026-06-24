@@ -13,6 +13,32 @@
     } catch { return false; }
   }
 
+  // Detecta tela "Esse conteúdo não está disponível" / checkpoint / login wall
+  function detectBlocked() {
+    const href = location.href;
+    if (/\/checkpoint/i.test(href) || /\/login/i.test(href)) {
+      return { blocked: true, reason: "checkpoint_or_login_redirect" };
+    }
+    const body = (document.body && document.body.innerText) || "";
+    const patterns = [
+      /este conte[uú]do n[ãa]o est[áa] dispon[íi]vel/i,
+      /esta p[áa]gina n[ãa]o est[áa] dispon[íi]vel/i,
+      /conte[uú]do n[ãa]o est[áa] dispon[íi]vel no momento/i,
+      /this content isn'?t available/i,
+      /this page isn'?t available/i,
+      /sorry,?\s*this content isn'?t available/i,
+      /a conta foi desativada/i,
+      /account has been disabled/i,
+      /perfil n[ãa]o est[áa] dispon[íi]vel/i,
+      /o link que voc[êe] seguiu pode estar quebrado/i,
+      /the link you followed may be broken/i,
+    ];
+    for (const re of patterns) {
+      if (re.test(body)) return { blocked: true, reason: re.source.slice(0, 60) };
+    }
+    return { blocked: false };
+  }
+
   function parseCount(text) {
     if (!text) return null;
     const t = text.replace(/\u00a0/g, " ").trim();
@@ -75,6 +101,29 @@
   async function attemptCapture(reason) {
     const href = location.href;
     if (!isProfileUrl(href)) return;
+
+    // 1) Primeiro verifica se a página é de bloqueio/checkpoint
+    const block = detectBlocked();
+    if (block.blocked) {
+      if (lastSent.url === href && Date.now() - lastSent.at < 60000) return;
+      lastSent = { url: href, at: Date.now() };
+      try {
+        const r = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ profile_url: href, blocked: true, blocked_reason: block.reason }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j?.ok) {
+          showBadge(false, `🚫 FBFlix: perfil bloqueado/checkpoint`);
+          chrome.storage.local.set({ lastCapture: { url: href, blocked: true, at: Date.now() } });
+        }
+      } catch (e) {
+        console.warn("[FBFlix] block send error", e);
+      }
+      return;
+    }
+
     const count = findFriendsCount();
     if (count == null) return;
     const name = findName();
@@ -85,7 +134,7 @@
       const r = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ profile_url: href, friends_count: count, name }),
+        body: JSON.stringify({ profile_url: href, friends_count: count, name, blocked: false }),
       });
       const j = await r.json().catch(() => ({}));
       if (j?.ok) {
