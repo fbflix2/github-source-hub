@@ -85,8 +85,28 @@ serve(async (req) => {
       );
     }
 
+    // Também tenta extrair o nome do perfil via og:title da página (uso UA de crawler)
+    let name: string | null = null;
+    try {
+      const pageResp = await fetch(profileUrl, {
+        headers: { "user-agent": "facebookexternalhit/1.1" },
+        redirect: "follow",
+      });
+      if (pageResp.ok) {
+        const html = await pageResp.text();
+        const og = html.match(/property=["']og:title["']\s+content=["']([^"']+)["']/i)
+          || html.match(/og:title["']\s+content=["']([^"']+)["']/i);
+        const title = og?.[1] || html.match(/<title>([^<]+)<\/title>/i)?.[1] || null;
+        if (title && !/^error$/i.test(title.trim())) {
+          name = title.replace(/\s*\|\s*Facebook\s*$/i, "").trim();
+        }
+      }
+    } catch (e) {
+      console.warn("name scrape failed:", e);
+    }
+
     return new Response(
-      JSON.stringify({ ok: true, photoUrl }),
+      JSON.stringify({ ok: true, photoUrl, name }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
