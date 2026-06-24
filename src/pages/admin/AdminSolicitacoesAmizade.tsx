@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users } from "lucide-react";
+import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen } from "lucide-react";
 
 type Target = {
   id: string;
@@ -40,6 +40,7 @@ export default function AdminSolicitacoesAmizade() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "added">("pending");
   const [filterBatch, setFilterBatch] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [photos, setPhotos] = useState<Record<string, string | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -62,6 +63,43 @@ export default function AdminSolicitacoesAmizade() {
   useEffect(() => {
     load();
   }, []);
+
+  // Busca foto do FB (via edge function fb-photo) para perfis visíveis ainda sem cache
+  useEffect(() => {
+    const missing = targets.filter((t) => photos[t.id] === undefined).slice(0, 30);
+    if (!missing.length) return;
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        missing.map(async (t) => {
+          try {
+            const { data } = await supabase.functions.invoke("fb-photo", {
+              body: null,
+              method: "GET",
+              // @ts-ignore - supabase-js supports query via headers fallback
+            });
+            // Fallback: chamar via fetch direto (a função usa querystring)
+            const url = `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-photo?url=${encodeURIComponent(t.profile_url)}`;
+            const r = await fetch(url);
+            const j = await r.json();
+            return [t.id, j?.ok ? (j.photoUrl as string) : null] as const;
+          } catch {
+            return [t.id, null] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setPhotos((prev) => {
+        const next = { ...prev };
+        for (const [id, url] of results) next[id] = url;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targets]);
 
   const supplierMap = useMemo(
     () => Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
