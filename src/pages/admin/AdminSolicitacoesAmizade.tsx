@@ -72,7 +72,15 @@ export default function AdminSolicitacoesAmizade() {
     [batches],
   );
 
-  const toggleAdded = async (t: Target, value: boolean) => {
+  // Marcadores locais: quem já teve o perfil aberto (passo 1) nesta sessão
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+  const openProfile = (t: Target) => {
+    window.open(t.profile_url, "_blank", "noopener,noreferrer");
+    setOpened((prev) => ({ ...prev, [t.id]: true }));
+  };
+
+  const setAdded = async (t: Target, value: boolean) => {
     const patch = {
       added: value,
       added_at: value ? new Date().toISOString() : null,
@@ -87,11 +95,6 @@ export default function AdminSolicitacoesAmizade() {
     if (error) {
       toast.error(error.message);
       load();
-      return;
-    }
-    if (value) {
-      // open profile in new tab to actually send the friend request
-      window.open(t.profile_url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -233,35 +236,38 @@ export default function AdminSolicitacoesAmizade() {
                     {t.profile_url}
                   </a>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2">
                     {t.added ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 gap-1.5"
-                        onClick={() => toggleAdded(t, false)}
+                        className="w-full gap-1.5"
+                        onClick={() => setAdded(t, false)}
                       >
-                        <RotateCcw className="size-4" /> Refazer
+                        <RotateCcw className="size-4" /> Refazer (desmarcar)
                       </Button>
                     ) : (
-                      <Button
-                        size="sm"
-                        className="flex-1 gap-1.5 bg-primary hover:bg-primary/90"
-                        onClick={() => toggleAdded(t, true)}
-                      >
-                        <UserPlus className="size-4" /> Adicionar aos amigos
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          className="w-full gap-1.5 bg-primary hover:bg-primary/90"
+                          onClick={() => openProfile(t)}
+                        >
+                          <ExternalLink className="size-4" />
+                          {opened[t.id] ? "Abrir perfil novamente" : "Abrir perfil no Facebook"}
+                        </Button>
+                        {opened[t.id] && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-1.5 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                            onClick={() => setAdded(t, true)}
+                          >
+                            <CheckCircle2 className="size-4" /> Marcar como solicitado
+                          </Button>
+                        )}
+                      </>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      asChild
-                      className="text-white/60 hover:text-white"
-                    >
-                      <a href={t.profile_url} target="_blank" rel="noreferrer">
-                        <ExternalLink className="size-4" />
-                      </a>
-                    </Button>
                   </div>
 
                   {t.added && t.added_at && (
