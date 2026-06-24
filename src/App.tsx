@@ -451,6 +451,7 @@ const App = () => {
                   <Route path="whatsapp-crm" element={<AdminWhatsAppCRM />} />
                   <Route path="configuracoes/departamentos" element={<AdminDepartments />} />
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
+                  <Route path="solicitacoes-amizade" element={<AdminSolicitacoesAmizade />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
