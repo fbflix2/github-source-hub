@@ -1363,12 +1363,15 @@ export type Database = {
           added: boolean
           added_at: string | null
           batch_id: string
+          blocked_at: string | null
+          blocked_reason: string | null
           created_at: string
           created_by: string | null
           friends_count: number | null
           friends_goal: number
           friends_updated_at: string | null
           id: string
+          is_blocked: boolean
           notes: string | null
           profile_name: string | null
           profile_url: string
@@ -1377,12 +1380,15 @@ export type Database = {
           added?: boolean
           added_at?: string | null
           batch_id: string
+          blocked_at?: string | null
+          blocked_reason?: string | null
           created_at?: string
           created_by?: string | null
           friends_count?: number | null
           friends_goal?: number
           friends_updated_at?: string | null
           id?: string
+          is_blocked?: boolean
           notes?: string | null
           profile_name?: string | null
           profile_url: string
@@ -1391,12 +1397,15 @@ export type Database = {
           added?: boolean
           added_at?: string | null
           batch_id?: string
+          blocked_at?: string | null
+          blocked_reason?: string | null
           created_at?: string
           created_by?: string | null
           friends_count?: number | null
           friends_goal?: number
           friends_updated_at?: string | null
           id?: string
+          is_blocked?: boolean
           notes?: string | null
           profile_name?: string | null
           profile_url?: string

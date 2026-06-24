@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       const [t, b, s] = await Promise.all([
         supabase
           .from("friend_request_targets")
-          .select("id,batch_id,profile_url,profile_name,added,added_at,created_at,friends_count,friends_updated_at,friends_goal")
+          .select("id,batch_id,profile_url,profile_name,added,added_at,created_at,friends_count,friends_updated_at,friends_goal,is_blocked,blocked_at,blocked_reason")
           .order("created_at", { ascending: false })
           .limit(2000),
         supabase.from("supplier_batches").select("id,name,supplier_id"),
@@ -74,6 +74,22 @@ Deno.serve(async (req) => {
         const { error } = await supabase
           .from("friend_request_targets")
           .update({ friends_goal: goal })
+          .eq("id", id);
+        if (error) throw error;
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (action === "set_blocked") {
+        const value = Boolean(body?.value);
+        const { error } = await supabase
+          .from("friend_request_targets")
+          .update({
+            is_blocked: value,
+            blocked_at: value ? new Date().toISOString() : null,
+            blocked_reason: value ? (body?.reason || "manual") : null,
+          })
           .eq("id", id);
         if (error) throw error;
         return new Response(JSON.stringify({ ok: true }), {

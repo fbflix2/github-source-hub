@@ -25,10 +25,17 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const profileUrl: string = body?.profile_url || "";
+    const isBlocked: boolean = body?.blocked === true;
+    const blockedReason: string | null = body?.blocked_reason ?? null;
     const friendsCount = Number(body?.friends_count);
     const name: string | null = body?.name ?? null;
 
-    if (!profileUrl || !Number.isFinite(friendsCount) || friendsCount < 0 || friendsCount > 100000) {
+    if (!profileUrl) {
+      return new Response(JSON.stringify({ ok: false, error: "profile_url obrigatório" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!isBlocked && (!Number.isFinite(friendsCount) || friendsCount < 0 || friendsCount > 100000)) {
       return new Response(JSON.stringify({ ok: false, error: "Parâmetros inválidos" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -61,11 +68,20 @@ Deno.serve(async (req) => {
     }
 
     const ids = matches.map((m) => m.id);
-    const patch: Record<string, unknown> = {
-      friends_count: Math.round(friendsCount),
-      friends_updated_at: new Date().toISOString(),
-    };
-    if (name && name.trim()) patch.profile_name = name.trim();
+    const patch: Record<string, unknown> = {};
+    if (isBlocked) {
+      patch.is_blocked = true;
+      patch.blocked_at = new Date().toISOString();
+      if (blockedReason) patch.blocked_reason = String(blockedReason).slice(0, 200);
+    } else {
+      patch.friends_count = Math.round(friendsCount);
+      patch.friends_updated_at = new Date().toISOString();
+      // Captura bem-sucedida = perfil acessível, desmarca bloqueio anterior
+      patch.is_blocked = false;
+      patch.blocked_at = null;
+      patch.blocked_reason = null;
+      if (name && name.trim()) patch.profile_name = name.trim();
+    }
 
     const { error: upErr } = await supabase
       .from("friend_request_targets")
@@ -73,7 +89,7 @@ Deno.serve(async (req) => {
       .in("id", ids);
     if (upErr) throw upErr;
 
-    return new Response(JSON.stringify({ ok: true, updated: ids.length, friends_count: patch.friends_count }), {
+    return new Response(JSON.stringify({ ok: true, updated: ids.length, blocked: isBlocked, friends_count: patch.friends_count ?? null }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

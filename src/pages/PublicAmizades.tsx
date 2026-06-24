@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target, Download } from "lucide-react";
+import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target, Download, Ban, ShieldAlert } from "lucide-react";
 
 const OP_SLUG = "amizades-7k9mpx2qvnxp";
 const FN_BASE = "https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1";
@@ -22,6 +22,9 @@ type Target = {
   friends_count: number | null;
   friends_updated_at: string | null;
   friends_goal: number | null;
+  is_blocked?: boolean | null;
+  blocked_at?: string | null;
+  blocked_reason?: string | null;
 };
 type Batch = { id: string; name: string; supplier_id: string };
 type Supplier = { id: string; name: string };
@@ -55,7 +58,7 @@ export default function PublicAmizades() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "added">("pending");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "added" | "blocked">("pending");
   const [filterBatch, setFilterBatch] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
@@ -145,8 +148,11 @@ export default function PublicAmizades() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return targets.filter((t) => {
-      if (filterStatus === "pending" && t.added) return false;
+      if (filterStatus === "pending" && (t.added || t.is_blocked)) return false;
       if (filterStatus === "added" && !t.added) return false;
+      if (filterStatus === "blocked" && !t.is_blocked) return false;
+      // "all" inclui bloqueados; demais filtros ocultam por padrão
+      if (filterStatus !== "all" && filterStatus !== "blocked" && t.is_blocked) return false;
       if (filterBatch !== "all" && t.batch_id !== filterBatch) return false;
       if (q) {
         const text = `${t.profile_name || ""} ${t.profile_url}`.toLowerCase();
@@ -159,7 +165,8 @@ export default function PublicAmizades() {
   const stats = useMemo(() => {
     const total = targets.length;
     const added = targets.filter((t) => t.added).length;
-    return { total, added, pending: total - added };
+    const blocked = targets.filter((t) => t.is_blocked).length;
+    return { total, added, blocked, pending: total - added - blocked };
   }, [targets]);
 
   const bookmarkletCode = useMemo(() => {
@@ -180,7 +187,17 @@ export default function PublicAmizades() {
     if (!j.ok) toast.error(j.error || "Erro");
   };
 
+  const setBlocked = async (t: Target, value: boolean) => {
+    setTargets((prev) => prev.map((x) => (x.id === t.id ? { ...x, is_blocked: value, blocked_at: value ? new Date().toISOString() : null } : x)));
+    const j = await api("POST", { action: "set_blocked", id: t.id, value, reason: "manual" });
+    if (!j.ok) { toast.error(j.error || "Erro"); load(); }
+  };
+
   const openProfile = (t: Target) => {
+    if (t.is_blocked) {
+      toast.error("Perfil marcado como bloqueado/checkpoint.");
+      return;
+    }
     window.open(t.profile_url, "_blank", "noopener,noreferrer");
     setOpened((p) => ({ ...p, [t.id]: true }));
     // Marca automaticamente como solicitado ao abrir o perfil (fluxo: abrir → adicionar amigo no FB).
@@ -265,10 +282,11 @@ export default function PublicAmizades() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="bg-white/5 border-white/10"><CardContent className="p-4"><div className="text-xs text-white/60 flex items-center gap-1"><Users className="size-3" /> Total</div><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
           <Card className="bg-white/5 border-white/10"><CardContent className="p-4"><div className="text-xs text-amber-400">Pendentes</div><div className="text-2xl font-bold text-amber-400">{stats.pending}</div></CardContent></Card>
           <Card className="bg-white/5 border-white/10"><CardContent className="p-4"><div className="text-xs text-emerald-400">Solicitados</div><div className="text-2xl font-bold text-emerald-400">{stats.added}</div></CardContent></Card>
+          <Card className="bg-white/5 border-white/10"><CardContent className="p-4"><div className="text-xs text-red-400 flex items-center gap-1"><Ban className="size-3" /> Bloqueados</div><div className="text-2xl font-bold text-red-400">{stats.blocked}</div></CardContent></Card>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -276,11 +294,12 @@ export default function PublicAmizades() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-white/40" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome ou URL" className="pl-9 bg-background/60" />
           </div>
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "pending" | "added")}>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as "all" | "pending" | "added" | "blocked")}>
             <SelectTrigger className="w-[180px] bg-background/60"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="pending">Apenas pendentes</SelectItem>
               <SelectItem value="added">Apenas solicitados</SelectItem>
+              <SelectItem value="blocked">Apenas bloqueados</SelectItem>
               <SelectItem value="all">Todos</SelectItem>
             </SelectContent>
           </Select>
@@ -297,7 +316,7 @@ export default function PublicAmizades() {
             variant="outline"
             className="gap-2 border-primary/40 text-primary hover:bg-primary/10"
             onClick={() => {
-              const pending = filtered.filter((t) => !t.added).slice(0, 10);
+              const pending = filtered.filter((t) => !t.added && !t.is_blocked).slice(0, 10);
               if (!pending.length) { toast.message("Nenhum perfil pendente."); return; }
               pending.forEach((t) => openProfile(t));
               toast.success(`${pending.length} perfis abertos e marcados como solicitados`);
@@ -321,10 +340,10 @@ export default function PublicAmizades() {
               const pct = Math.min(100, Math.round((count / goal) * 100));
               const hit = count >= goal;
               return (
-                <Card key={t.id} className={`bg-white/5 border ${t.added ? "border-emerald-500/30" : "border-white/10"}`}>
+                <Card key={t.id} className={`bg-white/5 border ${t.is_blocked ? "border-red-500/40 opacity-80" : t.added ? "border-emerald-500/30" : "border-white/10"}`}>
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start gap-3">
-                      <div className="size-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0 border border-white/10">
+                      <div className={`size-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0 border ${t.is_blocked ? "border-red-500/40 grayscale" : "border-white/10"}`}>
                         {photos[t.id] ? (
                           <img src={photos[t.id] as string} alt={t.profile_name || ""} className="size-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                         ) : (
@@ -335,12 +354,24 @@ export default function PublicAmizades() {
                         <div className="font-medium truncate">{fbNames[t.id] || t.profile_name || extractName(t.profile_url)}</div>
                         <div className="text-[11px] text-white/50 truncate">{supplierName} • {batch?.name || "—"}</div>
                       </div>
-                      {t.added ? (
+                      {t.is_blocked ? (
+                        <Badge className="bg-red-500/15 text-red-400 border-red-500/40 gap-1"><Ban className="size-3" /> Bloqueado</Badge>
+                      ) : t.added ? (
                         <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Solicitado</Badge>
                       ) : (
                         <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30">Pendente</Badge>
                       )}
                     </div>
+
+                    {t.is_blocked && (
+                      <div className="rounded-md bg-red-500/10 border border-red-500/30 px-2.5 py-2 text-[11px] text-red-300 flex items-start gap-1.5">
+                        <ShieldAlert className="size-3.5 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          Perfil em checkpoint ou desativado — não abra.
+                          {t.blocked_at && <span className="block text-red-300/60">Detectado em {new Date(t.blocked_at).toLocaleString("pt-BR")}</span>}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="rounded-lg bg-white/5 border border-white/10 p-2.5 space-y-1.5">
                       <div className="flex items-baseline justify-between gap-2">
@@ -378,7 +409,11 @@ export default function PublicAmizades() {
                     <a href={t.profile_url} target="_blank" rel="noreferrer" className="block text-xs text-white/60 hover:text-primary break-all">{t.profile_url}</a>
 
                     <div className="flex flex-col gap-2">
-                      {t.added ? (
+                      {t.is_blocked ? (
+                        <Button variant="outline" size="sm" className="w-full gap-1.5 border-red-500/40 text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, false)}>
+                          <RotateCcw className="size-4" /> Desmarcar bloqueio
+                        </Button>
+                      ) : t.added ? (
                         <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setAdded(t, false)}>
                           <RotateCcw className="size-4" /> Refazer (desmarcar)
                         </Button>
@@ -392,6 +427,9 @@ export default function PublicAmizades() {
                               <CheckCircle2 className="size-4" /> Marcar como solicitado
                             </Button>
                           )}
+                          <Button size="sm" variant="ghost" className="w-full gap-1.5 text-red-400/80 hover:text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, true)}>
+                            <Ban className="size-4" /> Marcar como bloqueado
+                          </Button>
                         </>
                       )}
                     </div>
