@@ -124,6 +124,7 @@ import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
+import PublicAmizades from "./pages/PublicAmizades";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
 import Status from "./pages/Status";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -382,6 +383,7 @@ const App = () => {
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
                 <Route path="/status" element={<Status />} />
+                <Route path="/op/:slug" element={<PublicAmizades />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
