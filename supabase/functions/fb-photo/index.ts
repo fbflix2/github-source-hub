@@ -65,6 +65,7 @@ serve(async (req) => {
     // 1) Raspagem da página com UA de crawler — pega og:image (foto REAL) e og:title (nome)
     let name: string | null = null;
     let photoUrl: string | null = null;
+    let friendsCount: number | null = null;
     try {
       const pageResp = await fetch(profileUrl, {
         headers: { "user-agent": "facebookexternalhit/1.1" },
@@ -83,6 +84,32 @@ serve(async (req) => {
         const ogImg = html.match(/property=["']og:image["']\s+content=["']([^"']+)["']/i)
           || html.match(/og:image["']\s+content=["']([^"']+)["']/i);
         if (ogImg?.[1]) photoUrl = decode(ogImg[1]);
+
+        // Tenta extrair contagem de amigos do og:description ou do HTML
+        const ogDesc = html.match(/property=["']og:description["']\s+content=["']([^"']+)["']/i)?.[1] || "";
+        const haystack = decode(ogDesc + " " + html);
+        const parseNum = (s: string) => {
+          const n = parseFloat(s.replace(/[\.,](?=\d{3}\b)/g, "").replace(",", "."));
+          if (isNaN(n)) return null;
+          return Math.round(n);
+        };
+        const patterns = [
+          /([\d.,]+)\s*(?:mil|k)?\s*amigos/i,
+          /([\d.,]+)\s*(?:mil|k)?\s*friends/i,
+          /"friend_count"\s*:\s*(\d+)/i,
+          /"friendsCount"\s*:\s*(\d+)/i,
+        ];
+        for (const re of patterns) {
+          const m = haystack.match(re);
+          if (m?.[1]) {
+            let n = parseNum(m[1]);
+            if (n !== null) {
+              if (/mil|k/i.test(m[0]) && n < 10000) n = Math.round(n * 1000);
+              friendsCount = n;
+              break;
+            }
+          }
+        }
       }
     } catch (e) {
       console.warn("page scrape failed:", e);
@@ -110,7 +137,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, photoUrl, name }),
+      JSON.stringify({ ok: true, photoUrl, name, friendsCount }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
