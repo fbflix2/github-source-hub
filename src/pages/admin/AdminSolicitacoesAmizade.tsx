@@ -42,6 +42,7 @@ export default function AdminSolicitacoesAmizade() {
   const [search, setSearch] = useState("");
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
   const [fbNames, setFbNames] = useState<Record<string, string | null>>({});
+  const [fbFriends, setFbFriends] = useState<Record<string, number | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -81,21 +82,27 @@ export default function AdminSolicitacoesAmizade() {
               t.id,
               j?.ok ? (j.photoUrl as string) : null,
               j?.ok ? ((j.name as string) || null) : null,
+              j?.ok ? ((j.friendsCount as number) ?? null) : null,
             ] as const;
           } catch {
-            return [t.id, null, null] as const;
+            return [t.id, null, null, null] as const;
           }
         }),
       );
       if (cancelled) return;
       setPhotos((prev) => {
         const next = { ...prev };
-        for (const [id, url] of results) next[id] = url;
+        for (const [id, url] of results) next[id] = url as string | null;
         return next;
       });
       setFbNames((prev) => {
         const next = { ...prev };
-        for (const [id, , nm] of results) next[id] = nm;
+        for (const [id, , nm] of results) next[id] = nm as string | null;
+        return next;
+      });
+      setFbFriends((prev) => {
+        const next = { ...prev };
+        for (const [id, , , fc] of results) next[id] = (fc as number | null) ?? null;
         return next;
       });
     })();
@@ -289,6 +296,12 @@ export default function AdminSolicitacoesAmizade() {
                       <div className="text-[11px] text-white/50 truncate">
                         {supplierName} • {batch?.name || "—"}
                       </div>
+                      {fbFriends[t.id] != null && (
+                        <div className="text-[11px] text-primary/80 flex items-center gap-1 mt-0.5">
+                          <Users className="size-3" />
+                          {fbFriends[t.id]!.toLocaleString("pt-BR")} amigos
+                        </div>
+                      )}
                     </div>
                     {t.added ? (
                       <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
