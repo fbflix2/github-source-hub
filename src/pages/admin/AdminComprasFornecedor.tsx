@@ -625,7 +625,14 @@ export default function AdminComprasFornecedor() {
           <TabsTrigger value="accounts" className="data-[state=active]:bg-primary data-[state=active]:text-white">
             <Users className="size-4 mr-1.5" /> Contas
           </TabsTrigger>
+          <TabsTrigger value="friend-links" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Link2 className="size-4 mr-1.5" /> Links Perfil
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="friend-links" className="space-y-3 mt-4">
+          <FriendRequestLinksTab batches={batches} suppliers={suppliers} />
+        </TabsContent>
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-4 mt-4">
