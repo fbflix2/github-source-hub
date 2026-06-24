@@ -409,7 +409,11 @@ export default function PublicAmizades() {
                     <a href={t.profile_url} target="_blank" rel="noreferrer" className="block text-xs text-white/60 hover:text-primary break-all">{t.profile_url}</a>
 
                     <div className="flex flex-col gap-2">
-                      {t.added ? (
+                      {t.is_blocked ? (
+                        <Button variant="outline" size="sm" className="w-full gap-1.5 border-red-500/40 text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, false)}>
+                          <RotateCcw className="size-4" /> Desmarcar bloqueio
+                        </Button>
+                      ) : t.added ? (
                         <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setAdded(t, false)}>
                           <RotateCcw className="size-4" /> Refazer (desmarcar)
                         </Button>
@@ -423,6 +427,9 @@ export default function PublicAmizades() {
                               <CheckCircle2 className="size-4" /> Marcar como solicitado
                             </Button>
                           )}
+                          <Button size="sm" variant="ghost" className="w-full gap-1.5 text-red-400/80 hover:text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, true)}>
+                            <Ban className="size-4" /> Marcar como bloqueado
+                          </Button>
                         </>
                       )}
                     </div>
