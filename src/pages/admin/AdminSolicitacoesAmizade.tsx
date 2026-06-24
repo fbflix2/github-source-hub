@@ -284,7 +284,7 @@ export default function AdminSolicitacoesAmizade() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">
-                        {t.profile_name || extractName(t.profile_url)}
+                        {fbNames[t.id] || t.profile_name || extractName(t.profile_url)}
                       </div>
                       <div className="text-[11px] text-white/50 truncate">
                         {supplierName} • {batch?.name || "—"}
