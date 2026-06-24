@@ -266,8 +266,8 @@ export default function PublicAmizades() {
             onClick={() => {
               const pending = filtered.filter((t) => !t.added).slice(0, 10);
               if (!pending.length) { toast.message("Nenhum perfil pendente."); return; }
-              pending.forEach((t) => window.open(t.profile_url, "_blank", "noopener,noreferrer"));
-              toast.success(`${pending.length} perfis abertos`);
+              pending.forEach((t) => openProfile(t));
+              toast.success(`${pending.length} perfis abertos e marcados como solicitados`);
             }}
           >
             <FolderOpen className="size-4" /> Abrir próximos 10
