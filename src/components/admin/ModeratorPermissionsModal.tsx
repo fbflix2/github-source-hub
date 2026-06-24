@@ -51,6 +51,7 @@ const allMenuOptions = [
   { path: "/admin/ferramentas-2fa", label: "Ferramentas > 2FA" },
   { path: "/admin/imagens", label: "Ferramentas > Imagens" },
   { path: "/admin/compras-fornecedor", label: "Compras Fornecedor" },
+  { path: "/admin/solicitacoes-amizade", label: "Solicitações de Amizade" },
 ];
 
 interface ModeratorPermissionsModalProps {
