@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target } from "lucide-react";
+import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target, Download } from "lucide-react";
 
 const OP_SLUG = "amizades-7k9mpx2qvnxp";
 const FN_BASE = "https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1";
@@ -212,16 +212,49 @@ export default function PublicAmizades() {
         <Card className="bg-primary/5 border-primary/30">
           <CardContent className="p-4 flex flex-wrap items-center gap-3">
             <div className="flex-1 min-w-[260px]">
-              <div className="font-medium flex items-center gap-2"><Bookmark className="size-4 text-primary" /> Capturar amigos automaticamente</div>
+              <div className="font-medium flex items-center gap-2"><Download className="size-4 text-primary" /> Extensão FBFlix (recomendado)</div>
               <p className="text-xs text-white/60 mt-1">
-                1) Arraste o botão verde para a barra de favoritos. 2) Na página do perfil no Facebook (logado), clique no favorito — a contagem é salva aqui.
+                Instale uma vez e a contagem de amigos é capturada <b>automaticamente</b> ao abrir qualquer perfil do Facebook — sem cliques.
+              </p>
+              <ol className="text-[11px] text-white/50 mt-2 list-decimal pl-4 space-y-0.5">
+                <li>Baixe e descompacte o arquivo .zip</li>
+                <li>Abra <code className="text-white/70">chrome://extensions</code> e ative o <b>Modo desenvolvedor</b></li>
+                <li>Clique em <b>Carregar sem compactação</b> e selecione a pasta descompactada</li>
+              </ol>
+            </div>
+            <Button
+              onClick={() => {
+                fetch("/fbflix-extension.zip")
+                  .then((r) => { if (!r.ok) throw new Error("Falha no download"); return r.blob(); })
+                  .then((blob) => {
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = "fbflix-extension.zip";
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  })
+                  .catch((e) => toast.error(e.message));
+              }}
+              className="bg-primary hover:bg-primary/90 text-black font-semibold gap-2"
+            >
+              <Download className="size-4" /> Baixar Extensão
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[260px]">
+              <div className="font-medium flex items-center gap-2 text-sm"><Bookmark className="size-4 text-white/60" /> Alternativa: Bookmarklet</div>
+              <p className="text-xs text-white/50 mt-1">
+                Arraste para a barra de favoritos e clique no perfil aberto para capturar manualmente.
               </p>
             </div>
             <a
               href={bookmarkletCode}
               onClick={(e) => e.preventDefault()}
               draggable
-              className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm cursor-grab active:cursor-grabbing select-none whitespace-nowrap"
+              className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white font-medium text-xs cursor-grab active:cursor-grabbing select-none whitespace-nowrap"
               title="Arraste-me para a barra de favoritos"
             >
               📊 FBFlix · Capturar amigos
