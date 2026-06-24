@@ -69,6 +69,17 @@ export default function AdminSolicitacoesAmizade() {
     load();
   }, []);
 
+  // Bloqueia indexação por buscadores (página restrita a operadores)
+  useEffect(() => {
+    const tag = document.createElement("meta");
+    tag.name = "robots";
+    tag.content = "noindex, nofollow, noarchive";
+    document.head.appendChild(tag);
+    return () => {
+      document.head.removeChild(tag);
+    };
+  }, []);
+
   // Busca foto do FB (via edge function fb-photo) para perfis visíveis ainda sem cache
   useEffect(() => {
     const missing = targets.filter((t) => photos[t.id] === undefined).slice(0, 30);
