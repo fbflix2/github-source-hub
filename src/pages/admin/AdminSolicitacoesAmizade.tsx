@@ -41,6 +41,7 @@ export default function AdminSolicitacoesAmizade() {
   const [filterBatch, setFilterBatch] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
+  const [fbNames, setFbNames] = useState<Record<string, string | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -76,9 +77,13 @@ export default function AdminSolicitacoesAmizade() {
             const url = `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-photo?url=${encodeURIComponent(t.profile_url)}`;
             const r = await fetch(url);
             const j = await r.json();
-            return [t.id, j?.ok ? (j.photoUrl as string) : null] as const;
+            return [
+              t.id,
+              j?.ok ? (j.photoUrl as string) : null,
+              j?.ok ? ((j.name as string) || null) : null,
+            ] as const;
           } catch {
-            return [t.id, null] as const;
+            return [t.id, null, null] as const;
           }
         }),
       );
@@ -86,6 +91,11 @@ export default function AdminSolicitacoesAmizade() {
       setPhotos((prev) => {
         const next = { ...prev };
         for (const [id, url] of results) next[id] = url;
+        return next;
+      });
+      setFbNames((prev) => {
+        const next = { ...prev };
+        for (const [id, , nm] of results) next[id] = nm;
         return next;
       });
     })();
