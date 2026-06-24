@@ -45,6 +45,7 @@ export default function FriendRequestLinksTab({
   const [selectedBatch, setSelectedBatch] = useState<string>("");
   const [bulkInput, setBulkInput] = useState("");
   const [filterBatch, setFilterBatch] = useState<string>("all");
+  const [loadingLinks, setLoadingLinks] = useState(false);
 
   const supplierMap = useMemo(
     () => Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
@@ -73,6 +74,52 @@ export default function FriendRequestLinksTab({
   useEffect(() => {
     load();
   }, []);
+
+  // Quando um lote é selecionado, busca os profile_link das contas daquele lote
+  // e preenche o textarea automaticamente (apenas se ainda estiver vazio).
+  useEffect(() => {
+    if (!selectedBatch) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingLinks(true);
+      const { data, error } = await supabase
+        .from("supplier_accounts")
+        .select("profile_link, login, notes")
+        .eq("batch_id", selectedBatch)
+        .limit(2000);
+      setLoadingLinks(false);
+      if (cancelled) return;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      const links = (data || [])
+        .map((a: any) => {
+          if (a.profile_link) return a.profile_link as string;
+          // Fallback: numeric login => monta URL de perfil
+          if (a.login && /^\d{6,}$/.test(a.login)) {
+            return `https://facebook.com/profile.php?id=${a.login}`;
+          }
+          // Fallback: extrai do notes "login|pass|...|url..."
+          if (a.notes) {
+            const m = String(a.notes).match(/https?:\/\/\S+/);
+            if (m) return m[0];
+          }
+          return null;
+        })
+        .filter(Boolean) as string[];
+      const unique = Array.from(new Set(links));
+      setBulkInput(unique.join("\n"));
+      if (!unique.length) {
+        toast.message("Nenhum link encontrado nas contas deste lote.");
+      } else {
+        toast.success(`${unique.length} link(s) carregados do lote`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBatch]);
 
   const addBulk = async () => {
     if (!selectedBatch) {
