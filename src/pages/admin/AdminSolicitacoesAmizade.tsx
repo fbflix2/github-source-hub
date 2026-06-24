@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen } from "lucide-react";
+import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target } from "lucide-react";
 
 type Target = {
   id: string;
@@ -16,8 +16,11 @@ type Target = {
   added: boolean;
   added_at: string | null;
   created_at: string;
+  friends_count: number | null;
+  friends_updated_at: string | null;
+  friends_goal: number | null;
 };
-type Batch = { id: string; name: string; supplier_id: string };
+type Batch = { id: string; name: string; supplier_id: string; friends_goal?: number | null };
 type Supplier = { id: string; name: string };
 
 function extractName(url: string): string {
@@ -52,7 +55,7 @@ export default function AdminSolicitacoesAmizade() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(2000),
-      supabase.from("supplier_batches").select("id,name,supplier_id"),
+      supabase.from("supplier_batches").select("id,name,supplier_id,friends_goal"),
       supabase.from("suppliers").select("id,name"),
     ]);
     if (t.error) toast.error(t.error.message);
@@ -167,6 +170,22 @@ export default function AdminSolicitacoesAmizade() {
     return { total, added, pending: total - added };
   }, [targets]);
 
+  // Bookmarklet: rodando no facebook.com, lê "X amigos" da página e envia para o edge function
+  const bookmarkletCode = useMemo(() => {
+    const url = "https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-friends-update";
+    const body = `(function(){try{var u=location.href;var t=(document.body&&document.body.innerText)||'';var m=t.match(/([\\d.,]+)\\s*(?:mil)?\\s*amigos/i)||t.match(/([\\d.,]+)\\s*(?:mil)?\\s*friends/i);if(!m){alert('FBFlix: não encontrei a contagem de amigos nesta página. Abra a aba principal do perfil.');return;}var raw=m[1].replace(/[\\.,]/g,'');var n=parseInt(raw,10);if(/mil/i.test(m[0])&&n<10000)n=n*1000;var name=(document.querySelector('h1')||{}).innerText||null;fetch('${url}',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profile_url:u,friends_count:n,name:name})}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){alert('✓ FBFlix: '+n+' amigos salvos ('+j.updated+' registro(s))');}else{alert('✗ FBFlix: '+(j&&j.error||'erro desconhecido'));}}).catch(function(e){alert('✗ FBFlix: '+e.message);});}catch(e){alert('✗ FBFlix: '+e.message);}})();`;
+    return "javascript:" + encodeURIComponent(body);
+  }, []);
+
+  const updateGoal = async (t: Target, goal: number) => {
+    setTargets((prev) => prev.map((x) => (x.id === t.id ? { ...x, friends_goal: goal } : x)));
+    const { error } = await supabase
+      .from("friend_request_targets")
+      .update({ friends_goal: goal })
+      .eq("id", t.id);
+    if (error) toast.error(error.message);
+  };
+
   return (
     <div className="space-y-5 py-4">
       <div>
@@ -177,6 +196,39 @@ export default function AdminSolicitacoesAmizade() {
           Lista de perfis do Facebook que devem receber pedidos de amizade.
         </p>
       </div>
+
+      {/* Bookmarklet — captura quantidade de amigos */}
+      <Card className="bg-primary/5 border-primary/30">
+        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[260px]">
+            <div className="font-medium flex items-center gap-2">
+              <Bookmark className="size-4 text-primary" /> Capturar amigos automaticamente
+            </div>
+            <p className="text-xs text-white/60 mt-1">
+              1) Arraste o botão verde para a barra de favoritos do navegador.
+              2) Depois, estando logado e na página do perfil no Facebook, clique no
+              favorito — a contagem de amigos é salva aqui na hora.
+            </p>
+          </div>
+          <a
+            href={bookmarkletCode}
+            onClick={(e) => e.preventDefault()}
+            draggable
+            className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm cursor-grab active:cursor-grabbing select-none whitespace-nowrap"
+            title="Arraste-me para a barra de favoritos"
+          >
+            📊 FBFlix · Capturar amigos
+          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => load()}
+            className="gap-1.5"
+          >
+            <RefreshCw className="size-4" /> Atualizar
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-3 gap-3">
         <Card className="bg-white/5 border-white/10">
@@ -296,12 +348,6 @@ export default function AdminSolicitacoesAmizade() {
                       <div className="text-[11px] text-white/50 truncate">
                         {supplierName} • {batch?.name || "—"}
                       </div>
-                      {fbFriends[t.id] != null && (
-                        <div className="text-[11px] text-primary/80 flex items-center gap-1 mt-0.5">
-                          <Users className="size-3" />
-                          {fbFriends[t.id]!.toLocaleString("pt-BR")} amigos
-                        </div>
-                      )}
                     </div>
                     {t.added ? (
                       <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
@@ -313,6 +359,65 @@ export default function AdminSolicitacoesAmizade() {
                       </Badge>
                     )}
                   </div>
+
+                  {/* Progresso de amigos */}
+                  {(() => {
+                    const goal = t.friends_goal || 100;
+                    const count = t.friends_count ?? 0;
+                    const pct = Math.min(100, Math.round((count / goal) * 100));
+                    const hit = count >= goal;
+                    return (
+                      <div className="rounded-lg bg-white/5 border border-white/10 p-2.5 space-y-1.5">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className={`text-2xl font-bold ${hit ? "text-emerald-400" : "text-primary"}`}>
+                              {t.friends_count != null ? count.toLocaleString("pt-BR") : "—"}
+                            </span>
+                            <span className="text-xs text-white/50">/ </span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={goal}
+                              onChange={(e) => {
+                                const v = Math.max(1, parseInt(e.target.value || "1", 10));
+                                updateGoal(t, v);
+                              }}
+                              className="w-14 bg-transparent text-sm text-white/70 border-b border-white/20 focus:border-primary outline-none text-center"
+                              title="Meta de amigos"
+                            />
+                            <span className="text-xs text-white/50">amigos</span>
+                          </div>
+                          {t.friends_count != null && (
+                            <span className={`text-xs font-semibold ${hit ? "text-emerald-400" : "text-amber-400"}`}>
+                              {pct}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${hit ? "bg-emerald-500" : "bg-primary"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        {t.friends_count == null ? (
+                          <div className="text-[11px] text-white/40 flex items-center gap-1">
+                            <Target className="size-3" /> Sem dados — abra o perfil e clique no bookmarklet
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-white/40 flex items-center justify-between gap-1">
+                            <span>
+                              {hit ? "✓ Meta atingida" : `Faltam ${Math.max(0, goal - count)} amigos`}
+                            </span>
+                            {t.friends_updated_at && (
+                              <span>
+                                {new Date(t.friends_updated_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <a
                     href={t.profile_url}
