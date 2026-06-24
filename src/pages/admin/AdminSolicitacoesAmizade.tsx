@@ -72,7 +72,15 @@ export default function AdminSolicitacoesAmizade() {
     [batches],
   );
 
-  const toggleAdded = async (t: Target, value: boolean) => {
+  // Marcadores locais: quem já teve o perfil aberto (passo 1) nesta sessão
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+  const openProfile = (t: Target) => {
+    window.open(t.profile_url, "_blank", "noopener,noreferrer");
+    setOpened((prev) => ({ ...prev, [t.id]: true }));
+  };
+
+  const setAdded = async (t: Target, value: boolean) => {
     const patch = {
       added: value,
       added_at: value ? new Date().toISOString() : null,
@@ -87,11 +95,6 @@ export default function AdminSolicitacoesAmizade() {
     if (error) {
       toast.error(error.message);
       load();
-      return;
-    }
-    if (value) {
-      // open profile in new tab to actually send the friend request
-      window.open(t.profile_url, "_blank", "noopener,noreferrer");
     }
   };
 
