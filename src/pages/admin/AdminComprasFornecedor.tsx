@@ -14,8 +14,10 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, UserPlus, ExternalLink, Link2
 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
+import FriendRequestLinksTab from "@/components/admin/FriendRequestLinksTab";
 
 const copyToClipboard = (value: string | null | undefined, label: string) => {
   if (!value) {
@@ -623,7 +625,14 @@ export default function AdminComprasFornecedor() {
           <TabsTrigger value="accounts" className="data-[state=active]:bg-primary data-[state=active]:text-white">
             <Users className="size-4 mr-1.5" /> Contas
           </TabsTrigger>
+          <TabsTrigger value="friend-links" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Link2 className="size-4 mr-1.5" /> Links Perfil
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="friend-links" className="space-y-3 mt-4">
+          <FriendRequestLinksTab batches={batches} suppliers={suppliers} />
+        </TabsContent>
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-4 mt-4">

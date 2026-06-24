@@ -97,6 +97,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
+  { title: "Solicitações de Amizade", icon: Users, path: "/admin/solicitacoes-amizade" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Config Esteiras", icon: Settings, path: "/admin/config-esteiras" },
   { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard", operatorOnly: true },

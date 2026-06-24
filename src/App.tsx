@@ -123,6 +123,7 @@ import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
+import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
 import Status from "./pages/Status";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -450,6 +451,7 @@ const App = () => {
                   <Route path="whatsapp-crm" element={<AdminWhatsAppCRM />} />
                   <Route path="configuracoes/departamentos" element={<AdminDepartments />} />
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
+                  <Route path="solicitacoes-amizade" element={<AdminSolicitacoesAmizade />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
