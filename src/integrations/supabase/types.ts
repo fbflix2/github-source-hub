@@ -1358,6 +1358,50 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_request_targets: {
+        Row: {
+          added: boolean
+          added_at: string | null
+          batch_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          profile_name: string | null
+          profile_url: string
+        }
+        Insert: {
+          added?: boolean
+          added_at?: string | null
+          batch_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          profile_name?: string | null
+          profile_url: string
+        }
+        Update: {
+          added?: boolean
+          added_at?: string | null
+          batch_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          profile_name?: string | null
+          profile_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_request_targets_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_folders: {
         Row: {
           color: string
