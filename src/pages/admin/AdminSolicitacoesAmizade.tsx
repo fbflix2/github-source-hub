@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users } from "lucide-react";
+import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen } from "lucide-react";
 
 type Target = {
   id: string;
@@ -40,6 +40,7 @@ export default function AdminSolicitacoesAmizade() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "added">("pending");
   const [filterBatch, setFilterBatch] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [photos, setPhotos] = useState<Record<string, string | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -62,6 +63,37 @@ export default function AdminSolicitacoesAmizade() {
   useEffect(() => {
     load();
   }, []);
+
+  // Busca foto do FB (via edge function fb-photo) para perfis visíveis ainda sem cache
+  useEffect(() => {
+    const missing = targets.filter((t) => photos[t.id] === undefined).slice(0, 30);
+    if (!missing.length) return;
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        missing.map(async (t) => {
+          try {
+            const url = `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-photo?url=${encodeURIComponent(t.profile_url)}`;
+            const r = await fetch(url);
+            const j = await r.json();
+            return [t.id, j?.ok ? (j.photoUrl as string) : null] as const;
+          } catch {
+            return [t.id, null] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setPhotos((prev) => {
+        const next = { ...prev };
+        for (const [id, url] of results) next[id] = url;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targets]);
 
   const supplierMap = useMemo(
     () => Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
@@ -185,6 +217,23 @@ export default function AdminSolicitacoesAmizade() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          className="gap-2 border-primary/40 text-primary hover:bg-primary/10"
+          onClick={() => {
+            const pending = filtered.filter((t) => !t.added).slice(0, 10);
+            if (!pending.length) {
+              toast.message("Nenhum perfil pendente para abrir.");
+              return;
+            }
+            pending.forEach((t) =>
+              window.open(t.profile_url, "_blank", "noopener,noreferrer"),
+            );
+            toast.success(`${pending.length} perfis abertos em novas abas`);
+          }}
+        >
+          <FolderOpen className="size-4" /> Abrir próximos 10
+        </Button>
       </div>
 
       {loading ? (
@@ -207,8 +256,23 @@ export default function AdminSolicitacoesAmizade() {
                 }`}
               >
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                  <div className="flex items-start gap-3">
+                    <div className="size-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0 border border-white/10">
+                      {photos[t.id] ? (
+                        <img
+                          src={photos[t.id] as string}
+                          alt={t.profile_name || ""}
+                          className="size-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-white/30">
+                          <UserPlus className="size-5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">
                         {t.profile_name || extractName(t.profile_url)}
                       </div>
