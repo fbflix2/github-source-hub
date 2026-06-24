@@ -1365,6 +1365,9 @@ export type Database = {
           batch_id: string
           created_at: string
           created_by: string | null
+          friends_count: number | null
+          friends_goal: number
+          friends_updated_at: string | null
           id: string
           notes: string | null
           profile_name: string | null
@@ -1376,6 +1379,9 @@ export type Database = {
           batch_id: string
           created_at?: string
           created_by?: string | null
+          friends_count?: number | null
+          friends_goal?: number
+          friends_updated_at?: string | null
           id?: string
           notes?: string | null
           profile_name?: string | null
@@ -1387,6 +1393,9 @@ export type Database = {
           batch_id?: string
           created_at?: string
           created_by?: string | null
+          friends_count?: number | null
+          friends_goal?: number
+          friends_updated_at?: string | null
           id?: string
           notes?: string | null
           profile_name?: string | null
@@ -3718,6 +3727,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          friends_goal: number
           id: string
           name: string
           notes: string | null
@@ -3732,6 +3742,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          friends_goal?: number
           id?: string
           name: string
           notes?: string | null
@@ -3746,6 +3757,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          friends_goal?: number
           id?: string
           name?: string
           notes?: string | null
