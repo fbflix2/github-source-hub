@@ -217,6 +217,23 @@ export default function AdminSolicitacoesAmizade() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          className="gap-2 border-primary/40 text-primary hover:bg-primary/10"
+          onClick={() => {
+            const pending = filtered.filter((t) => !t.added).slice(0, 10);
+            if (!pending.length) {
+              toast.message("Nenhum perfil pendente para abrir.");
+              return;
+            }
+            pending.forEach((t) =>
+              window.open(t.profile_url, "_blank", "noopener,noreferrer"),
+            );
+            toast.success(`${pending.length} perfis abertos em novas abas`);
+          }}
+        >
+          <FolderOpen className="size-4" /> Abrir próximos 10
+        </Button>
       </div>
 
       {loading ? (
@@ -239,8 +256,23 @@ export default function AdminSolicitacoesAmizade() {
                 }`}
               >
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                  <div className="flex items-start gap-3">
+                    <div className="size-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0 border border-white/10">
+                      {photos[t.id] ? (
+                        <img
+                          src={photos[t.id] as string}
+                          alt={t.profile_name || ""}
+                          className="size-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-white/30">
+                          <UserPlus className="size-5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">
                         {t.profile_name || extractName(t.profile_url)}
                       </div>
