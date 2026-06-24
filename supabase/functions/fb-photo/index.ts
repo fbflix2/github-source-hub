@@ -62,31 +62,9 @@ serve(async (req) => {
       );
     }
 
-    const graphUrl = `https://graph.facebook.com/${encodeURIComponent(handleOrId)}/picture?type=large&redirect=false`;
-
-    const r = await fetch(graphUrl, { method: "GET" });
-
-    if (!r.ok) {
-      const body = await r.text();
-      console.error("Graph API error:", r.status, body);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Facebook Graph não retornou OK." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const data = await r.json();
-    const photoUrl = data?.data?.url ?? null;
-
-    if (!photoUrl) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Não encontrei URL da foto (pode estar bloqueado/privado)." }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Também tenta extrair o nome do perfil via og:title da página (uso UA de crawler)
+    // 1) Raspagem da página com UA de crawler — pega og:image (foto REAL) e og:title (nome)
     let name: string | null = null;
+    let photoUrl: string | null = null;
     try {
       const pageResp = await fetch(profileUrl, {
         headers: { "user-agent": "facebookexternalhit/1.1" },
@@ -94,15 +72,41 @@ serve(async (req) => {
       });
       if (pageResp.ok) {
         const html = await pageResp.text();
+        const decode = (s: string) =>
+          s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#039;/g, "'");
         const og = html.match(/property=["']og:title["']\s+content=["']([^"']+)["']/i)
           || html.match(/og:title["']\s+content=["']([^"']+)["']/i);
         const title = og?.[1] || html.match(/<title>([^<]+)<\/title>/i)?.[1] || null;
         if (title && !/^error$/i.test(title.trim())) {
-          name = title.replace(/\s*\|\s*Facebook\s*$/i, "").trim();
+          name = decode(title.replace(/\s*\|\s*Facebook\s*$/i, "").trim());
         }
+        const ogImg = html.match(/property=["']og:image["']\s+content=["']([^"']+)["']/i)
+          || html.match(/og:image["']\s+content=["']([^"']+)["']/i);
+        if (ogImg?.[1]) photoUrl = decode(ogImg[1]);
       }
     } catch (e) {
-      console.warn("name scrape failed:", e);
+      console.warn("page scrape failed:", e);
+    }
+
+    // 2) Fallback: Graph API /picture (geralmente retorna só placeholder para esses perfis)
+    if (!photoUrl) {
+      try {
+        const graphUrl = `https://graph.facebook.com/${encodeURIComponent(handleOrId)}/picture?type=large&redirect=false`;
+        const r = await fetch(graphUrl);
+        if (r.ok) {
+          const data = await r.json();
+          photoUrl = data?.data?.url ?? null;
+        }
+      } catch (e) {
+        console.warn("graph fallback failed:", e);
+      }
+    }
+
+    if (!photoUrl) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Foto não encontrada (perfil pode estar bloqueado/privado).", name }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
