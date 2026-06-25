@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import JSZip from "jszip";
 
 interface BackupFolder {
   id: string;
@@ -45,6 +46,22 @@ function formatBytes(n: number | null): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function sanitizeName(s: string): string {
+  return (s || "sem-nome").replace(/[\/\\:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 80) || "sem-nome";
+}
+
+async function fetchFileBlob(storagePath: string): Promise<Blob | null> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 120);
+  if (error || !data) return null;
+  try {
+    const r = await fetch(data.signedUrl);
+    if (!r.ok) return null;
+    return await r.blob();
+  } catch {
+    return null;
+  }
 }
 
 // Detecta tipos de perfil/conta a partir do texto da descrição
@@ -85,6 +102,8 @@ export default function AdminBackupFb() {
   const [folderToDelete, setFolderToDelete] = useState<BackupFolder | null>(null);
   const [fileToDelete, setFileToDelete] = useState<BackupFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [zipping, setZipping] = useState(false);
+  const [zipProgress, setZipProgress] = useState<{ done: number; total: number } | null>(null);
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
@@ -209,6 +228,101 @@ export default function AdminBackupFb() {
     document.body.appendChild(a);
     a.click();
     a.remove();
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleDownloadFolderZip = async (folder: BackupFolder, folderFiles?: BackupFile[]) => {
+    setZipping(true);
+    try {
+      let list = folderFiles;
+      if (!list) {
+        const { data, error } = await supabase
+          .from("fb_backup_files")
+          .select("*")
+          .eq("folder_id", folder.id);
+        if (error) throw error;
+        list = (data || []) as BackupFile[];
+      }
+      if (!list || list.length === 0) {
+        toast.info("Nenhum arquivo nessa pasta");
+        return;
+      }
+      setZipProgress({ done: 0, total: list.length });
+      const zip = new JSZip();
+      let i = 0;
+      for (const f of list) {
+        const blob = await fetchFileBlob(f.storage_path);
+        if (blob) {
+          const name = f.purchase_date
+            ? `${f.purchase_date}_${sanitizeName(f.file_name)}`
+            : sanitizeName(f.file_name);
+          zip.file(name, blob);
+        }
+        i++;
+        setZipProgress({ done: i, total: list.length });
+      }
+      const out = await zip.generateAsync({ type: "blob" });
+      downloadBlob(out, `${sanitizeName(folder.client_name)}.zip`);
+      toast.success("ZIP gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar ZIP: " + (e?.message || ""));
+    } finally {
+      setZipping(false);
+      setZipProgress(null);
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    setZipping(true);
+    try {
+      const { data: allFiles, error } = await supabase
+        .from("fb_backup_files")
+        .select("*");
+      if (error) throw error;
+      if (!allFiles || allFiles.length === 0) {
+        toast.info("Nenhum arquivo para baixar");
+        return;
+      }
+      const folderMap = new Map(folders.map((f) => [f.id, f]));
+      setZipProgress({ done: 0, total: allFiles.length });
+      const zip = new JSZip();
+      let i = 0;
+      for (const f of allFiles as BackupFile[]) {
+        const folder = folderMap.get(f.folder_id);
+        const folderName = folder ? sanitizeName(folder.client_name) : "sem-pasta";
+        const blob = await fetchFileBlob(f.storage_path);
+        if (blob) {
+          const name = f.purchase_date
+            ? `${f.purchase_date}_${sanitizeName(f.file_name)}`
+            : sanitizeName(f.file_name);
+          zip.folder(folderName)!.file(name, blob);
+          if (folder?.description) {
+            zip.folder(folderName)!.file("_descricao.txt", folder.description);
+          }
+        }
+        i++;
+        setZipProgress({ done: i, total: allFiles.length });
+      }
+      const out = await zip.generateAsync({ type: "blob" });
+      const stamp = format(new Date(), "yyyy-MM-dd_HHmm");
+      downloadBlob(out, `backup-fb_${stamp}.zip`);
+      toast.success("ZIP geral gerado");
+    } catch (e: any) {
+      toast.error("Erro ao gerar ZIP geral: " + (e?.message || ""));
+    } finally {
+      setZipping(false);
+      setZipProgress(null);
+    }
   };
 
   const handleDeleteFile = async () => {
