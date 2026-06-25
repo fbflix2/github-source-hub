@@ -1,0 +1,1 @@
+ALTER TABLE public.fb_backup_folders ADD COLUMN IF NOT EXISTS unit_price numeric(10,2);
