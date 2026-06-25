@@ -413,6 +413,10 @@ export default function AdminBackupFb() {
 
   // Estatísticas: total de perfis (1 arquivo .txt = 1 perfil) e tipos detectados
   const totalProfiles = folders.reduce((acc, f) => acc + (f.file_count || 0), 0);
+  const totalInvested = folders.reduce(
+    (acc, f) => acc + (Number(f.unit_price) || 0) * (f.file_count || 0),
+    0,
+  );
   const typeCounts: Record<string, number> = {};
   for (const f of folders) {
     const types = detectTypes(f.description);
@@ -640,6 +644,18 @@ export default function AdminBackupFb() {
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total de perfis</p>
                   <p className="text-xl font-bold">{totalProfiles}</p>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-bold text-sm">R$</span>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total investido</p>
+                  <p className="text-xl font-bold">
+                    {totalInvested.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
                 </div>
               </div>
               <div className="h-10 w-px bg-border" />
