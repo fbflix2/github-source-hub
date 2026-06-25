@@ -334,6 +334,7 @@ export default function AdminBackupFb() {
     else toast.success("Arquivo excluído");
     setFileToDelete(null);
     if (selectedFolder) fetchFiles(selectedFolder.id);
+    fetchFolders();
   };
 
   const handleUpdatePurchaseDate = async (fileId: string, date: string | null) => {
