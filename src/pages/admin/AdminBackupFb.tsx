@@ -465,6 +465,15 @@ export default function AdminBackupFb() {
                         {format(new Date(f.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </span>
                     </div>
+                    {detectTypes(f.description).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {detectTypes(f.description).map((t) => (
+                          <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
