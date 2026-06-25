@@ -1101,6 +1101,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          purchase_date: string | null
           updated_at: string
         }
         Insert: {
@@ -1109,6 +1110,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          purchase_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -1117,6 +1119,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          purchase_date?: string | null
           updated_at?: string
         }
         Relationships: []
