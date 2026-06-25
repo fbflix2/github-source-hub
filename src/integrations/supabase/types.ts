@@ -1055,6 +1055,7 @@ export type Database = {
       }
       fb_backup_files: {
         Row: {
+          account_type: string | null
           created_at: string
           file_name: string
           folder_id: string
@@ -1066,6 +1067,7 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          account_type?: string | null
           created_at?: string
           file_name: string
           folder_id: string
@@ -1077,6 +1079,7 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          account_type?: string | null
           created_at?: string
           file_name?: string
           folder_id?: string
