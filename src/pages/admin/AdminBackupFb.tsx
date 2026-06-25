@@ -214,6 +214,7 @@ export default function AdminBackupFb() {
     setUploading(false);
     if (ok > 0) toast.success(`${ok} arquivo(s) enviado(s)`);
     fetchFiles(selectedFolder.id);
+    fetchFolders();
   };
 
   const handleDownload = async (file: BackupFile) => {
@@ -333,6 +334,7 @@ export default function AdminBackupFb() {
     else toast.success("Arquivo excluído");
     setFileToDelete(null);
     if (selectedFolder) fetchFiles(selectedFolder.id);
+    fetchFolders();
   };
 
   const handleUpdatePurchaseDate = async (fileId: string, date: string | null) => {
