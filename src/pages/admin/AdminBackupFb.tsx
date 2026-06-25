@@ -389,11 +389,11 @@ export default function AdminBackupFb() {
   if (selectedFolder) {
     return (
       <div className="p-6 space-y-6">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => setSelectedFolder(null)} className="gap-2">
             <ArrowLeft className="size-4" /> Voltar
           </Button>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <FolderArchive className="size-6 text-primary" />
               {selectedFolder.client_name}
@@ -402,6 +402,16 @@ export default function AdminBackupFb() {
               <p className="text-sm text-muted-foreground mt-0.5">{selectedFolder.description}</p>
             )}
           </div>
+          <Button
+            onClick={() => handleDownloadFolderZip(selectedFolder, files)}
+            disabled={zipping || files.length === 0}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            {zipping && zipProgress
+              ? `Gerando ZIP ${zipProgress.done}/${zipProgress.total}`
+              : "Baixar tudo (.zip)"}
+          </Button>
         </div>
 
         <Card
