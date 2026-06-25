@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import {
   FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive,
 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import JSZip from "jszip";
@@ -110,6 +113,8 @@ export default function AdminBackupFb() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [zipping, setZipping] = useState(false);
   const [zipProgress, setZipProgress] = useState<{ done: number; total: number } | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [ageFilter, setAgeFilter] = useState<string>("all");
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
@@ -450,10 +455,40 @@ export default function AdminBackupFb() {
     fetchFolders();
   };
 
-  const filteredFolders = folders.filter((f) =>
-    f.client_name.toLowerCase().includes(search.toLowerCase()) ||
-    (f.description || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const ageInMonths = (iso: string | null | undefined): number | null => {
+    if (!iso) return null;
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    const now = new Date();
+    return (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  };
+
+  const matchesAge = (f: BackupFolder): boolean => {
+    if (ageFilter === "all") return true;
+    const months = ageInMonths(f.purchase_date);
+    if (months === null) return false;
+    switch (ageFilter) {
+      case "lt1m": return months < 1;
+      case "lt3m": return months < 3;
+      case "lt6m": return months < 6;
+      case "lt12m": return months < 12;
+      case "gt6m": return months >= 6;
+      case "gt12m": return months >= 12;
+      case "gt24m": return months >= 24;
+      case "gt36m": return months >= 36;
+      default: return true;
+    }
+  };
+
+  const filteredFolders = folders.filter((f) => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q ||
+      f.client_name.toLowerCase().includes(q) ||
+      (f.description || "").toLowerCase().includes(q);
+    const types = detectTypes(f.description);
+    const matchesType = typeFilter === "all" || types.includes(typeFilter);
+    return matchesSearch && matchesType && matchesAge(f);
+  });
 
   // Estatísticas: total de perfis (1 arquivo .txt = 1 perfil) e tipos detectados
   const totalProfiles = folders.reduce((acc, f) => acc + (f.file_count || 0), 0);
