@@ -580,6 +580,25 @@ export default function AdminBackupFb() {
                         />
                       </div>
                     </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor pago (R$)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        defaultValue={f.unit_price != null ? String(f.unit_price).replace(".", ",") : ""}
+                        key={`price-${f.unit_price ?? "empty"}`}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const current = f.unit_price != null ? String(f.unit_price).replace(".", ",") : "";
+                          if (v !== current) handleUpdateUnitPrice(f.id, v);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                        className="h-8 w-[90px] text-xs"
+                      />
+                    </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
                     </Button>
