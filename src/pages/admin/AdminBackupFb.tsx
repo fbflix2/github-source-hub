@@ -27,6 +27,7 @@ interface BackupFolder {
   description: string | null;
   created_at: string;
   file_count?: number;
+  purchase_date?: string | null;
 }
 
 interface BackupFile {
