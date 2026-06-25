@@ -93,6 +93,7 @@ export default function AdminBackupFb() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newPurchaseDate, setNewPurchaseDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<BackupFolder | null>(null);
   const [files, setFiles] = useState<BackupFile[]>([]);
@@ -160,6 +161,7 @@ export default function AdminBackupFb() {
     const { error } = await supabase.from("fb_backup_folders").insert({
       client_name: newName.trim(),
       description: newDesc.trim() || null,
+      purchase_date: newPurchaseDate ? parsePastedDate(newPurchaseDate) : null,
       created_by: user?.id ?? null,
     });
     setSaving(false);
@@ -168,7 +170,7 @@ export default function AdminBackupFb() {
       return;
     }
     toast.success("Pasta criada");
-    setNewName(""); setNewDesc(""); setCreateOpen(false);
+    setNewName(""); setNewDesc(""); setNewPurchaseDate(""); setCreateOpen(false);
     fetchFolders();
   };
 
