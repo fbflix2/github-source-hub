@@ -528,9 +528,22 @@ export default function AdminBackupFb() {
             Pastas de backup por cliente — armazene arquivos .txt para uso futuro
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="size-4" /> Nova pasta
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleDownloadAllZip}
+            disabled={zipping || folders.length === 0}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            {zipping && zipProgress
+              ? `Gerando ${zipProgress.done}/${zipProgress.total}`
+              : "Baixar tudo (.zip)"}
+          </Button>
+          <Button onClick={() => setCreateOpen(true)} className="gap-2">
+            <Plus className="size-4" /> Nova pasta
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-md">
