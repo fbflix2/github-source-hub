@@ -241,6 +241,22 @@ export default function AdminBackupFb() {
     (f.description || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // Estatísticas: total de perfis (1 arquivo .txt = 1 perfil) e tipos detectados
+  const totalProfiles = folders.reduce((acc, f) => acc + (f.file_count || 0), 0);
+  const typeCounts: Record<string, number> = {};
+  for (const f of folders) {
+    const types = detectTypes(f.description);
+    const profileCount = f.file_count || 0;
+    if (types.length === 0) {
+      typeCounts["Sem tipo"] = (typeCounts["Sem tipo"] || 0) + profileCount;
+    } else {
+      for (const t of types) {
+        typeCounts[t] = (typeCounts[t] || 0) + profileCount;
+      }
+    }
+  }
+  const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+
   // --- INSIDE A FOLDER ---
   if (selectedFolder) {
     return (
