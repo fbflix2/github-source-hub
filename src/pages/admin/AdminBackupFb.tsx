@@ -44,6 +44,7 @@ interface BackupFile {
   created_at: string;
   purchase_date: string | null;
   unit_price: number | null;
+  account_type: string | null;
 }
 
 const BUCKET = "fb-backups";
@@ -406,6 +407,20 @@ export default function AdminBackupFb() {
     toast.success("Valor atualizado");
   };
 
+  const handleUpdateAccountType = async (fileId: string, value: string) => {
+    const v = value === "__none__" ? null : value;
+    const { error } = await supabase
+      .from("fb_backup_files")
+      .update({ account_type: v })
+      .eq("id", fileId);
+    if (error) {
+      toast.error("Erro ao salvar tipo: " + error.message);
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, account_type: v } : f)));
+    toast.success("Tipo atualizado");
+  };
+
   // Aceita formatos colados: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yyyy, com ou sem espaços
   const parsePastedDate = (raw: string): string | null => {
     const s = raw.trim();
@@ -706,6 +721,23 @@ export default function AdminBackupFb() {
                         }}
                         className="h-8 w-[90px] text-xs"
                       />
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo</Label>
+                      <Select
+                        value={f.account_type ?? "__none__"}
+                        onValueChange={(v) => handleUpdateAccountType(f.id, v)}
+                      >
+                        <SelectTrigger className="h-8 w-[130px] text-xs">
+                          <SelectValue placeholder="Tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Sem tipo</SelectItem>
+                          {TYPE_PATTERNS.map((t) => (
+                            <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
