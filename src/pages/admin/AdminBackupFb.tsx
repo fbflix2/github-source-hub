@@ -39,6 +39,7 @@ interface BackupFile {
   size_bytes: number | null;
   created_at: string;
   purchase_date: string | null;
+  unit_price: number | null;
 }
 
 const BUCKET = "fb-backups";
@@ -210,6 +211,7 @@ export default function AdminBackupFb() {
         size_bytes: file.size,
         uploaded_by: user?.id ?? null,
         purchase_date: selectedFolder.purchase_date ?? null,
+        unit_price: selectedFolder.unit_price ?? null,
       });
       if (insErr) {
         toast.error(`Erro ao registrar ${file.name}: ${insErr.message}`);
@@ -355,6 +357,24 @@ export default function AdminBackupFb() {
     }
     setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, purchase_date: date } : f)));
     toast.success("Data de compra atualizada");
+  };
+
+  const handleUpdateUnitPrice = async (fileId: string, raw: string) => {
+    const parsed = raw.trim() === "" ? null : Number(raw.replace(",", "."));
+    if (parsed !== null && Number.isNaN(parsed)) {
+      toast.error("Valor inválido");
+      return;
+    }
+    const { error } = await supabase
+      .from("fb_backup_files")
+      .update({ unit_price: parsed })
+      .eq("id", fileId);
+    if (error) {
+      toast.error("Erro ao salvar valor: " + error.message);
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, unit_price: parsed } : f)));
+    toast.success("Valor atualizado");
   };
 
   // Aceita formatos colados: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yyyy, com ou sem espaços

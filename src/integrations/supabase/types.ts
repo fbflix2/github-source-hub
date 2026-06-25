@@ -1062,6 +1062,7 @@ export type Database = {
           purchase_date: string | null
           size_bytes: number | null
           storage_path: string
+          unit_price: number | null
           uploaded_by: string | null
         }
         Insert: {
@@ -1072,6 +1073,7 @@ export type Database = {
           purchase_date?: string | null
           size_bytes?: number | null
           storage_path: string
+          unit_price?: number | null
           uploaded_by?: string | null
         }
         Update: {
@@ -1082,6 +1084,7 @@ export type Database = {
           purchase_date?: string | null
           size_bytes?: number | null
           storage_path?: string
+          unit_price?: number | null
           uploaded_by?: string | null
         }
         Relationships: [
