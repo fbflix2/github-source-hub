@@ -1053,6 +1053,71 @@ export type Database = {
         }
         Relationships: []
       }
+      fb_backup_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          folder_id: string
+          id: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          folder_id: string
+          id?: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          folder_id?: string
+          id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_backup_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "fb_backup_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fb_backup_folders: {
+        Row: {
+          client_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fb_finance_caixas: {
         Row: {
           alvo_percent: number
