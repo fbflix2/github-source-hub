@@ -350,6 +350,39 @@ export default function AdminBackupFb() {
     toast.success("Data de compra atualizada");
   };
 
+  // Aceita formatos colados: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yyyy, com ou sem espaços
+  const parsePastedDate = (raw: string): string | null => {
+    const s = raw.trim();
+    if (!s) return null;
+    // ISO yyyy-mm-dd
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (m) {
+      const [_, y, mo, d] = m;
+      return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    // dd/mm/yyyy ou dd-mm-yyyy ou dd.mm.yyyy
+    m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+    if (m) {
+      let [_, d, mo, y] = m;
+      if (y.length === 2) y = (parseInt(y) > 50 ? "19" : "20") + y;
+      return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    return null;
+  };
+
+  const handlePastedDate = (fileId: string, raw: string) => {
+    if (!raw.trim()) {
+      handleUpdatePurchaseDate(fileId, null);
+      return;
+    }
+    const iso = parsePastedDate(raw);
+    if (!iso) {
+      toast.error("Data inválida. Use dd/mm/aaaa");
+      return;
+    }
+    handleUpdatePurchaseDate(fileId, iso);
+  };
+
   const handleDeleteFolder = async () => {
     if (!folderToDelete) return;
     // List & remove all storage files in folder prefix
@@ -478,12 +511,43 @@ export default function AdminBackupFb() {
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Data de compra</Label>
-                      <Input
-                        type="date"
-                        value={f.purchase_date || ""}
-                        onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
-                        className="h-8 w-[150px] text-xs"
-                      />
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="date"
+                          value={f.purchase_date || ""}
+                          onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
+                          className="h-8 w-[140px] text-xs"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="dd/mm/aaaa"
+                          defaultValue={
+                            f.purchase_date
+                              ? format(new Date(f.purchase_date + "T00:00:00"), "dd/MM/yyyy")
+                              : ""
+                          }
+                          key={f.purchase_date || "empty"}
+                          onPaste={(e) => {
+                            const text = e.clipboardData.getData("text");
+                            if (text) {
+                              e.preventDefault();
+                              (e.target as HTMLInputElement).value = text;
+                              handlePastedDate(f.id, text);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value;
+                            const current = f.purchase_date
+                              ? format(new Date(f.purchase_date + "T00:00:00"), "dd/MM/yyyy")
+                              : "";
+                            if (v !== current) handlePastedDate(f.id, v);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                          className="h-8 w-[110px] text-xs"
+                        />
+                      </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
