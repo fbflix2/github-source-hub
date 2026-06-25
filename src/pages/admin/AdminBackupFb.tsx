@@ -396,6 +396,39 @@ export default function AdminBackupFb() {
         />
       </div>
 
+      {!loading && folders.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="size-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total de perfis</p>
+                  <p className="text-xl font-bold">{totalProfiles}</p>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Tipos detectados</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sortedTypes.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Nenhum tipo identificado</span>
+                  ) : (
+                    sortedTypes.map(([type, count]) => (
+                      <Badge key={type} variant="secondary" className="text-xs">
+                        {type} <span className="ml-1 font-bold text-primary">{count}</span>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : filteredFolders.length === 0 ? (
