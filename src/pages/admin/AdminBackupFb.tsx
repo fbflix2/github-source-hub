@@ -511,12 +511,43 @@ export default function AdminBackupFb() {
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Data de compra</Label>
-                      <Input
-                        type="date"
-                        value={f.purchase_date || ""}
-                        onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
-                        className="h-8 w-[150px] text-xs"
-                      />
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="date"
+                          value={f.purchase_date || ""}
+                          onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
+                          className="h-8 w-[140px] text-xs"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="dd/mm/aaaa"
+                          defaultValue={
+                            f.purchase_date
+                              ? format(new Date(f.purchase_date + "T00:00:00"), "dd/MM/yyyy")
+                              : ""
+                          }
+                          key={f.purchase_date || "empty"}
+                          onPaste={(e) => {
+                            const text = e.clipboardData.getData("text");
+                            if (text) {
+                              e.preventDefault();
+                              (e.target as HTMLInputElement).value = text;
+                              handlePastedDate(f.id, text);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value;
+                            const current = f.purchase_date
+                              ? format(new Date(f.purchase_date + "T00:00:00"), "dd/MM/yyyy")
+                              : "";
+                            if (v !== current) handlePastedDate(f.id, v);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                          className="h-8 w-[110px] text-xs"
+                        />
+                      </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
