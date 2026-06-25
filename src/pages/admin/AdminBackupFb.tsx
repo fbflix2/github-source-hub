@@ -205,6 +205,7 @@ export default function AdminBackupFb() {
         storage_path: path,
         size_bytes: file.size,
         uploaded_by: user?.id ?? null,
+        purchase_date: selectedFolder.purchase_date ?? null,
       });
       if (insErr) {
         toast.error(`Erro ao registrar ${file.name}: ${insErr.message}`);
