@@ -480,6 +480,55 @@ export default function AdminBackupFb() {
           </Button>
         </div>
 
+        {files.length > 0 && (() => {
+          const totalValue = files.reduce((acc, f) => acc + (Number(f.unit_price) || 0), 0);
+          const withPrice = files.filter((f) => Number(f.unit_price) > 0).length;
+          const avg = withPrice > 0 ? totalValue / withPrice : 0;
+          return (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileText className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total de itens</p>
+                      <p className="text-xl font-bold">{files.length}</p>
+                    </div>
+                  </div>
+                  <div className="h-10 w-px bg-border" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <span className="text-primary font-bold text-sm">R$</span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Valor total investido</p>
+                      <p className="text-xl font-bold">
+                        {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </div>
+                  </div>
+                  {withPrice > 0 && (
+                    <>
+                      <div className="h-10 w-px bg-border" />
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Valor médio por item</p>
+                        <p className="text-xl font-bold">
+                          {avg.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {withPrice} de {files.length} com valor
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <Card
           className={`border-2 border-dashed transition ${dragActive ? "border-primary bg-primary/5" : "border-border"}`}
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
