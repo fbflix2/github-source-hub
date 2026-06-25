@@ -408,7 +408,7 @@ export default function AdminBackupFb() {
   };
 
   const handleUpdateAccountType = async (fileId: string, value: string) => {
-    const v = value === "__none__" ? null : value;
+    const v = value.trim() === "" ? null : value.trim().slice(0, 60);
     const { error } = await supabase
       .from("fb_backup_files")
       .update({ account_type: v })
@@ -724,20 +724,24 @@ export default function AdminBackupFb() {
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo</Label>
-                      <Select
-                        value={f.account_type ?? "__none__"}
-                        onValueChange={(v) => handleUpdateAccountType(f.id, v)}
-                      >
-                        <SelectTrigger className="h-8 w-[130px] text-xs">
-                          <SelectValue placeholder="Tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Sem tipo</SelectItem>
-                          {TYPE_PATTERNS.map((t) => (
-                            <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        type="text"
+                        placeholder="Ex: CA5"
+                        maxLength={60}
+                        defaultValue={
+                          f.account_type ?? (detectTypes(selectedFolder?.description ?? null)[0] || "")
+                        }
+                        key={`type-${f.account_type ?? "empty"}`}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          const current = f.account_type ?? "";
+                          if (v.trim() !== current) handleUpdateAccountType(f.id, v);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                        className="h-8 w-[130px] text-xs"
+                      />
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
