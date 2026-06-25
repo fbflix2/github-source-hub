@@ -73,6 +73,9 @@ Deno.serve(async (req) => {
       patch.is_blocked = true;
       patch.blocked_at = new Date().toISOString();
       if (blockedReason) patch.blocked_reason = String(blockedReason).slice(0, 200);
+      // Perfil bloqueado/checkpoint → não deve aparecer como "solicitado"
+      patch.added = false;
+      patch.added_at = null;
     } else {
       patch.friends_count = Math.round(friendsCount);
       patch.friends_updated_at = new Date().toISOString();

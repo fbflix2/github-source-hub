@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FBFlix - Captura de Amigos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Captura automaticamente nome e quantidade de amigos ao abrir perfis do Facebook.",
   "permissions": ["storage"],
   "host_permissions": [

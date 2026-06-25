@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, CheckCircle2, RotateCcw, ExternalLink, Search, Users, FolderOpen, Bookmark, RefreshCw, Target } from "lucide-react";
+import { Ban } from "lucide-react";
 
 type Target = {
   id: string;
@@ -19,6 +20,9 @@ type Target = {
   friends_count: number | null;
   friends_updated_at: string | null;
   friends_goal: number | null;
+  is_blocked?: boolean | null;
+  blocked_at?: string | null;
+  blocked_reason?: string | null;
 };
 type Batch = { id: string; name: string; supplier_id: string; friends_goal?: number | null };
 type Supplier = { id: string; name: string };
@@ -164,8 +168,8 @@ export default function AdminSolicitacoesAmizade() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return targets.filter((t) => {
-      if (filterStatus === "pending" && t.added) return false;
-      if (filterStatus === "added" && !t.added) return false;
+      if (filterStatus === "pending" && (t.added || t.is_blocked)) return false;
+      if (filterStatus === "added" && (!t.added || t.is_blocked)) return false;
       if (filterBatch !== "all" && t.batch_id !== filterBatch) return false;
       if (q) {
         const text = `${t.profile_name || ""} ${t.profile_url}`.toLowerCase();
@@ -177,8 +181,9 @@ export default function AdminSolicitacoesAmizade() {
 
   const stats = useMemo(() => {
     const total = targets.length;
-    const added = targets.filter((t) => t.added).length;
-    return { total, added, pending: total - added };
+    const blocked = targets.filter((t) => t.is_blocked).length;
+    const added = targets.filter((t) => t.added && !t.is_blocked).length;
+    return { total, added, blocked, pending: total - added - blocked };
   }, [targets]);
 
   // Bookmarklet: rodando no facebook.com, lê "X amigos" da página e envia para o edge function
@@ -262,6 +267,14 @@ export default function AdminSolicitacoesAmizade() {
             <div className="text-2xl font-bold text-emerald-400">{stats.added}</div>
           </CardContent>
         </Card>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-4">
+            <div className="text-xs text-rose-400 flex items-center gap-1">
+              <Ban className="size-3" /> Bloqueados
+            </div>
+            <div className="text-2xl font-bold text-rose-400">{stats.blocked}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -332,7 +345,11 @@ export default function AdminSolicitacoesAmizade() {
               <Card
                 key={t.id}
                 className={`bg-white/5 border ${
-                  t.added ? "border-emerald-500/30" : "border-white/10"
+                  t.is_blocked
+                    ? "border-rose-500/40"
+                    : t.added
+                    ? "border-emerald-500/30"
+                    : "border-white/10"
                 }`}
               >
                 <CardContent className="p-4 space-y-3">
@@ -360,7 +377,11 @@ export default function AdminSolicitacoesAmizade() {
                         {supplierName} • {batch?.name || "—"}
                       </div>
                     </div>
-                    {t.added ? (
+                    {t.is_blocked ? (
+                      <Badge className="bg-rose-500/15 text-rose-400 border-rose-500/30 gap-1">
+                        <Ban className="size-3" /> Bloqueado
+                      </Badge>
+                    ) : t.added ? (
                       <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
                         Solicitado
                       </Badge>
@@ -440,7 +461,42 @@ export default function AdminSolicitacoesAmizade() {
                   </a>
 
                   <div className="flex flex-col gap-2">
-                    {t.added ? (
+                    {t.is_blocked ? (
+                      <div className="text-[11px] text-rose-400/90 bg-rose-500/10 border border-rose-500/30 rounded-md p-2 space-y-1">
+                        <div className="flex items-center gap-1 font-semibold">
+                          <Ban className="size-3" /> Perfil em checkpoint / indisponível
+                        </div>
+                        {t.blocked_at && (
+                          <div className="text-rose-300/70">
+                            Detectado em {new Date(t.blocked_at).toLocaleString("pt-BR")}
+                          </div>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-1.5 mt-1 border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+                          onClick={async () => {
+                            setTargets((prev) =>
+                              prev.map((x) =>
+                                x.id === t.id
+                                  ? { ...x, is_blocked: false, blocked_at: null, blocked_reason: null }
+                                  : x,
+                              ),
+                            );
+                            const { error } = await supabase
+                              .from("friend_request_targets")
+                              .update({ is_blocked: false, blocked_at: null, blocked_reason: null })
+                              .eq("id", t.id);
+                            if (error) {
+                              toast.error(error.message);
+                              load();
+                            }
+                          }}
+                        >
+                          <RotateCcw className="size-4" /> Reabrir (desmarcar bloqueio)
+                        </Button>
+                      </div>
+                    ) : t.added ? (
                       <Button
                         variant="outline"
                         size="sm"
