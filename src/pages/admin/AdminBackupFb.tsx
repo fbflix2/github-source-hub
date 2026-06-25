@@ -738,6 +738,17 @@ export default function AdminBackupFb() {
                 rows={3}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>Data de compra (cole ou digite)</Label>
+              <Input
+                value={newPurchaseDate}
+                onChange={(e) => setNewPurchaseDate(e.target.value)}
+                placeholder="Ex: 25/06/2026"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Formatos aceitos: dd/mm/aaaa, dd-mm-aaaa ou aaaa-mm-dd
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancelar</Button>
