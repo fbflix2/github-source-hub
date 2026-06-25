@@ -729,9 +729,9 @@ export default function AdminBackupFb() {
                         placeholder="Ex: CA5"
                         maxLength={60}
                         defaultValue={
-                          f.account_type ?? (detectTypes(selectedFolder?.description ?? null)[0] || "")
+                          f.account_type ?? (selectedFolder?.description ?? "")
                         }
-                        key={`type-${f.account_type ?? "empty"}`}
+                        key={`type-${f.account_type ?? selectedFolder?.description ?? "empty"}`}
                         onBlur={(e) => {
                           const v = e.target.value;
                           const current = f.account_type ?? "";
