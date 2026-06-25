@@ -46,6 +46,28 @@ function formatBytes(n: number | null): string {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
+// Detecta tipos de perfil/conta a partir do texto da descrição
+const TYPE_PATTERNS: { label: string; regex: RegExp }[] = [
+  { label: "CA5", regex: /\bca[\s-]?5\b/i },
+  { label: "CA3", regex: /\bca[\s-]?3\b/i },
+  { label: "Perfil AP", regex: /\bperfil\s*ap\b|\bap\b/i },
+  { label: "Premium", regex: /\bpremium\b/i },
+  { label: "Antigo", regex: /\bantig[oa]s?\b/i },
+  { label: "BM", regex: /\bbm(\s*\d+(\.\d+)?[kK]?)?\b/i },
+  { label: "Página", regex: /\bp[áa]gina(s)?\b|\bfanpage\b/i },
+  { label: "Gerenciador", regex: /\bgerenciador(es)?\b/i },
+  { label: "Business", regex: /\bbusiness\b/i },
+];
+
+function detectTypes(desc: string | null): string[] {
+  if (!desc) return [];
+  const found = new Set<string>();
+  for (const t of TYPE_PATTERNS) {
+    if (t.regex.test(desc)) found.add(t.label);
+  }
+  return Array.from(found);
+}
+
 export default function AdminBackupFb() {
   const [folders, setFolders] = useState<BackupFolder[]>([]);
   const [loading, setLoading] = useState(true);
