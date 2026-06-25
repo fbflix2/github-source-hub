@@ -146,23 +146,6 @@ export default function AdminBackupFb() {
 
   useEffect(() => { fetchFolders(); }, [fetchFolders]);
 
-  // Realtime: refresh totals when files or folders change
-  useEffect(() => {
-    const channel = supabase
-      .channel("fb-backup-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "fb_backup_files" }, () => {
-        fetchFolders();
-        if (selectedFolder) fetchFiles(selectedFolder.id);
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "fb_backup_folders" }, () => {
-        fetchFolders();
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchFolders, fetchFiles, selectedFolder]);
-
   const fetchFiles = useCallback(async (folderId: string) => {
     setLoadingFiles(true);
     const { data, error } = await supabase
