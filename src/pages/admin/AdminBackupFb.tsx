@@ -46,6 +46,28 @@ function formatBytes(n: number | null): string {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
+// Detecta tipos de perfil/conta a partir do texto da descrição
+const TYPE_PATTERNS: { label: string; regex: RegExp }[] = [
+  { label: "CA5", regex: /\bca[\s-]?5\b/i },
+  { label: "CA3", regex: /\bca[\s-]?3\b/i },
+  { label: "Perfil AP", regex: /\bperfil\s*ap\b|\bap\b/i },
+  { label: "Premium", regex: /\bpremium\b/i },
+  { label: "Antigo", regex: /\bantig[oa]s?\b/i },
+  { label: "BM", regex: /\bbm(\s*\d+(\.\d+)?[kK]?)?\b/i },
+  { label: "Página", regex: /\bp[áa]gina(s)?\b|\bfanpage\b/i },
+  { label: "Gerenciador", regex: /\bgerenciador(es)?\b/i },
+  { label: "Business", regex: /\bbusiness\b/i },
+];
+
+function detectTypes(desc: string | null): string[] {
+  if (!desc) return [];
+  const found = new Set<string>();
+  for (const t of TYPE_PATTERNS) {
+    if (t.regex.test(desc)) found.add(t.label);
+  }
+  return Array.from(found);
+}
+
 export default function AdminBackupFb() {
   const [folders, setFolders] = useState<BackupFolder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,6 +241,22 @@ export default function AdminBackupFb() {
     (f.description || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // Estatísticas: total de perfis (1 arquivo .txt = 1 perfil) e tipos detectados
+  const totalProfiles = folders.reduce((acc, f) => acc + (f.file_count || 0), 0);
+  const typeCounts: Record<string, number> = {};
+  for (const f of folders) {
+    const types = detectTypes(f.description);
+    const profileCount = f.file_count || 0;
+    if (types.length === 0) {
+      typeCounts["Sem tipo"] = (typeCounts["Sem tipo"] || 0) + profileCount;
+    } else {
+      for (const t of types) {
+        typeCounts[t] = (typeCounts[t] || 0) + profileCount;
+      }
+    }
+  }
+  const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+
   // --- INSIDE A FOLDER ---
   if (selectedFolder) {
     return (
@@ -358,6 +396,39 @@ export default function AdminBackupFb() {
         />
       </div>
 
+      {!loading && folders.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="size-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total de perfis</p>
+                  <p className="text-xl font-bold">{totalProfiles}</p>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1.5">Tipos detectados</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sortedTypes.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Nenhum tipo identificado</span>
+                  ) : (
+                    sortedTypes.map(([type, count]) => (
+                      <Badge key={type} variant="secondary" className="text-xs">
+                        {type} <span className="ml-1 font-bold text-primary">{count}</span>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : filteredFolders.length === 0 ? (
@@ -394,6 +465,15 @@ export default function AdminBackupFb() {
                         {format(new Date(f.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </span>
                     </div>
+                    {detectTypes(f.description).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {detectTypes(f.description).map((t) => (
+                          <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
