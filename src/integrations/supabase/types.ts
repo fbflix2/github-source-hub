@@ -1102,6 +1102,7 @@ export type Database = {
           description: string | null
           id: string
           purchase_date: string | null
+          unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -1111,6 +1112,7 @@ export type Database = {
           description?: string | null
           id?: string
           purchase_date?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -1120,6 +1122,7 @@ export type Database = {
           description?: string | null
           id?: string
           purchase_date?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Relationships: []

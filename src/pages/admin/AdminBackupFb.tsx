@@ -28,6 +28,7 @@ interface BackupFolder {
   created_at: string;
   file_count?: number;
   purchase_date?: string | null;
+  unit_price?: number | null;
 }
 
 interface BackupFile {
@@ -95,6 +96,7 @@ export default function AdminBackupFb() {
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newPurchaseDate, setNewPurchaseDate] = useState("");
+  const [newUnitPrice, setNewUnitPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<BackupFolder | null>(null);
   const [files, setFiles] = useState<BackupFile[]>([]);
@@ -111,7 +113,7 @@ export default function AdminBackupFb() {
     setLoading(true);
     const { data: foldersData, error } = await supabase
       .from("fb_backup_folders")
-      .select("id, client_name, description, created_at")
+      .select("id, client_name, description, created_at, purchase_date, unit_price")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar pastas: " + error.message);
@@ -163,6 +165,7 @@ export default function AdminBackupFb() {
       client_name: newName.trim(),
       description: newDesc.trim() || null,
       purchase_date: newPurchaseDate ? parsePastedDate(newPurchaseDate) : null,
+      unit_price: newUnitPrice ? Number(newUnitPrice.replace(",", ".")) || null : null,
       created_by: user?.id ?? null,
     });
     setSaving(false);
@@ -171,7 +174,7 @@ export default function AdminBackupFb() {
       return;
     }
     toast.success("Pasta criada");
-    setNewName(""); setNewDesc(""); setNewPurchaseDate(""); setCreateOpen(false);
+    setNewName(""); setNewDesc(""); setNewPurchaseDate(""); setNewUnitPrice(""); setCreateOpen(false);
     fetchFolders();
   };
 
@@ -749,6 +752,19 @@ export default function AdminBackupFb() {
               />
               <p className="text-[11px] text-muted-foreground">
                 Formatos aceitos: dd/mm/aaaa, dd-mm-aaaa ou aaaa-mm-dd
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor unitário pago (opcional)</Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={newUnitPrice}
+                onChange={(e) => setNewUnitPrice(e.target.value)}
+                placeholder="Ex: 12.50"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Use ponto ou vírgula como separador decimal.
               </p>
             </div>
           </div>
