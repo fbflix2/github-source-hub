@@ -35,6 +35,7 @@ interface BackupFile {
   storage_path: string;
   size_bytes: number | null;
   created_at: string;
+  purchase_date: string | null;
 }
 
 const BUCKET = "fb-backups";
@@ -220,6 +221,19 @@ export default function AdminBackupFb() {
     if (selectedFolder) fetchFiles(selectedFolder.id);
   };
 
+  const handleUpdatePurchaseDate = async (fileId: string, date: string | null) => {
+    const { error } = await supabase
+      .from("fb_backup_files")
+      .update({ purchase_date: date })
+      .eq("id", fileId);
+    if (error) {
+      toast.error("Erro ao salvar data: " + error.message);
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, purchase_date: date } : f)));
+    toast.success("Data de compra atualizada");
+  };
+
   const handleDeleteFolder = async () => {
     if (!folderToDelete) return;
     // List & remove all storage files in folder prefix
@@ -335,6 +349,15 @@ export default function AdminBackupFb() {
                       <p className="text-xs text-muted-foreground">
                         {formatBytes(f.size_bytes)} • {format(new Date(f.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Data de compra</Label>
+                      <Input
+                        type="date"
+                        value={f.purchase_date || ""}
+                        onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
+                        className="h-8 w-[150px] text-xs"
+                      />
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar

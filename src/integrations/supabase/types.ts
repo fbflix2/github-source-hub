@@ -1059,6 +1059,7 @@ export type Database = {
           file_name: string
           folder_id: string
           id: string
+          purchase_date: string | null
           size_bytes: number | null
           storage_path: string
           uploaded_by: string | null
@@ -1068,6 +1069,7 @@ export type Database = {
           file_name: string
           folder_id: string
           id?: string
+          purchase_date?: string | null
           size_bytes?: number | null
           storage_path: string
           uploaded_by?: string | null
@@ -1077,6 +1079,7 @@ export type Database = {
           file_name?: string
           folder_id?: string
           id?: string
+          purchase_date?: string | null
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string | null
