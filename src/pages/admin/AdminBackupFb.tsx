@@ -39,6 +39,7 @@ interface BackupFile {
   size_bytes: number | null;
   created_at: string;
   purchase_date: string | null;
+  unit_price: number | null;
 }
 
 const BUCKET = "fb-backups";
@@ -210,6 +211,7 @@ export default function AdminBackupFb() {
         size_bytes: file.size,
         uploaded_by: user?.id ?? null,
         purchase_date: selectedFolder.purchase_date ?? null,
+        unit_price: selectedFolder.unit_price ?? null,
       });
       if (insErr) {
         toast.error(`Erro ao registrar ${file.name}: ${insErr.message}`);
@@ -355,6 +357,24 @@ export default function AdminBackupFb() {
     }
     setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, purchase_date: date } : f)));
     toast.success("Data de compra atualizada");
+  };
+
+  const handleUpdateUnitPrice = async (fileId: string, raw: string) => {
+    const parsed = raw.trim() === "" ? null : Number(raw.replace(",", "."));
+    if (parsed !== null && Number.isNaN(parsed)) {
+      toast.error("Valor inválido");
+      return;
+    }
+    const { error } = await supabase
+      .from("fb_backup_files")
+      .update({ unit_price: parsed })
+      .eq("id", fileId);
+    if (error) {
+      toast.error("Erro ao salvar valor: " + error.message);
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, unit_price: parsed } : f)));
+    toast.success("Valor atualizado");
   };
 
   // Aceita formatos colados: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd, dd.mm.yyyy, com ou sem espaços
@@ -559,6 +579,25 @@ export default function AdminBackupFb() {
                           className="h-8 w-[110px] text-xs"
                         />
                       </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor pago (R$)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        defaultValue={f.unit_price != null ? String(f.unit_price).replace(".", ",") : ""}
+                        key={`price-${f.unit_price ?? "empty"}`}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const current = f.unit_price != null ? String(f.unit_price).replace(".", ",") : "";
+                          if (v !== current) handleUpdateUnitPrice(f.id, v);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        }}
+                        className="h-8 w-[90px] text-xs"
+                      />
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
