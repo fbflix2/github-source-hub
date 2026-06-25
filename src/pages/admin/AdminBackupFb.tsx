@@ -350,6 +350,15 @@ export default function AdminBackupFb() {
                         {formatBytes(f.size_bytes)} • {format(new Date(f.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </p>
                     </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Data de compra</Label>
+                      <Input
+                        type="date"
+                        value={f.purchase_date || ""}
+                        onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
+                        className="h-8 w-[150px] text-xs"
+                      />
+                    </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
                     </Button>
