@@ -770,14 +770,48 @@ export default function AdminBackupFb() {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por cliente ou descrição..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente ou descrição..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {TYPE_PATTERNS.map((t) => (
+              <SelectItem key={t.label} value={t.label}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={ageFilter} onValueChange={setAgeFilter}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Tempo de compra" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Qualquer tempo</SelectItem>
+            <SelectItem value="lt1m">Menos de 1 mês</SelectItem>
+            <SelectItem value="lt3m">Menos de 3 meses</SelectItem>
+            <SelectItem value="lt6m">Menos de 6 meses</SelectItem>
+            <SelectItem value="lt12m">Menos de 1 ano</SelectItem>
+            <SelectItem value="gt6m">Mais de 6 meses</SelectItem>
+            <SelectItem value="gt12m">Mais de 1 ano</SelectItem>
+            <SelectItem value="gt24m">Mais de 2 anos</SelectItem>
+            <SelectItem value="gt36m">Mais de 3 anos</SelectItem>
+          </SelectContent>
+        </Select>
+        {(typeFilter !== "all" || ageFilter !== "all" || search) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setTypeFilter("all"); setAgeFilter("all"); setSearch(""); }}
+          >
+            Limpar filtros
+          </Button>
+        )}
       </div>
 
       {!loading && folders.length > 0 && (
