@@ -35,6 +35,7 @@ interface BackupFile {
   storage_path: string;
   size_bytes: number | null;
   created_at: string;
+  purchase_date: string | null;
 }
 
 const BUCKET = "fb-backups";
@@ -218,6 +219,19 @@ export default function AdminBackupFb() {
     else toast.success("Arquivo excluído");
     setFileToDelete(null);
     if (selectedFolder) fetchFiles(selectedFolder.id);
+  };
+
+  const handleUpdatePurchaseDate = async (fileId: string, date: string | null) => {
+    const { error } = await supabase
+      .from("fb_backup_files")
+      .update({ purchase_date: date })
+      .eq("id", fileId);
+    if (error) {
+      toast.error("Erro ao salvar data: " + error.message);
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, purchase_date: date } : f)));
+    toast.success("Data de compra atualizada");
   };
 
   const handleDeleteFolder = async () => {

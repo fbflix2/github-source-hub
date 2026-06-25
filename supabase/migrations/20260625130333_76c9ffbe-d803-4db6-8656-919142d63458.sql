@@ -1,0 +1,1 @@
+ALTER TABLE public.fb_backup_files ADD COLUMN IF NOT EXISTS purchase_date date;
