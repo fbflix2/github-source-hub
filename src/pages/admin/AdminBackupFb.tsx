@@ -27,6 +27,7 @@ interface BackupFolder {
   description: string | null;
   created_at: string;
   file_count?: number;
+  total_value?: number;
   purchase_date?: string | null;
   unit_price?: number | null;
 }
@@ -124,20 +125,43 @@ export default function AdminBackupFb() {
     // Get file counts
     const ids = (foldersData || []).map((f) => f.id);
     const counts: Record<string, number> = {};
+    const sums: Record<string, number> = {};
     if (ids.length > 0) {
       const { data: fileRows } = await supabase
         .from("fb_backup_files")
-        .select("folder_id")
+        .select("folder_id, unit_price")
         .in("folder_id", ids);
       (fileRows || []).forEach((r: any) => {
         counts[r.folder_id] = (counts[r.folder_id] || 0) + 1;
+        sums[r.folder_id] = (sums[r.folder_id] || 0) + (Number(r.unit_price) || 0);
       });
     }
-    setFolders((foldersData || []).map((f) => ({ ...f, file_count: counts[f.id] || 0 })));
+    setFolders((foldersData || []).map((f) => ({
+      ...f,
+      file_count: counts[f.id] || 0,
+      total_value: sums[f.id] || 0,
+    })));
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchFolders(); }, [fetchFolders]);
+
+  // Realtime: refresh totals when files or folders change
+  useEffect(() => {
+    const channel = supabase
+      .channel("fb-backup-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "fb_backup_files" }, () => {
+        fetchFolders();
+        if (selectedFolder) fetchFiles(selectedFolder.id);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "fb_backup_folders" }, () => {
+        fetchFolders();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchFolders, fetchFiles, selectedFolder]);
 
   const fetchFiles = useCallback(async (folderId: string) => {
     setLoadingFiles(true);
