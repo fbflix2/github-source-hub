@@ -214,6 +214,7 @@ export default function AdminBackupFb() {
     setUploading(false);
     if (ok > 0) toast.success(`${ok} arquivo(s) enviado(s)`);
     fetchFiles(selectedFolder.id);
+    fetchFolders();
   };
 
   const handleDownload = async (file: BackupFile) => {
