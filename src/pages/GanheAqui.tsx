@@ -403,8 +403,9 @@ export default function GanheAqui() {
         <WithdrawModal
           partner={partner}
           userId={userId}
-          defaultCpf={userCpf}
-          defaultHolder={userName}
+          defaultCpf={partner.pix_key || userCpf}
+          defaultHolder={partner.pix_holder_name || userName}
+          defaultKeyType={partner.pix_key_type || "cpf"}
           previous={withdrawals}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => { setShowWithdraw(false); loadPartnerData(); }}
