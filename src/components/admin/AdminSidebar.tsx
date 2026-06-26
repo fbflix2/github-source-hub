@@ -145,6 +145,7 @@ export function AdminSidebar() {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(allMenuItems);
   const location = useLocation();
+  const isWhatsAppCRM = location.pathname === "/admin/whatsapp-crm";
   const { hasUnread, unreadCount } = useTeamChatNotifications();
   const [logoStyles, setLogoStyles] = useState({ height: 56, paddingTop: 24 });
 
@@ -220,7 +221,8 @@ export function AdminSidebar() {
   return (
     <aside 
       className={cn(
-        "relative z-20 flex flex-col justify-between border-r border-white/5 bg-[#120808]/80 backdrop-blur-md transition-all duration-300",
+        "relative z-20 flex flex-col justify-between border-r border-white/5 backdrop-blur-md transition-all duration-300",
+        isWhatsAppCRM ? "bg-[#0F1013]" : "bg-[#120808]/80",
         collapsed ? "w-16" : "w-56"
       )}
     >
