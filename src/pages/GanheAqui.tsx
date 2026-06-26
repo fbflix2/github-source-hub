@@ -125,6 +125,18 @@ export default function GanheAqui() {
     loadPartnerData();
   }, []);
 
+  // Load partner banners once for overview + products
+  useEffect(() => {
+    (async () => {
+      const { data: bn } = await supabase
+        .from("partner_banners" as any)
+        .select("id,title,subtitle,image_url,image_style,background_color,cta_text,link_url,category")
+        .eq("active", true)
+        .order("position", { ascending: true });
+      if (bn && bn.length) setPromoBanners(((bn || []) as unknown) as PromoBanner[]);
+    })();
+  }, []);
+
   const loadPartnerData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
