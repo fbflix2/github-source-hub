@@ -564,7 +564,7 @@ const howItWorksSteps = [
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed,
+  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed, banners,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
@@ -574,10 +574,18 @@ function ProductsTab({
   commissionRate: number;
   topSellers: string[];
   topViewed: string | null;
+  banners: PromoBanner[];
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("todos");
   const [sortBy, setSortBy] = useState<"campeoes" | "comissao" | "preco_maior" | "preco_menor">("campeoes");
+  const [currentBanner, setCurrentBanner] = useState(0);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const t = setInterval(() => setCurrentBanner((p) => (p + 1) % banners.length), 6000);
+    return () => clearInterval(t);
+  }, [banners.length]);
 
   const getType = (name: string): string => {
     const n = name.toLowerCase();
@@ -653,6 +661,84 @@ function ProductsTab({
 
   return (
     <section>
+      {/* Thin promo banner carousel */}
+      {banners.length > 0 && (() => {
+        const b = banners[currentBanner];
+        const isCover = b?.image_style === "cover" && !!b?.image_url;
+        return (
+          <div
+            className="relative w-full rounded-xl overflow-hidden border border-[#2A2A2A] mb-5 h-[120px] md:h-[150px] group"
+            style={b?.background_color && !isCover ? { backgroundColor: b.background_color } : undefined}
+          >
+            {isCover && (
+              <>
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                  style={{ backgroundImage: `url('${b.image_url}')` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-transparent" />
+              </>
+            )}
+            {!isCover && !b?.background_color && (
+              <>
+                <div className="absolute -right-16 -top-16 w-64 h-64 bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+              </>
+            )}
+            <div className="relative z-10 flex items-center justify-between h-full px-5 md:px-6 gap-4">
+              <div className="flex-1 min-w-0">
+                {b?.category && (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/15 border border-primary/25 mb-1.5">
+                    <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{b.category}</span>
+                  </div>
+                )}
+                <h3 className={`text-base md:text-xl font-bold leading-tight truncate ${isCover ? "text-white" : "text-foreground"}`}>
+                  {b?.title}
+                </h3>
+                {b?.subtitle && (
+                  <p className={`text-xs md:text-sm mt-0.5 line-clamp-1 ${isCover ? "text-slate-300" : "text-muted-foreground"}`}>
+                    {b.subtitle}
+                  </p>
+                )}
+              </div>
+              {banners.length > 1 && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setCurrentBanner((p) => (p - 1 + banners.length) % banners.length)}
+                    className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
+                    aria-label="Anterior"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 text-white" />
+                  </button>
+                  <span className="text-[10px] text-slate-300 font-medium tabular-nums">{currentBanner + 1}/{banners.length}</span>
+                  <button
+                    onClick={() => setCurrentBanner((p) => (p + 1) % banners.length)}
+                    className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
+                    aria-label="Próximo"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* dots */}
+            {banners.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                {banners.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentBanner(i)}
+                    className={`h-1 rounded-full transition-all ${i === currentBanner ? "w-5 bg-primary" : "w-1.5 bg-white/30"}`}
+                    aria-label={`Banner ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h3 className="text-lg font-bold text-white">Produtos para promover</h3>
