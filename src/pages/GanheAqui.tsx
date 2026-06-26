@@ -527,6 +527,10 @@ export default function GanheAqui() {
         />
       )}
 
+      {tab === "tools" && (
+        <ToolsTab partnerId={partner.id} partnerSlug={partner.slug} />
+      )}
+
       {/* Footer */}
       <footer className="mt-8 text-center">
         <p className="text-slate-600 text-[10px] uppercase tracking-widest">© 2026 FBX Token / FbFlix. Todos os direitos reservados.</p>
