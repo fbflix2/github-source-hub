@@ -507,13 +507,14 @@ const howItWorksSteps = [
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch,
+  partnerSlug, products, loading, search, onSearch, commissionRate,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
   loading: boolean;
   search: string;
   onSearch: (v: string) => void;
+  commissionRate: number;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -579,8 +580,17 @@ function ProductsTab({
                       R$ {Number(p.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
                   )}
+                  {p.price != null && (
+                    <p className="text-[10px] text-emerald-400 font-semibold mt-0.5 uppercase tracking-wider">
+                      Comissão: R$ {(Number(p.price) * (commissionRate / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      <span className="text-slate-500 normal-case font-normal"> ({commissionRate}%)</span>
+                    </p>
+                  )}
                 </div>
               </div>
+              {p.description && (
+                <p className="text-xs text-slate-400 line-clamp-3">{p.description}</p>
+              )}
               <button
                 onClick={() => copy(p)}
                 className="mt-auto w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
