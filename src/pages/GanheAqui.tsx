@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
-  Bell, X,
+  Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
 } from "lucide-react";
 
 interface Partner {
@@ -33,6 +33,17 @@ interface Referral {
 
 const ITEMS_PER_PAGE = 4;
 
+type TabKey = "overview" | "products" | "finance";
+
+interface PromoProduct {
+  id: string;
+  name: string;
+  slug: string | null;
+  price: number | null;
+  image_url: string | null;
+  description: string | null;
+}
+
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
   const [userName, setUserName] = useState("");
@@ -46,6 +57,10 @@ export default function GanheAqui() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [userCpf, setUserCpf] = useState<string>("");
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [products, setProducts] = useState<PromoProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
     loadPartnerData();
@@ -91,6 +106,22 @@ export default function GanheAqui() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (tab !== "products" || products.length > 0) return;
+    setProductsLoading(true);
+    supabase
+      .from("products")
+      .select("id,name,slug,price,image_url,description,status,available")
+      .eq("status", "active")
+      .eq("available", true)
+      .order("price", { ascending: false })
+      .limit(60)
+      .then(({ data }) => {
+        setProducts((data || []) as PromoProduct[]);
+        setProductsLoading(false);
+      });
+  }, [tab, products.length]);
+
   const copyLink = async () => {
     if (!partner) return;
     const url = `${window.location.origin}/parceiro/${partner.slug}`;
@@ -116,6 +147,12 @@ export default function GanheAqui() {
       document.body.removeChild(textArea);
     }
   };
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(p => p.name?.toLowerCase().includes(q));
+  }, [products, productSearch]);
 
   const filteredReferrals = useMemo(() => {
     if (statusFilter === "all") return referrals;
@@ -227,90 +264,89 @@ export default function GanheAqui() {
         </div>
       </header>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Saldo Disponível */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex flex-col justify-between">
-          <div>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Saldo Disponível</p>
-            <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
-          </div>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
+        {([
+          { key: "overview", label: "Visão Geral", icon: BarChart3 },
+          { key: "products", label: "Produtos", icon: Package },
+          { key: "finance", label: "Financeiro", icon: Wallet },
+        ] as { key: TabKey; label: string; icon: any }[]).map(t => (
           <button
-            onClick={() => {
-              if (!partner) return;
-              if (Number(partner.balance) <= 0) {
-                toast.error("Você não tem saldo disponível para saque.");
-                return;
-              }
-              setShowWithdraw(true);
-            }}
-            className="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
+              tab === t.key
+                ? "text-primary border-primary"
+                : "text-slate-500 border-transparent hover:text-slate-300"
+            }`}
           >
-            <Wallet className="size-4" />
-            Solicitar Saque
+            <t.icon className="size-4" />
+            {t.label}
           </button>
-        </div>
-
-        {/* Ganho Total */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Ganho Total</p>
-          <h2 className="text-2xl font-bold text-white">R$ {partner.total_earned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
-          <div className="mt-2 flex items-center gap-1 text-emerald-500">
-            <TrendingUp className="size-3" />
-            <span className="text-xs font-medium">Lifetime</span>
-          </div>
-        </div>
-
-        {/* Indicações */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Indicações</p>
-          <h2 className="text-2xl font-bold text-white">{partner.total_referrals}</h2>
-          <div className="mt-2 flex items-center gap-1 text-slate-400">
-            <Users className="size-3" />
-            <span className="text-xs font-medium">{referrals.filter(r => {
-              const d = new Date(r.created_at);
-              const now = new Date();
-              return d >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-            }).length} novas esta semana</span>
-          </div>
-        </div>
-
-        {/* Comissão Atual */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
-          <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
-          <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
-            <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
-          </div>
-          <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
-            {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
-          </p>
-        </div>
+        ))}
       </div>
 
-      {/* Como Funciona */}
-      <section className="mb-8">
-        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {howItWorksSteps.map((step, i) => (
-            <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
-              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                <step.icon className="size-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm text-white">{step.title}</p>
-                <p className="text-xs text-slate-500">{step.desc}</p>
+      {tab === "overview" && (
+        <>
+          {/* Compact Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Indicações</p>
+              <h2 className="text-2xl font-bold text-white">{partner.total_referrals}</h2>
+              <div className="mt-2 flex items-center gap-1 text-slate-400">
+                <Users className="size-3" />
+                <span className="text-xs font-medium">{referrals.filter(r => {
+                  const d = new Date(r.created_at);
+                  const now = new Date();
+                  return d >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                }).length} novas esta semana</span>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
+              <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
+              <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
+                <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
+              </div>
+              <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
+                {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
+              </p>
+            </div>
+            <button
+              onClick={() => setTab("finance")}
+              className="bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Saldo Disponível</p>
+                <Wallet className="size-4 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+              <div className="mt-2 flex items-center gap-1 text-primary text-xs font-bold uppercase tracking-wider group-hover:gap-2 transition-all">
+                Acessar Financeiro <ArrowRight className="size-3" />
+              </div>
+            </button>
+          </div>
 
-      {/* Dados PIX para recebimento */}
-      <PixDataSection partner={partner} onSave={savePixData} />
+          {/* Como Funciona */}
+          <section className="mb-8">
+            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {howItWorksSteps.map((step, i) => (
+                <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
+                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <step.icon className="size-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-white">{step.title}</p>
+                    <p className="text-xs text-slate-500">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-      {/* Transactions Table */}
-      <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+          {/* Transactions Table */}
+          <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
           <h3 className="font-bold text-lg text-white">Minhas Indicações</h3>
           <div className="flex items-center gap-2">
@@ -392,7 +428,34 @@ export default function GanheAqui() {
             </div>
           </>
         )}
-      </section>
+          </section>
+        </>
+      )}
+
+      {tab === "products" && (
+        <ProductsTab
+          partnerSlug={partner.slug}
+          products={filteredProducts}
+          loading={productsLoading}
+          search={productSearch}
+          onSearch={setProductSearch}
+        />
+      )}
+
+      {tab === "finance" && (
+        <FinanceTab
+          partner={partner}
+          onWithdraw={() => {
+            if (Number(partner.balance) <= 0) {
+              toast.error("Você não tem saldo disponível para saque.");
+              return;
+            }
+            setShowWithdraw(true);
+          }}
+          onSavePix={savePixData}
+          withdrawals={withdrawals}
+        />
+      )}
 
       {/* Footer */}
       <footer className="mt-8 text-center">
