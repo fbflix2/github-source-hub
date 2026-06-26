@@ -150,13 +150,13 @@ export default function GanheAqui() {
         .order("price", { ascending: false })
         .limit(60);
       setProducts((prods || []) as PromoProduct[]);
-      // Fetch hero banners (same as store) for the partner carousel
+      // Fetch partner-only banners (exclusive of the client store)
       const { data: bn } = await supabase
-        .from("banners")
+        .from("partner_banners" as any)
         .select("id,title,subtitle,image_url,image_style,background_color,cta_text,link_url,category")
         .eq("active", true)
         .order("position", { ascending: true });
-      setPromoBanners((bn || []) as PromoBanner[]);
+      setPromoBanners(((bn || []) as unknown) as PromoBanner[]);
       // Fallback: compute top sellers from order_items directly
       const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
       const { data: items } = await supabase
@@ -581,11 +581,50 @@ function ProductsTab({
   const [sortBy, setSortBy] = useState<"campeoes" | "comissao" | "preco_maior" | "preco_menor">("campeoes");
   const [currentBanner, setCurrentBanner] = useState(0);
 
+  // Curated fallback shown only when admin hasn't uploaded any partner banners yet
+  const defaultBanners: PromoBanner[] = useMemo(() => ([
+    {
+      id: "default-1",
+      title: "Compartilhe seu link e fature todo mês",
+      subtitle: "A cada venda gerada pelo seu link, você recebe comissão direto no saldo. Sem limite de indicações.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Dica de venda",
+    },
+    {
+      id: "default-2",
+      title: "Foque nos campeões de venda",
+      subtitle: "Os produtos com selo Campeão e Vendendo Muito convertem mais. Comece divulgando esses.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Estratégia",
+    },
+    {
+      id: "default-3",
+      title: "Use seu link em grupos e stories",
+      subtitle: "Cole o link em grupos de marketing digital, stories e bio. Quanto mais alcance, mais comissão.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Incentivo",
+    },
+  ]), []);
+
+  const displayBanners: PromoBanner[] = banners.length > 0 ? banners : defaultBanners;
+
   useEffect(() => {
-    if (banners.length <= 1) return;
-    const t = setInterval(() => setCurrentBanner((p) => (p + 1) % banners.length), 6000);
+    if (displayBanners.length <= 1) return;
+    const t = setInterval(() => setCurrentBanner((p) => (p + 1) % displayBanners.length), 6000);
     return () => clearInterval(t);
-  }, [banners.length]);
+  }, [displayBanners.length]);
 
   const getType = (name: string): string => {
     const n = name.toLowerCase();
@@ -662,8 +701,8 @@ function ProductsTab({
   return (
     <section>
       {/* Thin promo banner carousel */}
-      {banners.length > 0 && (() => {
-        const b = banners[currentBanner];
+      {displayBanners.length > 0 && (() => {
+        const b = displayBanners[currentBanner];
         const isCover = b?.image_style === "cover" && !!b?.image_url;
         return (
           <div
@@ -702,18 +741,18 @@ function ProductsTab({
                   </p>
                 )}
               </div>
-              {banners.length > 1 && (
+              {displayBanners.length > 1 && (
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
-                    onClick={() => setCurrentBanner((p) => (p - 1 + banners.length) % banners.length)}
+                    onClick={() => setCurrentBanner((p) => (p - 1 + displayBanners.length) % displayBanners.length)}
                     className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
                     aria-label="Anterior"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 text-white" />
                   </button>
-                  <span className="text-[10px] text-slate-300 font-medium tabular-nums">{currentBanner + 1}/{banners.length}</span>
+                  <span className="text-[10px] text-slate-300 font-medium tabular-nums">{currentBanner + 1}/{displayBanners.length}</span>
                   <button
-                    onClick={() => setCurrentBanner((p) => (p + 1) % banners.length)}
+                    onClick={() => setCurrentBanner((p) => (p + 1) % displayBanners.length)}
                     className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
                     aria-label="Próximo"
                   >
@@ -723,9 +762,9 @@ function ProductsTab({
               )}
             </div>
             {/* dots */}
-            {banners.length > 1 && (
+            {displayBanners.length > 1 && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {banners.map((_, i) => (
+                {displayBanners.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentBanner(i)}
