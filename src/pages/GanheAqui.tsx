@@ -458,3 +458,121 @@ function FaturamentoMeter({ earned }: { earned: number }) {
     </div>
   );
 }
+
+function WithdrawModal({
+  partner, userId, defaultCpf, defaultHolder, previous, onClose, onSuccess,
+}: {
+  partner: Partner;
+  userId: string;
+  defaultCpf: string;
+  defaultHolder: string;
+  previous: any[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [amount, setAmount] = useState<string>(String(partner.balance.toFixed(2)));
+  const [keyType, setKeyType] = useState<string>("cpf");
+  const [pixKey, setPixKey] = useState<string>(defaultCpf || "");
+  const [holder, setHolder] = useState<string>(defaultHolder || "");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const value = parseFloat(amount.replace(",", "."));
+    if (!value || value <= 0) { toast.error("Informe um valor válido"); return; }
+    if (value > Number(partner.balance)) { toast.error("Valor maior que o saldo disponível"); return; }
+    if (!pixKey.trim()) { toast.error("Informe a chave PIX"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("partner_withdrawals").insert({
+      partner_id: partner.id,
+      user_id: userId,
+      amount: value,
+      pix_key: pixKey.trim(),
+      pix_key_type: keyType,
+      holder_name: holder.trim() || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message || "Erro ao solicitar saque"); return; }
+    toast.success("Saque solicitado! O pagamento é processado em até 48h úteis.");
+    onSuccess();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0f0f0f] border border-white/[0.08] rounded-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white">Solicitar Saque</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="size-5" /></button>
+        </div>
+
+        <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 text-xs text-slate-300">
+          Saldo disponível: <span className="font-bold text-primary">R$ {Number(partner.balance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          <p className="text-[11px] text-slate-500 mt-1">Pagamentos via PIX em até 48h úteis após a aprovação.</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor (R$)</label>
+          <input
+            type="number" step="0.01" min="0" value={amount}
+            onChange={e => setAmount(e.target.value)}
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</label>
+            <select
+              value={keyType} onChange={e => setKeyType(e.target.value)}
+              className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:outline-none"
+            >
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
+              <option value="aleatoria">Aleatória</option>
+            </select>
+          </div>
+          <div className="space-y-2 col-span-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Chave PIX</label>
+            <input
+              value={pixKey} onChange={e => setPixKey(e.target.value)}
+              className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Titular (opcional)</label>
+          <input
+            value={holder} onChange={e => setHolder(e.target.value)}
+            className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:outline-none"
+          />
+        </div>
+
+        <button
+          onClick={submit} disabled={saving}
+          className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+        >
+          {saving ? "Enviando..." : "Confirmar Solicitação"}
+        </button>
+
+        {previous.length > 0 && (
+          <div className="pt-3 border-t border-white/[0.05]">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Últimos saques</p>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {previous.slice(0, 5).map(w => (
+                <div key={w.id} className="flex items-center justify-between text-xs bg-[#1A1A1A] rounded px-3 py-2">
+                  <span className="text-slate-400">{new Date(w.created_at).toLocaleDateString("pt-BR")}</span>
+                  <span className="text-white font-bold">R$ {Number(w.amount).toFixed(2)}</span>
+                  <span className={`text-[9px] font-bold uppercase ${
+                    w.status === "paid" ? "text-emerald-500" : w.status === "rejected" ? "text-red-400" : "text-yellow-500"
+                  }`}>{w.status === "paid" ? "Pago" : w.status === "rejected" ? "Recusado" : "Pendente"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
