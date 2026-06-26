@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive,
+  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -105,6 +105,8 @@ export default function AdminBackupFb() {
   const [newUnitPrice, setNewUnitPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<BackupFolder | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
   const [files, setFiles] = useState<BackupFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -534,10 +536,81 @@ export default function AdminBackupFb() {
             <ArrowLeft className="size-4" /> Voltar
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <FolderArchive className="size-6 text-primary" />
-              {selectedFolder.client_name}
-            </h1>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <FolderArchive className="size-6 text-primary shrink-0" />
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      const newName = editName.trim();
+                      if (!newName || newName === selectedFolder.client_name) {
+                        setEditingName(false);
+                        return;
+                      }
+                      const { error } = await supabase
+                        .from("fb_backup_folders")
+                        .update({ client_name: newName })
+                        .eq("id", selectedFolder.id);
+                      if (error) {
+                        toast.error("Erro ao renomear: " + error.message);
+                      } else {
+                        setSelectedFolder({ ...selectedFolder, client_name: newName });
+                        toast.success("Nome atualizado");
+                        setEditingName(false);
+                      }
+                    } else if (e.key === "Escape") {
+                      setEditingName(false);
+                    }
+                  }}
+                  className="text-2xl font-bold bg-background border border-border rounded-md px-2 py-1 focus:outline-none focus:border-primary min-w-0 flex-1"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={async () => {
+                    const newName = editName.trim();
+                    if (!newName || newName === selectedFolder.client_name) {
+                      setEditingName(false);
+                      return;
+                    }
+                    const { error } = await supabase
+                      .from("fb_backup_folders")
+                      .update({ client_name: newName })
+                      .eq("id", selectedFolder.id);
+                    if (error) {
+                      toast.error("Erro ao renomear: " + error.message);
+                    } else {
+                      setSelectedFolder({ ...selectedFolder, client_name: newName });
+                      toast.success("Nome atualizado");
+                      setEditingName(false);
+                    }
+                  }}
+                >
+                  <Check className="size-4 text-emerald-500" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => setEditingName(false)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <h1 className="text-2xl font-bold flex items-center gap-2 group">
+                <FolderArchive className="size-6 text-primary" />
+                {selectedFolder.client_name}
+                <button
+                  onClick={() => {
+                    setEditName(selectedFolder.client_name);
+                    setEditingName(true);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                  title="Editar nome"
+                >
+                  <Pencil className="size-4" />
+                </button>
+              </h1>
+            )}
             {selectedFolder.description && (
               <p className="text-sm text-muted-foreground mt-0.5">{selectedFolder.description}</p>
             )}
