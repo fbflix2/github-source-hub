@@ -22,6 +22,7 @@ export function AdminLayout() {
   const [permChecked, setPermChecked] = useState(false);
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
   const isAquecimento = location.pathname === "/admin/aquecimento" || location.pathname === "/admin/esteira-admin" || location.pathname === "/admin/aquecimento-guia" || location.pathname === "/admin/operador-financeiro" || location.pathname === "/admin/aquecimento-config" || location.pathname === "/admin/operador-dashboard";
+  const isFullBleed = isAquecimento || location.pathname === "/admin/whatsapp-crm";
 
   // For moderators: check if current path is allowed, redirect to first allowed if not
   useEffect(() => {
@@ -108,8 +109,8 @@ export function AdminLayout() {
 
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {!hideHeader && !isAquecimento && <AdminHeader />}
-        <div className={`flex-1 overflow-y-auto ${isAquecimento ? '' : 'px-6 pb-6'}`}>
-          <div className={`${isAquecimento ? 'w-full h-full' : 'max-w-7xl mx-auto w-full'}`}>
+        <div className={`flex-1 overflow-y-auto ${isFullBleed ? '' : 'px-6 pb-6'}`}>
+          <div className={`${isFullBleed ? 'w-full h-full' : 'max-w-7xl mx-auto w-full'}`}>
             <Outlet />
           </div>
         </div>
