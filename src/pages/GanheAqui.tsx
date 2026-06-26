@@ -1187,7 +1187,7 @@ function ProductsTab({
             const badge = topBadge(p.id);
             const BadgeIcon = badge?.icon;
             return (
-            <div key={p.id} className={`relative bg-[#1A1A1A] border rounded-xl p-4 flex flex-col gap-3 transition-colors ${badge ? "border-primary/40 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]" : "border-[#2A2A2A] hover:border-primary/30"}`}>
+            <div key={p.id} className={`relative bg-card border rounded-xl p-4 flex flex-col gap-3 transition-colors ${badge ? "border-primary/40 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]" : "border-border hover:border-primary/30"}`}>
               {badge && BadgeIcon && (
                 <div className={`absolute -top-2 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r ${badge.cls} text-white text-[10px] font-bold uppercase tracking-wider shadow-md`}>
                   <BadgeIcon className="size-3" />
@@ -1195,29 +1195,29 @@ function ProductsTab({
                 </div>
               )}
               <div className="flex items-start gap-3">
-                <div className="size-14 rounded-lg bg-[#0F0F0F] border border-[#2A2A2A] overflow-hidden shrink-0 flex items-center justify-center">
+                <div className="size-14 rounded-lg bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Package className="size-5 text-slate-600" />
+                    <Package className="size-5 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white line-clamp-2">{p.name}</p>
+                  <p className="text-sm font-bold text-foreground line-clamp-2">{p.name}</p>
                   {p.price != null && (
                     <p className="text-xs text-primary font-bold mt-1">
                       R$ {Number(p.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
                   )}
                   {p.price != null && (
-                    <p className="text-[10px] text-emerald-400 font-semibold mt-0.5 uppercase tracking-wider">
+                    <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-semibold mt-0.5 uppercase tracking-wider">
                       Comissão: R$ {(Number(p.price) * (commissionRate / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
                   )}
                 </div>
               </div>
               {p.description && (
-                <p className="text-xs text-slate-400 line-clamp-3">{p.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-3">{p.description}</p>
               )}
               <button
                 onClick={() => copy(p)}
