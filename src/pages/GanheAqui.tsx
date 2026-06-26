@@ -424,107 +424,55 @@ export default function GanheAqui() {
             </button>
           </div>
 
-          {/* Como Funciona */}
-          <section className="mb-8">
-            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {howItWorksSteps.map((step, i) => (
-                <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
-                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <step.icon className="size-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-white">{step.title}</p>
-                    <p className="text-xs text-slate-500">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* Leads Heatmap (real-time) */}
+          <LeadsHeatmap partnerId={partner.id} />
 
-          {/* Transactions Table */}
-          <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
-        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
-          <h3 className="font-bold text-lg text-white">Minhas Indicações</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">Filtrar:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0F0F0F] border border-[#2A2A2A] text-xs text-slate-300 rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none"
+          {/* Quick Access Cards */}
+          <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(partnerLink);
+                toast.success("Link copiado!");
+              }}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
             >
-              <option value="all">Todos Status</option>
-              <option value="credited">Creditado</option>
-              <option value="pending">Pendente</option>
-              <option value="cancelled">Cancelado</option>
-            </select>
-          </div>
-        </div>
-
-        {filteredReferrals.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <Users className="size-8 text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">
-              {statusFilter === "all"
-                ? "Nenhuma indicação registrada ainda."
-                : "Nenhuma indicação com este status."}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-[#2A2A2A]/30">
-                  <tr>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Valor do Pedido</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Comissão Gerada</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2A2A2A]">
-                  {paginatedReferrals.map((ref) => (
-                    <tr key={ref.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-300">
-                        {new Date(ref.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-white">
-                        R$ {ref.order_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-primary">
-                        R$ {ref.commission_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <ReferralStatusBadge status={ref.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-between">
-              <p className="text-xs text-slate-500">
-                Mostrando {paginatedReferrals.length} de {filteredReferrals.length} indicações
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
-                >
-                  <ChevronLeft className="size-4 text-slate-400" />
-                </button>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
-                >
-                  <ChevronRight className="size-4 text-slate-400" />
-                </button>
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Link2 className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
-            </div>
-          </>
-        )}
+              <p className="font-bold text-sm text-white">Copiar link de indicação</p>
+              <p className="text-xs text-slate-500 mt-1 truncate">{partnerLink.replace(/^https?:\/\//, "")}</p>
+            </button>
+
+            <button
+              onClick={() => setTab("products")}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Package className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <p className="font-bold text-sm text-white">Ver produtos para promover</p>
+              <p className="text-xs text-slate-500 mt-1">Campeões de venda e mais comissão</p>
+            </button>
+
+            <button
+              onClick={() => setTab("journey")}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Route className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <p className="font-bold text-sm text-white">Acompanhar jornada</p>
+              <p className="text-xs text-slate-500 mt-1">Funil e visitantes em tempo real</p>
+            </button>
           </section>
         </>
       )}
@@ -596,6 +544,192 @@ const howItWorksSteps = [
   { icon: ShoppingCart, title: "Cliente compra", desc: "Adesão confirmada na rede" },
   { icon: Wallet, title: "Você ganha", desc: "Comissão direto no saldo" },
 ];
+
+// --- Leads Heatmap (real-time) ---
+
+function LeadsHeatmap({ partnerId }: { partnerId: string }) {
+  const [events, setEvents] = useState<Array<{ created_at: string; event_type: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      since.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("partner_journey_events" as any)
+        .select("created_at, event_type")
+        .eq("partner_id", partnerId)
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (mounted) {
+        setEvents((data || []) as any);
+        setLoading(false);
+      }
+    };
+    load();
+
+    const ch = supabase
+      .channel(`leads-heatmap-${partnerId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "partner_journey_events", filter: `partner_id=eq.${partnerId}` },
+        (payload: any) => {
+          setEvents((prev) => [{ created_at: payload.new.created_at, event_type: payload.new.event_type }, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(ch);
+    };
+  }, [partnerId]);
+
+  // Build 7d x 24h grid
+  const { grid, maxCount, totals, hottest } = useMemo(() => {
+    const days: Date[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    const grid: number[][] = days.map(() => Array(24).fill(0));
+    for (const ev of events) {
+      const d = new Date(ev.created_at);
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const idx = days.findIndex((x) => x.getTime() === dayStart.getTime());
+      if (idx >= 0) grid[idx][d.getHours()]++;
+    }
+    let maxCount = 0;
+    grid.forEach((row) => row.forEach((v) => { if (v > maxCount) maxCount = v; }));
+    const totals = {
+      total: events.length,
+      clicks: events.filter((e) => e.event_type === "click").length,
+      views: events.filter((e) => e.event_type === "view_product").length,
+      purchases: events.filter((e) => e.event_type === "purchase").length,
+    };
+    // hottest hour
+    let bestHour = -1; let bestCount = 0;
+    const hourTotals = Array(24).fill(0);
+    grid.forEach((row) => row.forEach((v, h) => { hourTotals[h] += v; }));
+    hourTotals.forEach((v, h) => { if (v > bestCount) { bestCount = v; bestHour = h; } });
+    return { grid, maxCount, totals, hottest: { hour: bestHour, count: bestCount }, days } as any;
+  }, [events]);
+
+  const dayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rowLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    return dayLabels[d.getDay()];
+  });
+
+  const intensity = (v: number) => {
+    if (v === 0 || maxCount === 0) return "bg-[#1f1f1f]";
+    const ratio = v / maxCount;
+    if (ratio > 0.8) return "bg-primary";
+    if (ratio > 0.55) return "bg-primary/75";
+    if (ratio > 0.3) return "bg-primary/50";
+    if (ratio > 0.1) return "bg-primary/30";
+    return "bg-primary/15";
+  };
+
+  return (
+    <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-bold text-base text-white">Leads em tempo real</h3>
+            <span className="ml-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ao vivo
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">Mapa de calor dos últimos 7 dias por hora do dia</p>
+        </div>
+        <div className="flex flex-wrap gap-4 text-xs">
+          <Stat label="Total" value={totals.total} />
+          <Stat label="Cliques" value={totals.clicks} />
+          <Stat label="Views" value={totals.views} />
+          <Stat label="Vendas" value={totals.purchases} accent />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="h-40 flex items-center justify-center text-xs text-slate-500">Carregando…</div>
+      ) : totals.total === 0 ? (
+        <div className="py-10 text-center">
+          <Activity className="size-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-400 font-medium">Ainda sem leads</p>
+          <p className="text-xs text-slate-600 mt-1">Compartilhe seu link para começar a ver o mapa de calor.</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full">
+              {/* Hours header */}
+              <div className="flex items-center gap-1 pl-10 mb-1">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} className="w-3.5 text-[9px] text-slate-600 text-center font-mono">
+                    {h % 3 === 0 ? h : ""}
+                  </div>
+                ))}
+              </div>
+              {grid.map((row: number[], i: number) => (
+                <div key={i} className="flex items-center gap-1 mb-1">
+                  <div className="w-10 text-[10px] text-slate-500 font-bold uppercase">{rowLabels[i]}</div>
+                  {row.map((v, h) => (
+                    <div
+                      key={h}
+                      title={`${rowLabels[i]} ${h}:00 — ${v} evento${v === 1 ? "" : "s"}`}
+                      className={`w-3.5 h-3.5 rounded-[3px] ${intensity(v)} transition-colors`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-500">
+              <span>Menos</span>
+              <div className="flex gap-1">
+                <div className="w-3 h-3 rounded-[2px] bg-[#1f1f1f]" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/15" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/30" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/50" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/75" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary" />
+              </div>
+              <span>Mais</span>
+            </div>
+            {hottest.hour >= 0 && (
+              <p className="text-slate-400">
+                Pico de atividade: <span className="text-primary font-bold">{String(hottest.hour).padStart(2, "0")}:00</span>
+                <span className="text-slate-600"> · {hottest.count} eventos</span>
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="text-right">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`text-lg font-bold ${accent ? "text-primary" : "text-white"}`}>{value}</p>
+    </div>
+  );
+}
 
 // --- Products Tab ---
 
