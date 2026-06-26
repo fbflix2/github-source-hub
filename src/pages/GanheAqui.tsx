@@ -480,18 +480,19 @@ function FaturamentoMeter({ earned }: { earned: number }) {
 }
 
 function WithdrawModal({
-  partner, userId, defaultCpf, defaultHolder, previous, onClose, onSuccess,
+  partner, userId, defaultCpf, defaultHolder, defaultKeyType, previous, onClose, onSuccess,
 }: {
   partner: Partner;
   userId: string;
   defaultCpf: string;
   defaultHolder: string;
+  defaultKeyType?: string;
   previous: any[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
   const [amount, setAmount] = useState<string>(String(partner.balance.toFixed(2)));
-  const [keyType, setKeyType] = useState<string>("cpf");
+  const [keyType, setKeyType] = useState<string>(defaultKeyType || "cpf");
   const [pixKey, setPixKey] = useState<string>(defaultCpf || "");
   const [holder, setHolder] = useState<string>(defaultHolder || "");
   const [saving, setSaving] = useState(false);
