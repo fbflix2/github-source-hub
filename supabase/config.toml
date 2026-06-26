@@ -3,6 +3,9 @@ project_id = "mxnlerkeygfvdnznoxld"
 [functions.fb-photo]
 verify_jwt = false
 
+[functions.wa-avatar-cache]
+verify_jwt = false
+
 [functions.create-pix-payment]
 verify_jwt = false
 
