@@ -2327,6 +2327,11 @@ export type Database = {
           created_at: string
           guarantee_days: number
           id: string
+          pix_bank: string | null
+          pix_holder_document: string | null
+          pix_holder_name: string | null
+          pix_key: string | null
+          pix_key_type: string | null
           slug: string
           status: string
           total_earned: number
@@ -2340,6 +2345,11 @@ export type Database = {
           created_at?: string
           guarantee_days?: number
           id?: string
+          pix_bank?: string | null
+          pix_holder_document?: string | null
+          pix_holder_name?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
           slug: string
           status?: string
           total_earned?: number
@@ -2353,6 +2363,11 @@ export type Database = {
           created_at?: string
           guarantee_days?: number
           id?: string
+          pix_bank?: string | null
+          pix_holder_document?: string | null
+          pix_holder_name?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
           slug?: string
           status?: string
           total_earned?: number
