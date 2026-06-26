@@ -33,6 +33,9 @@ import Tickets from "./pages/Tickets";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
+import MeusDados from "./pages/MeusDados";
+import { CookieConsent } from "./components/CookieConsent";
 import TermsOfService from "./pages/TermsOfService";
 import Sobre from "./pages/Sobre";
 import Mercado from "./pages/Mercado";
@@ -219,6 +222,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/safe-bm" element={<SafeBMClient />} />
         <Route path="/contingencia" element={<ClientContingencia />} />
         <Route path="/esteira-aquecimento" element={<ClientWarming />} />
+        <Route path="/meus-dados" element={<MeusDados />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
 
@@ -370,6 +374,7 @@ const App = () => {
                 />
                 <Route path="/" element={user ? <Navigate to="/loja" replace /> : <Index />} />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
+                <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
@@ -471,6 +476,7 @@ const App = () => {
                 )}
               </Routes>
               <FloatingCart />
+              <CookieConsent />
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>
