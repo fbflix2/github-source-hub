@@ -60,6 +60,15 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
         product_id: product.id,
         user_id: user?.id ?? null,
       });
+      // Partner journey tracking (no-op if no active referral)
+      try {
+        const { trackPartnerEvent } = await import("@/lib/partnerTracking");
+        trackPartnerEvent("view_product", {
+          productId: product.id,
+          productName: product.name,
+          amount: product.price ?? null,
+        });
+      } catch { /* noop */ }
     })();
   }, [open, product?.id]);
 
