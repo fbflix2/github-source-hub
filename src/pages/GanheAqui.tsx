@@ -279,8 +279,8 @@ export default function GanheAqui() {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
+      {/* Tabs (mobile fallback — top nav drives tabs on desktop) */}
+      <div className="md:hidden flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
         {([
           { key: "overview", label: "Visão Geral", icon: BarChart3 },
           { key: "products", label: "Produtos", icon: Package },
