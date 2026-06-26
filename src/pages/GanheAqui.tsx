@@ -945,6 +945,8 @@ function ProductsTab({
   const isRecurring = (name: string): boolean => {
     const n = name.toLowerCase();
     return (
+      n.includes("bm safe") ||
+      n.includes("blindagem") ||
       n.includes("safe bm") ||
       n.includes("safebm") ||
       n.includes("proxy") ||
@@ -1115,25 +1117,6 @@ function ProductsTab({
           className="w-full sm:w-64 bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:border-primary focus:outline-none"
         />
       </div>
-
-      {!recurringUnlocked && hiddenRecurringCount > 0 && (
-        <div className="mb-5 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/[0.06] to-transparent p-4 flex items-start gap-3">
-          <div className="size-9 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
-            <Crown className="size-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white">
-              Comissões recorrentes bloqueadas
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Produtos de assinatura (Safe BM, Proxy e Contingência Total) são liberados após você atingir
-              <span className="text-amber-300 font-semibold"> R$ 50.000 </span>
-              em vendas. Faltam
-              <span className="text-amber-300 font-semibold"> R$ {Math.max(0, RECURRING_UNLOCK - partnerEarned).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Type Filters */}
       <div className="flex flex-wrap gap-2 mb-5">
