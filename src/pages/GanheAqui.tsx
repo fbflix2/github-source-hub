@@ -46,6 +46,18 @@ interface PromoProduct {
   description: string | null;
 }
 
+interface PromoBanner {
+  id: string;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  image_style: string | null;
+  background_color: string | null;
+  cta_text: string | null;
+  link_url: string | null;
+  category: string | null;
+}
+
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
   const [userName, setUserName] = useState("");
@@ -80,6 +92,7 @@ export default function GanheAqui() {
   const [topSellers, setTopSellers] = useState<string[]>([]);
   const [topViewed, setTopViewed] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
+  const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
 
   useEffect(() => {
     loadPartnerData();
@@ -137,6 +150,13 @@ export default function GanheAqui() {
         .order("price", { ascending: false })
         .limit(60);
       setProducts((prods || []) as PromoProduct[]);
+      // Fetch hero banners (same as store) for the partner carousel
+      const { data: bn } = await supabase
+        .from("banners")
+        .select("id,title,subtitle,image_url,image_style,background_color,cta_text,link_url,category")
+        .eq("active", true)
+        .order("position", { ascending: true });
+      setPromoBanners((bn || []) as PromoBanner[]);
       // Fallback: compute top sellers from order_items directly
       const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
       const { data: items } = await supabase
@@ -493,6 +513,7 @@ export default function GanheAqui() {
           commissionRate={partner.commission_rate}
           topSellers={topSellers}
           topViewed={topViewed}
+          banners={promoBanners}
         />
       )}
 
