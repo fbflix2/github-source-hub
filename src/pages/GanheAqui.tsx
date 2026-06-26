@@ -365,8 +365,9 @@ export default function GanheAqui() {
         {([
           { key: "overview", label: "Visão Geral", icon: BarChart3 },
           { key: "products", label: "Produtos", icon: Package },
+          { key: "journey", label: "Jornada", icon: Route },
           { key: "finance", label: "Financeiro", icon: Wallet },
-        ] as { key: TabKey; label: string; icon: any }[]).map(t => (
+        ] as { key: TabKeyExt; label: string; icon: any }[]).map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -554,6 +555,16 @@ export default function GanheAqui() {
           }}
           onSavePix={savePixData}
           withdrawals={withdrawals}
+        />
+      )}
+
+      {tab === "journey" && (
+        <JourneyTab
+          events={journeyEvents}
+          loading={journeyLoading}
+          range={journeyRange}
+          onRangeChange={setJourneyRange}
+          commissionRate={partner.commission_rate}
         />
       )}
 
