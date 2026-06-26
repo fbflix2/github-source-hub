@@ -129,6 +129,7 @@ import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
 import AdminBackupFb from "./pages/admin/AdminBackupFb";
+import AdminLGPD from "./pages/admin/AdminLGPD";
 import AdminOpenPix from "./pages/admin/AdminOpenPix";
 import PublicAmizades from "./pages/PublicAmizades";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
@@ -465,6 +466,7 @@ const App = () => {
                   <Route path="solicitacoes-amizade" element={<AdminSolicitacoesAmizade />} />
                   <Route path="backup-fb" element={<AdminBackupFb />} />
                   <Route path="openpix" element={<AdminOpenPix />} />
+                  <Route path="lgpd" element={<AdminLGPD />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
