@@ -222,6 +222,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/safe-bm" element={<SafeBMClient />} />
         <Route path="/contingencia" element={<ClientContingencia />} />
         <Route path="/esteira-aquecimento" element={<ClientWarming />} />
+        <Route path="/meus-dados" element={<MeusDados />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
 
@@ -373,6 +374,7 @@ const App = () => {
                 />
                 <Route path="/" element={user ? <Navigate to="/loja" replace /> : <Index />} />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
+                <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
