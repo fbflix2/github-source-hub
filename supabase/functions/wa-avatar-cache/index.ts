@@ -12,13 +12,24 @@ function publicUrl(supaUrl: string, path: string) {
 }
 
 async function fetchWapiProfilePic(phone: string, token: string, instanceId: string): Promise<string | null> {
-  try {
-    const url = `https://api.w-api.app/v1/contacts/profile-image?phoneNumber=${encodeURIComponent(phone)}&instanceId=${encodeURIComponent(instanceId)}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return null;
-    const j = await res.json().catch(() => null);
-    return j?.profilePicUrl || j?.profilePicture || j?.imgUrl || j?.url || null;
-  } catch { return null; }
+  const endpoints = [
+    `https://api.w-api.app/v1/contacts/profile-image?phoneNumber=${encodeURIComponent(phone)}&instanceId=${encodeURIComponent(instanceId)}`,
+    `https://api.w-api.app/v1/contacts/profile-picture?phoneNumber=${encodeURIComponent(phone)}&instanceId=${encodeURIComponent(instanceId)}`,
+    `https://api.w-api.app/v1/chats/profile-pic-url?phoneNumber=${encodeURIComponent(phone)}&instanceId=${encodeURIComponent(instanceId)}`,
+  ];
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const txt = await res.text();
+      let j: any = null;
+      try { j = JSON.parse(txt); } catch {}
+      console.log("wapi-pic", res.status, url, txt.slice(0, 200));
+      if (!res.ok) continue;
+      const pic = j?.profilePicUrl || j?.profilePicture || j?.imgUrl || j?.url || j?.link || j?.data?.profilePicUrl;
+      if (pic) return pic;
+    } catch (e) { console.error("wapi-pic err", e); }
+  }
+  return null;
 }
 
 async function downloadAndCache(
@@ -29,8 +40,12 @@ async function downloadAndCache(
 ): Promise<string | null> {
   try {
     const r = await fetch(imageUrl, {
-      headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://web.whatsapp.com/" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "image/avif,image/webp,image/*,*/*;q=0.8",
+      },
     });
+    console.log("download", phone, r.status, r.headers.get("content-type"));
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "image/jpeg";
     const buf = new Uint8Array(await r.arrayBuffer());
