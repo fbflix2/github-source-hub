@@ -121,7 +121,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Partner Faturamento Meter */}
-          {isPartner && partnerEarned !== null && partnerEarned !== undefined && (
+          {isPartner && isPartnerMode && partnerEarned !== null && partnerEarned !== undefined && (
             <FaturamentoMeter earned={partnerEarned} compact />
           )}
           {/* Notification Popup Overlay */}
