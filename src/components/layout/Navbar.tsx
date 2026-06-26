@@ -140,7 +140,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
           <ThemeToggle />
 
           {/* Balance Badge */}
-          <NavLink
+          {!isPartnerMode && <NavLink
             to="/wallet"
             className={`hidden sm:flex items-center gap-2 border px-4 py-1.5 rounded-full backdrop-blur-sm transition-colors cursor-pointer group ${
               balance > 0
@@ -161,7 +161,12 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
                 R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </span>
             </div>
-          </NavLink>
+          </NavLink>}
+
+          {/* Partner Faturamento Meter (no lugar do saldo) */}
+          {isPartner && isPartnerMode && partnerEarned !== null && partnerEarned !== undefined && (
+            <FaturamentoMeter earned={partnerEarned} compact />
+          )}
 
           {/* User Profile */}
           <DropdownMenu>
@@ -218,11 +223,6 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Partner Faturamento Meter (após o avatar) */}
-          {isPartner && isPartnerMode && partnerEarned !== null && partnerEarned !== undefined && (
-            <FaturamentoMeter earned={partnerEarned} compact />
-          )}
         </div>
       </div>
     </header>
