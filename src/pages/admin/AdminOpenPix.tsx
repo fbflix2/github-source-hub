@@ -3,7 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Wallet, TrendingUp, AlertCircle, Building2 } from "lucide-react";
+import { RefreshCw, Wallet, TrendingUp, AlertCircle, Building2, Undo2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,7 +28,10 @@ interface BalanceData {
     count: number;
     total: number;
     fees: number;
-    charges: Array<{ value: number; fee: number; paidAt: string; comment: string; customer?: string }>;
+    charges: Array<{
+      value: number; fee: number; paidAt: string; comment: string; customer?: string;
+      correlationID?: string; identifier?: string; transactionID?: string; endToEndId?: string; status?: string;
+    }>;
   };
 }
 
@@ -33,6 +43,11 @@ export default function AdminOpenPix() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [refundCharge, setRefundCharge] = useState<BalanceData["today"]["charges"][number] | null>(null);
+  const [refundValue, setRefundValue] = useState("");
+  const [refundComment, setRefundComment] = useState("");
+  const [refundUpdateOrder, setRefundUpdateOrder] = useState(true);
+  const [refundLoading, setRefundLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -55,6 +70,47 @@ export default function AdminOpenPix() {
     const i = setInterval(load, 60000);
     return () => clearInterval(i);
   }, []);
+
+  const openRefund = (c: BalanceData["today"]["charges"][number]) => {
+    setRefundCharge(c);
+    setRefundValue(c.value.toFixed(2).replace(".", ","));
+    setRefundComment(`Estorno: ${c.comment || ""}`.slice(0, 140));
+    setRefundUpdateOrder(true);
+  };
+
+  const submitRefund = async () => {
+    if (!refundCharge) return;
+    const valNum = Number(refundValue.replace(",", "."));
+    if (!valNum || valNum <= 0 || valNum > refundCharge.value) {
+      toast.error("Valor inválido");
+      return;
+    }
+    setRefundLoading(true);
+    try {
+      const { data: res, error: err } = await supabase.functions.invoke("openpix-refund", {
+        body: {
+          chargeId: refundCharge.identifier || refundCharge.correlationID,
+          correlationID: refundCharge.correlationID,
+          value: Math.round(valNum * 100),
+          comment: refundComment,
+          updateOrder: refundUpdateOrder,
+        },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      toast.success(
+        res?.orderUpdated
+          ? "Estorno enviado e pedido marcado como reembolsado"
+          : "Estorno enviado para a OpenPix"
+      );
+      setRefundCharge(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha no estorno");
+    } finally {
+      setRefundLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 p-1">
@@ -180,6 +236,15 @@ export default function AdminOpenPix() {
                         <p className="text-xs text-muted-foreground">taxa {formatBRL(c.fee)}</p>
                       )}
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-3"
+                      onClick={() => openRefund(c)}
+                      disabled={!c.identifier && !c.correlationID}
+                    >
+                      <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -198,6 +263,65 @@ export default function AdminOpenPix() {
           <p className="text-sm text-muted-foreground mt-3">Carregando saldo...</p>
         </Card>
       )}
+
+      <Dialog open={!!refundCharge} onOpenChange={(o) => !o && setRefundCharge(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estornar PIX</DialogTitle>
+            <DialogDescription>
+              O valor será debitado do saldo OpenPix e enviado de volta ao pagador.
+            </DialogDescription>
+          </DialogHeader>
+          {refundCharge && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-secondary/30 text-sm">
+                <p className="font-medium">{refundCharge.comment || "Sem descrição"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {refundCharge.customer && `${refundCharge.customer} • `}
+                  Recebido: {formatBRL(refundCharge.value)}
+                </p>
+              </div>
+              <div>
+                <Label>Valor a estornar (R$)</Label>
+                <Input
+                  value={refundValue}
+                  onChange={(e) => setRefundValue(e.target.value)}
+                  placeholder="0,00"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Máx: {formatBRL(refundCharge.value)}. Pode ser parcial.
+                </p>
+              </div>
+              <div>
+                <Label>Motivo (opcional)</Label>
+                <Input
+                  value={refundComment}
+                  onChange={(e) => setRefundComment(e.target.value.slice(0, 140))}
+                  placeholder="Motivo do estorno"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={refundUpdateOrder}
+                  onCheckedChange={(v) => setRefundUpdateOrder(!!v)}
+                />
+                <span>
+                  Marcar pedido como <strong>reembolsado</strong> (cancela comissão de parceiro,
+                  devolve estoque, etc.)
+                </span>
+              </label>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundCharge(null)} disabled={refundLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={submitRefund} disabled={refundLoading}>
+              {refundLoading ? "Enviando..." : "Confirmar Estorno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
