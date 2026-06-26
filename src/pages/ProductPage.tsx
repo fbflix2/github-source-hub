@@ -57,6 +57,14 @@ export default function ProductPage() {
             product_id: productData.id,
             user_id: viewer?.id ?? null,
           });
+          try {
+            const { trackPartnerEvent } = await import("@/lib/partnerTracking");
+            trackPartnerEvent("view_product", {
+              productId: productData.id,
+              productName: productData.name,
+              amount: productData.price ?? null,
+            });
+          } catch { /* noop */ }
         })();
         // Atualiza as meta tags dinamicamente
         document.title = `${productData.name} - FBFLIX`;
