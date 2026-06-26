@@ -615,6 +615,7 @@ export default function GanheAqui() {
           topSellers={topSellers}
           topViewed={topViewed}
           banners={promoBanners}
+          partnerEarned={Number(partner.total_earned) || 0}
         />
       )}
 
@@ -866,7 +867,7 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed, banners,
+  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed, banners, partnerEarned,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
@@ -877,6 +878,7 @@ function ProductsTab({
   topSellers: string[];
   topViewed: string | null;
   banners: PromoBanner[];
+  partnerEarned: number;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("todos");
@@ -937,6 +939,25 @@ function ProductsTab({
     return "outros";
   };
 
+  // Assinaturas recorrentes: liberadas só após atingir R$ 50k em vendas
+  const RECURRING_UNLOCK = 50000;
+  const recurringUnlocked = partnerEarned >= RECURRING_UNLOCK;
+  const isRecurring = (name: string): boolean => {
+    const n = name.toLowerCase();
+    return (
+      n.includes("safe bm") ||
+      n.includes("safebm") ||
+      n.includes("proxy") ||
+      n.includes("contingência") ||
+      n.includes("contingencia")
+    );
+  };
+
+  const sellableProducts = recurringUnlocked
+    ? products
+    : products.filter(p => !isRecurring(p.name));
+  const hiddenRecurringCount = products.length - sellableProducts.length;
+
   const types = [
     { id: "todos", label: "Todos", icon: Package },
     { id: "bm", label: "BM", icon: Briefcase },
@@ -944,11 +965,11 @@ function ProductsTab({
     { id: "proxy", label: "Proxies", icon: Globe },
     { id: "pagina", label: "Páginas", icon: FileText },
     { id: "outros", label: "Outros", icon: Box },
-  ];
+  ].filter(t => recurringUnlocked || t.id !== "proxy");
 
   const baseFiltered = typeFilter === "todos"
-    ? products
-    : products.filter(p => getType(p.name) === typeFilter);
+    ? sellableProducts
+    : sellableProducts.filter(p => getType(p.name) === typeFilter);
 
   const topRank = (id: string) => {
     const idx = topSellers.indexOf(id);
@@ -977,7 +998,7 @@ function ProductsTab({
     return null;
   };
 
-  const counts = products.reduce<Record<string, number>>((acc, p) => {
+  const counts = sellableProducts.reduce<Record<string, number>>((acc, p) => {
     const t = getType(p.name);
     acc[t] = (acc[t] || 0) + 1;
     return acc;
@@ -1094,6 +1115,25 @@ function ProductsTab({
           className="w-full sm:w-64 bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:border-primary focus:outline-none"
         />
       </div>
+
+      {!recurringUnlocked && hiddenRecurringCount > 0 && (
+        <div className="mb-5 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/[0.06] to-transparent p-4 flex items-start gap-3">
+          <div className="size-9 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
+            <Crown className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-white">
+              Comissões recorrentes bloqueadas
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Produtos de assinatura (Safe BM, Proxy e Contingência Total) são liberados após você atingir
+              <span className="text-amber-300 font-semibold"> R$ 50.000 </span>
+              em vendas. Faltam
+              <span className="text-amber-300 font-semibold"> R$ {Math.max(0, RECURRING_UNLOCK - partnerEarned).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Type Filters */}
       <div className="flex flex-wrap gap-2 mb-5">
