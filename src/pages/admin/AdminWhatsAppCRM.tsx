@@ -595,79 +595,135 @@ export default function AdminWhatsAppCRM() {
     all: conversations.length,
   }), [conversations]);
 
+  // Premium initials avatar — never generic
+  const getInitials = (name: string | null | undefined, phone: string) => {
+    if (name && name.trim()) {
+      const parts = name.trim().split(/\s+/).filter(Boolean);
+      const a = parts[0]?.[0] || "";
+      const b = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
+      return (a + b).toUpperCase().slice(0, 2);
+    }
+    const digits = phone.replace(/\D/g, "");
+    return digits.slice(-2);
+  };
+  const avatarGradients = [
+    "from-[#E5484D] to-[#8B1D21]",
+    "from-[#4A4A52] to-[#23252B]",
+    "from-[#6E56CF] to-[#352A6E]",
+    "from-[#0AA866] to-[#054E2F]",
+    "from-[#D97757] to-[#6E3C2C]",
+    "from-[#2B7FFF] to-[#143F80]",
+  ];
+  const gradientFor = (key: string) => {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return avatarGradients[h % avatarGradients.length];
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="-m-6 p-6 md:p-8 min-h-screen text-zinc-100 font-sans" style={{ background: "#0F1013" }}>
+      <style>{`
+        .crm-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .crm-scroll::-webkit-scrollbar-thumb { background: #2A2D33; border-radius: 999px; }
+        .crm-scroll::-webkit-scrollbar-thumb:hover { background: #3A3D44; }
+        .crm-scroll::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
+
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center">
-            <MessageCircle className="size-5 text-white" />
+          <div className="size-10 rounded-2xl flex items-center justify-center shadow-[0_8px_24px_-12px_rgba(229,72,77,0.6)]"
+               style={{ background: "linear-gradient(135deg,#E5484D 0%,#8B1D21 100%)" }}>
+            <MessageCircle className="size-[18px] text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">CRM WhatsApp</h1>
-            <p className="text-xs text-muted-foreground">Painel de atendimento — conversas em tempo real</p>
+            <h1 className="text-[19px] font-semibold tracking-tight leading-none">Inbox</h1>
+            <p className="text-[12px] text-zinc-500 mt-1.5 leading-none">Central de atendimento WhatsApp · tempo real</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setSoundOn(s => !s)} title={soundOn ? "Silenciar alertas" : "Ativar alertas"}>
-            {soundOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setQrModalOpen(true)}>
-            <Zap className="size-4 mr-1.5" /> Respostas rápidas
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => { refetchConvos(); refetchMessages(); }}>
-            <RefreshCw className="size-4 mr-1.5" /> Atualizar
-          </Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSoundOn(s => !s)}
+            title={soundOn ? "Silenciar alertas" : "Ativar alertas"}
+            className="size-9 rounded-[14px] bg-[#17191D] border border-white/[0.04] hover:border-white/[0.08] hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center justify-center text-zinc-400 hover:text-zinc-200"
+          >
+            {soundOn ? <Volume2 className="size-[15px]" /> : <VolumeX className="size-[15px]" />}
+          </button>
+          <button
+            onClick={() => setQrModalOpen(true)}
+            className="h-9 px-3.5 rounded-[14px] bg-[#17191D] border border-white/[0.04] hover:border-white/[0.08] hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center gap-1.5 text-[12.5px] text-zinc-300 hover:text-white"
+          >
+            <Zap className="size-[14px]" /> Respostas rápidas
+          </button>
+          <button
+            onClick={() => { refetchConvos(); refetchMessages(); }}
+            className="h-9 px-3.5 rounded-[14px] text-white hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center gap-1.5 text-[12.5px] shadow-[0_8px_20px_-10px_rgba(229,72,77,0.55)]"
+            style={{ background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }}
+          >
+            <RefreshCw className="size-[14px]" /> Atualizar
+          </button>
         </div>
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Abertas", value: metrics.open, icon: Inbox, color: "text-emerald-500" },
-          { label: "Não lidas", value: metrics.unread, icon: MessageCircle, color: "text-green-500" },
-          { label: "Minhas abertas", value: metrics.mineOpen, icon: UserCheck, color: "text-blue-400" },
-          { label: "Resolvidas hoje", value: metrics.resolvedToday, icon: CheckCircle2, color: "text-emerald-400" },
+          { label: "Conversas abertas", value: metrics.open, icon: Inbox, accent: "#E5484D" },
+          { label: "Mensagens não lidas", value: metrics.unread, icon: MessageCircle, accent: "#FFFFFF" },
+          { label: "Atribuídas a mim", value: metrics.mineOpen, icon: UserCheck, accent: "#8FA0B4" },
+          { label: "Resolvidas hoje", value: metrics.resolvedToday, icon: CheckCircle2, accent: "#6B7280" },
         ].map((m) => (
-          <div key={m.label} className="bg-card/60 border border-border/40 rounded-xl p-3 flex items-center gap-3">
-            <div className={`size-9 rounded-lg bg-muted/40 flex items-center justify-center ${m.color}`}>
-              <m.icon className="size-4" />
+          <div
+            key={m.label}
+            className="rounded-[20px] p-5 border border-white/[0.04] hover:border-white/[0.08] transition-colors duration-[180ms] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
+            style={{ background: "#17191D" }}
+          >
+            <div className="flex items-start justify-between">
+              <div className="size-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.03)" }}>
+                <m.icon className="size-[15px]" style={{ color: m.accent }} />
+              </div>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-600 font-medium">Agora</span>
             </div>
-            <div>
-              <div className="text-xl font-bold leading-none">{m.value}</div>
-              <div className="text-[11px] text-muted-foreground mt-1">{m.label}</div>
-            </div>
+            <div className="text-[32px] font-semibold tracking-tight mt-6 leading-none tabular-nums">{m.value}</div>
+            <div className="text-[12px] text-zinc-500 mt-2">{m.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100vh-280px)]">
-        {/* Conversations list */}
-        <div className="bg-card/60 border border-border/40 rounded-xl flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-border/40">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-5 h-[calc(100vh-260px)] min-h-[560px]">
+        {/* Conversations sidebar */}
+        <div className="rounded-[20px] flex flex-col overflow-hidden border border-white/[0.04] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
+             style={{ background: "#131518" }}>
+          <div className="p-4 space-y-3">
+            <div className="relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-[15px] text-zinc-500 group-focus-within:text-zinc-300 transition-colors" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar conversa..."
-                className="pl-9 h-9"
+                placeholder="Pesquisar conversas..."
+                className="pl-10 h-10 rounded-[14px] bg-[#0F1013] border-white/[0.04] focus-visible:border-white/[0.12] focus-visible:ring-0 text-[13px] placeholder:text-zinc-600 transition-all duration-[180ms]"
               />
             </div>
-            <div className="flex gap-1 mt-2">
+            <div className="flex gap-1.5">
               {(["open","resolved","all"] as const).map(s => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`flex-1 text-xs py-1.5 rounded-md transition ${statusFilter === s ? "bg-green-600 text-white" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
+                  className={`flex-1 text-[12px] font-medium py-2 rounded-[12px] transition-all duration-[180ms] active:scale-[0.98] ${
+                    statusFilter === s
+                      ? "bg-white text-[#0F1013] shadow-[0_4px_12px_-4px_rgba(255,255,255,0.2)]"
+                      : "bg-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]"
+                  }`}
                 >
-                  {s === "open" ? "Abertas" : s === "resolved" ? "Resolvidas" : "Todas"} ({counts[s]})
+                  {s === "open" ? "Abertas" : s === "resolved" ? "Resolvidas" : "Todas"}
+                  <span className={`ml-1.5 text-[10.5px] tabular-nums ${statusFilter === s ? "text-zinc-500" : "text-zinc-600"}`}>{counts[s]}</span>
                 </button>
               ))}
             </div>
-            <div className="flex gap-1.5 mt-2">
+            <div className="flex gap-1.5">
               <Select value={assignFilter} onValueChange={(v: any) => setAssignFilter(v)}>
-                <SelectTrigger className="h-7 text-[11px] flex-1">
-                  <Filter className="size-3 mr-1" />
+                <SelectTrigger className="h-8 text-[11.5px] flex-1 rounded-[12px] bg-[#0F1013] border-white/[0.04] hover:border-white/[0.08] transition-colors">
+                  <Filter className="size-3 mr-1.5" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -677,8 +733,8 @@ export default function AdminWhatsAppCRM() {
                 </SelectContent>
               </Select>
               <Select value={tagFilter || "__all__"} onValueChange={(v) => setTagFilter(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="h-7 text-[11px] flex-1">
-                  <TagIcon className="size-3 mr-1" />
+                <SelectTrigger className="h-8 text-[11.5px] flex-1 rounded-[12px] bg-[#0F1013] border-white/[0.04] hover:border-white/[0.08] transition-colors">
+                  <TagIcon className="size-3 mr-1.5" />
                   <SelectValue placeholder="Etiqueta" />
                 </SelectTrigger>
                 <SelectContent>
@@ -690,62 +746,81 @@ export default function AdminWhatsAppCRM() {
               </Select>
             </div>
           </div>
-          <ScrollArea className="flex-1">
+
+          <div className="flex-1 overflow-y-auto crm-scroll px-2 pb-3">
             {loadingConvos ? (
-              <div className="p-8 flex justify-center"><Loader2 className="animate-spin size-5 text-muted-foreground" /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="animate-spin size-5 text-zinc-600" /></div>
             ) : filteredConvos.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
+              <div className="p-10 text-center text-[12.5px] text-zinc-500">
                 Nenhuma conversa ainda.<br />
-                Mensagens recebidas via WhatsApp aparecerão aqui.
+                <span className="text-zinc-600">Mensagens recebidas aparecerão aqui.</span>
               </div>
             ) : (
-              <div className="divide-y divide-border/30">
+              <div className="space-y-1">
                 {filteredConvos.map(c => {
                   const unanswered = (c.unread_count || 0) > 0;
+                  const selected = selectedPhone === c.phone;
+                  const initials = getInitials(c.contact_name, c.phone);
                   return (
                   <button
                     key={c.phone}
                     onClick={() => setSelectedPhone(c.phone)}
-                    className={`w-full text-left p-3 hover:bg-white/5 transition-colors flex gap-3 border-l-2 ${
-                      selectedPhone === c.phone
-                        ? "bg-white/10 border-l-green-500"
-                        : unanswered
-                          ? "bg-green-500/[0.04] border-l-green-500/70"
-                          : "border-l-transparent"
+                    className={`group relative w-full text-left p-3 rounded-[14px] transition-all duration-[180ms] flex gap-3 animate-fade-in ${
+                      selected
+                        ? "bg-[#1E2025] shadow-[0_6px_24px_-12px_rgba(0,0,0,0.7)]"
+                        : "hover:bg-white/[0.025] hover:-translate-y-[1px]"
                     }`}
                   >
-                    <Avatar className="size-10 shrink-0">
-                      <AvatarImage src={c.avatar_url || undefined} alt={c.contact_name || c.phone} />
-                      <AvatarFallback className="bg-muted">
-                        <User className="size-5 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
+                    {selected && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-r-full" style={{ background: "#E5484D" }} />
+                    )}
+                    <div className="relative shrink-0">
+                      {c.avatar_url ? (
+                        <Avatar className="size-10 ring-1 ring-white/[0.04]">
+                          <AvatarImage src={c.avatar_url} alt={c.contact_name || c.phone} />
+                          <AvatarFallback className={`bg-gradient-to-br ${gradientFor(c.phone)} text-white text-[12px] font-semibold`}>
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <div className={`size-10 rounded-full bg-gradient-to-br ${gradientFor(c.phone)} ring-1 ring-white/[0.06] flex items-center justify-center text-white text-[12px] font-semibold tracking-wide`}>
+                          {initials}
+                        </div>
+                      )}
+                      {unanswered && (
+                        <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-[#131518]" style={{ background: "#E5484D" }} />
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`text-sm truncate ${unanswered ? "font-bold text-foreground" : "font-medium"}`}>
+                        <span className={`text-[13px] truncate ${unanswered ? "font-semibold text-white" : "font-medium text-zinc-200"}`}>
                           {c.contact_name || formatPhone(c.phone)}
                         </span>
-                        <span className={`text-[10px] shrink-0 ${unanswered ? "text-green-500 font-semibold" : "text-muted-foreground"}`}>
+                        <span className={`text-[10.5px] shrink-0 tabular-nums ${unanswered ? "text-zinc-300" : "text-zinc-600"}`}>
                           {formatDistanceToNow(new Date(c.last_message_at), { locale: ptBR, addSuffix: false })}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <span className={`text-xs truncate ${unanswered ? "text-foreground/90" : "text-muted-foreground"}`}>
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <span className={`text-[12px] truncate ${unanswered ? "text-zinc-300" : "text-zinc-500"}`}>
                           {c.last_message_preview || "—"}
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
-                          {c.status === "resolved" && <CheckCircle2 className="size-3 text-emerald-500" />}
+                          {c.status === "resolved" && <CheckCircle2 className="size-3 text-zinc-600" />}
                           {c.unread_count > 0 && (
-                            <Badge className="bg-green-500 text-white h-5 min-w-5 px-1.5 text-[10px]">
+                            <span className="h-[18px] min-w-[18px] px-1.5 rounded-full text-[10px] font-semibold text-white flex items-center justify-center tabular-nums"
+                                  style={{ background: "#E5484D" }}>
                               {c.unread_count}
-                            </Badge>
+                            </span>
                           )}
                         </div>
                       </div>
-                      {unanswered && (
-                        <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-green-500">
-                          <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                          Aguardando resposta
+                      {(c.tags && c.tags.length > 0) && (
+                        <div className="flex gap-1 mt-1.5 flex-wrap">
+                          {c.tags.slice(0,3).map(tag => (
+                            <span key={tag} className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 font-medium">
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -754,38 +829,74 @@ export default function AdminWhatsAppCRM() {
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
 
-        {/* Thread */}
-        <div className="bg-card/60 border border-border/40 rounded-xl flex flex-col overflow-hidden">
+        {/* Thread panel */}
+        <div className="rounded-[20px] flex flex-col overflow-hidden border border-white/[0.04] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
+             style={{ background: "#17191D" }}>
           {!selectedPhone ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-              Selecione uma conversa
+            <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
+              <div className="size-16 rounded-2xl flex items-center justify-center mb-5"
+                   style={{ background: "linear-gradient(135deg,#1E2025 0%,#181A1F 100%)" }}>
+                <MessageCircle className="size-7 text-zinc-600" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-zinc-200 tracking-tight">Selecione uma conversa</h3>
+              <p className="text-[12.5px] text-zinc-500 mt-1.5 max-w-sm">
+                Escolha um atendimento à esquerda para começar a responder ou acompanhar o histórico em tempo real.
+              </p>
+              <div className="grid grid-cols-3 gap-3 mt-8 w-full max-w-md">
+                <div className="rounded-[16px] p-4 border border-white/[0.04]" style={{ background: "#181A1F" }}>
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-zinc-600 font-medium">Abertas</div>
+                  <div className="text-[22px] font-semibold tracking-tight mt-2 tabular-nums">{metrics.open}</div>
+                </div>
+                <div className="rounded-[16px] p-4 border border-white/[0.04]" style={{ background: "#181A1F" }}>
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-zinc-600 font-medium">Não lidas</div>
+                  <div className="text-[22px] font-semibold tracking-tight mt-2 tabular-nums" style={{ color: "#E5484D" }}>{metrics.unread}</div>
+                </div>
+                <div className="rounded-[16px] p-4 border border-white/[0.04]" style={{ background: "#181A1F" }}>
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-zinc-600 font-medium">Suas</div>
+                  <div className="text-[22px] font-semibold tracking-tight mt-2 tabular-nums">{metrics.mineOpen}</div>
+                </div>
+              </div>
             </div>
           ) : (
             <>
-              <div className="p-3 border-b border-border/40 flex items-center gap-3">
-                <Avatar className="size-9">
-                  <AvatarImage src={selectedConvo?.avatar_url || undefined} alt={selectedConvo?.contact_name || selectedPhone} />
-                  <AvatarFallback className="bg-muted">
-                    <User className="size-4 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>
+              <div className="px-5 py-4 flex items-center gap-3 border-b border-white/[0.04] animate-fade-in">
+                {selectedConvo?.avatar_url ? (
+                  <Avatar className="size-10 ring-1 ring-white/[0.06]">
+                    <AvatarImage src={selectedConvo.avatar_url} alt={selectedConvo?.contact_name || selectedPhone} />
+                    <AvatarFallback className={`bg-gradient-to-br ${gradientFor(selectedPhone)} text-white text-[12px] font-semibold`}>
+                      {getInitials(selectedConvo?.contact_name, selectedPhone)}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className={`size-10 rounded-full bg-gradient-to-br ${gradientFor(selectedPhone)} ring-1 ring-white/[0.06] flex items-center justify-center text-white text-[12px] font-semibold tracking-wide`}>
+                    {getInitials(selectedConvo?.contact_name, selectedPhone)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">
+                  <div className="font-semibold text-[14px] text-white tracking-tight truncate">
                     {selectedConvo?.contact_name || formatPhone(selectedPhone)}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {formatPhone(selectedPhone)}
-                    {selectedConvo?.client_user_id && <span className="ml-2 text-green-500">• Cliente</span>}
-                    {assignedMember && <span className="ml-2 text-blue-400">• Atendente: {assignedMember.full_name || "—"}</span>}
+                  <div className="text-[11.5px] text-zinc-500 flex items-center gap-2 mt-0.5">
+                    <span className="tabular-nums">{formatPhone(selectedPhone)}</span>
+                    {selectedConvo?.client_user_id && (
+                      <span className="inline-flex items-center gap-1 text-zinc-300">
+                        <span className="size-1 rounded-full" style={{ background: "#0AA866" }} /> Cliente
+                      </span>
+                    )}
+                    {assignedMember && (
+                      <span className="inline-flex items-center gap-1 text-zinc-400">
+                        <span className="size-1 rounded-full bg-zinc-500" /> {assignedMember.full_name || "—"}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-1.5">
                   <Select value={selectedConvo?.assigned_to || "unassigned"} onValueChange={(v) => handleAssign(v === "unassigned" ? null : v)}>
-                    <SelectTrigger className="h-8 w-40 text-xs">
-                      <UserCheck className="size-3.5 mr-1" />
+                    <SelectTrigger className="h-8 w-40 text-[11.5px] rounded-[12px] bg-[#0F1013] border-white/[0.04] hover:border-white/[0.08]">
+                      <UserCheck className="size-3.5 mr-1.5" />
                       <SelectValue placeholder="Atribuir" />
                     </SelectTrigger>
                     <SelectContent>
@@ -795,24 +906,34 @@ export default function AdminWhatsAppCRM() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button
-                    size="sm"
-                    variant={selectedConvo?.status === "resolved" ? "outline" : "default"}
+                  <button
                     onClick={handleResolveToggle}
-                    className={selectedConvo?.status === "resolved" ? "" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+                    className={`h-8 px-3 rounded-[12px] text-[11.5px] font-medium flex items-center gap-1.5 transition-all duration-[180ms] active:scale-[0.98] hover:-translate-y-[1px] ${
+                      selectedConvo?.status === "resolved"
+                        ? "bg-[#0F1013] border border-white/[0.06] text-zinc-300 hover:text-white"
+                        : "text-white shadow-[0_6px_16px_-8px_rgba(229,72,77,0.5)]"
+                    }`}
+                    style={selectedConvo?.status === "resolved" ? undefined : { background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }}
                   >
                     {selectedConvo?.status === "resolved"
-                      ? <><RotateCw className="size-3.5 mr-1" /> Reabrir</>
-                      : <><CheckCircle2 className="size-3.5 mr-1" /> Resolver</>}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)} title="Transferir atendimento">
-                    <ArrowRightLeft className="size-3.5 mr-1" /> Transferir
-                  </Button>
+                      ? <><RotateCw className="size-3.5" /> Reabrir</>
+                      : <><CheckCircle2 className="size-3.5" /> Resolver</>}
+                  </button>
+                  <button
+                    onClick={() => setTransferOpen(true)}
+                    title="Transferir atendimento"
+                    className="h-8 px-3 rounded-[12px] text-[11.5px] bg-[#0F1013] border border-white/[0.06] text-zinc-300 hover:text-white hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center gap-1.5"
+                  >
+                    <ArrowRightLeft className="size-3.5" /> Transferir
+                  </button>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-8" title="Notas internas">
+                      <button
+                        title="Notas internas"
+                        className="size-8 rounded-[12px] bg-[#0F1013] border border-white/[0.06] text-zinc-400 hover:text-white hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center justify-center"
+                      >
                         <StickyNote className="size-3.5" />
-                      </Button>
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80" align="end">
                       <div className="space-y-2">
@@ -832,38 +953,41 @@ export default function AdminWhatsAppCRM() {
               </div>
 
               {/* Tags row */}
-              <div className="px-3 py-2 border-b border-border/30 flex items-center gap-1.5 flex-wrap bg-card/40">
-                <TagIcon className="size-3 text-muted-foreground" />
+              <div className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap border-b border-white/[0.04]" style={{ background: "#181A1F" }}>
+                <TagIcon className="size-3 text-zinc-600" />
                 {(selectedConvo?.tags || []).map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-[10px] gap-1 pr-1">
+                  <span key={tag} className="text-[10.5px] gap-1 pl-2 pr-1 py-0.5 rounded-full bg-white/[0.04] text-zinc-300 inline-flex items-center font-medium">
                     {tag}
-                    <button onClick={() => handleRemoveTag(tag)} className="hover:text-destructive">
+                    <button onClick={() => handleRemoveTag(tag)} className="ml-1 text-zinc-500 hover:text-white transition-colors">
                       <X className="size-3" />
                     </button>
-                  </Badge>
+                  </span>
                 ))}
                 <Input
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTag(); } }}
                   placeholder="+ etiqueta"
-                  className="h-6 w-28 text-[11px] px-2"
+                  className="h-6 w-28 text-[11px] px-2 rounded-full bg-[#0F1013] border-white/[0.04] focus-visible:ring-0 focus-visible:border-white/[0.12]"
                 />
               </div>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/30">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto crm-scroll p-5 space-y-2.5" style={{ background: "#131518" }}>
                 {messages.length === 0 ? (
-                  <div className="text-center text-xs text-muted-foreground py-8">Sem mensagens</div>
+                  <div className="text-center text-[12px] text-zinc-600 py-12">Sem mensagens nesta conversa.</div>
                 ) : (
                   messages.map(m => (
-                    <div key={m.id} className={`flex ${m.from_me ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
+                    <div key={m.id} className={`flex animate-fade-in ${m.from_me ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[72%] rounded-[16px] px-3.5 py-2 text-[13px] leading-relaxed shadow-[0_2px_10px_-6px_rgba(0,0,0,0.4)] ${
                         m.from_me
-                          ? "bg-green-600 text-white rounded-br-sm"
-                          : "bg-muted text-foreground rounded-bl-sm"
-                      }`}>
+                          ? "text-white rounded-br-[6px]"
+                          : "text-zinc-100 rounded-bl-[6px] border border-white/[0.04]"
+                      }`}
+                      style={m.from_me
+                        ? { background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }
+                        : { background: "#1E2025" }}>
                         {m.from_me && formatSender(m.sender_user_id, m.sender_department_id) && (
-                          <div className="text-[10px] font-semibold text-white/80 mb-1 leading-tight">
+                          <div className="text-[10px] font-semibold text-white/75 mb-1 leading-tight tracking-wide uppercase">
                             {formatSender(m.sender_user_id, m.sender_department_id)}
                           </div>
                         )}
@@ -877,7 +1001,7 @@ export default function AdminWhatsAppCRM() {
                             <img
                               src={m.media_url}
                               alt=""
-                              className="rounded-lg max-w-full max-h-[420px] w-auto h-auto object-contain cursor-zoom-in group-hover:opacity-95 transition-opacity"
+                              className="rounded-[12px] max-w-full max-h-[420px] w-auto h-auto object-contain cursor-zoom-in group-hover:opacity-95 transition-opacity"
                             />
                           </button>
                         )}
@@ -885,20 +1009,20 @@ export default function AdminWhatsAppCRM() {
                           <AudioMessagePlayer src={m.media_url} className="mb-1" variant={m.from_me ? "sent" : "received"} />
                         )}
                         {m.media_url && !["image","audio"].includes(m.message_type) && (
-                          <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11px] underline opacity-90">
+                          <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11.5px] underline underline-offset-2 opacity-90">
                             Abrir mídia ({m.message_type})
                           </a>
                         )}
                         {(m.body || (!m.media_url)) && (
                           <div className="whitespace-pre-wrap break-words">{m.body || "(vazio)"}</div>
                         )}
-                        <div className={`flex items-center justify-end gap-1 mt-1 ${m.from_me ? "text-white/80" : "text-muted-foreground"}`}>
-                          <span className="text-[9px]">
+                        <div className={`flex items-center justify-end gap-1 mt-1 ${m.from_me ? "text-white/75" : "text-zinc-500"}`}>
+                          <span className="text-[9.5px] tabular-nums">
                             {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                           {m.from_me && (() => {
                             const s = (m as any).status as string | undefined;
-                            if (s === "read") return <CheckCheck className="size-3 text-sky-300" aria-label="Lida" />;
+                            if (s === "read") return <CheckCheck className="size-3 text-white" aria-label="Lida" />;
                             if (s === "delivered") return <CheckCheck className="size-3" aria-label="Entregue" />;
                             if (s === "sent") return <Check className="size-3" aria-label="Enviada" />;
                             if (s === "failed") return <X className="size-3 text-red-300" aria-label="Falhou" />;
@@ -911,34 +1035,32 @@ export default function AdminWhatsAppCRM() {
                 )}
               </div>
 
-              <div className="p-3 border-t border-border/40 space-y-2">
-                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="px-5 py-4 space-y-3 border-t border-white/[0.04]" style={{ background: "#17191D" }}>
+                <div className="flex items-center justify-between gap-2 text-[11.5px] text-zinc-500">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <PenLine className="size-3 shrink-0" />
                     <span className="shrink-0">Assinatura:</span>
                     {signature ? (
-                      <span className="truncate text-foreground/80 font-medium">{signature}</span>
+                      <span className="truncate text-zinc-300 font-medium">{signature}</span>
                     ) : (
                       <span className="italic">não configurada</span>
                     )}
                   </div>
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-[11px] rounded-md text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
                     onClick={() => { setSignatureDraft(signature); setSignatureOpen(true); }}
                   >
                     {signature ? "Editar" : "Definir"}
-                  </Button>
+                  </button>
                 </div>
                 {quickReplies.length > 0 && (
                   <div className="flex gap-1.5 flex-wrap">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-7 text-xs">
-                          <Zap className="size-3 mr-1" /> Respostas rápidas
-                        </Button>
+                        <button className="h-7 px-2.5 text-[11.5px] rounded-[10px] bg-[#0F1013] border border-white/[0.04] text-zinc-300 hover:text-white hover:border-white/[0.08] transition-all duration-[180ms] flex items-center gap-1.5">
+                          <Zap className="size-3" /> Respostas rápidas
+                        </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-80 p-2" align="start">
                         <div className="space-y-1 max-h-64 overflow-y-auto">
@@ -959,39 +1081,38 @@ export default function AdminWhatsAppCRM() {
                 )}
                 <div className="flex gap-2 items-end">
                 <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" hidden onChange={handleFilePick} />
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 h-11 w-11"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading || recording}
                   title="Anexar imagem, áudio ou documento"
+                  className="shrink-0 size-11 rounded-[14px] bg-[#0F1013] border border-white/[0.04] hover:border-white/[0.08] text-zinc-400 hover:text-white disabled:opacity-40 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center justify-center"
                 >
                   {uploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  variant={recording ? "destructive" : "outline"}
-                  size="icon"
-                  className="shrink-0 h-11 w-11"
                   onClick={recording ? stopRecording : startRecording}
                   disabled={uploading}
                   title={recording ? "Parar gravação" : "Gravar áudio"}
+                  className={`shrink-0 size-11 rounded-[14px] border hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center justify-center ${
+                    recording
+                      ? "text-white border-transparent"
+                      : "bg-[#0F1013] border-white/[0.04] hover:border-white/[0.08] text-zinc-400 hover:text-white disabled:opacity-40"
+                  }`}
+                  style={recording ? { background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" } : undefined}
                 >
                   {recording ? <Square className="size-4" /> : <Mic className="size-4" />}
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 h-11 w-11"
                   onClick={handleAiSuggest}
                   disabled={aiLoading || uploading || recording}
                   title="Sugestão de resposta com IA"
+                  className="shrink-0 size-11 rounded-[14px] bg-[#0F1013] border border-white/[0.04] hover:border-white/[0.08] text-zinc-300 hover:text-white disabled:opacity-40 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] flex items-center justify-center"
                 >
-                  {aiLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-violet-400" />}
-                </Button>
+                  {aiLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                </button>
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -1002,16 +1123,17 @@ export default function AdminWhatsAppCRM() {
                       handleSend();
                     }
                   }}
-                  placeholder="Escreva uma mensagem... (Enter envia, Shift+Enter quebra linha)"
-                  className="min-h-[44px] max-h-32 resize-none"
+                  placeholder="Escreva uma mensagem..."
+                  className="min-h-[44px] max-h-32 resize-none rounded-[14px] bg-[#0F1013] border-white/[0.04] focus-visible:border-white/[0.12] focus-visible:ring-0 text-[13px] placeholder:text-zinc-600 px-3.5 py-3"
                 />
-                <Button
+                <button
                   onClick={handleSend}
                   disabled={!draft.trim() || sending}
-                  className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                  className="shrink-0 h-11 px-5 rounded-[14px] text-white text-[13px] font-medium flex items-center gap-2 disabled:opacity-40 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] shadow-[0_8px_20px_-10px_rgba(229,72,77,0.6)]"
+                  style={{ background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }}
                 >
-                  {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                </Button>
+                  {sending ? <Loader2 className="size-4 animate-spin" /> : <><Send className="size-4" /> Enviar</>}
+                </button>
                 </div>
               </div>
             </>
