@@ -621,7 +621,7 @@ export default function AdminWhatsAppCRM() {
   };
 
   return (
-    <div className="-m-6 p-6 md:p-8 min-h-screen text-zinc-100 font-sans" style={{ background: "#0F1013" }}>
+    <div className="p-6 md:p-8 min-h-screen w-full text-zinc-100 font-sans" style={{ background: "#0F1013" }}>
       <style>{`
         .crm-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .crm-scroll::-webkit-scrollbar-thumb { background: #2A2D33; border-radius: 999px; }
