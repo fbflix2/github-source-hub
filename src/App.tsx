@@ -476,6 +476,7 @@ const App = () => {
                 )}
               </Routes>
               <FloatingCart />
+              <CookieConsent />
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>
