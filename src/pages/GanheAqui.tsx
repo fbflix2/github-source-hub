@@ -525,7 +525,7 @@ const howItWorksSteps = [
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch, commissionRate,
+  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
@@ -533,9 +533,11 @@ function ProductsTab({
   search: string;
   onSearch: (v: string) => void;
   commissionRate: number;
+  topSellers: string[];
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("todos");
+  const [sortBy, setSortBy] = useState<"campeoes" | "comissao" | "preco_maior" | "preco_menor">("campeoes");
 
   const getType = (name: string): string => {
     const n = name.toLowerCase();
@@ -555,9 +557,34 @@ function ProductsTab({
     { id: "outros", label: "Outros", icon: Box },
   ];
 
-  const filteredProducts = typeFilter === "todos"
+  const baseFiltered = typeFilter === "todos"
     ? products
     : products.filter(p => getType(p.name) === typeFilter);
+
+  const topRank = (id: string) => {
+    const idx = topSellers.indexOf(id);
+    return idx === -1 ? 999 : idx;
+  };
+
+  const filteredProducts = useMemo(() => {
+    const arr = [...baseFiltered];
+    if (sortBy === "campeoes") {
+      arr.sort((a, b) => topRank(a.id) - topRank(b.id) || (Number(b.price) || 0) - (Number(a.price) || 0));
+    } else if (sortBy === "comissao" || sortBy === "preco_maior") {
+      arr.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    } else {
+      arr.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    }
+    return arr;
+  }, [baseFiltered, sortBy, topSellers]);
+
+  const topBadge = (id: string): { label: string; icon: any; cls: string } | null => {
+    const idx = topSellers.indexOf(id);
+    if (idx === -1) return null;
+    if (idx === 0) return { label: "Campeão de vendas", icon: Crown, cls: "from-amber-500 to-orange-500" };
+    if (idx === 1) return { label: "Vendendo muito", icon: Flame, cls: "from-rose-500 to-pink-500" };
+    return { label: "Mais visitado", icon: Eye, cls: "from-violet-500 to-fuchsia-500" };
+  };
 
   const counts = products.reduce<Record<string, number>>((acc, p) => {
     const t = getType(p.name);
@@ -625,6 +652,34 @@ function ProductsTab({
         })}
       </div>
 
+      {/* Sort Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mr-1">Ordenar:</span>
+        {[
+          { id: "campeoes", label: "Campeões de venda", icon: Crown },
+          { id: "comissao", label: "Maior comissão", icon: DollarSign },
+          { id: "preco_maior", label: "Maior preço", icon: ArrowDownAZ },
+          { id: "preco_menor", label: "Menor preço", icon: ArrowUpAZ },
+        ].map(s => {
+          const Icon = s.icon;
+          const active = sortBy === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setSortBy(s.id as any)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                active
+                  ? "bg-primary/15 border-primary/40 text-primary"
+                  : "bg-[#1A1A1A] border-[#2A2A2A] text-slate-400 hover:border-primary/30 hover:text-white"
+              }`}
+            >
+              <Icon className="size-3.5" />
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
@@ -636,8 +691,17 @@ function ProductsTab({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProducts.map(p => (
-            <div key={p.id} className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 flex flex-col gap-3 hover:border-primary/30 transition-colors">
+          {filteredProducts.map(p => {
+            const badge = topBadge(p.id);
+            const BadgeIcon = badge?.icon;
+            return (
+            <div key={p.id} className={`relative bg-[#1A1A1A] border rounded-xl p-4 flex flex-col gap-3 transition-colors ${badge ? "border-primary/40 shadow-[0_0_0_1px_rgba(34,197,94,0.15)]" : "border-[#2A2A2A] hover:border-primary/30"}`}>
+              {badge && BadgeIcon && (
+                <div className={`absolute -top-2 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r ${badge.cls} text-white text-[10px] font-bold uppercase tracking-wider shadow-md`}>
+                  <BadgeIcon className="size-3" />
+                  {badge.label}
+                </div>
+              )}
               <div className="flex items-start gap-3">
                 <div className="size-14 rounded-lg bg-[#0F0F0F] border border-[#2A2A2A] overflow-hidden shrink-0 flex items-center justify-center">
                   {p.image_url ? (
@@ -672,7 +736,8 @@ function ProductsTab({
                 {copiedId === p.id ? "Link copiado" : "Copiar link"}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
