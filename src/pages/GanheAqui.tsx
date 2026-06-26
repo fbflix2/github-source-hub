@@ -16,6 +16,11 @@ interface Partner {
   total_earned: number;
   total_referrals: number;
   status: string;
+  pix_key_type?: string | null;
+  pix_key?: string | null;
+  pix_holder_name?: string | null;
+  pix_holder_document?: string | null;
+  pix_bank?: string | null;
 }
 
 interface Referral {
