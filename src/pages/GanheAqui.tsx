@@ -597,3 +597,98 @@ function WithdrawModal({
     </div>
   );
 }
+
+function PixDataSection({
+  partner,
+  onSave,
+}: {
+  partner: Partner;
+  onSave: (data: Partial<Partner>) => Promise<void>;
+}) {
+  const [keyType, setKeyType] = useState(partner.pix_key_type || "cpf");
+  const [pixKey, setPixKey] = useState(partner.pix_key || "");
+  const [holder, setHolder] = useState(partner.pix_holder_name || "");
+  const [doc, setDoc] = useState(partner.pix_holder_document || "");
+  const [bank, setBank] = useState(partner.pix_bank || "");
+  const [saving, setSaving] = useState(false);
+
+  const dirty =
+    keyType !== (partner.pix_key_type || "cpf") ||
+    pixKey !== (partner.pix_key || "") ||
+    holder !== (partner.pix_holder_name || "") ||
+    doc !== (partner.pix_holder_document || "") ||
+    bank !== (partner.pix_bank || "");
+
+  const save = async () => {
+    if (!pixKey.trim()) { toast.error("Informe a chave PIX"); return; }
+    if (!holder.trim()) { toast.error("Informe o titular da conta"); return; }
+    setSaving(true);
+    await onSave({
+      pix_key_type: keyType,
+      pix_key: pixKey.trim(),
+      pix_holder_name: holder.trim(),
+      pix_holder_document: doc.trim() || null,
+      pix_bank: bank.trim() || null,
+    });
+    setSaving(false);
+  };
+
+  const inputCls =
+    "w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:outline-none";
+  const labelCls = "text-[10px] font-bold uppercase tracking-widest text-slate-500";
+
+  return (
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
+          Dados PIX para Recebimento
+        </h3>
+        {partner.pix_key && !dirty && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">
+            ✓ Cadastrado
+          </span>
+        )}
+      </div>
+      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 space-y-4">
+        <p className="text-xs text-slate-400">
+          Cadastre seus dados bancários para receber suas comissões. Os pagamentos são feitos via PIX em até 48h úteis após a aprovação.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-2">
+            <label className={labelCls}>Tipo de chave</label>
+            <select value={keyType} onChange={e => setKeyType(e.target.value)} className={inputCls}>
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
+              <option value="aleatoria">Aleatória</option>
+            </select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className={labelCls}>Chave PIX</label>
+            <input value={pixKey} onChange={e => setPixKey(e.target.value)} className={inputCls} placeholder="Digite sua chave PIX" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className={labelCls}>Titular da conta</label>
+            <input value={holder} onChange={e => setHolder(e.target.value)} className={inputCls} placeholder="Nome completo do titular" />
+          </div>
+          <div className="space-y-2">
+            <label className={labelCls}>CPF/CNPJ do titular</label>
+            <input value={doc} onChange={e => setDoc(e.target.value)} className={inputCls} placeholder="000.000.000-00" />
+          </div>
+          <div className="space-y-2 md:col-span-3">
+            <label className={labelCls}>Banco</label>
+            <input value={bank} onChange={e => setBank(e.target.value)} className={inputCls} placeholder="Ex: Nubank, Itaú, Bradesco" />
+          </div>
+        </div>
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="w-full md:w-auto px-6 h-11 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {saving ? "Salvando..." : dirty ? "Salvar dados PIX" : "Dados salvos"}
+        </button>
+      </div>
+    </section>
+  );
+}
