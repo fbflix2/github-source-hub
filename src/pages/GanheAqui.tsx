@@ -424,107 +424,55 @@ export default function GanheAqui() {
             </button>
           </div>
 
-          {/* Como Funciona */}
-          <section className="mb-8">
-            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {howItWorksSteps.map((step, i) => (
-                <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
-                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <step.icon className="size-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-white">{step.title}</p>
-                    <p className="text-xs text-slate-500">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* Leads Heatmap (real-time) */}
+          <LeadsHeatmap partnerId={partner.id} />
 
-          {/* Transactions Table */}
-          <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
-        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
-          <h3 className="font-bold text-lg text-white">Minhas Indicações</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 uppercase">Filtrar:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0F0F0F] border border-[#2A2A2A] text-xs text-slate-300 rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none"
+          {/* Quick Access Cards */}
+          <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(partnerLink);
+                toast.success("Link copiado!");
+              }}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
             >
-              <option value="all">Todos Status</option>
-              <option value="credited">Creditado</option>
-              <option value="pending">Pendente</option>
-              <option value="cancelled">Cancelado</option>
-            </select>
-          </div>
-        </div>
-
-        {filteredReferrals.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <Users className="size-8 text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">
-              {statusFilter === "all"
-                ? "Nenhuma indicação registrada ainda."
-                : "Nenhuma indicação com este status."}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-[#2A2A2A]/30">
-                  <tr>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Valor do Pedido</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Comissão Gerada</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2A2A2A]">
-                  {paginatedReferrals.map((ref) => (
-                    <tr key={ref.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-300">
-                        {new Date(ref.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-white">
-                        R$ {ref.order_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-primary">
-                        R$ {ref.commission_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <ReferralStatusBadge status={ref.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-between">
-              <p className="text-xs text-slate-500">
-                Mostrando {paginatedReferrals.length} de {filteredReferrals.length} indicações
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
-                >
-                  <ChevronLeft className="size-4 text-slate-400" />
-                </button>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1}
-                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
-                >
-                  <ChevronRight className="size-4 text-slate-400" />
-                </button>
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Link2 className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
-            </div>
-          </>
-        )}
+              <p className="font-bold text-sm text-white">Copiar link de indicação</p>
+              <p className="text-xs text-slate-500 mt-1 truncate">{partnerLink.replace(/^https?:\/\//, "")}</p>
+            </button>
+
+            <button
+              onClick={() => setTab("products")}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Package className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <p className="font-bold text-sm text-white">Ver produtos para promover</p>
+              <p className="text-xs text-slate-500 mt-1">Campeões de venda e mais comissão</p>
+            </button>
+
+            <button
+              onClick={() => setTab("journey" as TabKey)}
+              className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Route className="size-5" />
+                </div>
+                <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </div>
+              <p className="font-bold text-sm text-white">Acompanhar jornada</p>
+              <p className="text-xs text-slate-500 mt-1">Funil e visitantes em tempo real</p>
+            </button>
           </section>
         </>
       )}
