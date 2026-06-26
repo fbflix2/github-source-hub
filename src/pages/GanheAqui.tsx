@@ -510,14 +510,31 @@ export default function GanheAqui() {
               </div>
             </div>
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
-              <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
-              <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
-                <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
-              </div>
-              <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
-                {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
-              </p>
+              {(() => {
+                const META_RECORRENTE = 50000;
+                const earned = Number(partner.total_earned) || 0;
+                const pct = Math.min((earned / META_RECORRENTE) * 100, 100);
+                const unlocked = earned >= META_RECORRENTE;
+                const faltaPct = Math.max(0, 100 - pct);
+                return (
+                  <>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">
+                      {unlocked ? "Comissão Recorrente" : "Para Comissão Recorrente"}
+                    </p>
+                    <h2 className="text-2xl font-bold text-white">
+                      {unlocked ? "Liberada" : `${faltaPct.toFixed(1)}%`}
+                    </h2>
+                    <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
+                      <div className="bg-primary h-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
+                      {unlocked
+                        ? "Meta R$ 50k atingida"
+                        : `R$ ${earned.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} / R$ 50k`}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
             <button
               onClick={() => setTab("finance")}
