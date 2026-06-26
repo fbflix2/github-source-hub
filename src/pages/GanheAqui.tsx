@@ -417,7 +417,10 @@ export default function GanheAqui() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3 w-full md:w-auto md:flex-1 md:max-w-md md:ml-6">
+          <div className="flex-1 min-w-0">
+            <OverviewBannerCompact banners={promoBanners.filter(b => !b.category || /overview|geral|dica|incentivo|estrat/i.test(b.category))} />
+          </div>
           <div className="size-10 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg flex items-center justify-center shrink-0">
             <Bell className="size-5 text-slate-400" />
           </div>
@@ -451,7 +454,6 @@ export default function GanheAqui() {
 
       {tab === "overview" && (
         <>
-          <OverviewBanner banners={promoBanners.filter(b => !b.category || /overview|geral|dica|incentivo|estrat/i.test(b.category))} />
           {/* Compact Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
