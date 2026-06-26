@@ -200,6 +200,16 @@ export default function Auth() {
           full_name: registerName.trim(),
           referrer_id: partnerRefId || null,
         }).eq("user_id", signUpData.user.id);
+        // Link earlier anonymous journey events to this newly-created user
+        try {
+          const visitorId = localStorage.getItem("fbflix_visitor_id");
+          if (visitorId) {
+            await supabase.rpc("partner_journey_claim_visitor" as any, {
+              _visitor_id: visitorId,
+              _user_id: signUpData.user.id,
+            });
+          }
+        } catch { /* noop */ }
       }
       toast({
         title: "Conta criada!",
