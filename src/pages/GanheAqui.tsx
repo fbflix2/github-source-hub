@@ -69,7 +69,7 @@ function OverviewBannerCompact({ banners }: { banners: PromoBanner[] }) {
   const b = list[idx];
   const content = (
     <div
-      className="relative w-full h-14 rounded-lg overflow-hidden border border-[#2A2A2A] flex items-center"
+      className="relative w-full h-20 rounded-xl overflow-hidden border border-[#2A2A2A] flex items-center"
       style={{
         backgroundColor: b.background_color || "#1A1A1A",
         backgroundImage: b.image_url ? `linear-gradient(90deg, rgba(0,0,0,0.7), rgba(0,0,0,0.35)), url(${b.image_url})` : undefined,
@@ -77,15 +77,15 @@ function OverviewBannerCompact({ banners }: { banners: PromoBanner[] }) {
         backgroundPosition: "center",
       }}
     >
-      <div className="px-3 min-w-0 flex-1">
-        {b.category && <span className="block text-[9px] font-bold text-primary uppercase tracking-widest leading-none">{b.category}</span>}
-        {b.title && <h3 className="text-white font-semibold text-xs leading-tight truncate">{b.title}</h3>}
-        {b.subtitle && <p className="text-slate-300 text-[10px] leading-tight truncate">{b.subtitle}</p>}
+      <div className="px-4 min-w-0 flex-1">
+        {b.category && <span className="block text-[10px] font-bold text-primary uppercase tracking-widest leading-none mb-1">{b.category}</span>}
+        {b.title && <h3 className="text-white font-bold text-sm leading-tight truncate">{b.title}</h3>}
+        {b.subtitle && <p className="text-slate-300 text-xs leading-tight truncate mt-0.5">{b.subtitle}</p>}
       </div>
       {list.length > 1 && (
-        <div className="absolute bottom-1 right-2 flex gap-0.5">
+        <div className="absolute bottom-1.5 right-3 flex gap-1">
           {list.map((_, i) => (
-            <span key={i} className={`size-1 rounded-full ${i === idx ? "bg-primary" : "bg-white/30"}`} />
+            <span key={i} className={`size-1.5 rounded-full ${i === idx ? "bg-primary" : "bg-white/30"}`} />
           ))}
         </div>
       )}
@@ -428,7 +428,7 @@ export default function GanheAqui() {
   const partnerLink = `fbflix.com.br/parceiro/${partner.slug}`;
 
   return (
-    <div className="dark bg-[#0A0A0A] text-white -mx-4 sm:-mx-6 -my-4 sm:-my-6 px-4 sm:px-6 py-6 min-h-screen">
+    <div className="dark text-white">
     <div className="max-w-5xl mx-auto">
       {/* Header Section — hidden on Products/Finance tabs */}
       {tab === "overview" && (
@@ -458,8 +458,8 @@ export default function GanheAqui() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto md:flex-1 md:max-w-md md:ml-6">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 w-full md:w-auto md:flex-1 md:ml-6">
+          <div className="flex-1 min-w-0 max-w-2xl mx-auto">
             <OverviewBannerCompact banners={promoBanners.filter(b => !b.category || /overview|geral|dica|incentivo|estrat/i.test(b.category))} />
           </div>
           <div className="size-10 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg flex items-center justify-center shrink-0">
