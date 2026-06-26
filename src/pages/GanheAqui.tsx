@@ -128,16 +128,13 @@ export default function GanheAqui() {
     if (tab !== "products" || products.length > 0) return;
     setProductsLoading(true);
     (async () => {
-      const [{ data: prods }, { data: sales }] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id,name,slug,price,image_url,description,status,available")
-          .eq("status", "active")
-          .eq("available", true)
-          .order("price", { ascending: false })
-          .limit(60),
-        supabase.rpc("partner_top_sellers" as any).then(r => r).catch(() => ({ data: null })),
-      ]);
+      const { data: prods } = await supabase
+        .from("products")
+        .select("id,name,slug,price,image_url,description,status,available")
+        .eq("status", "active")
+        .eq("available", true)
+        .order("price", { ascending: false })
+        .limit(60);
       setProducts((prods || []) as PromoProduct[]);
       // Fallback: compute top sellers from order_items directly
       const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
