@@ -78,6 +78,7 @@ export default function GanheAqui() {
   const [products, setProducts] = useState<PromoProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [topSellers, setTopSellers] = useState<string[]>([]);
+  const [topViewed, setTopViewed] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
@@ -149,8 +150,24 @@ export default function GanheAqui() {
       (items || []).forEach((it: any) => {
         if (it.product_id) counts[it.product_id] = (counts[it.product_id] || 0) + 1;
       });
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
-      setTopSellers(sorted);
+      const sortedSales = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([id]) => id);
+      setTopSellers(sortedSales);
+
+      // Real "Mais visitado" from product_views (last 90 days), excluding the top 2 sellers
+      const { data: views } = await supabase
+        .from("product_views" as any)
+        .select("product_id")
+        .gte("viewed_at", since)
+        .limit(5000);
+      const vcounts: Record<string, number> = {};
+      (views || []).forEach((v: any) => {
+        if (v.product_id) vcounts[v.product_id] = (vcounts[v.product_id] || 0) + 1;
+      });
+      const topV = Object.entries(vcounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([id]) => id)
+        .find((id) => !sortedSales.includes(id)) || null;
+      setTopViewed(topV);
       setProductsLoading(false);
     })();
   }, [tab, products.length]);
@@ -475,6 +492,7 @@ export default function GanheAqui() {
           onSearch={setProductSearch}
           commissionRate={partner.commission_rate}
           topSellers={topSellers}
+          topViewed={topViewed}
         />
       )}
 
@@ -525,7 +543,7 @@ const howItWorksSteps = [
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers,
+  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
@@ -534,6 +552,7 @@ function ProductsTab({
   onSearch: (v: string) => void;
   commissionRate: number;
   topSellers: string[];
+  topViewed: string | null;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("todos");
