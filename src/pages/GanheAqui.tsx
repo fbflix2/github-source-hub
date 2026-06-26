@@ -581,11 +581,50 @@ function ProductsTab({
   const [sortBy, setSortBy] = useState<"campeoes" | "comissao" | "preco_maior" | "preco_menor">("campeoes");
   const [currentBanner, setCurrentBanner] = useState(0);
 
+  // Curated fallback shown only when admin hasn't uploaded any partner banners yet
+  const defaultBanners: PromoBanner[] = useMemo(() => ([
+    {
+      id: "default-1",
+      title: "Compartilhe seu link e fature todo mês",
+      subtitle: "A cada venda gerada pelo seu link, você recebe comissão direto no saldo. Sem limite de indicações.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Dica de venda",
+    },
+    {
+      id: "default-2",
+      title: "Foque nos campeões de venda",
+      subtitle: "Os produtos com selo Campeão e Vendendo Muito convertem mais. Comece divulgando esses.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Estratégia",
+    },
+    {
+      id: "default-3",
+      title: "Use seu link em grupos e stories",
+      subtitle: "Cole o link em grupos de marketing digital, stories e bio. Quanto mais alcance, mais comissão.",
+      image_url: null,
+      image_style: "gradient",
+      background_color: null,
+      cta_text: null,
+      link_url: null,
+      category: "Incentivo",
+    },
+  ]), []);
+
+  const displayBanners: PromoBanner[] = banners.length > 0 ? banners : defaultBanners;
+
   useEffect(() => {
-    if (banners.length <= 1) return;
-    const t = setInterval(() => setCurrentBanner((p) => (p + 1) % banners.length), 6000);
+    if (displayBanners.length <= 1) return;
+    const t = setInterval(() => setCurrentBanner((p) => (p + 1) % displayBanners.length), 6000);
     return () => clearInterval(t);
-  }, [banners.length]);
+  }, [displayBanners.length]);
 
   const getType = (name: string): string => {
     const n = name.toLowerCase();
