@@ -205,9 +205,9 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
                 <>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem asChild>
-                    <NavLink to="/parceria" className="flex items-center gap-2 text-foreground">
+                    <NavLink to={isPartnerMode ? "/loja" : "/parceria"} className="flex items-center gap-2 text-foreground">
                       <Handshake className="size-[18px]" />
-                      Painel Parceiro
+                      {isPartnerMode ? "Painel Cliente" : "Painel Parceiro"}
                     </NavLink>
                   </DropdownMenuItem>
                 </>
