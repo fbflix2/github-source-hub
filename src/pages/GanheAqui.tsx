@@ -7,8 +7,9 @@ import {
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
   Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
   Briefcase, UserCircle2, Globe, Box, Flame, Crown, Eye, ArrowDownAZ, ArrowUpAZ,
-  MousePointerClick, Route, CreditCard, CircleCheck, Activity,
+  MousePointerClick, Route, CreditCard, CircleCheck, Activity, Wrench,
 } from "lucide-react";
+import ToolsTab from "@/components/partner/ToolsTab";
 
 interface Partner {
   id: string;
@@ -56,7 +57,7 @@ const dailyQuote = DAILY_QUOTES[
 ];
 
 type TabKey = "overview" | "products" | "finance";
-type TabKeyExt = TabKey | "journey";
+type TabKeyExt = TabKey | "journey" | "tools";
 
 interface PromoProduct {
   id: string;
@@ -94,7 +95,7 @@ export default function GanheAqui() {
   const [userCpf, setUserCpf] = useState<string>("");
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: TabKeyExt = (["products","finance","journey"].includes(tabParam || "") ? tabParam : "overview") as TabKeyExt;
+  const initialTab: TabKeyExt = (["products","finance","journey","tools"].includes(tabParam || "") ? tabParam : "overview") as TabKeyExt;
   const [tab, setTabState] = useState<TabKeyExt>(initialTab);
   const setTab = (next: TabKeyExt) => {
     setTabState(next);
@@ -104,7 +105,7 @@ export default function GanheAqui() {
   };
   useEffect(() => {
     const t = searchParams.get("tab");
-    const valid: TabKeyExt = (["products","finance","journey"].includes(t || "") ? t : "overview") as TabKeyExt;
+    const valid: TabKeyExt = (["products","finance","journey","tools"].includes(t || "") ? t : "overview") as TabKeyExt;
     if (valid !== tab) setTabState(valid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -375,6 +376,7 @@ export default function GanheAqui() {
           { key: "overview", label: "Visão Geral", icon: BarChart3 },
           { key: "products", label: "Produtos", icon: Package },
           { key: "journey", label: "Jornada", icon: Route },
+          { key: "tools", label: "Ferramentas", icon: Wrench },
           { key: "finance", label: "Financeiro", icon: Wallet },
         ] as { key: TabKeyExt; label: string; icon: any }[]).map(t => (
           <button
