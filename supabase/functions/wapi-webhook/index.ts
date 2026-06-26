@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       (reactionEmoji ? `Reagiu com ${reactionEmoji}` : null) ||
       body.message?.text || body.data?.message?.text || body.text || body.body || null;
     const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone || body.chat?.id;
+    const senderId = body.sender?.id || body.data?.sender?.id || body.participant || body.data?.participant || null;
     const fromMe = body.fromMe ?? body.data?.fromMe ?? null;
     const isGroup = body.isGroup ?? body.data?.isGroup ?? false;
 
@@ -115,16 +116,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract phone number from chatId (or sender)
-    const rawChat = chatId || body.chat?.id || body.sender?.id;
-    const phone = rawChat ? String(rawChat).replace(/@.*/, "").replace(/\D/g, "") : null;
+    // Extract the real customer phone. New WhatsApp/W-API payloads may send the chat id
+    // as an anonymized @lid; for incoming replies, the real number is in sender.id.
+    const rawChat = chatId || body.chat?.id || senderId;
+    const rawChatStr = String(rawChat || "");
+    const rawSenderStr = String(senderId || "");
+    const isSenderLid = rawSenderStr.includes("@lid") || rawSenderStr.includes("@broadcast") || rawSenderStr.includes("status@");
+    const senderPhone = rawSenderStr && !isSenderLid ? rawSenderStr.replace(/@.*/, "").replace(/\D/g, "") : null;
+    const chatPhone = rawChatStr ? rawChatStr.replace(/@.*/, "").replace(/\D/g, "") : null;
+    const phone = fromMe === false && senderPhone ? senderPhone : (chatPhone || senderPhone || null);
     const event = body.event || body.data?.event || body.type;
 
     // ========= CRM: persist message to whatsapp_messages =========
     // Ignore WhatsApp LID (linked-id) pseudo-numbers — these are not real contacts,
     // they are anonymized identifiers used for our own status callbacks/broadcasts.
-    const rawChatStr = String(rawChat || "");
-    const isLid = rawChatStr.includes("@lid") || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
+    const isLid = (rawChatStr.includes("@lid") && !senderPhone) || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
     const eventLower = String(event || "").toLowerCase();
     // Only treat as a real CRM message when it is a true incoming message or a real outgoing send,
     // NOT when it is just a delivery/read status webhook for one of OUR messages.
