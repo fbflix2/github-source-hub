@@ -582,7 +582,9 @@ function ProductsTab({
 
   const topRank = (id: string) => {
     const idx = topSellers.indexOf(id);
-    return idx === -1 ? 999 : idx;
+    if (idx !== -1) return idx;
+    if (topViewed && id === topViewed) return 2;
+    return 999;
   };
 
   const filteredProducts = useMemo(() => {
@@ -595,14 +597,14 @@ function ProductsTab({
       arr.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     }
     return arr;
-  }, [baseFiltered, sortBy, topSellers]);
+  }, [baseFiltered, sortBy, topSellers, topViewed]);
 
   const topBadge = (id: string): { label: string; icon: any; cls: string } | null => {
     const idx = topSellers.indexOf(id);
-    if (idx === -1) return null;
     if (idx === 0) return { label: "Campeão de vendas", icon: Crown, cls: "from-amber-500 to-orange-500" };
     if (idx === 1) return { label: "Vendendo muito", icon: Flame, cls: "from-rose-500 to-pink-500" };
-    return { label: "Mais visitado", icon: Eye, cls: "from-violet-500 to-fuchsia-500" };
+    if (topViewed && id === topViewed) return { label: "Mais visitado", icon: Eye, cls: "from-violet-500 to-fuchsia-500" };
+    return null;
   };
 
   const counts = products.reduce<Record<string, number>>((acc, p) => {
