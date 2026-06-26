@@ -615,6 +615,7 @@ export default function GanheAqui() {
           topSellers={topSellers}
           topViewed={topViewed}
           banners={promoBanners}
+          partnerEarned={Number(partner.total_earned) || 0}
         />
       )}
 
