@@ -532,7 +532,7 @@ function ProductsTab({
   const types = [
     { id: "todos", label: "Todos", icon: Package },
     { id: "bm", label: "BM", icon: Briefcase },
-    { id: "perfil", label: "Perfis", icon: User },
+    { id: "perfil", label: "Perfis", icon: UserCircle2 },
     { id: "proxy", label: "Proxies", icon: Globe },
     { id: "pagina", label: "Páginas", icon: FileText },
     { id: "outros", label: "Outros", icon: Box },
