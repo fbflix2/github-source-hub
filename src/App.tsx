@@ -457,6 +457,7 @@ const App = () => {
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
                   <Route path="solicitacoes-amizade" element={<AdminSolicitacoesAmizade />} />
                   <Route path="backup-fb" element={<AdminBackupFb />} />
+                  <Route path="openpix" element={<AdminOpenPix />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
