@@ -408,6 +408,7 @@ export default function GanheAqui() {
 
       {tab === "overview" && (
         <>
+          <OverviewBanner banners={promoBanners.filter(b => !b.category || /overview|geral|dica|incentivo|estrat/i.test(b.category))} />
           {/* Compact Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
