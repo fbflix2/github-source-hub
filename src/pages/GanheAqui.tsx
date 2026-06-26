@@ -235,7 +235,8 @@ export default function GanheAqui() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header Section */}
+      {/* Header Section — hidden on Products/Finance tabs */}
+      {tab === "overview" && (
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-[#2A2A2A] pb-8">
         <div className="flex items-center gap-4">
           <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A] overflow-hidden">
@@ -278,6 +279,7 @@ export default function GanheAqui() {
           </div>
         </div>
       </header>
+      )}
 
       {/* Tabs (mobile fallback — top nav drives tabs on desktop) */}
       <div className="md:hidden flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
@@ -454,6 +456,7 @@ export default function GanheAqui() {
           loading={productsLoading}
           search={productSearch}
           onSearch={setProductSearch}
+          commissionRate={partner.commission_rate}
         />
       )}
 
@@ -504,13 +507,14 @@ const howItWorksSteps = [
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch,
+  partnerSlug, products, loading, search, onSearch, commissionRate,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
   loading: boolean;
   search: string;
   onSearch: (v: string) => void;
+  commissionRate: number;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -576,8 +580,17 @@ function ProductsTab({
                       R$ {Number(p.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
                   )}
+                  {p.price != null && (
+                    <p className="text-[10px] text-emerald-400 font-semibold mt-0.5 uppercase tracking-wider">
+                      Comissão: R$ {(Number(p.price) * (commissionRate / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      <span className="text-slate-500 normal-case font-normal"> ({commissionRate}%)</span>
+                    </p>
+                  )}
                 </div>
               </div>
+              {p.description && (
+                <p className="text-xs text-slate-400 line-clamp-3">{p.description}</p>
+              )}
               <button
                 onClick={() => copy(p)}
                 className="mt-auto w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
