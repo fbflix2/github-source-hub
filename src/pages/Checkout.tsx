@@ -574,6 +574,20 @@ export default function Checkout() {
           return;
         }
 
+        // Partner journey: checkout iniciado
+        if (partnerRefId) {
+          try {
+            const { trackPartnerEvent } = await import("@/lib/partnerTracking");
+            trackPartnerEvent("checkout", {
+              partnerId: partnerRefId,
+              productId: product.id,
+              productName: product.name,
+              amount: product.price * quantity,
+              metadata: { order_id: order.id, quantity },
+            });
+          } catch { /* noop */ }
+        }
+
         // Link pending Safe BM renewals to this order
         const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
         if (pendingRenewalsStr) {
