@@ -610,6 +610,42 @@ export type Database = {
           },
         ]
       }
+      consent_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          policy_version: string | null
+          preferences: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          policy_version?: string | null
+          preferences?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          policy_version?: string | null
+          preferences?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       conversation_transfers: {
         Row: {
           conversation_phone: string | null
@@ -1019,6 +1055,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_subject_requests: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       departments: {
         Row: {
