@@ -77,6 +77,7 @@ export default function GanheAqui() {
   }, [searchParams]);
   const [products, setProducts] = useState<PromoProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [topSellers, setTopSellers] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
@@ -126,17 +127,35 @@ export default function GanheAqui() {
   useEffect(() => {
     if (tab !== "products" || products.length > 0) return;
     setProductsLoading(true);
-    supabase
-      .from("products")
-      .select("id,name,slug,price,image_url,description,status,available")
-      .eq("status", "active")
-      .eq("available", true)
-      .order("price", { ascending: false })
-      .limit(60)
-      .then(({ data }) => {
-        setProducts((data || []) as PromoProduct[]);
-        setProductsLoading(false);
+    (async () => {
+      const [{ data: prods }, { data: sales }] = await Promise.all([
+        supabase
+          .from("products")
+          .select("id,name,slug,price,image_url,description,status,available")
+          .eq("status", "active")
+          .eq("available", true)
+          .order("price", { ascending: false })
+          .limit(60),
+        supabase.rpc("partner_top_sellers" as any).then(r => r).catch(() => ({ data: null })),
+      ]);
+      setProducts((prods || []) as PromoProduct[]);
+      // Fallback: compute top sellers from order_items directly
+      const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("product_id, orders!inner(status, created_at)")
+        .in("orders.status", ["paid", "completed"])
+        .gte("orders.created_at", since)
+        .not("product_id", "is", null)
+        .limit(1000);
+      const counts: Record<string, number> = {};
+      (items || []).forEach((it: any) => {
+        if (it.product_id) counts[it.product_id] = (counts[it.product_id] || 0) + 1;
       });
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
+      setTopSellers(sorted);
+      setProductsLoading(false);
+    })();
   }, [tab, products.length]);
 
   const copyLink = async () => {
@@ -458,6 +477,7 @@ export default function GanheAqui() {
           search={productSearch}
           onSearch={setProductSearch}
           commissionRate={partner.commission_rate}
+          topSellers={topSellers}
         />
       )}
 
