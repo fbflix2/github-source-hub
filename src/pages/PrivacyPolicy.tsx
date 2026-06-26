@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
       {/* Content */}
       <div className="container max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">Política de Privacidade</h1>
-        <p className="text-muted-foreground text-sm mb-8">Última atualização: 26 de fevereiro de 2026</p>
+        <p className="text-muted-foreground text-sm mb-8">Última atualização: 26 de junho de 2026</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
           <section>
@@ -75,6 +75,25 @@ export default function PrivacyPolicy() {
               <li><strong className="text-foreground">Processadores de pagamento:</strong> para efetuar transações financeiras de forma segura.</li>
               <li><strong className="text-foreground">Provedores de infraestrutura:</strong> serviços de hospedagem e banco de dados para operar a plataforma.</li>
               <li><strong className="text-foreground">Autoridades competentes:</strong> quando exigido por lei ou ordem judicial.</li>
+            </ul>
+            <p className="mt-3 font-semibold text-foreground">Subprocessadores (operadores) que utilizamos:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1.5">
+              <li><strong className="text-foreground">Supabase Inc. (EUA):</strong> hospedagem do banco de dados e autenticação.</li>
+              <li><strong className="text-foreground">MercadoPago (Brasil):</strong> processamento de pagamentos PIX e cartão.</li>
+              <li><strong className="text-foreground">OpenPix (Brasil):</strong> processamento de PIX recebido e PIX out.</li>
+              <li><strong className="text-foreground">WhatsApp Business / Meta (EUA/Irlanda):</strong> notificações e suporte.</li>
+              <li><strong className="text-foreground">Lovable.dev (UE):</strong> hospedagem da aplicação web.</li>
+            </ul>
+            <p className="mt-3 text-xs">Alguns operadores estão fora do Brasil. A transferência internacional é amparada pelo Art. 33 da LGPD.</p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-foreground mb-3">4.1. Bases Legais do Tratamento (LGPD Art. 7º)</h2>
+            <ul className="list-disc list-inside mt-2 space-y-1.5">
+              <li><strong className="text-foreground">Execução de contrato:</strong> cadastro, pedidos, entregas e pagamentos.</li>
+              <li><strong className="text-foreground">Obrigação legal:</strong> retenção fiscal de transações por 5 anos.</li>
+              <li><strong className="text-foreground">Consentimento:</strong> cookies analíticos/marketing e comunicações promocionais.</li>
+              <li><strong className="text-foreground">Legítimo interesse:</strong> prevenção de fraude, segurança e auditoria.</li>
             </ul>
           </section>
 
