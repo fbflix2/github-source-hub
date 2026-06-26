@@ -150,13 +150,13 @@ export default function GanheAqui() {
         .order("price", { ascending: false })
         .limit(60);
       setProducts((prods || []) as PromoProduct[]);
-      // Fetch hero banners (same as store) for the partner carousel
+      // Fetch partner-only banners (exclusive of the client store)
       const { data: bn } = await supabase
-        .from("banners")
+        .from("partner_banners" as any)
         .select("id,title,subtitle,image_url,image_style,background_color,cta_text,link_url,category")
         .eq("active", true)
         .order("position", { ascending: true });
-      setPromoBanners((bn || []) as PromoBanner[]);
+      setPromoBanners(((bn || []) as unknown) as PromoBanner[]);
       // Fallback: compute top sellers from order_items directly
       const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
       const { data: items } = await supabase

@@ -2210,6 +2210,54 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_banners: {
+        Row: {
+          active: boolean | null
+          background_color: string | null
+          category: string | null
+          created_at: string | null
+          cta_text: string | null
+          id: string
+          image_style: string | null
+          image_url: string | null
+          link_url: string | null
+          position: number | null
+          subtitle: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          background_color?: string | null
+          category?: string | null
+          created_at?: string | null
+          cta_text?: string | null
+          id?: string
+          image_style?: string | null
+          image_url?: string | null
+          link_url?: string | null
+          position?: number | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          background_color?: string | null
+          category?: string | null
+          created_at?: string | null
+          cta_text?: string | null
+          id?: string
+          image_style?: string | null
+          image_url?: string | null
+          link_url?: string | null
+          position?: number | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       partner_referrals: {
         Row: {
           commission_amount: number
