@@ -36,6 +36,25 @@ interface Referral {
 
 const ITEMS_PER_PAGE = 4;
 
+const DAILY_QUOTES = [
+  "Foco no processo, o resultado é consequência.",
+  "Cada link compartilhado é uma porta aberta.",
+  "Disciplina vence motivação todos os dias.",
+  "Você não precisa ser perfeito, precisa ser constante.",
+  "Quem planta indicação hoje, colhe comissão amanhã.",
+  "Grandes vendas começam com uma conversa simples.",
+  "Pequenas ações diárias geram resultados extraordinários.",
+  "Não venda produtos, resolva problemas.",
+  "Sua rede é seu maior patrimônio.",
+  "O sucesso ama quem aparece todos os dias.",
+  "Hoje é um ótimo dia pra bater meta.",
+  "Confiança se constrói entregando valor.",
+  "Quem domina o link, domina o jogo.",
+];
+const dailyQuote = DAILY_QUOTES[
+  Math.floor((new Date().setHours(0,0,0,0) / 86400000)) % DAILY_QUOTES.length
+];
+
 type TabKey = "overview" | "products" | "finance";
 type TabKeyExt = TabKey | "journey";
 
@@ -337,19 +356,9 @@ export default function GanheAqui() {
                 {partner.status === "active" ? "Ativo" : "Inativo"}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1 group">
-              <span className="text-slate-400 text-sm">{partnerLink}</span>
-              <button
-                onClick={copyLink}
-                className="hover:text-primary transition-colors flex items-center gap-1 text-slate-400"
-                title="Copiar Link"
-              >
-                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                <span className="text-xs font-medium uppercase tracking-wider">
-                  {copied ? "Copiado" : "Copiar"}
-                </span>
-              </button>
-            </div>
+            <p className="text-slate-400 text-sm mt-1 italic max-w-md">
+              "{dailyQuote}"
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -442,7 +451,7 @@ export default function GanheAqui() {
                 </div>
                 <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
-              <p className="font-bold text-sm text-white">Copiar link de indicação</p>
+              <p className="font-bold text-sm text-white">Link Global</p>
               <p className="text-xs text-slate-500 mt-1 truncate">{partnerLink.replace(/^https?:\/\//, "")}</p>
             </button>
 
