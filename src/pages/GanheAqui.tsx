@@ -12,14 +12,19 @@ import {
 import ToolsTab from "@/components/partner/ToolsTab";
 
 function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
+  const fallback: PromoBanner[] = [
+    { id: "f1", title: "Bem-vindo ao Painel Parceiro", subtitle: "Compartilhe seu link global e ganhe comissão recorrente.", category: "Dica", background_color: "#0f172a" } as PromoBanner,
+    { id: "f2", title: "Use o encurtador com UTM", subtitle: "Crie campanhas em Ferramentas e meça cada clique.", category: "Estratégia", background_color: "#111827" } as PromoBanner,
+    { id: "f3", title: "Top vendas: BMs e Perfis CA5", subtitle: "Foque nos produtos campeões para maior conversão.", category: "Incentivo", background_color: "#0b1220" } as PromoBanner,
+  ];
+  const list = banners.length ? banners : fallback;
   const [idx, setIdx] = useState(0);
   useEffect(() => {
-    if (banners.length < 2) return;
-    const t = setInterval(() => setIdx(i => (i + 1) % banners.length), 6000);
+    if (list.length < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % list.length), 6000);
     return () => clearInterval(t);
-  }, [banners.length]);
-  if (!banners.length) return null;
-  const b = banners[idx];
+  }, [list.length]);
+  const b = list[idx];
   const content = (
     <div
       className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-[#2A2A2A] mb-6 flex items-center"
@@ -36,9 +41,9 @@ function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
         {b.title && <h3 className="text-white font-bold text-base sm:text-lg leading-tight">{b.title}</h3>}
         {b.subtitle && <p className="text-slate-300 text-xs sm:text-sm mt-1 line-clamp-2">{b.subtitle}</p>}
       </div>
-      {banners.length > 1 && (
+      {list.length > 1 && (
         <div className="absolute bottom-2 right-3 flex gap-1">
-          {banners.map((_, i) => (
+          {list.map((_, i) => (
             <span key={i} className={`size-1.5 rounded-full ${i === idx ? "bg-primary" : "bg-white/30"}`} />
           ))}
         </div>
