@@ -461,7 +461,7 @@ export default function GanheAqui() {
             </button>
 
             <button
-              onClick={() => setTab("journey" as TabKey)}
+              onClick={() => setTab("journey")}
               className="group bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors"
             >
               <div className="flex items-center justify-between mb-3">
