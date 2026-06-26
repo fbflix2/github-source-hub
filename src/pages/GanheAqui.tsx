@@ -11,6 +11,43 @@ import {
 } from "lucide-react";
 import ToolsTab from "@/components/partner/ToolsTab";
 
+function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % banners.length), 6000);
+    return () => clearInterval(t);
+  }, [banners.length]);
+  if (!banners.length) return null;
+  const b = banners[idx];
+  const content = (
+    <div
+      className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-[#2A2A2A] mb-6 flex items-center"
+      style={{
+        backgroundColor: b.background_color || "#1A1A1A",
+        backgroundImage: b.image_url ? `linear-gradient(90deg, rgba(0,0,0,0.65), rgba(0,0,0,0.25)), url(${b.image_url})` : undefined,
+        backgroundSize: b.image_style === "contain" ? "contain" : "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="px-5 sm:px-6 max-w-xl">
+        {b.category && <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{b.category}</span>}
+        {b.title && <h3 className="text-white font-bold text-base sm:text-lg leading-tight">{b.title}</h3>}
+        {b.subtitle && <p className="text-slate-300 text-xs sm:text-sm mt-1 line-clamp-2">{b.subtitle}</p>}
+      </div>
+      {banners.length > 1 && (
+        <div className="absolute bottom-2 right-3 flex gap-1">
+          {banners.map((_, i) => (
+            <span key={i} className={`size-1.5 rounded-full ${i === idx ? "bg-primary" : "bg-white/30"}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+  return b.link_url ? <a href={b.link_url} target="_blank" rel="noreferrer">{content}</a> : content;
+}
+
 interface Partner {
   id: string;
   slug: string;
