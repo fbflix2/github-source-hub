@@ -2264,6 +2264,62 @@ export type Database = {
           },
         ]
       }
+      partner_withdrawals: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          holder_name: string | null
+          id: string
+          paid_at: string | null
+          partner_id: string
+          pix_key: string
+          pix_key_type: string
+          rejected_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          holder_name?: string | null
+          id?: string
+          paid_at?: string | null
+          partner_id: string
+          pix_key: string
+          pix_key_type?: string
+          rejected_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          holder_name?: string | null
+          id?: string
+          paid_at?: string | null
+          partner_id?: string
+          pix_key?: string
+          pix_key_type?: string
+          rejected_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_withdrawals_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
           balance: number
@@ -4997,6 +5053,7 @@ export type Database = {
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       process_whatsapp_queue: { Args: never; Returns: undefined }
+      release_partner_commissions: { Args: never; Returns: number }
       search_stock_items_global: {
         Args: { q: string }
         Returns: {

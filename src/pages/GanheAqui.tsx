@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
-  Bell,
+  Bell, X,
 } from "lucide-react";
 
 interface Partner {
@@ -37,6 +37,10 @@ export default function GanheAqui() {
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userCpf, setUserCpf] = useState<string>("");
 
   useEffect(() => {
     loadPartnerData();
@@ -45,14 +49,16 @@ export default function GanheAqui() {
   const loadPartnerData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+    setUserId(user.id);
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, avatar_url")
+      .select("full_name, avatar_url, cpf")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profile?.full_name) setUserName(profile.full_name);
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+    if (profile?.cpf) setUserCpf(profile.cpf);
 
     const { data: partnerData } = await supabase
       .from("partners")
@@ -69,6 +75,13 @@ export default function GanheAqui() {
         .order("created_at", { ascending: false })
         .limit(500);
       setReferrals((refs || []) as Referral[]);
+      const { data: wd } = await supabase
+        .from("partner_withdrawals")
+        .select("*")
+        .eq("partner_id", partnerData.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setWithdrawals(wd || []);
     }
     setLoading(false);
   };
@@ -207,7 +220,14 @@ export default function GanheAqui() {
             <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
           </div>
           <button
-            onClick={() => toast.info("Entre em contato com o suporte para solicitar o saque.")}
+            onClick={() => {
+              if (!partner) return;
+              if (Number(partner.balance) <= 0) {
+                toast.error("Você não tem saldo disponível para saque.");
+                return;
+              }
+              setShowWithdraw(true);
+            }}
             className="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
           >
             <Wallet className="size-4" />
@@ -359,6 +379,18 @@ export default function GanheAqui() {
       <footer className="mt-8 text-center">
         <p className="text-slate-600 text-[10px] uppercase tracking-widest">© 2024 FBX Token / FbFlix. Todos os direitos reservados.</p>
       </footer>
+
+      {showWithdraw && partner && userId && (
+        <WithdrawModal
+          partner={partner}
+          userId={userId}
+          defaultCpf={userCpf}
+          defaultHolder={userName}
+          previous={withdrawals}
+          onClose={() => setShowWithdraw(false)}
+          onSuccess={() => { setShowWithdraw(false); loadPartnerData(); }}
+        />
+      )}
     </div>
   );
 }
