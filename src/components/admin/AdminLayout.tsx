@@ -23,6 +23,7 @@ export function AdminLayout() {
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
   const isAquecimento = location.pathname === "/admin/aquecimento" || location.pathname === "/admin/esteira-admin" || location.pathname === "/admin/aquecimento-guia" || location.pathname === "/admin/operador-financeiro" || location.pathname === "/admin/aquecimento-config" || location.pathname === "/admin/operador-dashboard";
   const isFullBleed = isAquecimento || location.pathname === "/admin/whatsapp-crm";
+  const isWhatsAppCRM = location.pathname === "/admin/whatsapp-crm";
 
   // For moderators: check if current path is allowed, redirect to first allowed if not
   useEffect(() => {
@@ -96,7 +97,7 @@ export function AdminLayout() {
 
   // Desktop layout (unchanged)
   return (
-    <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white bg-[#0a0505] text-white`}>
+    <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white ${isWhatsAppCRM ? 'bg-[#0F1013]' : 'bg-[#0a0505]'} text-white`}>
       {/* Background Effects */}
       {!isAquecimento && (
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
