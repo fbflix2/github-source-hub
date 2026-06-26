@@ -2258,6 +2258,107 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_campaigns: {
+        Row: {
+          clicks: number
+          conversions: number
+          created_at: string
+          destination_url: string
+          id: string
+          name: string
+          partner_id: string
+          short_code: string
+          status: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          destination_url: string
+          id?: string
+          name: string
+          partner_id: string
+          short_code: string
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          clicks?: number
+          conversions?: number
+          created_at?: string
+          destination_url?: string
+          id?: string
+          name?: string
+          partner_id?: string
+          short_code?: string
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_campaigns_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_creatives: {
+        Row: {
+          copy_text: string | null
+          created_at: string
+          description: string | null
+          id: string
+          media_url: string | null
+          product_id: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          copy_text?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_url?: string | null
+          product_id?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          copy_text?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          media_url?: string | null
+          product_id?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       partner_journey_events: {
         Row: {
           amount: number | null
@@ -2321,6 +2422,47 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_pixels: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: string
+          partner_id: string
+          pixel_id: string
+          platform: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          partner_id: string
+          pixel_id: string
+          platform: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          partner_id?: string
+          pixel_id?: string
+          platform?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_pixels_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
@@ -5203,6 +5345,19 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      partner_campaign_increment_click: {
+        Args: { _short_code: string }
+        Returns: {
+          campaign_id: string
+          destination_url: string
+          partner_id: string
+          utm_campaign: string
+          utm_content: string
+          utm_medium: string
+          utm_source: string
+          utm_term: string
+        }[]
+      }
       partner_journey_claim_visitor: {
         Args: { _user_id: string; _visitor_id: string }
         Returns: number

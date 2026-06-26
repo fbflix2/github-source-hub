@@ -96,6 +96,7 @@ import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
 import AdminGestaoPerfis from "./pages/admin/AdminGestaoPerfis";
 
 import PartnerRedirect from "./pages/PartnerRedirect";
+import CampaignRedirect from "./pages/CampaignRedirect";
 import AdminFBX from "./pages/admin/AdminFBX";
 import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
 import AdminProjecaoLucro from "./pages/admin/AdminProjecaoLucro";
@@ -381,6 +382,7 @@ const App = () => {
                 <Route path="/safe-bm/combos" element={<SafeBMCombos />} />
                 <Route path="/pagar/:code" element={<PagarInvoice />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
+                <Route path="/c/:code" element={<CampaignRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
