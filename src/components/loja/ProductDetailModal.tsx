@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,17 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [shareCopied, setShareCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open || !product?.id) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      await (supabase.from("product_views") as any).insert({
+        product_id: product.id,
+        user_id: user?.id ?? null,
+      });
+    })();
+  }, [open, product?.id]);
 
   if (!product) return null;
 

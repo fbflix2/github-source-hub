@@ -2714,6 +2714,27 @@ export type Database = {
         }
         Relationships: []
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       product_waitlist: {
         Row: {
           created_at: string
