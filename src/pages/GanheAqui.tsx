@@ -545,6 +545,192 @@ const howItWorksSteps = [
   { icon: Wallet, title: "Você ganha", desc: "Comissão direto no saldo" },
 ];
 
+// --- Leads Heatmap (real-time) ---
+
+function LeadsHeatmap({ partnerId }: { partnerId: string }) {
+  const [events, setEvents] = useState<Array<{ created_at: string; event_type: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      since.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("partner_journey_events" as any)
+        .select("created_at, event_type")
+        .eq("partner_id", partnerId)
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (mounted) {
+        setEvents((data || []) as any);
+        setLoading(false);
+      }
+    };
+    load();
+
+    const ch = supabase
+      .channel(`leads-heatmap-${partnerId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "partner_journey_events", filter: `partner_id=eq.${partnerId}` },
+        (payload: any) => {
+          setEvents((prev) => [{ created_at: payload.new.created_at, event_type: payload.new.event_type }, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(ch);
+    };
+  }, [partnerId]);
+
+  // Build 7d x 24h grid
+  const { grid, maxCount, totals, hottest } = useMemo(() => {
+    const days: Date[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    const grid: number[][] = days.map(() => Array(24).fill(0));
+    for (const ev of events) {
+      const d = new Date(ev.created_at);
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const idx = days.findIndex((x) => x.getTime() === dayStart.getTime());
+      if (idx >= 0) grid[idx][d.getHours()]++;
+    }
+    let maxCount = 0;
+    grid.forEach((row) => row.forEach((v) => { if (v > maxCount) maxCount = v; }));
+    const totals = {
+      total: events.length,
+      clicks: events.filter((e) => e.event_type === "click").length,
+      views: events.filter((e) => e.event_type === "view_product").length,
+      purchases: events.filter((e) => e.event_type === "purchase").length,
+    };
+    // hottest hour
+    let bestHour = -1; let bestCount = 0;
+    const hourTotals = Array(24).fill(0);
+    grid.forEach((row) => row.forEach((v, h) => { hourTotals[h] += v; }));
+    hourTotals.forEach((v, h) => { if (v > bestCount) { bestCount = v; bestHour = h; } });
+    return { grid, maxCount, totals, hottest: { hour: bestHour, count: bestCount }, days } as any;
+  }, [events]);
+
+  const dayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rowLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    return dayLabels[d.getDay()];
+  });
+
+  const intensity = (v: number) => {
+    if (v === 0 || maxCount === 0) return "bg-[#1f1f1f]";
+    const ratio = v / maxCount;
+    if (ratio > 0.8) return "bg-primary";
+    if (ratio > 0.55) return "bg-primary/75";
+    if (ratio > 0.3) return "bg-primary/50";
+    if (ratio > 0.1) return "bg-primary/30";
+    return "bg-primary/15";
+  };
+
+  return (
+    <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-bold text-base text-white">Leads em tempo real</h3>
+            <span className="ml-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ao vivo
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">Mapa de calor dos últimos 7 dias por hora do dia</p>
+        </div>
+        <div className="flex flex-wrap gap-4 text-xs">
+          <Stat label="Total" value={totals.total} />
+          <Stat label="Cliques" value={totals.clicks} />
+          <Stat label="Views" value={totals.views} />
+          <Stat label="Vendas" value={totals.purchases} accent />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="h-40 flex items-center justify-center text-xs text-slate-500">Carregando…</div>
+      ) : totals.total === 0 ? (
+        <div className="py-10 text-center">
+          <Activity className="size-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-400 font-medium">Ainda sem leads</p>
+          <p className="text-xs text-slate-600 mt-1">Compartilhe seu link para começar a ver o mapa de calor.</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full">
+              {/* Hours header */}
+              <div className="flex items-center gap-1 pl-10 mb-1">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} className="w-3.5 text-[9px] text-slate-600 text-center font-mono">
+                    {h % 3 === 0 ? h : ""}
+                  </div>
+                ))}
+              </div>
+              {grid.map((row: number[], i: number) => (
+                <div key={i} className="flex items-center gap-1 mb-1">
+                  <div className="w-10 text-[10px] text-slate-500 font-bold uppercase">{rowLabels[i]}</div>
+                  {row.map((v, h) => (
+                    <div
+                      key={h}
+                      title={`${rowLabels[i]} ${h}:00 — ${v} evento${v === 1 ? "" : "s"}`}
+                      className={`w-3.5 h-3.5 rounded-[3px] ${intensity(v)} transition-colors`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-500">
+              <span>Menos</span>
+              <div className="flex gap-1">
+                <div className="w-3 h-3 rounded-[2px] bg-[#1f1f1f]" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/15" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/30" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/50" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary/75" />
+                <div className="w-3 h-3 rounded-[2px] bg-primary" />
+              </div>
+              <span>Mais</span>
+            </div>
+            {hottest.hour >= 0 && (
+              <p className="text-slate-400">
+                Pico de atividade: <span className="text-primary font-bold">{String(hottest.hour).padStart(2, "0")}:00</span>
+                <span className="text-slate-600"> · {hottest.count} eventos</span>
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="text-right">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`text-lg font-bold ${accent ? "text-primary" : "text-white"}`}>{value}</p>
+    </div>
+  );
+}
+
 // --- Products Tab ---
 
 function ProductsTab({
