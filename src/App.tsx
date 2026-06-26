@@ -125,6 +125,7 @@ import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
 import AdminBackupFb from "./pages/admin/AdminBackupFb";
+import AdminOpenPix from "./pages/admin/AdminOpenPix";
 import PublicAmizades from "./pages/PublicAmizades";
 import FornecedorPublicPage from "./pages/FornecedorPublicPage";
 import Status from "./pages/Status";
