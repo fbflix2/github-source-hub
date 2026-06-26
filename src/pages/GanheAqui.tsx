@@ -451,7 +451,7 @@ export default function GanheAqui() {
                 </div>
                 <ArrowRight className="size-4 text-slate-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
-              <p className="font-bold text-sm text-white">Copiar link de indicação</p>
+              <p className="font-bold text-sm text-white">Link Global</p>
               <p className="text-xs text-slate-500 mt-1 truncate">{partnerLink.replace(/^https?:\/\//, "")}</p>
             </button>
 
