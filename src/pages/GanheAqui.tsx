@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
-  Bell, X,
+  Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
 } from "lucide-react";
 
 interface Partner {
@@ -33,6 +33,17 @@ interface Referral {
 
 const ITEMS_PER_PAGE = 4;
 
+type TabKey = "overview" | "products" | "finance";
+
+interface PromoProduct {
+  id: string;
+  name: string;
+  slug: string | null;
+  price: number | null;
+  image_url: string | null;
+  description: string | null;
+}
+
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
   const [userName, setUserName] = useState("");
@@ -46,6 +57,10 @@ export default function GanheAqui() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [userCpf, setUserCpf] = useState<string>("");
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [products, setProducts] = useState<PromoProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
     loadPartnerData();
@@ -91,6 +106,22 @@ export default function GanheAqui() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (tab !== "products" || products.length > 0) return;
+    setProductsLoading(true);
+    supabase
+      .from("products")
+      .select("id,name,slug,price,image_url,description,status,available")
+      .eq("status", "active")
+      .eq("available", true)
+      .order("price", { ascending: false })
+      .limit(60)
+      .then(({ data }) => {
+        setProducts((data || []) as PromoProduct[]);
+        setProductsLoading(false);
+      });
+  }, [tab, products.length]);
+
   const copyLink = async () => {
     if (!partner) return;
     const url = `${window.location.origin}/parceiro/${partner.slug}`;
@@ -116,6 +147,12 @@ export default function GanheAqui() {
       document.body.removeChild(textArea);
     }
   };
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(p => p.name?.toLowerCase().includes(q));
+  }, [products, productSearch]);
 
   const filteredReferrals = useMemo(() => {
     if (statusFilter === "all") return referrals;
@@ -227,90 +264,89 @@ export default function GanheAqui() {
         </div>
       </header>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Saldo Disponível */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex flex-col justify-between">
-          <div>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Saldo Disponível</p>
-            <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
-          </div>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
+        {([
+          { key: "overview", label: "Visão Geral", icon: BarChart3 },
+          { key: "products", label: "Produtos", icon: Package },
+          { key: "finance", label: "Financeiro", icon: Wallet },
+        ] as { key: TabKey; label: string; icon: any }[]).map(t => (
           <button
-            onClick={() => {
-              if (!partner) return;
-              if (Number(partner.balance) <= 0) {
-                toast.error("Você não tem saldo disponível para saque.");
-                return;
-              }
-              setShowWithdraw(true);
-            }}
-            className="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold uppercase tracking-wider transition-colors border-b-2 -mb-px ${
+              tab === t.key
+                ? "text-primary border-primary"
+                : "text-slate-500 border-transparent hover:text-slate-300"
+            }`}
           >
-            <Wallet className="size-4" />
-            Solicitar Saque
+            <t.icon className="size-4" />
+            {t.label}
           </button>
-        </div>
-
-        {/* Ganho Total */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Ganho Total</p>
-          <h2 className="text-2xl font-bold text-white">R$ {partner.total_earned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
-          <div className="mt-2 flex items-center gap-1 text-emerald-500">
-            <TrendingUp className="size-3" />
-            <span className="text-xs font-medium">Lifetime</span>
-          </div>
-        </div>
-
-        {/* Indicações */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Indicações</p>
-          <h2 className="text-2xl font-bold text-white">{partner.total_referrals}</h2>
-          <div className="mt-2 flex items-center gap-1 text-slate-400">
-            <Users className="size-3" />
-            <span className="text-xs font-medium">{referrals.filter(r => {
-              const d = new Date(r.created_at);
-              const now = new Date();
-              return d >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-            }).length} novas esta semana</span>
-          </div>
-        </div>
-
-        {/* Comissão Atual */}
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
-          <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
-          <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
-            <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
-          </div>
-          <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
-            {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
-          </p>
-        </div>
+        ))}
       </div>
 
-      {/* Como Funciona */}
-      <section className="mb-8">
-        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {howItWorksSteps.map((step, i) => (
-            <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
-              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                <step.icon className="size-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm text-white">{step.title}</p>
-                <p className="text-xs text-slate-500">{step.desc}</p>
+      {tab === "overview" && (
+        <>
+          {/* Compact Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Indicações</p>
+              <h2 className="text-2xl font-bold text-white">{partner.total_referrals}</h2>
+              <div className="mt-2 flex items-center gap-1 text-slate-400">
+                <Users className="size-3" />
+                <span className="text-xs font-medium">{referrals.filter(r => {
+                  const d = new Date(r.created_at);
+                  const now = new Date();
+                  return d >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                }).length} novas esta semana</span>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
+              <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
+              <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
+                <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
+              </div>
+              <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
+                {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
+              </p>
+            </div>
+            <button
+              onClick={() => setTab("finance")}
+              className="bg-[#1A1A1A] border border-[#2A2A2A] hover:border-primary/40 rounded-xl p-5 text-left transition-colors group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Saldo Disponível</p>
+                <Wallet className="size-4 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+              <div className="mt-2 flex items-center gap-1 text-primary text-xs font-bold uppercase tracking-wider group-hover:gap-2 transition-all">
+                Acessar Financeiro <ArrowRight className="size-3" />
+              </div>
+            </button>
+          </div>
 
-      {/* Dados PIX para recebimento */}
-      <PixDataSection partner={partner} onSave={savePixData} />
+          {/* Como Funciona */}
+          <section className="mb-8">
+            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {howItWorksSteps.map((step, i) => (
+                <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
+                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <step.icon className="size-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-white">{step.title}</p>
+                    <p className="text-xs text-slate-500">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-      {/* Transactions Table */}
-      <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+          {/* Transactions Table */}
+          <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
           <h3 className="font-bold text-lg text-white">Minhas Indicações</h3>
           <div className="flex items-center gap-2">
@@ -392,7 +428,34 @@ export default function GanheAqui() {
             </div>
           </>
         )}
-      </section>
+          </section>
+        </>
+      )}
+
+      {tab === "products" && (
+        <ProductsTab
+          partnerSlug={partner.slug}
+          products={filteredProducts}
+          loading={productsLoading}
+          search={productSearch}
+          onSearch={setProductSearch}
+        />
+      )}
+
+      {tab === "finance" && (
+        <FinanceTab
+          partner={partner}
+          onWithdraw={() => {
+            if (Number(partner.balance) <= 0) {
+              toast.error("Você não tem saldo disponível para saque.");
+              return;
+            }
+            setShowWithdraw(true);
+          }}
+          onSavePix={savePixData}
+          withdrawals={withdrawals}
+        />
+      )}
 
       {/* Footer */}
       <footer className="mt-8 text-center">
@@ -422,6 +485,196 @@ const howItWorksSteps = [
   { icon: ShoppingCart, title: "Cliente compra", desc: "Adesão confirmada na rede" },
   { icon: Wallet, title: "Você ganha", desc: "Comissão direto no saldo" },
 ];
+
+// --- Products Tab ---
+
+function ProductsTab({
+  partnerSlug, products, loading, search, onSearch,
+}: {
+  partnerSlug: string;
+  products: PromoProduct[];
+  loading: boolean;
+  search: string;
+  onSearch: (v: string) => void;
+}) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const buildLink = (p: PromoProduct) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://fbflix.com.br";
+    const target = p.slug ? `/produto/${p.slug}` : "/loja";
+    return `${origin}/parceiro/${partnerSlug}?to=${encodeURIComponent(target)}`;
+  };
+
+  const copy = async (p: PromoProduct) => {
+    try {
+      await navigator.clipboard.writeText(buildLink(p));
+      setCopiedId(p.id);
+      toast.success("Link de divulgação copiado!");
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error("Erro ao copiar");
+    }
+  };
+
+  return (
+    <section>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h3 className="text-lg font-bold text-white">Produtos para promover</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Copie o link exclusivo de cada produto. Toda venda gerada conta como sua indicação.
+          </p>
+        </div>
+        <input
+          value={search}
+          onChange={e => onSearch(e.target.value)}
+          placeholder="Buscar produto..."
+          className="w-full sm:w-64 bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:border-primary focus:outline-none"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+        </div>
+      ) : products.length === 0 ? (
+        <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-10 text-center">
+          <Package className="size-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-500">Nenhum produto disponível para divulgação no momento.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {products.map(p => (
+            <div key={p.id} className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 flex flex-col gap-3 hover:border-primary/30 transition-colors">
+              <div className="flex items-start gap-3">
+                <div className="size-14 rounded-lg bg-[#0F0F0F] border border-[#2A2A2A] overflow-hidden shrink-0 flex items-center justify-center">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="size-5 text-slate-600" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white line-clamp-2">{p.name}</p>
+                  {p.price != null && (
+                    <p className="text-xs text-primary font-bold mt-1">
+                      R$ {Number(p.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => copy(p)}
+                className="mt-auto w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+              >
+                {copiedId === p.id ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
+                {copiedId === p.id ? "Link copiado" : "Copiar link"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// --- Finance Tab ---
+
+function FinanceTab({
+  partner, onWithdraw, onSavePix, withdrawals,
+}: {
+  partner: Partner;
+  onWithdraw: () => void;
+  onSavePix: (data: Partial<Partner>) => Promise<void>;
+  withdrawals: any[];
+}) {
+  return (
+    <div className="space-y-8">
+      {/* Top cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex flex-col justify-between">
+          <div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Saldo Disponível</p>
+            <h2 className="text-3xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+          </div>
+          <button
+            onClick={onWithdraw}
+            className="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+          >
+            <Wallet className="size-4" /> Solicitar Saque
+          </button>
+        </div>
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Ganho Total</p>
+          <h2 className="text-3xl font-bold text-white">R$ {partner.total_earned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+          <div className="mt-2 flex items-center gap-1 text-emerald-500">
+            <TrendingUp className="size-3" />
+            <span className="text-xs font-medium">Lifetime</span>
+          </div>
+        </div>
+      </div>
+
+      {/* PIX data */}
+      <PixDataSection partner={partner} onSave={onSavePix} />
+
+      {/* Withdrawals history */}
+      {withdrawals.length > 0 && (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Histórico de Saques</h3>
+          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl divide-y divide-[#2A2A2A]">
+            {withdrawals.slice(0, 10).map(w => (
+              <div key={w.id} className="flex items-center justify-between px-5 py-3 text-sm">
+                <span className="text-slate-400">{new Date(w.created_at).toLocaleDateString("pt-BR")}</span>
+                <span className="text-white font-bold">R$ {Number(w.amount).toFixed(2)}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                  w.status === "paid" ? "text-emerald-500" : w.status === "rejected" ? "text-red-400" : "text-yellow-500"
+                }`}>
+                  {w.status === "paid" ? "Pago" : w.status === "rejected" ? "Recusado" : "Pendente"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Conditions */}
+      <section>
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center gap-2">
+          <FileText className="size-4" /> Condições de Recebimento
+        </h3>
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 space-y-3 text-sm text-slate-300">
+          <ul className="space-y-2 list-disc list-inside marker:text-primary">
+            <li>Comissão atual: <span className="font-bold text-white">{partner.commission_rate}%</span> sobre cada venda confirmada.</li>
+            <li>Período de garantia: as comissões ficam <span className="font-bold text-white">pendentes por {partner.guarantee_days} dias</span> após a compra. Se o pedido for reembolsado dentro deste prazo, a comissão é cancelada.</li>
+            <li>Após o período de garantia, o valor é creditado automaticamente no <span className="font-bold text-white">Saldo Disponível</span>.</li>
+            <li>Saques são processados via <span className="font-bold text-white">PIX em até 48h úteis</span> após a aprovação.</li>
+            <li>O PIX é enviado obrigatoriamente para a chave cadastrada acima, em nome do titular informado.</li>
+            <li>Saque mínimo: <span className="font-bold text-white">R$ 20,00</span>.</li>
+          </ul>
+        </div>
+      </section>
+
+      {/* Terms for partners */}
+      <section>
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-3 flex items-center gap-2">
+          <ShieldAlert className="size-4 text-red-400" /> Termos do Programa de Parceiros
+        </h3>
+        <div className="bg-[#1A1A1A] border border-red-500/20 rounded-xl p-5 space-y-3 text-sm text-slate-300">
+          <p className="text-xs text-red-400 font-bold uppercase tracking-wider">Leia com atenção</p>
+          <ul className="space-y-2 list-disc list-inside marker:text-red-400">
+            <li><span className="font-bold text-white">Conta única por CPF.</span> Não é permitido manter mais de uma conta de parceiro com o mesmo CPF, mesmo que sob nomes diferentes.</li>
+            <li><span className="font-bold text-white">Compras próprias não geram comissão.</span> Qualquer indicação identificada como autocompra (mesmo CPF, mesmos dados, mesmo IP, mesmo cartão, mesma chave PIX, mesmo dispositivo) será automaticamente invalidada.</li>
+            <li><span className="font-bold text-white">Fraude = cancelamento.</span> Tentativas de burlar o sistema — criar contas-laranja, usar dados de terceiros, simular vendas, manipular o link — resultam no <span className="text-red-400 font-bold">cancelamento imediato da conta</span>, perda total do saldo acumulado e bloqueio de futuras participações.</li>
+            <li>Não é permitido oferecer cashback, descontos ou qualquer compensação financeira ao cliente final em troca do uso do seu link de parceiro.</li>
+            <li>É proibido divulgar o link em canais de SPAM, sites adultos, conteúdo ilegal ou redes que violem os Termos da FBFLIX.</li>
+            <li>A FBFLIX se reserva o direito de revisar, suspender ou cancelar comissões e contas que apresentem comportamento suspeito, mesmo após o crédito.</li>
+            <li>Os termos deste programa podem ser atualizados a qualquer momento e a versão vigente é a publicada nesta página.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 // --- Sub-components ---
 

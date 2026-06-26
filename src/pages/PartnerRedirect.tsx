@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 
 export default function PartnerRedirect() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [found, setFound] = useState(false);
+  const [, setFound] = useState(false);
 
   useEffect(() => {
     const track = async () => {
@@ -40,6 +41,8 @@ export default function PartnerRedirect() {
     );
   }
 
-  // Always redirect to store, whether partner found or not
-  return <Navigate to="/loja" replace />;
+  // Honor optional ?to=/path to deep-link the visitor after tracking the partner cookie
+  const to = searchParams.get("to");
+  const safeTo = to && to.startsWith("/") && !to.startsWith("//") ? to : "/loja";
+  return <Navigate to={safeTo} replace />;
 }
