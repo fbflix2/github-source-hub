@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationPopup } from "@/components/NotificationBell";
 import { Ticket, Handshake } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
+import { FaturamentoMeter } from "@/components/FaturamentoMeter";
 
 interface NavbarProps {
   userName: string;
@@ -20,6 +21,7 @@ interface NavbarProps {
   balance: number;
   avatarUrl?: string;
   isPartner?: boolean;
+  partnerEarned?: number | null;
   onLogout: () => void;
   unreadTickets?: number;
 }
@@ -35,7 +37,7 @@ const allNavLinks = [
   { key: "ferramentas", title: "Ferramentas", url: "/ferramentas" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unreadTickets = 0 }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
   const { hiddenLinks } = useNavVisibility();
   const [logoHeight, setLogoHeight] = useState(32);
@@ -89,6 +91,10 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
 
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
+          {/* Partner Faturamento Meter */}
+          {isPartner && partnerEarned !== null && partnerEarned !== undefined && (
+            <FaturamentoMeter earned={partnerEarned} compact />
+          )}
           {/* Notification Popup Overlay */}
           <NotificationPopup />
 

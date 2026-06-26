@@ -257,7 +257,6 @@ export default function GanheAqui() {
           </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <FaturamentoMeter earned={partner.total_earned} />
           <div className="size-10 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg flex items-center justify-center shrink-0">
             <Bell className="size-5 text-slate-400" />
           </div>
