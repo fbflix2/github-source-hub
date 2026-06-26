@@ -667,12 +667,6 @@ export default function AdminBackupFb() {
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Data de compra</Label>
                       <div className="flex items-center gap-1">
                         <Input
-                          type="date"
-                          value={f.purchase_date || ""}
-                          onChange={(e) => handleUpdatePurchaseDate(f.id, e.target.value || null)}
-                          className="h-8 w-[140px] text-xs"
-                        />
-                        <Input
                           type="text"
                           placeholder="dd/mm/aaaa"
                           defaultValue={
