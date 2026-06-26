@@ -1172,7 +1172,6 @@ function ProductsTab({
                   {p.price != null && (
                     <p className="text-[10px] text-emerald-400 font-semibold mt-0.5 uppercase tracking-wider">
                       Comissão: R$ {(Number(p.price) * (commissionRate / 100)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      <span className="text-slate-500 normal-case font-normal"> ({commissionRate}%)</span>
                     </p>
                   )}
                 </div>
