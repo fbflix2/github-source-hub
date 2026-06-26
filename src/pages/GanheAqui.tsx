@@ -241,6 +241,24 @@ export default function GanheAqui() {
 
   useEffect(() => { setPage(0); }, [statusFilter]);
 
+  // Load journey events when entering Jornada tab
+  useEffect(() => {
+    if (tab !== "journey" || !partner) return;
+    setJourneyLoading(true);
+    (async () => {
+      const since = new Date(Date.now() - journeyRange * 24 * 3600 * 1000).toISOString();
+      const { data } = await supabase
+        .from("partner_journey_events" as any)
+        .select("*")
+        .eq("partner_id", partner.id)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      setJourneyEvents((data || []) as any[]);
+      setJourneyLoading(false);
+    })();
+  }, [tab, partner, journeyRange]);
+
   const savePixData = async (data: Partial<Partner>) => {
     if (!partner) return;
     const { error } = await supabase
