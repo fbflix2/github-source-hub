@@ -416,6 +416,13 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
           </div>
           <button onClick={generate} disabled={generating || !formData.nomeCompleto || !photoOverlay} className="w-full py-4 bg-primary text-white font-black rounded-xl">{generating ? "GERANDO..." : "GERAR E BAIXAR"}</button>
         </div>
+        <div className="mt-6 p-5 rounded-xl border border-yellow-500/30 bg-yellow-500/5 text-xs text-slate-300 leading-relaxed space-y-2">
+          <p className="font-bold text-yellow-400 uppercase tracking-wide text-[11px]">⚠️ Aviso Legal / Isenção de Responsabilidade</p>
+          <p>O documento gerado por esta ferramenta é um <strong>mockup fictício</strong>, criado apenas como recurso técnico para abrir a possibilidade de uma <strong>revisão de conta</strong> junto ao Facebook. <strong>Não é um documento oficial</strong> e não possui qualquer validade jurídica, fiscal ou de identificação real.</p>
+          <p>É <strong>crime</strong> utilizar documentos de terceiros ou falsificar documentos oficiais. Esta ferramenta <strong>não deve, em hipótese alguma</strong>, ser usada para fraudes, golpes, falsidade ideológica ou qualquer atividade ilícita. O uso indevido é de inteira responsabilidade do usuário.</p>
+          <p>O envio do mockup ao Facebook apenas <strong>abre a possibilidade</strong> de uma análise da conta — quem decide se a conta será reativada é exclusivamente o Facebook. <strong>Não há garantia</strong> de retorno, aprovação ou reativação da conta.</p>
+          <p className="text-slate-400">Ao utilizar esta ferramenta, você declara estar ciente e concorda com estes termos.</p>
+        </div>
       </div>
     </div>
   );
