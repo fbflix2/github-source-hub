@@ -6,6 +6,7 @@ import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
   Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
+  Briefcase, UserCircle2, Globe, Box,
 } from "lucide-react";
 
 interface Partner {
