@@ -165,15 +165,6 @@ interface PromoBanner {
 
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
-  // Force dark theme on the partner panel (including global navbar) while mounted
-  useEffect(() => {
-    const html = document.documentElement;
-    const wasDark = html.classList.contains("dark");
-    html.classList.add("dark");
-    return () => {
-      if (!wasDark) html.classList.remove("dark");
-    };
-  }, []);
   const [userName, setUserName] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -437,7 +428,7 @@ export default function GanheAqui() {
   const partnerLink = `fbflix.com.br/parceiro/${partner.slug}`;
 
   return (
-    <div className="dark bg-background text-foreground -mx-4 sm:-mx-6 -my-4 sm:-my-6 px-4 sm:px-6 py-6 min-h-screen">
+    <div className="bg-background text-foreground -mx-4 sm:-mx-6 -my-4 sm:-my-6 px-4 sm:px-6 py-6 min-h-screen">
     <div className="max-w-5xl mx-auto">
       {/* Header Section — hidden on Products/Finance tabs */}
       {tab === "overview" && (
