@@ -337,19 +337,9 @@ export default function GanheAqui() {
                 {partner.status === "active" ? "Ativo" : "Inativo"}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1 group">
-              <span className="text-slate-400 text-sm">{partnerLink}</span>
-              <button
-                onClick={copyLink}
-                className="hover:text-primary transition-colors flex items-center gap-1 text-slate-400"
-                title="Copiar Link"
-              >
-                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                <span className="text-xs font-medium uppercase tracking-wider">
-                  {copied ? "Copiado" : "Copiar"}
-                </span>
-              </button>
-            </div>
+            <p className="text-slate-400 text-sm mt-1 italic max-w-md">
+              "{dailyQuote}"
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
