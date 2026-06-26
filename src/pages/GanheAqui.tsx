@@ -165,6 +165,15 @@ interface PromoBanner {
 
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
+  // Force dark theme on the partner panel (including global navbar) while mounted
+  useEffect(() => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains("dark");
+    html.classList.add("dark");
+    return () => {
+      if (!wasDark) html.classList.remove("dark");
+    };
+  }, []);
   const [userName, setUserName] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
