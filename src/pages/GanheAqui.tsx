@@ -127,6 +127,17 @@ export default function GanheAqui() {
 
   useEffect(() => { setPage(0); }, [statusFilter]);
 
+  const savePixData = async (data: Partial<Partner>) => {
+    if (!partner) return;
+    const { error } = await supabase
+      .from("partners")
+      .update(data)
+      .eq("id", partner.id);
+    if (error) { toast.error("Erro ao salvar dados PIX"); return; }
+    setPartner({ ...partner, ...data });
+    toast.success("Dados PIX salvos");
+  };
+
   const initials = userName
     ? userName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "P";
