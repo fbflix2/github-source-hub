@@ -235,7 +235,8 @@ export default function GanheAqui() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header Section */}
+      {/* Header Section — hidden on Products/Finance tabs */}
+      {tab === "overview" && (
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-[#2A2A2A] pb-8">
         <div className="flex items-center gap-4">
           <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A] overflow-hidden">
@@ -278,6 +279,7 @@ export default function GanheAqui() {
           </div>
         </div>
       </header>
+      )}
 
       {/* Tabs (mobile fallback — top nav drives tabs on desktop) */}
       <div className="md:hidden flex items-center gap-1 mb-6 border-b border-[#2A2A2A]">
@@ -454,6 +456,7 @@ export default function GanheAqui() {
           loading={productsLoading}
           search={productSearch}
           onSearch={setProductSearch}
+          commissionRate={partner.commission_rate}
         />
       )}
 
