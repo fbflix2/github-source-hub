@@ -306,6 +306,9 @@ export default function GanheAqui() {
         </div>
       </section>
 
+      {/* Dados PIX para recebimento */}
+      <PixDataSection partner={partner} onSave={savePixData} />
+
       {/* Transactions Table */}
       <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
         <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
