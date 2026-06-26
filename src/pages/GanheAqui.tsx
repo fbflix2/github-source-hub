@@ -7,6 +7,7 @@ import {
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
   Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
   Briefcase, UserCircle2, Globe, Box, Flame, Crown, Eye, ArrowDownAZ, ArrowUpAZ,
+  MousePointerClick, Route, CreditCard, CircleCheck, Activity,
 } from "lucide-react";
 
 interface Partner {
@@ -36,6 +37,7 @@ interface Referral {
 const ITEMS_PER_PAGE = 4;
 
 type TabKey = "overview" | "products" | "finance";
+type TabKeyExt = TabKey | "journey";
 
 interface PromoProduct {
   id: string;
@@ -73,9 +75,9 @@ export default function GanheAqui() {
   const [userCpf, setUserCpf] = useState<string>("");
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: TabKey = tabParam === "products" || tabParam === "finance" ? tabParam : "overview";
-  const [tab, setTabState] = useState<TabKey>(initialTab);
-  const setTab = (next: TabKey) => {
+  const initialTab: TabKeyExt = (["products","finance","journey"].includes(tabParam || "") ? tabParam : "overview") as TabKeyExt;
+  const [tab, setTabState] = useState<TabKeyExt>(initialTab);
+  const setTab = (next: TabKeyExt) => {
     setTabState(next);
     const sp = new URLSearchParams(searchParams);
     if (next === "overview") sp.delete("tab"); else sp.set("tab", next);
@@ -83,7 +85,7 @@ export default function GanheAqui() {
   };
   useEffect(() => {
     const t = searchParams.get("tab");
-    const valid: TabKey = t === "products" || t === "finance" ? t : "overview";
+    const valid: TabKeyExt = (["products","finance","journey"].includes(t || "") ? t : "overview") as TabKeyExt;
     if (valid !== tab) setTabState(valid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -93,6 +95,11 @@ export default function GanheAqui() {
   const [topViewed, setTopViewed] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
+
+  // Journey
+  const [journeyEvents, setJourneyEvents] = useState<any[]>([]);
+  const [journeyLoading, setJourneyLoading] = useState(false);
+  const [journeyRange, setJourneyRange] = useState<number>(30);
 
   useEffect(() => {
     loadPartnerData();
