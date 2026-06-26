@@ -50,6 +50,14 @@ export default function ProductPage() {
         }
         
         setProduct(productData);
+        // Track real product view
+        (async () => {
+          const { data: { user: viewer } } = await supabase.auth.getUser();
+          await (supabase.from("product_views") as any).insert({
+            product_id: productData.id,
+            user_id: viewer?.id ?? null,
+          });
+        })();
         // Atualiza as meta tags dinamicamente
         document.title = `${productData.name} - FBFLIX`;
         
