@@ -100,6 +100,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
   { title: "Solicitações de Amizade", icon: Users, path: "/admin/solicitacoes-amizade" },
   { title: "Backup Fb", icon: HardDrive, path: "/admin/backup-fb" },
+  { title: "Saldo OpenPix", icon: Wallet, path: "/admin/openpix" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Config Esteiras", icon: Settings, path: "/admin/config-esteiras" },
   { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard", operatorOnly: true },
