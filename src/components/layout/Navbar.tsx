@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useSearchParams } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -37,8 +37,15 @@ const allNavLinks = [
   { key: "ferramentas", title: "Ferramentas", url: "/ferramentas" },
 ];
 
+const partnerNavLinks = [
+  { key: "overview", title: "Visão Geral", tab: "" },
+  { key: "products", title: "Produtos", tab: "products" },
+  { key: "finance", title: "Financeiro", tab: "finance" },
+];
+
 export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
   const [logoHeight, setLogoHeight] = useState(32);
 
@@ -55,7 +62,9 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
     });
   }, []);
 
+  const isPartnerMode = location.pathname === "/parceria";
   const navLinks = allNavLinks.filter(link => !hiddenLinks.includes(link.key));
+  const currentTab = searchParams.get("tab") || "";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
@@ -68,7 +77,27 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-6 whitespace-nowrap">
-          {navLinks.map((link) => {
+          {isPartnerMode ? (
+            partnerNavLinks.map((link) => {
+              const isActive = currentTab === link.tab;
+              return (
+                <NavLink
+                  key={link.key}
+                  to={link.tab ? `/parceria?tab=${link.tab}` : "/parceria"}
+                  className={`font-medium transition-colors relative group ${
+                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {link.title}
+                  <span
+                    className={`absolute -bottom-6 left-0 w-full h-0.5 bg-primary transition-transform ${
+                      isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                  />
+                </NavLink>
+              );
+            })
+          ) : navLinks.map((link) => {
             const isActive = location.pathname === link.url;
             return (
               <NavLink
