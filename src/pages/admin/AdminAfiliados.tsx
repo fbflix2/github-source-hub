@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { 
   Users, Plus, Pencil, Trash2, Search, Link2, 
   DollarSign, Check, X, Eye, EyeOff, TrendingUp, 
-  Wallet, ShoppingCart, Calendar, ArrowRight, Info
+  Wallet, ShoppingCart, Calendar, ArrowRight, Info, Copy
 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -52,6 +52,9 @@ export default function AdminAfiliados() {
   const [showReferrals, setShowReferrals] = useState<string | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
+  const [tab, setTab] = useState<"partners" | "withdrawals">("partners");
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [loadingWd, setLoadingWd] = useState(false);
 
   // Form state
   const [formEmail, setFormEmail] = useState("");
@@ -61,6 +64,32 @@ export default function AdminAfiliados() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadPartners(); }, []);
+  useEffect(() => { if (tab === "withdrawals") loadWithdrawals(); }, [tab]);
+
+  const loadWithdrawals = async () => {
+    setLoadingWd(true);
+    const { data } = await supabase
+      .from("partner_withdrawals")
+      .select("*")
+      .order("created_at", { ascending: false });
+    // enrich names
+    const ids = (data || []).map((w: any) => w.user_id);
+    const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+    const pm = new Map((profs || []).map((p: any) => [p.user_id, p.full_name]));
+    setWithdrawals((data || []).map((w: any) => ({ ...w, holder_name_resolved: w.holder_name || pm.get(w.user_id) || "—" })));
+    setLoadingWd(false);
+  };
+
+  const updateWithdrawal = async (id: string, status: string) => {
+    const patch: any = { status, updated_at: new Date().toISOString() };
+    if (status === "paid") patch.paid_at = new Date().toISOString();
+    if (status === "rejected") patch.rejected_at = new Date().toISOString();
+    const { error } = await supabase.from("partner_withdrawals").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "paid" ? "Saque marcado como pago" : status === "rejected" ? "Saque recusado (saldo estornado)" : "Atualizado");
+    loadWithdrawals();
+    loadPartners();
+  };
 
   const loadPartners = async () => {
     setLoading(true);
@@ -235,11 +264,21 @@ export default function AdminAfiliados() {
   };
 
   const creditReferral = async (ref: Referral) => {
+    const partner = partners.find(p => p.id === ref.partner_id);
+    if (!partner) return;
+    const ageMs = Date.now() - new Date(ref.created_at).getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    if (ageDays < (partner.guarantee_days || 0)) {
+      const remaining = Math.ceil((partner.guarantee_days || 0) - ageDays);
+      const ok = confirm(
+        `⚠️ Esta indicação ainda está dentro do prazo de garantia (${partner.guarantee_days} dias).\n\n` +
+        `Faltam ${remaining} dia(s) para liberação automática.\n\n` +
+        `Se o pedido for cancelado/reembolsado durante a garantia, a comissão será estornada do parceiro.\n\n` +
+        `Deseja creditar mesmo assim?`
+      );
+      if (!ok) return;
+    }
     try {
-      // Credit the commission to partner balance
-      const partner = partners.find(p => p.id === ref.partner_id);
-      if (!partner) return;
-
       const newBalance = partner.balance + ref.commission_amount;
       const newTotalEarned = partner.total_earned + ref.commission_amount;
 
@@ -309,6 +348,74 @@ export default function AdminAfiliados() {
         </Button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-white/[0.05]">
+        <button
+          onClick={() => setTab("partners")}
+          className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
+            tab === "partners" ? "text-primary border-primary" : "text-neutral-500 border-transparent hover:text-white"
+          }`}
+        >Parceiros</button>
+        <button
+          onClick={() => setTab("withdrawals")}
+          className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
+            tab === "withdrawals" ? "text-primary border-primary" : "text-neutral-500 border-transparent hover:text-white"
+          }`}
+        >Saques solicitados</button>
+      </div>
+
+      {tab === "withdrawals" ? (
+        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-neutral-800 bg-neutral-900/40">
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Data</TableHead>
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Parceiro</TableHead>
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Chave PIX</TableHead>
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Valor</TableHead>
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider text-center">Status</TableHead>
+                <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingWd ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-12 text-neutral-500 italic">Carregando…</TableCell></TableRow>
+              ) : withdrawals.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-12 text-neutral-500 italic">Nenhum saque solicitado ainda.</TableCell></TableRow>
+              ) : withdrawals.map(w => (
+                <TableRow key={w.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                  <TableCell className="text-neutral-400 text-xs">{new Date(w.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="text-white font-medium">{w.holder_name_resolved}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-neutral-300">{w.pix_key}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(w.pix_key); toast.success("Chave copiada"); }} className="text-neutral-500 hover:text-primary"><Copy className="size-3" /></button>
+                      <span className="text-[9px] text-neutral-500 uppercase">({w.pix_key_type})</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-black text-white">R$ {Number(w.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                  <TableCell className="text-center">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-black tracking-widest ${
+                      w.status === "paid" ? "bg-emerald-500/10 text-emerald-500" :
+                      w.status === "rejected" ? "bg-red-500/10 text-red-400" :
+                      "bg-amber-500/10 text-amber-500"
+                    }`}>{w.status === "paid" ? "PAGO" : w.status === "rejected" ? "RECUSADO" : "PENDENTE"}</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {w.status === "pending" && (
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => updateWithdrawal(w.id, "paid")} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded">Marcar pago</button>
+                        <button onClick={() => { if (confirm("Recusar e estornar saldo ao parceiro?")) updateWithdrawal(w.id, "rejected"); }} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-black uppercase px-3 py-1.5 rounded border border-red-500/30">Recusar</button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+      <>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden">
