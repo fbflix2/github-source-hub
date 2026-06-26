@@ -36,6 +36,25 @@ interface Referral {
 
 const ITEMS_PER_PAGE = 4;
 
+const DAILY_QUOTES = [
+  "Foco no processo, o resultado é consequência.",
+  "Cada link compartilhado é uma porta aberta.",
+  "Disciplina vence motivação todos os dias.",
+  "Você não precisa ser perfeito, precisa ser constante.",
+  "Quem planta indicação hoje, colhe comissão amanhã.",
+  "Grandes vendas começam com uma conversa simples.",
+  "Pequenas ações diárias geram resultados extraordinários.",
+  "Não venda produtos, resolva problemas.",
+  "Sua rede é seu maior patrimônio.",
+  "O sucesso ama quem aparece todos os dias.",
+  "Hoje é um ótimo dia pra bater meta.",
+  "Confiança se constrói entregando valor.",
+  "Quem domina o link, domina o jogo.",
+];
+const dailyQuote = DAILY_QUOTES[
+  Math.floor((new Date().setHours(0,0,0,0) / 86400000)) % DAILY_QUOTES.length
+];
+
 type TabKey = "overview" | "products" | "finance";
 type TabKeyExt = TabKey | "journey";
 
