@@ -170,6 +170,36 @@ export default function ToolsTab({ partnerId, partnerSlug }: { partnerId: string
             </button>
           </div>
 
+          <div className="bg-[#12141A] border border-[#2A2A2A] rounded-xl p-5 text-sm text-slate-300 space-y-3">
+            <h3 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+              <Link2 className="size-4 text-primary" /> Como usar o encurtador + UTM
+            </h3>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              UTMs são "etiquetas" coladas no final do seu link. Elas dizem para o painel <strong className="text-white">de onde</strong> veio cada clique e cada venda — assim você sabe qual post, anúncio ou story está realmente faturando.
+            </p>
+            <ol className="space-y-2 text-xs text-slate-300 list-decimal list-inside">
+              <li><strong className="text-white">Nome</strong>: apelido só para você (ex: "Bio Insta", "Story 25/06", "Anúncio FB BM").</li>
+              <li><strong className="text-white">Destino (URL)</strong>: cole o link do produto ou da loja que quer divulgar (ex: <span className="font-mono text-primary">https://fbflix.com.br/loja</span>).</li>
+              <li><strong className="text-white">utm_source</strong>: <em>onde</em> o link foi postado. Ex: <span className="font-mono">instagram</span>, <span className="font-mono">facebook</span>, <span className="font-mono">whatsapp</span>, <span className="font-mono">youtube</span>.</li>
+              <li><strong className="text-white">utm_medium</strong>: <em>tipo</em> de tráfego. Ex: <span className="font-mono">bio</span>, <span className="font-mono">story</span>, <span className="font-mono">cpc</span> (anúncio pago), <span className="font-mono">grupo</span>.</li>
+              <li><strong className="text-white">utm_campaign</strong>: nome da campanha. Ex: <span className="font-mono">black-friday</span>, <span className="font-mono">lancamento-bm</span>.</li>
+              <li><strong className="text-white">utm_content</strong> (opcional): para diferenciar criativos. Ex: <span className="font-mono">video-1</span>, <span className="font-mono">banner-vermelho</span>.</li>
+            </ol>
+            <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-lg p-3 text-[11px] text-slate-400">
+              <p className="text-white font-semibold mb-1">Exemplo prático</p>
+              <p>Você vai postar na bio do Instagram um link para a loja:</p>
+              <ul className="mt-1 space-y-0.5">
+                <li>• <strong>Nome</strong>: Bio Insta Junho</li>
+                <li>• <strong>Destino</strong>: https://fbflix.com.br/loja</li>
+                <li>• <strong>utm_source</strong>: instagram</li>
+                <li>• <strong>utm_medium</strong>: bio</li>
+                <li>• <strong>utm_campaign</strong>: junho-2026</li>
+              </ul>
+              <p className="mt-2">Clique em <strong className="text-primary">Criar link curto</strong> → copie o link gerado → cole na sua bio. Pronto: todo clique e venda vai aparecer rastreado em <strong className="text-white">Jornada</strong>.</p>
+            </div>
+            <p className="text-[11px] text-slate-500">💡 Dica: crie um link diferente para cada lugar onde divulgar. Assim você descobre o que mais converte e foca seu esforço lá.</p>
+          </div>
+
           {campaigns.length === 0 && (
             <p className="text-slate-500 text-sm">Nenhuma campanha criada ainda.</p>
           )}
