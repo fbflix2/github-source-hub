@@ -867,7 +867,7 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 // --- Products Tab ---
 
 function ProductsTab({
-  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed, banners,
+  partnerSlug, products, loading, search, onSearch, commissionRate, topSellers, topViewed, banners, partnerEarned,
 }: {
   partnerSlug: string;
   products: PromoProduct[];
@@ -878,6 +878,7 @@ function ProductsTab({
   topSellers: string[];
   topViewed: string | null;
   banners: PromoBanner[];
+  partnerEarned: number;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("todos");
@@ -938,6 +939,25 @@ function ProductsTab({
     return "outros";
   };
 
+  // Assinaturas recorrentes: liberadas só após atingir R$ 50k em vendas
+  const RECURRING_UNLOCK = 50000;
+  const recurringUnlocked = partnerEarned >= RECURRING_UNLOCK;
+  const isRecurring = (name: string): boolean => {
+    const n = name.toLowerCase();
+    return (
+      n.includes("safe bm") ||
+      n.includes("safebm") ||
+      n.includes("proxy") ||
+      n.includes("contingência") ||
+      n.includes("contingencia")
+    );
+  };
+
+  const sellableProducts = recurringUnlocked
+    ? products
+    : products.filter(p => !isRecurring(p.name));
+  const hiddenRecurringCount = products.length - sellableProducts.length;
+
   const types = [
     { id: "todos", label: "Todos", icon: Package },
     { id: "bm", label: "BM", icon: Briefcase },
@@ -945,11 +965,11 @@ function ProductsTab({
     { id: "proxy", label: "Proxies", icon: Globe },
     { id: "pagina", label: "Páginas", icon: FileText },
     { id: "outros", label: "Outros", icon: Box },
-  ];
+  ].filter(t => recurringUnlocked || t.id !== "proxy");
 
   const baseFiltered = typeFilter === "todos"
-    ? products
-    : products.filter(p => getType(p.name) === typeFilter);
+    ? sellableProducts
+    : sellableProducts.filter(p => getType(p.name) === typeFilter);
 
   const topRank = (id: string) => {
     const idx = topSellers.indexOf(id);
@@ -978,7 +998,7 @@ function ProductsTab({
     return null;
   };
 
-  const counts = products.reduce<Record<string, number>>((acc, p) => {
+  const counts = sellableProducts.reduce<Record<string, number>>((acc, p) => {
     const t = getType(p.name);
     acc[t] = (acc[t] || 0) + 1;
     return acc;
