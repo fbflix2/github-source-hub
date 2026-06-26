@@ -719,6 +719,8 @@ export default function AdminAfiliados() {
           </div>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 }
