@@ -138,11 +138,15 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">8. Retenção de Dados</h2>
-            <p>
-              Mantemos seus dados pessoais enquanto sua conta estiver ativa ou conforme necessário para 
-              prestar nossos serviços. Dados podem ser retidos por períodos adicionais para cumprimento 
-              de obrigações legais, resolução de disputas ou conforme permitido por lei.
-            </p>
+            <p>Mantemos seus dados pelo tempo estritamente necessário a cada finalidade:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1.5">
+              <li><strong className="text-foreground">Conta e perfil:</strong> enquanto a conta estiver ativa.</li>
+              <li><strong className="text-foreground">Pedidos e pagamentos:</strong> 5 anos (obrigação fiscal — Art. 195, §5º CTN).</li>
+              <li><strong className="text-foreground">Logs de acesso:</strong> 6 meses (Marco Civil da Internet, Art. 15).</li>
+              <li><strong className="text-foreground">Registros de consentimento:</strong> enquanto durar a relação + 5 anos.</li>
+              <li><strong className="text-foreground">Tickets de suporte:</strong> 2 anos após o fechamento.</li>
+            </ul>
+            <p className="mt-2">Após esses prazos, os dados são anonimizados ou eliminados. Você pode solicitar exclusão antecipada em <a href="/meus-dados" className="text-primary underline">Meus Dados</a>.</p>
           </section>
 
           <section>
@@ -170,10 +174,12 @@ export default function PrivacyPolicy() {
               tratamento de seus dados pessoais, entre em contato:
             </p>
             <div className="mt-3 p-4 rounded-xl bg-card border border-border">
-              <p className="text-foreground font-medium">FBFLIX</p>
+              <p className="text-foreground font-medium">FBFLIX — Encarregado de Dados (DPO)</p>
               <p className="mt-1">E-mail: <span className="text-primary">equipefbflix@gmail.com</span></p>
               <p>Suporte: através da plataforma (seção Suporte)</p>
+              <p className="mt-2 text-xs">Você também pode acionar a Autoridade Nacional de Proteção de Dados (ANPD) em <a href="https://www.gov.br/anpd" target="_blank" rel="noreferrer" className="text-primary underline">gov.br/anpd</a>.</p>
             </div>
+            <p className="mt-4 text-xs">Consulte também a <a href="/cookies" className="text-primary underline">Política de Cookies</a> e a página <a href="/meus-dados" className="text-primary underline">Meus Dados</a> para exercer seus direitos.</p>
           </section>
         </div>
 
