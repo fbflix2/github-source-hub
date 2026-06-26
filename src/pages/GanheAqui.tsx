@@ -53,6 +53,47 @@ function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
   return b.link_url ? <a href={b.link_url} target="_blank" rel="noreferrer">{content}</a> : content;
 }
 
+function OverviewBannerCompact({ banners }: { banners: PromoBanner[] }) {
+  const fallback: PromoBanner[] = [
+    { id: "f1", title: "Bem-vindo ao Painel Parceiro", subtitle: "Compartilhe seu link global e ganhe comissão recorrente.", category: "Dica", background_color: "#0f172a" } as PromoBanner,
+    { id: "f2", title: "Use o encurtador com UTM", subtitle: "Crie campanhas em Ferramentas e meça cada clique.", category: "Estratégia", background_color: "#111827" } as PromoBanner,
+    { id: "f3", title: "Top vendas: BMs e Perfis CA5", subtitle: "Foque nos produtos campeões para maior conversão.", category: "Incentivo", background_color: "#0b1220" } as PromoBanner,
+  ];
+  const list = banners.length ? banners : fallback;
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (list.length < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % list.length), 6000);
+    return () => clearInterval(t);
+  }, [list.length]);
+  const b = list[idx];
+  const content = (
+    <div
+      className="relative w-full h-14 rounded-lg overflow-hidden border border-[#2A2A2A] flex items-center"
+      style={{
+        backgroundColor: b.background_color || "#1A1A1A",
+        backgroundImage: b.image_url ? `linear-gradient(90deg, rgba(0,0,0,0.7), rgba(0,0,0,0.35)), url(${b.image_url})` : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="px-3 min-w-0 flex-1">
+        {b.category && <span className="block text-[9px] font-bold text-primary uppercase tracking-widest leading-none">{b.category}</span>}
+        {b.title && <h3 className="text-white font-semibold text-xs leading-tight truncate">{b.title}</h3>}
+        {b.subtitle && <p className="text-slate-300 text-[10px] leading-tight truncate">{b.subtitle}</p>}
+      </div>
+      {list.length > 1 && (
+        <div className="absolute bottom-1 right-2 flex gap-0.5">
+          {list.map((_, i) => (
+            <span key={i} className={`size-1 rounded-full ${i === idx ? "bg-primary" : "bg-white/30"}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+  return b.link_url ? <a href={b.link_url} target="_blank" rel="noreferrer" className="block">{content}</a> : content;
+}
+
 interface Partner {
   id: string;
   slug: string;
