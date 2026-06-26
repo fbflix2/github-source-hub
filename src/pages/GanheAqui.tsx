@@ -6,6 +6,7 @@ import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
   Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
+  Briefcase, UserCircle2, Globe, Box,
 } from "lucide-react";
 
 interface Partner {
@@ -517,6 +518,35 @@ function ProductsTab({
   commissionRate: number;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("todos");
+
+  const getType = (name: string): string => {
+    const n = name.toLowerCase();
+    if (n.includes("bm")) return "bm";
+    if (n.includes("perfil")) return "perfil";
+    if (n.includes("proxy")) return "proxy";
+    if (n.includes("página") || n.includes("pagina") || n.includes("fanpage")) return "pagina";
+    return "outros";
+  };
+
+  const types = [
+    { id: "todos", label: "Todos", icon: Package },
+    { id: "bm", label: "BM", icon: Briefcase },
+    { id: "perfil", label: "Perfis", icon: UserCircle2 },
+    { id: "proxy", label: "Proxies", icon: Globe },
+    { id: "pagina", label: "Páginas", icon: FileText },
+    { id: "outros", label: "Outros", icon: Box },
+  ];
+
+  const filteredProducts = typeFilter === "todos"
+    ? products
+    : products.filter(p => getType(p.name) === typeFilter);
+
+  const counts = products.reduce<Record<string, number>>((acc, p) => {
+    const t = getType(p.name);
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {});
 
   const buildLink = (p: PromoProduct) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://fbflix.com.br";
@@ -552,18 +582,44 @@ function ProductsTab({
         />
       </div>
 
+      {/* Type Filters */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {types.map(t => {
+          const Icon = t.icon;
+          const count = t.id === "todos" ? products.length : (counts[t.id] || 0);
+          const active = typeFilter === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTypeFilter(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${
+                active
+                  ? "bg-primary/15 border-primary/40 text-primary"
+                  : "bg-[#1A1A1A] border-[#2A2A2A] text-slate-400 hover:border-primary/30 hover:text-white"
+              }`}
+            >
+              <Icon className="size-3.5" />
+              {t.label}
+              <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] ${active ? "bg-primary/20" : "bg-[#0F0F0F]"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
         </div>
-      ) : products.length === 0 ? (
+      ) : filteredProducts.length === 0 ? (
         <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-10 text-center">
           <Package className="size-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-sm text-slate-500">Nenhum produto disponível para divulgação no momento.</p>
+          <p className="text-sm text-slate-500">Nenhum produto encontrado para este filtro.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map(p => (
+          {filteredProducts.map(p => (
             <div key={p.id} className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 flex flex-col gap-3 hover:border-primary/30 transition-colors">
               <div className="flex items-start gap-3">
                 <div className="size-14 rounded-lg bg-[#0F0F0F] border border-[#2A2A2A] overflow-hidden shrink-0 flex items-center justify-center">
