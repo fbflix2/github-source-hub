@@ -701,8 +701,8 @@ function ProductsTab({
   return (
     <section>
       {/* Thin promo banner carousel */}
-      {banners.length > 0 && (() => {
-        const b = banners[currentBanner];
+      {displayBanners.length > 0 && (() => {
+        const b = displayBanners[currentBanner];
         const isCover = b?.image_style === "cover" && !!b?.image_url;
         return (
           <div
@@ -741,18 +741,18 @@ function ProductsTab({
                   </p>
                 )}
               </div>
-              {banners.length > 1 && (
+              {displayBanners.length > 1 && (
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
-                    onClick={() => setCurrentBanner((p) => (p - 1 + banners.length) % banners.length)}
+                    onClick={() => setCurrentBanner((p) => (p - 1 + displayBanners.length) % displayBanners.length)}
                     className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
                     aria-label="Anterior"
                   >
                     <ChevronLeft className="w-3.5 h-3.5 text-white" />
                   </button>
-                  <span className="text-[10px] text-slate-300 font-medium tabular-nums">{currentBanner + 1}/{banners.length}</span>
+                  <span className="text-[10px] text-slate-300 font-medium tabular-nums">{currentBanner + 1}/{displayBanners.length}</span>
                   <button
-                    onClick={() => setCurrentBanner((p) => (p + 1) % banners.length)}
+                    onClick={() => setCurrentBanner((p) => (p + 1) % displayBanners.length)}
                     className="p-1.5 rounded-md bg-black/40 border border-white/10 hover:bg-black/60 transition-colors"
                     aria-label="Próximo"
                   >
@@ -762,9 +762,9 @@ function ProductsTab({
               )}
             </div>
             {/* dots */}
-            {banners.length > 1 && (
+            {displayBanners.length > 1 && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {banners.map((_, i) => (
+                {displayBanners.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentBanner(i)}
