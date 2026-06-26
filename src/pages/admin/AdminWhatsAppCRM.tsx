@@ -936,9 +936,9 @@ export default function AdminWhatsAppCRM() {
                     className={`h-8 px-3 rounded-[12px] text-[11.5px] font-medium flex items-center gap-1.5 transition-all duration-[180ms] active:scale-[0.98] hover:-translate-y-[1px] ${
                       selectedConvo?.status === "resolved"
                         ? "bg-[#0F1013] border border-white/[0.06] text-zinc-300 hover:text-white"
-                        : "text-white shadow-[0_6px_16px_-8px_rgba(229,72,77,0.5)]"
+                         : "text-white shadow-[0_6px_16px_-8px_rgba(34,197,94,0.5)]"
                     }`}
-                    style={selectedConvo?.status === "resolved" ? undefined : { background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }}
+                    style={selectedConvo?.status === "resolved" ? undefined : { background: "linear-gradient(180deg,#22C55E 0%,#15803D 100%)" }}
                   >
                     {selectedConvo?.status === "resolved"
                       ? <><RotateCw className="size-3.5" /> Reabrir</>
@@ -1009,7 +1009,7 @@ export default function AdminWhatsAppCRM() {
                           : "text-zinc-100 rounded-bl-[6px] border border-white/[0.04]"
                       }`}
                       style={m.from_me
-                        ? { background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }
+                        ? { background: "linear-gradient(180deg,#2A2D33 0%,#1E2025 100%)" }
                         : { background: "#1E2025" }}>
                         {m.from_me && formatSender(m.sender_user_id, m.sender_department_id) && (
                           <div className="text-[10px] font-semibold text-white/75 mb-1 leading-tight tracking-wide uppercase">
@@ -1154,8 +1154,8 @@ export default function AdminWhatsAppCRM() {
                 <button
                   onClick={handleSend}
                   disabled={!draft.trim() || sending}
-                  className="shrink-0 h-11 px-5 rounded-[14px] text-white text-[13px] font-medium flex items-center gap-2 disabled:opacity-40 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] shadow-[0_8px_20px_-10px_rgba(229,72,77,0.6)]"
-                  style={{ background: "linear-gradient(180deg,#E5484D 0%,#C42026 100%)" }}
+                  className="shrink-0 h-11 px-5 rounded-[14px] text-white text-[13px] font-medium flex items-center gap-2 disabled:opacity-40 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-[180ms] shadow-[0_8px_20px_-10px_rgba(34,197,94,0.6)]"
+                  style={{ background: "linear-gradient(180deg,#22C55E 0%,#15803D 100%)" }}
                 >
                   {sending ? <Loader2 className="size-4 animate-spin" /> : <><Send className="size-4" /> Enviar</>}
                 </button>
