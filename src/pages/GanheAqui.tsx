@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -57,7 +58,22 @@ export default function GanheAqui() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [userCpf, setUserCpf] = useState<string>("");
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab: TabKey = tabParam === "products" || tabParam === "finance" ? tabParam : "overview";
+  const [tab, setTabState] = useState<TabKey>(initialTab);
+  const setTab = (next: TabKey) => {
+    setTabState(next);
+    const sp = new URLSearchParams(searchParams);
+    if (next === "overview") sp.delete("tab"); else sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  };
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    const valid: TabKey = t === "products" || t === "finance" ? t : "overview";
+    if (valid !== tab) setTabState(valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [products, setProducts] = useState<PromoProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [productSearch, setProductSearch] = useState("");
