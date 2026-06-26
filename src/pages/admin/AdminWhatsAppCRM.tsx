@@ -118,6 +118,31 @@ export default function AdminWhatsAppCRM() {
     refetchInterval: 15000,
   });
 
+  // Definitive avatar caching: rehost WhatsApp CDN photos (and fetch missing ones
+  // via W-API) into Supabase Storage so they never expire / 403.
+  const cachedAvatarsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!conversations.length) return;
+    const needs = conversations
+      .filter((c) => {
+        if (cachedAvatarsRef.current.has(c.phone)) return false;
+        const u = c.avatar_url || "";
+        // Already cached in our storage? skip
+        if (u.includes("/storage/v1/object/public/whatsapp-media/avatars/")) return false;
+        return true; // either missing or pointing to expiring WA CDN
+      })
+      .slice(0, 40)
+      .map((c) => c.phone);
+    if (!needs.length) return;
+    needs.forEach((p) => cachedAvatarsRef.current.add(p));
+    supabase.functions
+      .invoke("wa-avatar-cache", { body: { phones: needs } })
+      .then(({ data }) => {
+        if (data?.updated) qc.invalidateQueries({ queryKey: ["wa-conversations"] });
+      })
+      .catch(() => {});
+  }, [conversations, qc]);
+
   const { data: messages = [], refetch: refetchMessages } = useQuery({
     queryKey: ["wa-messages", selectedPhone],
     queryFn: async () => {
