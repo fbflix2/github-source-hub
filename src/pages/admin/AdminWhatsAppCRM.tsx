@@ -646,7 +646,7 @@ export default function AdminWhatsAppCRM() {
   };
 
   return (
-    <div className="px-6 md:px-8 pt-3 pb-4 min-h-screen w-full text-zinc-100 font-sans" style={{ background: "#0F1013" }}>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden px-6 md:px-8 pt-2 pb-3 text-zinc-100 font-sans" style={{ background: "#0F1013" }}>
       <style>{`
         .crm-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .crm-scroll::-webkit-scrollbar-thumb { background: #2A2D33; border-radius: 999px; }
@@ -655,7 +655,7 @@ export default function AdminWhatsAppCRM() {
       `}</style>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-none items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-2xl flex items-center justify-center shadow-[0_8px_24px_-12px_rgba(229,72,77,0.6)]"
                style={{ background: "linear-gradient(135deg,#E5484D 0%,#8B1D21 100%)" }}>
@@ -691,7 +691,7 @@ export default function AdminWhatsAppCRM() {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid flex-none grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         {[
           { label: "Conversas abertas", value: metrics.open, icon: Inbox, accent: "#E5484D" },
           { label: "Mensagens não lidas", value: metrics.unread, icon: MessageCircle, accent: "#FFFFFF" },
@@ -700,7 +700,7 @@ export default function AdminWhatsAppCRM() {
         ].map((m) => (
           <div
             key={m.label}
-            className="rounded-[18px] px-4 py-3 border border-white/[0.04] hover:border-white/[0.08] transition-colors duration-[180ms] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
+            className="rounded-[18px] px-4 py-2.5 border border-white/[0.04] hover:border-white/[0.08] transition-colors duration-[180ms] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
             style={{ background: "#17191D" }}
           >
             <div className="flex items-start justify-between">
@@ -709,13 +709,13 @@ export default function AdminWhatsAppCRM() {
               </div>
               <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-600 font-medium">Agora</span>
             </div>
-            <div className="text-[26px] font-semibold tracking-tight mt-3 leading-none tabular-nums">{m.value}</div>
-            <div className="text-[11.5px] text-zinc-500 mt-1.5">{m.label}</div>
+            <div className="text-[24px] font-semibold tracking-tight mt-2 leading-none tabular-nums">{m.value}</div>
+            <div className="text-[11.5px] text-zinc-500 mt-1">{m.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-4 h-[calc(100vh-200px)] min-h-[520px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[360px_1fr] gap-4">
         {/* Conversations sidebar */}
         <div className="rounded-[20px] flex flex-col overflow-hidden border border-white/[0.04] shadow-[0_2px_24px_-12px_rgba(0,0,0,0.6)]"
              style={{ background: "#131518" }}>
