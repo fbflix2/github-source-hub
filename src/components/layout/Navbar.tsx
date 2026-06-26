@@ -40,6 +40,7 @@ const allNavLinks = [
 const partnerNavLinks = [
   { key: "overview", title: "Visão Geral", tab: "" },
   { key: "products", title: "Produtos", tab: "products" },
+  { key: "journey", title: "Jornada", tab: "journey" },
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 

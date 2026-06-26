@@ -2258,6 +2258,73 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_journey_events: {
+        Row: {
+          amount: number | null
+          commission_amount: number | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          partner_id: string | null
+          product_id: string | null
+          product_name: string | null
+          user_id: string | null
+          visitor_id: string
+        }
+        Insert: {
+          amount?: number | null
+          commission_amount?: number | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          partner_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          user_id?: string | null
+          visitor_id: string
+        }
+        Update: {
+          amount?: number | null
+          commission_amount?: number | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          partner_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          user_id?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_journey_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_journey_events_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_journey_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_referrals: {
         Row: {
           commission_amount: number
@@ -5136,6 +5203,10 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      partner_journey_claim_visitor: {
+        Args: { _user_id: string; _visitor_id: string }
+        Returns: number
+      }
       process_whatsapp_queue: { Args: never; Returns: undefined }
       release_partner_commissions: { Args: never; Returns: number }
       search_stock_items_global: {

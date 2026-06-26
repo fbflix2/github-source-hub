@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { trackPartnerEvent } from "@/lib/partnerTracking";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 
 export default function PartnerRedirect() {
@@ -24,6 +25,12 @@ export default function PartnerRedirect() {
         localStorage.setItem("partner_ref_id", data.id);
         localStorage.setItem("partner_ref_at", new Date().toISOString());
         setFound(true);
+        // Track the click event with the freshly known partner id
+        const to = searchParams.get("to");
+        trackPartnerEvent("click", {
+          partnerId: data.id,
+          metadata: { to: to || null, slug: data.slug },
+        });
       }
       setLoading(false);
     };

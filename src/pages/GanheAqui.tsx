@@ -7,6 +7,7 @@ import {
   Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
   Bell, X, Package, BarChart3, ShieldAlert, FileText, ArrowRight, Link2,
   Briefcase, UserCircle2, Globe, Box, Flame, Crown, Eye, ArrowDownAZ, ArrowUpAZ,
+  MousePointerClick, Route, CreditCard, CircleCheck, Activity,
 } from "lucide-react";
 
 interface Partner {
@@ -36,6 +37,7 @@ interface Referral {
 const ITEMS_PER_PAGE = 4;
 
 type TabKey = "overview" | "products" | "finance";
+type TabKeyExt = TabKey | "journey";
 
 interface PromoProduct {
   id: string;
@@ -73,9 +75,9 @@ export default function GanheAqui() {
   const [userCpf, setUserCpf] = useState<string>("");
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: TabKey = tabParam === "products" || tabParam === "finance" ? tabParam : "overview";
-  const [tab, setTabState] = useState<TabKey>(initialTab);
-  const setTab = (next: TabKey) => {
+  const initialTab: TabKeyExt = (["products","finance","journey"].includes(tabParam || "") ? tabParam : "overview") as TabKeyExt;
+  const [tab, setTabState] = useState<TabKeyExt>(initialTab);
+  const setTab = (next: TabKeyExt) => {
     setTabState(next);
     const sp = new URLSearchParams(searchParams);
     if (next === "overview") sp.delete("tab"); else sp.set("tab", next);
@@ -83,7 +85,7 @@ export default function GanheAqui() {
   };
   useEffect(() => {
     const t = searchParams.get("tab");
-    const valid: TabKey = t === "products" || t === "finance" ? t : "overview";
+    const valid: TabKeyExt = (["products","finance","journey"].includes(t || "") ? t : "overview") as TabKeyExt;
     if (valid !== tab) setTabState(valid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -93,6 +95,11 @@ export default function GanheAqui() {
   const [topViewed, setTopViewed] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
+
+  // Journey
+  const [journeyEvents, setJourneyEvents] = useState<any[]>([]);
+  const [journeyLoading, setJourneyLoading] = useState(false);
+  const [journeyRange, setJourneyRange] = useState<number>(30);
 
   useEffect(() => {
     loadPartnerData();
@@ -234,6 +241,24 @@ export default function GanheAqui() {
 
   useEffect(() => { setPage(0); }, [statusFilter]);
 
+  // Load journey events when entering Jornada tab
+  useEffect(() => {
+    if (tab !== "journey" || !partner) return;
+    setJourneyLoading(true);
+    (async () => {
+      const since = new Date(Date.now() - journeyRange * 24 * 3600 * 1000).toISOString();
+      const { data } = await supabase
+        .from("partner_journey_events" as any)
+        .select("*")
+        .eq("partner_id", partner.id)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      setJourneyEvents((data || []) as any[]);
+      setJourneyLoading(false);
+    })();
+  }, [tab, partner, journeyRange]);
+
   const savePixData = async (data: Partial<Partner>) => {
     if (!partner) return;
     const { error } = await supabase
@@ -340,8 +365,9 @@ export default function GanheAqui() {
         {([
           { key: "overview", label: "Visão Geral", icon: BarChart3 },
           { key: "products", label: "Produtos", icon: Package },
+          { key: "journey", label: "Jornada", icon: Route },
           { key: "finance", label: "Financeiro", icon: Wallet },
-        ] as { key: TabKey; label: string; icon: any }[]).map(t => (
+        ] as { key: TabKeyExt; label: string; icon: any }[]).map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -529,6 +555,16 @@ export default function GanheAqui() {
           }}
           onSavePix={savePixData}
           withdrawals={withdrawals}
+        />
+      )}
+
+      {tab === "journey" && (
+        <JourneyTab
+          events={journeyEvents}
+          loading={journeyLoading}
+          range={journeyRange}
+          onRangeChange={setJourneyRange}
+          commissionRate={partner.commission_rate}
         />
       )}
 
@@ -1276,5 +1312,248 @@ function PixDataSection({
         </button>
       </div>
     </section>
+  );
+}
+
+// ============================== Journey Tab ==============================
+
+interface JourneyTabProps {
+  events: any[];
+  loading: boolean;
+  range: number;
+  onRangeChange: (n: number) => void;
+  commissionRate: number;
+}
+
+function JourneyTab({ events, loading, range, onRangeChange, commissionRate }: JourneyTabProps) {
+  // Funnel counts (distinct visitors per stage)
+  const funnel = useMemo(() => {
+    const stages: Array<"click" | "view_product" | "checkout" | "purchase"> = [
+      "click", "view_product", "checkout", "purchase",
+    ];
+    const sets: Record<string, Set<string>> = {};
+    stages.forEach(s => (sets[s] = new Set()));
+    events.forEach(e => {
+      if (sets[e.event_type]) sets[e.event_type].add(e.visitor_id);
+    });
+    return stages.map(s => ({ stage: s, count: sets[s].size }));
+  }, [events]);
+
+  const totalClicks = funnel[0].count || 0;
+  const totalPurchases = funnel[3].count || 0;
+  const conversionRate = totalClicks > 0 ? ((totalPurchases / totalClicks) * 100).toFixed(2) : "0";
+  const totalCommission = useMemo(
+    () => events
+      .filter(e => e.event_type === "purchase")
+      .reduce((s, e) => s + Number(e.commission_amount || 0), 0),
+    [events]
+  );
+
+  // Group events by visitor for the leads list
+  const visitorLeads = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const e of events) {
+      const cur = map.get(e.visitor_id) || {
+        visitor_id: e.visitor_id,
+        events: [],
+        user_id: null,
+        product_name: null,
+        last_at: e.created_at,
+        status: "click",
+        amount: 0,
+        commission: 0,
+      };
+      cur.events.push(e);
+      if (e.user_id) cur.user_id = e.user_id;
+      if (e.product_name) cur.product_name = e.product_name;
+      if (new Date(e.created_at) > new Date(cur.last_at)) cur.last_at = e.created_at;
+      // status priority
+      const order = { click: 1, view_product: 2, checkout: 3, purchase: 4 } as any;
+      if (order[e.event_type] > order[cur.status]) cur.status = e.event_type;
+      if (e.event_type === "purchase") {
+        cur.amount = Number(e.amount || 0);
+        cur.commission = Number(e.commission_amount || 0);
+      }
+      map.set(e.visitor_id, cur);
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      new Date(b.last_at).getTime() - new Date(a.last_at).getTime()
+    );
+  }, [events]);
+
+  const stageMeta: Record<string, { label: string; color: string; icon: any }> = {
+    click:        { label: "Clique",       color: "text-slate-300",   icon: MousePointerClick },
+    view_product: { label: "Viu Produto",  color: "text-sky-400",     icon: Eye },
+    checkout:     { label: "Checkout",     color: "text-amber-400",   icon: CreditCard },
+    purchase:     { label: "Comprou",      color: "text-emerald-400", icon: CircleCheck },
+  };
+
+  return (
+    <section className="space-y-6">
+      {/* Header + filtros */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Route className="size-5 text-primary" />
+            Jornada de Compra
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Acompanhe cada visitante desde o clique no seu link até a venda confirmada.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 uppercase">Período:</span>
+          <select
+            value={range}
+            onChange={e => onRangeChange(Number(e.target.value))}
+            className="bg-[#0F0F0F] border border-[#2A2A2A] text-xs text-slate-300 rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none"
+          >
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+            <option value={90}>Últimos 90 dias</option>
+            <option value={365}>Último ano</option>
+          </select>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPI label="Cliques únicos" value={totalClicks} icon={MousePointerClick} />
+        <KPI label="Vendas" value={totalPurchases} icon={CircleCheck} accent />
+        <KPI label="Conversão" value={`${conversionRate}%`} icon={Activity} />
+        <KPI label="Comissão (período)" value={`R$ ${totalCommission.toLocaleString("pt-BR",{minimumFractionDigits:2})}`} icon={DollarSign} accent />
+      </div>
+
+      {/* Funnel */}
+      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 md:p-6">
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Funil de Conversão</h3>
+        {loading ? (
+          <div className="py-10 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" /></div>
+        ) : totalClicks === 0 ? (
+          <div className="py-10 text-center">
+            <Route className="size-8 text-slate-600 mx-auto mb-2" />
+            <p className="text-sm text-slate-500">Ainda não há dados de jornada neste período.</p>
+            <p className="text-xs text-slate-600 mt-1">Compartilhe seu link de parceiro para começar a rastrear visitantes.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {funnel.map((f, i) => {
+              const pct = totalClicks > 0 ? (f.count / totalClicks) * 100 : 0;
+              const meta = stageMeta[f.stage];
+              const Icon = meta.icon;
+              const dropFromPrev = i > 0 && funnel[i - 1].count > 0
+                ? (((funnel[i - 1].count - f.count) / funnel[i - 1].count) * 100).toFixed(0)
+                : null;
+              return (
+                <div key={f.stage} className="group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className={`flex items-center gap-2 text-sm font-bold ${meta.color}`}>
+                      <Icon className="size-4" />
+                      {meta.label}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {dropFromPrev !== null && Number(dropFromPrev) > 0 && (
+                        <span className="text-[10px] text-rose-400/70">-{dropFromPrev}% vs anterior</span>
+                      )}
+                      <span className="text-xs text-slate-400 tabular-nums">{f.count}</span>
+                      <span className="text-xs font-bold text-white tabular-nums w-12 text-right">{pct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div className="bg-[#0F0F0F] rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        background: f.stage === "purchase"
+                          ? "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary)/0.6))"
+                          : f.stage === "checkout" ? "linear-gradient(90deg, #f59e0b, #f59e0b80)"
+                          : f.stage === "view_product" ? "linear-gradient(90deg, #38bdf8, #38bdf880)"
+                          : "linear-gradient(90deg, #64748b, #64748b80)",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Leads list */}
+      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
+          <h3 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+            <Users className="size-4 text-primary" />
+            Visitantes & Indicações
+          </h3>
+          <span className="text-xs text-slate-500">{visitorLeads.length} no período</span>
+        </div>
+        {visitorLeads.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-slate-500">
+            Nenhum visitante registrado ainda.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#2A2A2A] max-h-[520px] overflow-y-auto">
+            {visitorLeads.slice(0, 100).map(lead => {
+              const meta = stageMeta[lead.status];
+              const Icon = meta.icon;
+              const visitorShort = `#${(lead.visitor_id || "").slice(0, 6)}`;
+              return (
+                <div key={lead.visitor_id} className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`size-9 rounded-lg bg-[#0F0F0F] border border-[#2A2A2A] flex items-center justify-center shrink-0 ${meta.color}`}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white truncate">
+                        {lead.user_id ? `Cliente ${visitorShort}` : `Visitante ${visitorShort}`}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {lead.product_name ? `Interesse: ${lead.product_name}` : "Navegando na loja"}
+                        {" · "}{new Date(lead.last_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {lead.status === "purchase" ? (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Comprou</p>
+                        <p className="text-sm font-bold text-primary tabular-nums">
+                          + R$ {Number(lead.commission || 0).toLocaleString("pt-BR",{minimumFractionDigits:2})}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[#0F0F0F] border border-[#2A2A2A] ${meta.color}`}>
+                        {meta.label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          <strong className="text-primary">Como funciona:</strong> cada visitante recebe um identificador anônimo ao
+          clicar no seu link. A atribuição dura <strong>30 dias</strong> — se ele comprar nesse período, a venda é creditada para você
+          automaticamente. Sua comissão atual é de <strong className="text-primary">{commissionRate}%</strong> sobre cada pedido confirmado.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function KPI({ label, value, icon: Icon, accent }: { label: string; value: any; icon: any; accent?: boolean }) {
+  return (
+    <div className={`rounded-xl p-4 border ${accent ? "bg-primary/5 border-primary/30" : "bg-[#1A1A1A] border-[#2A2A2A]"}`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+        <Icon className={`size-4 ${accent ? "text-primary" : "text-slate-500"}`} />
+      </div>
+      <p className={`text-xl font-bold tabular-nums ${accent ? "text-primary" : "text-white"}`}>{value}</p>
+    </div>
   );
 }
