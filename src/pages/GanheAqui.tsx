@@ -428,7 +428,7 @@ export default function GanheAqui() {
   const partnerLink = `fbflix.com.br/parceiro/${partner.slug}`;
 
   return (
-    <div className="dark text-white">
+    <div className="dark bg-background text-foreground -mx-4 sm:-mx-6 -my-4 sm:-my-6 px-4 sm:px-6 py-6 min-h-screen">
     <div className="max-w-5xl mx-auto">
       {/* Header Section — hidden on Products/Finance tabs */}
       {tab === "overview" && (
