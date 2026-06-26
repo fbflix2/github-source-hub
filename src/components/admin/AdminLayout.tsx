@@ -68,7 +68,7 @@ export function AdminLayout() {
 
   if (loading || !isAdmin || !permChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
+      <div className={`min-h-screen flex items-center justify-center ${isWhatsAppCRM ? 'bg-[#0F1013]' : 'bg-[#0a0505]'}`}>
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 rounded bg-gradient-to-br from-primary to-red-900 flex items-center justify-center animate-pulse">
             <Play className="text-white size-5" />
@@ -99,7 +99,7 @@ export function AdminLayout() {
   return (
     <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white ${isWhatsAppCRM ? 'bg-[#0F1013]' : 'bg-[#0a0505]'} text-white`}>
       {/* Background Effects */}
-      {!isAquecimento && (
+      {!isAquecimento && !isWhatsAppCRM && (
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
