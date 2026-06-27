@@ -45,6 +45,7 @@ interface BackupFile {
   purchase_date: string | null;
   unit_price: number | null;
   account_type: string | null;
+  fb_id?: string | null;
 }
 
 const BUCKET = "fb-backups";
@@ -58,6 +59,31 @@ function formatBytes(n: number | null): string {
 
 function sanitizeName(s: string): string {
   return (s || "sem-nome").replace(/[\/\\:*?"<>|]+/g, "_").replace(/\s+/g, " ").trim().slice(0, 80) || "sem-nome";
+}
+
+// Extrai um ID de perfil do Facebook a partir do conteúdo do txt.
+// Procura por padrões comuns: linhas com "id", URLs facebook.com/profile.php?id=,
+// facebook.com/<numeric>, ou a primeira sequência longa de dígitos (10–20).
+function extractFbId(text: string): string | null {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  // facebook.com/profile.php?id=NNN
+  let m = lower.match(/profile\.php\?id=(\d{6,20})/);
+  if (m) return m[1];
+  // facebook.com/<digits>
+  m = lower.match(/facebook\.com\/(\d{8,20})(?:[\/?#\s]|$)/);
+  if (m) return m[1];
+  // linha do tipo: idPerfil: NNN ou id: NNN ou ID do perfil: NNN
+  m = lower.match(/\bid(?:\s*do\s*perfil|perfil)?\s*[:=]\s*(\d{6,20})/);
+  if (m) return m[1];
+  // primeira sequência longa de dígitos (10–20) — fallback
+  m = text.match(/(?<!\d)(\d{10,20})(?!\d)/);
+  if (m) return m[1];
+  return null;
+}
+
+async function readFileText(file: File): Promise<string> {
+  try { return await file.text(); } catch { return ""; }
 }
 
 async function fetchFileBlob(storagePath: string): Promise<Blob | null> {
@@ -118,6 +144,9 @@ export default function AdminBackupFb() {
   const [zipProgress, setZipProgress] = useState<{ done: number; total: number } | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [ageFilter, setAgeFilter] = useState<string>("all");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [createDragActive, setCreateDragActive] = useState(false);
+  const createFileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
@@ -194,25 +223,32 @@ export default function AdminBackupFb() {
     }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("fb_backup_folders").insert({
+    const { data: created, error } = await supabase.from("fb_backup_folders").insert({
       client_name: newName.trim(),
       description: newDesc.trim() || null,
       purchase_date: newPurchaseDate ? parsePastedDate(newPurchaseDate) : null,
       unit_price: newUnitPrice ? Number(newUnitPrice.replace(",", ".")) || null : null,
       created_by: user?.id ?? null,
-    });
-    setSaving(false);
+    }).select("id, client_name, description, purchase_date, unit_price, created_at").single();
     if (error) {
+      setSaving(false);
       toast.error("Erro ao criar pasta: " + error.message);
       return;
     }
+    // Se houver arquivos arrastados no momento da criação, faz upload neles
+    if (pendingFiles.length > 0 && created) {
+      await handleUpload(pendingFiles, created as BackupFolder);
+      setPendingFiles([]);
+    }
+    setSaving(false);
     toast.success("Pasta criada");
     setNewName(""); setNewDesc(""); setNewPurchaseDate(""); setNewUnitPrice(""); setCreateOpen(false);
     fetchFolders();
   };
 
-  const handleUpload = async (fileList: FileList | File[]) => {
-    if (!selectedFolder) return;
+  const handleUpload = async (fileList: FileList | File[], folderOverride?: BackupFolder) => {
+    const folder = folderOverride || selectedFolder;
+    if (!folder) return;
     const arr = Array.from(fileList);
     const txtFiles = arr.filter((f) => f.name.toLowerCase().endsWith(".txt"));
     if (txtFiles.length === 0) {
@@ -225,9 +261,28 @@ export default function AdminBackupFb() {
     setUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
     let ok = 0;
+    let dup = 0;
     for (const file of txtFiles) {
+      // Lê conteúdo e extrai ID do perfil
+      const content = await readFileText(file);
+      const fbId = extractFbId(content);
+      // Verifica duplicidade pelo ID extraído
+      if (fbId) {
+        const { data: existing } = await supabase
+          .from("fb_backup_files")
+          .select("id, file_name, folder_id")
+          .eq("fb_id", fbId)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          toast.warning(`Já existe (ID ${fbId}): ${file.name}`, {
+            description: `Arquivo duplicado ignorado — já cadastrado em outra pasta.`,
+          });
+          dup++;
+          continue;
+        }
+      }
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${selectedFolder.id}/${Date.now()}_${safeName}`;
+      const path = `${folder.id}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
         contentType: "text/plain",
         upsert: false,
@@ -237,13 +292,14 @@ export default function AdminBackupFb() {
         continue;
       }
       const { error: insErr } = await supabase.from("fb_backup_files").insert({
-        folder_id: selectedFolder.id,
+        folder_id: folder.id,
         file_name: file.name,
         storage_path: path,
         size_bytes: file.size,
         uploaded_by: user?.id ?? null,
-        purchase_date: selectedFolder.purchase_date ?? null,
-        unit_price: selectedFolder.unit_price ?? null,
+        purchase_date: folder.purchase_date ?? null,
+        unit_price: folder.unit_price ?? null,
+        fb_id: fbId,
       });
       if (insErr) {
         toast.error(`Erro ao registrar ${file.name}: ${insErr.message}`);
@@ -254,7 +310,8 @@ export default function AdminBackupFb() {
     }
     setUploading(false);
     if (ok > 0) toast.success(`${ok} arquivo(s) enviado(s)`);
-    fetchFiles(selectedFolder.id);
+    if (dup > 0 && ok === 0) toast.info(`${dup} arquivo(s) duplicado(s) ignorado(s)`);
+    fetchFiles(folder.id);
     fetchFolders();
   };
 
@@ -1067,11 +1124,70 @@ export default function AdminBackupFb() {
                 Use ponto ou vírgula como separador decimal.
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label>Arquivos .txt (opcional)</Label>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setCreateDragActive(true); }}
+                onDragLeave={() => setCreateDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setCreateDragActive(false);
+                  const files = Array.from(e.dataTransfer.files || []).filter((f) =>
+                    f.name.toLowerCase().endsWith(".txt")
+                  );
+                  if (files.length === 0) {
+                    toast.error("Somente arquivos .txt");
+                    return;
+                  }
+                  setPendingFiles((prev) => [...prev, ...files]);
+                }}
+                onClick={() => createFileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition ${
+                  createDragActive ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"
+                }`}
+              >
+                <Upload className="size-5 text-muted-foreground mx-auto mb-1" />
+                <p className="text-xs text-muted-foreground">
+                  Arraste .txt aqui ou clique para selecionar
+                </p>
+                <input
+                  ref={createFileInputRef}
+                  type="file"
+                  accept=".txt,text/plain"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) setPendingFiles((prev) => [...prev, ...files]);
+                    if (createFileInputRef.current) createFileInputRef.current.value = "";
+                  }}
+                />
+              </div>
+              {pendingFiles.length > 0 && (
+                <div className="space-y-1 max-h-32 overflow-auto">
+                  {pendingFiles.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs px-2 py-1 rounded bg-muted/40">
+                      <span className="truncate">{f.name}</span>
+                      <button
+                        type="button"
+                        className="text-destructive hover:opacity-70 ml-2"
+                        onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground">
+                    {pendingFiles.length} arquivo(s) serão enviados após criar a pasta. IDs duplicados serão ignorados automaticamente.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => { setCreateOpen(false); setPendingFiles([]); }}>Cancelar</Button>
             <Button onClick={handleCreateFolder} disabled={saving}>
-              {saving ? "Criando..." : "Criar pasta"}
+              {saving ? "Criando..." : pendingFiles.length > 0 ? `Criar e enviar ${pendingFiles.length}` : "Criar pasta"}
             </Button>
           </DialogFooter>
         </DialogContent>
