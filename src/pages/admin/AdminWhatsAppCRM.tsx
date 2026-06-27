@@ -510,17 +510,6 @@ export default function AdminWhatsAppCRM() {
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      await supabase.from("whatsapp_messages").insert({
-        phone: selectedPhone,
-        direction: "out",
-        from_me: true,
-        body: isImage ? (caption || null) : (isAudio ? null : `📎 ${fileName}`),
-        message_type: isImage ? "image" : isAudio ? "audio" : "document",
-        media_url: url,
-        status: "sent",
-        sender_user_id: me,
-        sender_department_id: myDeptId,
-      });
       setDraft("");
       if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
       refetchMessages();
@@ -566,11 +555,6 @@ export default function AdminWhatsAppCRM() {
           });
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
-          await supabase.from("whatsapp_messages").insert({
-            phone: selectedPhone, direction: "out", from_me: true,
-            body: null, message_type: "audio", media_url: url, status: "sent",
-            sender_user_id: me, sender_department_id: myDeptId,
-          });
           if (selectedConvo?.status === "resolved") await updateConvo({ status: "open" });
           refetchMessages();
         } catch (err: any) {
