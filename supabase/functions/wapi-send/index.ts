@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
 
     // ========= ACTION: send-image =========
     if (action === "send-image") {
-      const { phone, image_url, caption, user_id, event_key, template_id, metadata } = body;
+      const { phone, image_url, caption, user_id, event_key, template_id, metadata, sender_user_id, sender_department_id } = body;
       if (!phone || !image_url) return err("phone and image_url are required");
 
       let normalizedPhone = normalizePhone(phone);
@@ -363,13 +363,28 @@ Deno.serve(async (req) => {
         image_url,
       });
 
+      if (result.ok) {
+        await admin.from("whatsapp_messages").insert({
+          phone: normalizedPhone,
+          wapi_message_id: getMessageId(result),
+          direction: "out",
+          from_me: true,
+          body: caption || null,
+          message_type: "image",
+          media_url: image_url,
+          status: "sent",
+          sender_user_id: sender_user_id || null,
+          sender_department_id: sender_department_id || null,
+        });
+      }
+
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: getMessageId(result) });
     }
 
     // ========= ACTION: send-audio =========
     if (action === "send-audio") {
-      const { phone, audio_url, user_id, event_key, template_id, metadata } = body;
+      const { phone, audio_url, user_id, event_key, template_id, metadata, sender_user_id, sender_department_id } = body;
       if (!phone || !audio_url) return err("phone and audio_url are required");
 
       let normalizedPhone = normalizePhone(phone);
@@ -390,13 +405,28 @@ Deno.serve(async (req) => {
         audio_url,
       });
 
+      if (result.ok) {
+        await admin.from("whatsapp_messages").insert({
+          phone: normalizedPhone,
+          wapi_message_id: getMessageId(result),
+          direction: "out",
+          from_me: true,
+          body: null,
+          message_type: "audio",
+          media_url: audio_url,
+          status: "sent",
+          sender_user_id: sender_user_id || null,
+          sender_department_id: sender_department_id || null,
+        });
+      }
+
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: getMessageId(result) });
     }
 
     // ========= ACTION: send-button =========
     if (action === "send-button") {
-      const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata } = body;
+      const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata, sender_user_id, sender_department_id } = body;
       if (!phone || !message || !buttons?.length) return err("phone, message and buttons are required");
 
       let normalizedPhone = normalizePhone(phone);
@@ -415,6 +445,20 @@ Deno.serve(async (req) => {
         metadata: { ...(metadata || {}), buttons, title, footer },
         message_type: "button",
       });
+
+      if (result.ok) {
+        await admin.from("whatsapp_messages").insert({
+          phone: normalizedPhone,
+          wapi_message_id: getMessageId(result),
+          direction: "out",
+          from_me: true,
+          body: `${title ? `*${title}*\n\n` : ""}${message}${footer ? `\n\n_${footer}_` : ""}`,
+          message_type: "text",
+          status: "sent",
+          sender_user_id: sender_user_id || null,
+          sender_department_id: sender_department_id || null,
+        });
+      }
 
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: getMessageId(result) });
