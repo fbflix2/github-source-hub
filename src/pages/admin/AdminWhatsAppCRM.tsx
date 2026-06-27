@@ -86,6 +86,8 @@ export default function AdminWhatsAppCRM() {
   const lastIncomingTsRef = useRef<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const globalSyncRunningRef = useRef(false);
+  const phoneSyncRunningRef = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -160,6 +162,49 @@ export default function AdminWhatsAppCRM() {
     enabled: !!selectedPhone,
     refetchInterval: 5000,
   });
+
+  // Backup sync: W-API sometimes does not deliver messages sent from the
+  // cellphone/WhatsApp Web as webhook content. This lightweight poll imports
+  // the latest WhatsApp history so CRM stays updated even when the webhook
+  // only sends status events.
+  const syncWapiHistory = async (phone?: string | null) => {
+    const isPhoneSync = !!phone;
+    const runningRef = isPhoneSync ? phoneSyncRunningRef : globalSyncRunningRef;
+    if (runningRef.current) return;
+    runningRef.current = true;
+    try {
+      const body = isPhoneSync
+        ? { phone, messagesPerChat: 40 }
+        : { maxChats: 35, messagesPerChat: 12 };
+      const { data, error } = await supabase.functions.invoke("wapi-import", { body });
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+      qc.invalidateQueries({ queryKey: ["wa-conversations"] });
+      if (selectedPhone) qc.invalidateQueries({ queryKey: ["wa-messages", selectedPhone] });
+    } catch (e) {
+      // Silent by design: webhook is still primary; polling is a safety net.
+      console.warn("W-API history sync failed", e);
+    } finally {
+      runningRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => syncWapiHistory(), 2500);
+    const timer = window.setInterval(() => syncWapiHistory(), 20000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPhone) return;
+    syncWapiHistory(selectedPhone);
+    const timer = window.setInterval(() => syncWapiHistory(selectedPhone), 10000);
+    return () => window.clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPhone]);
 
   // Team members (admins + moderators) for assignment
   const { data: team = [] } = useQuery({
@@ -484,10 +529,12 @@ export default function AdminWhatsAppCRM() {
     const fileType = file.type || "application/octet-stream";
     const isImage = fileType.startsWith("image/");
     const isAudio = fileType.startsWith("audio/");
-    if (file.size > 16 * 1024 * 1024) { toast.error("Arquivo muito grande (máx. 16MB)."); return; }
+    const isVideo = fileType.startsWith("video/");
+    const maxSize = isVideo ? 64 * 1024 * 1024 : 16 * 1024 * 1024;
+    if (file.size > maxSize) { toast.error(`Arquivo muito grande (máx. ${isVideo ? "64MB" : "16MB"}).`); return; }
     setUploading(true);
     try {
-      const ext = fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : (isImage ? "jpg" : isAudio ? "ogg" : "bin");
+      const ext = fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : (isImage ? "jpg" : isAudio ? "ogg" : isVideo ? "mp4" : "bin");
       const url = await uploadToBucket(file, ext);
       if (!url) return;
       const caption = draft.trim();
@@ -506,10 +553,15 @@ export default function AdminWhatsAppCRM() {
       } else if (isAudio) {
         payload.action = "send-audio";
         payload.audio_url = url;
+      } else if (isVideo) {
+        payload.action = "send-video";
+        payload.video_url = url;
+        const finalCaption = appendSignature(caption);
+        if (finalCaption) payload.caption = finalCaption;
       } else {
         // Documents: send as text with link (wapi-send sem ação de documento)
         payload.action = "send-text";
-        payload.text = appendSignature((caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`);
+        payload.message = appendSignature((caption ? caption + "\n\n" : "") + `📎 ${fileName}\n${url}`);
       }
       const { data, error } = await supabase.functions.invoke("wapi-send", { body: payload });
       if (error) throw error;
@@ -1021,7 +1073,16 @@ export default function AdminWhatsAppCRM() {
                         {m.media_url && m.message_type === "audio" && (
                           <AudioMessagePlayer src={m.media_url} className="mb-1" variant={m.from_me ? "sent" : "received"} />
                         )}
-                        {m.media_url && !["image","audio"].includes(m.message_type) && (
+                        {m.media_url && m.message_type === "video" && (
+                          <video
+                            src={m.media_url}
+                            controls
+                            preload="metadata"
+                            playsInline
+                            className="mb-1 rounded-[12px] max-w-full max-h-[420px] bg-black/60"
+                          />
+                        )}
+                        {m.media_url && !["image","audio","video"].includes(m.message_type) && (
                           <a href={m.media_url} target="_blank" rel="noreferrer" className="text-[11.5px] underline underline-offset-2 opacity-90">
                             Abrir mídia ({m.message_type})
                           </a>
@@ -1093,7 +1154,7 @@ export default function AdminWhatsAppCRM() {
                   </div>
                 )}
                 <div className="flex gap-2 items-end">
-                <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" hidden onChange={handleFilePick} />
+                <input ref={fileInputRef} type="file" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" hidden onChange={handleFilePick} />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}

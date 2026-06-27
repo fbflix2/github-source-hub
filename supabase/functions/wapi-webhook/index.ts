@@ -77,6 +77,27 @@ Deno.serve(async (req) => {
     }
   }
 
+  function pick(...values: any[]) {
+    return values.find((v) => v !== undefined && v !== null && v !== "");
+  }
+
+  function getMediaNode(content: any, root: any, kind: "image" | "audio" | "video" | "document" | "sticker") {
+    const key = `${kind}Message`;
+    return pick(
+      content?.[key],
+      root?.[key],
+      root?.message?.[key],
+      root?.data?.message?.[key],
+      root?.msgContent?.[key],
+      root?.data?.msgContent?.[key],
+      root?.message?.message?.[key],
+      root?.data?.message?.message?.[key],
+      root?.[kind],
+      root?.message?.[kind],
+      root?.data?.message?.[kind],
+    ) || null;
+  }
+
   try {
     const body = await req.json();
     console.log("Webhook received:", JSON.stringify(body).slice(0, 800));
@@ -195,16 +216,23 @@ Deno.serve(async (req) => {
           body.sender?.pushName || body.sender?.verifiedBizName ||
           body.data?.sender?.pushName || body.data?.sender?.verifiedBizName ||
           body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || body.data?.chat?.name || null;
-        let mediaUrl: string | null =
-          mc.imageMessage?.url || mc.audioMessage?.url || mc.videoMessage?.url || mc.documentMessage?.url ||
-          body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
+        const imageNode = getMediaNode(mc, body, "image");
+        const audioNode = getMediaNode(mc, body, "audio");
+        const videoNode = getMediaNode(mc, body, "video");
+        const documentNode = getMediaNode(mc, body, "document");
+        const stickerNode = getMediaNode(mc, body, "sticker");
+        let mediaUrl: string | null = pick(
+          imageNode?.url, audioNode?.url, videoNode?.url, documentNode?.url, stickerNode?.url,
+          body.message?.imageUrl, body.message?.audioUrl, body.message?.videoUrl, body.message?.documentUrl,
+          body.data?.message?.imageUrl, body.data?.message?.audioUrl, body.data?.message?.videoUrl, body.data?.message?.documentUrl,
+        ) || null;
         const msgType =
           mc.reactionMessage ? "reaction" :
-          mc.imageMessage ? "image" :
-          mc.audioMessage ? "audio" :
-          mc.videoMessage ? "video" :
-          mc.documentMessage ? "document" :
-          mc.stickerMessage ? "sticker" :
+          imageNode ? "image" :
+          audioNode ? "audio" :
+          videoNode ? "video" :
+          documentNode ? "document" :
+          stickerNode ? "sticker" :
           body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
 
         // The raw mmg.whatsapp.net URLs are encrypted and not directly playable/viewable.
@@ -218,14 +246,12 @@ Deno.serve(async (req) => {
 
           // 1) Try W-API decrypted download endpoint (works for encrypted WhatsApp media)
           //    W-API requires: mediaKey, directPath, type, mimetype
-          const mediaNode =
-            mc.imageMessage || mc.audioMessage || mc.videoMessage ||
-            mc.documentMessage || mc.stickerMessage || {};
+          const mediaNode = imageNode || audioNode || videoNode || documentNode || stickerNode || {};
           const dlPayload: Record<string, any> = {
             messageId, phone, chatId,
             type: msgType,
-            mediaKey: mediaNode.mediaKey,
-            directPath: mediaNode.directPath,
+            mediaKey: pick(mediaNode.mediaKey, mediaNode.media_key, mediaNode.mediaKeyTimestamp),
+            directPath: pick(mediaNode.directPath, mediaNode.direct_path),
             url: mediaNode.url,
             mimetype: mediaNode.mimetype || (msgType === "audio" ? "audio/ogg; codecs=opus" : undefined),
           };
@@ -237,9 +263,9 @@ Deno.serve(async (req) => {
           if (decrypted) publicUrl = await rehostToStorage(decrypted, ext);
 
           // 2) Image fallback: use the inline jpegThumbnail (always present in payload)
-          if (!publicUrl && msgType === "image" && mc.imageMessage?.jpegThumbnail) {
+          if (!publicUrl && msgType === "image" && (imageNode?.jpegThumbnail || imageNode?.JPEGThumbnail)) {
             publicUrl = await rehostToStorage(
-              `data:image/jpeg;base64,${mc.imageMessage.jpegThumbnail}`, "jpg",
+              `data:image/jpeg;base64,${imageNode.jpegThumbnail || imageNode.JPEGThumbnail}`, "jpg",
             );
           }
 
@@ -260,10 +286,7 @@ Deno.serve(async (req) => {
             raw: body,
           };
           if (messageId) {
-            await admin.from("whatsapp_messages").upsert(row, {
-              onConflict: "wapi_message_id",
-              ignoreDuplicates: true,
-            });
+            await admin.from("whatsapp_messages").upsert(row, { onConflict: "wapi_message_id" });
           } else {
             await admin.from("whatsapp_messages").insert(row);
           }
