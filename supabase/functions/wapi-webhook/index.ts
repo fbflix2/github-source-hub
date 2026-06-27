@@ -140,10 +140,15 @@ Deno.serve(async (req) => {
     const isSenderLid = rawSenderStr.includes("@lid") || rawSenderStr.includes("@broadcast") || rawSenderStr.includes("status@");
     const isChatLid = rawChatStr.includes("@lid");
     const onlyDigits = (v: any) => String(v || "").replace(/@.*/, "").replace(/\D/g, "");
+    const phoneDigits = (v: any) => {
+      const s = String(v || "");
+      if (s.includes("@lid") || s.includes("@broadcast") || s.includes("status@")) return "";
+      return onlyDigits(s);
+    };
     const senderPhone = rawSenderStr && !isSenderLid ? onlyDigits(rawSenderStr) : null;
     const chatPhone = rawChatStr && !isChatLid ? onlyDigits(rawChatStr) : null;
     const explicitPhone =
-      onlyDigits(body.phone || body.data?.phone || body.phoneNumber || body.data?.phoneNumber ||
+      phoneDigits(body.phone || body.data?.phone || body.phoneNumber || body.data?.phoneNumber ||
         body.recipient?.phone || body.data?.recipient?.phone || body.toPhone || body.data?.toPhone);
     let phone = fromMe === false && senderPhone
       ? senderPhone
