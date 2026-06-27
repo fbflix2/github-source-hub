@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_upsert_wa_conversation ON public.whatsapp_messages;
