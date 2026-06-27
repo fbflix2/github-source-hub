@@ -230,6 +230,9 @@ export default function AdminWhatsAppCRM() {
         const row = payload?.new;
         if (row?.direction === "in" && soundOn) playPing();
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "whatsapp_messages" }, () => {
+        qc.invalidateQueries({ queryKey: ["wa-messages"] });
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversations" }, () => {
         qc.invalidateQueries({ queryKey: ["wa-conversations"] });
       })
