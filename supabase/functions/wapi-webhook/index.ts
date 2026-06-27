@@ -84,7 +84,8 @@ Deno.serve(async (req) => {
     // W-API webhook fields
     const messageId =
       body.messageId || body.id || body.data?.messageId || body.data?.id ||
-      body.key?.id || body.message?.key?.id || body.data?.key?.id || body.data?.message?.key?.id;
+      body.key?.id || body.message?.key?.id || body.data?.key?.id || body.data?.message?.key?.id ||
+      body.message?.id || body.data?.message?.id || body.msg?.key?.id || body.data?.msg?.key?.id;
     const status = body.status || body.data?.status || body.type;
     const mc =
       body.msgContent || body.data?.msgContent || body.message?.msgContent || body.data?.message?.msgContent ||
@@ -108,7 +109,8 @@ Deno.serve(async (req) => {
     const chatId =
       body.chatId || body.chat?.id || body.data?.chatId || body.data?.chat?.id ||
       body.key?.remoteJid || body.message?.key?.remoteJid || body.data?.key?.remoteJid || body.data?.message?.key?.remoteJid ||
-      body.phone || body.data?.phone;
+      body.remoteJid || body.data?.remoteJid || body.to || body.data?.to ||
+      body.recipient?.id || body.data?.recipient?.id || body.phone || body.data?.phone;
     const senderId =
       body.sender?.id || body.data?.sender?.id || body.participant || body.data?.participant ||
       body.key?.participant || body.message?.key?.participant || body.data?.key?.participant || body.data?.message?.key?.participant || null;
@@ -136,15 +138,42 @@ Deno.serve(async (req) => {
     const rawChatStr = String(rawChat || "");
     const rawSenderStr = String(senderId || "");
     const isSenderLid = rawSenderStr.includes("@lid") || rawSenderStr.includes("@broadcast") || rawSenderStr.includes("status@");
-    const senderPhone = rawSenderStr && !isSenderLid ? rawSenderStr.replace(/@.*/, "").replace(/\D/g, "") : null;
-    const chatPhone = rawChatStr ? rawChatStr.replace(/@.*/, "").replace(/\D/g, "") : null;
-    const phone = fromMe === false && senderPhone ? senderPhone : (chatPhone || senderPhone || null);
+    const isChatLid = rawChatStr.includes("@lid");
+    const onlyDigits = (v: any) => String(v || "").replace(/@.*/, "").replace(/\D/g, "");
+    const phoneDigits = (v: any) => {
+      const s = String(v || "");
+      if (s.includes("@lid") || s.includes("@broadcast") || s.includes("status@")) return "";
+      return onlyDigits(s);
+    };
+    const senderPhone = rawSenderStr && !isSenderLid ? onlyDigits(rawSenderStr) : null;
+    const chatPhone = rawChatStr && !isChatLid ? onlyDigits(rawChatStr) : null;
+    const explicitPhone =
+      phoneDigits(body.phone || body.data?.phone || body.phoneNumber || body.data?.phoneNumber ||
+        body.recipient?.phone || body.data?.recipient?.phone || body.toPhone || body.data?.toPhone);
+    let phone = fromMe === false && senderPhone
+      ? senderPhone
+      : (explicitPhone || chatPhone || senderPhone || null);
+
+    // When messages are sent from the cellphone/WhatsApp Web, W-API can send the
+    // conversation as @lid instead of the real phone. Reuse an already-known CRM
+    // mapping for that LID so the outgoing message appears in the same customer thread.
+    if ((!phone || phone.length < 8) && isChatLid && rawChatStr) {
+      const { data: mapped } = await admin
+        .from("whatsapp_messages")
+        .select("phone")
+        .eq("chat_id", rawChatStr)
+        .not("phone", "like", "%@%")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (mapped?.phone) phone = mapped.phone;
+    }
     const event = body.event || body.data?.event || body.type;
 
     // ========= CRM: persist message to whatsapp_messages =========
     // Ignore WhatsApp LID (linked-id) pseudo-numbers — these are not real contacts,
     // they are anonymized identifiers used for our own status callbacks/broadcasts.
-    const isLid = (rawChatStr.includes("@lid") && !senderPhone && !replyMessage) || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
+    const isLid = (rawChatStr.includes("@lid") && !phone && !replyMessage) || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
     const eventLower = String(event || "").toLowerCase();
     // Only treat as a real CRM message when it is a true incoming message or a real outgoing send,
     // NOT when it is just a delivery/read status webhook for one of OUR messages.
@@ -158,7 +187,9 @@ Deno.serve(async (req) => {
     if (phone && !isGroup && !isLid && !isStatusEvent && !isProtocolOnly) {
       const hasVisibleContent = !!replyMessage || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage || !!mc?.reactionMessage || !!mc?.stickerMessage || !!body.message?.imageUrl || !!body.message?.audioUrl || !!body.message?.videoUrl || !!body.data?.message?.imageUrl;
       const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || hasVisibleContent);
-      const isOut = fromMe === true;
+      // Delivery webhook is fired for messages sent outside the CRM (phone/WhatsApp Web).
+      // If it contains real content, persist it as an outgoing CRM message too.
+      const isOut = fromMe === true || (eventLower === "webhookdelivery" && hasVisibleContent);
       if ((isIn || isOut) && hasVisibleContent) {
         const contactName =
           body.sender?.pushName || body.sender?.verifiedBizName ||
@@ -215,7 +246,7 @@ Deno.serve(async (req) => {
           if (publicUrl) mediaUrl = publicUrl;
         }
         try {
-          await admin.from("whatsapp_messages").insert({
+          const row = {
             phone,
             chat_id: chatId || null,
             wapi_message_id: messageId || null,
@@ -225,9 +256,17 @@ Deno.serve(async (req) => {
             message_type: msgType,
             media_url: mediaUrl,
             contact_name: contactName,
-            status: "received",
+            status: isIn ? "received" : "sent",
             raw: body,
-          });
+          };
+          if (messageId) {
+            await admin.from("whatsapp_messages").upsert(row, {
+              onConflict: "wapi_message_id",
+              ignoreDuplicates: true,
+            });
+          } else {
+            await admin.from("whatsapp_messages").insert(row);
+          }
         } catch (e) {
           console.error("CRM insert error:", e);
         }
