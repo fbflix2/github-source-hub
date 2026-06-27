@@ -41,6 +41,7 @@ type Message = {
   body: string | null;
   message_type: string;
   media_url: string | null;
+  status?: string | null;
   created_at: string;
   sender_user_id?: string | null;
   sender_department_id?: string | null;
@@ -149,7 +150,7 @@ export default function AdminWhatsAppCRM() {
       if (!selectedPhone) return [];
       const { data, error } = await supabase
         .from("whatsapp_messages")
-        .select("id, phone, direction, from_me, body, message_type, media_url, created_at, sender_user_id, sender_department_id")
+        .select("id, phone, direction, from_me, body, message_type, media_url, status, created_at, sender_user_id, sender_department_id")
         .eq("phone", selectedPhone)
         .order("created_at", { ascending: true })
         .limit(500);
