@@ -109,6 +109,10 @@ Deno.serve(async (req) => {
     return wapiRequest("/message/send-audio", { phone, audio: audioUrl, ptt });
   }
 
+  async function wapiSendVideo(phone: string, videoUrl: string, caption?: string) {
+    return wapiRequest("/message/send-video", { phone, video: videoUrl, caption: caption || "" });
+  }
+
   async function wapiSendPresence(phone: string, presence: "composing" | "recording" | "available") {
     // Common W-API endpoint for presence simulation
     return wapiRequest("/message/send-presence", { phone, presence }).catch(e => {
@@ -414,6 +418,48 @@ Deno.serve(async (req) => {
           body: null,
           message_type: "audio",
           media_url: audio_url,
+          status: "sent",
+          sender_user_id: sender_user_id || null,
+          sender_department_id: sender_department_id || null,
+        });
+      }
+
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+      return ok({ success: true, messageId: getMessageId(result) });
+    }
+
+    // ========= ACTION: send-video =========
+    if (action === "send-video") {
+      const { phone, video_url, caption, user_id, event_key, template_id, metadata, sender_user_id, sender_department_id } = body;
+      if (!phone || !video_url) return err("phone and video_url are required");
+
+      let normalizedPhone = normalizePhone(phone);
+
+      const result = await wapiSendVideo(normalizedPhone, video_url, caption);
+
+      await admin.from("whatsapp_logs").insert({
+        template_id: template_id || null,
+        user_id: user_id || null,
+        phone: normalizedPhone,
+        message_sent: caption || "[Vídeo]",
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        event_key: event_key || "custom",
+        metadata: metadata || {},
+        message_type: "video",
+        image_url: video_url,
+      });
+
+      if (result.ok) {
+        await admin.from("whatsapp_messages").insert({
+          phone: normalizedPhone,
+          wapi_message_id: getMessageId(result),
+          direction: "out",
+          from_me: true,
+          body: caption || null,
+          message_type: "video",
+          media_url: video_url,
           status: "sent",
           sender_user_id: sender_user_id || null,
           sender_department_id: sender_department_id || null,
