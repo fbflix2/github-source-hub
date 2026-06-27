@@ -82,23 +82,37 @@ Deno.serve(async (req) => {
     console.log("Webhook received:", JSON.stringify(body).slice(0, 800));
 
     // W-API webhook fields
-    const messageId = body.messageId || body.id || body.data?.messageId || body.data?.id;
+    const messageId =
+      body.messageId || body.id || body.data?.messageId || body.data?.id ||
+      body.key?.id || body.message?.key?.id || body.data?.key?.id || body.data?.message?.key?.id;
     const status = body.status || body.data?.status || body.type;
-    const mc = body.msgContent || body.data?.msgContent || {};
+    const mc =
+      body.msgContent || body.data?.msgContent || body.message?.msgContent || body.data?.message?.msgContent ||
+      body.message?.message || body.data?.message?.message || body.message || body.data?.message || {};
     const reactionEmoji = mc.reactionMessage?.text || null;
     const replyMessage =
       mc.conversation ||
+      mc.text ||
+      mc.body ||
       mc.extendedTextMessage?.text ||
       mc.imageMessage?.caption ||
       mc.videoMessage?.caption ||
       mc.documentMessage?.caption ||
+      mc.templateButtonReplyMessage?.selectedDisplayText ||
       mc.buttonsResponseMessage?.selectedDisplayText ||
       mc.listResponseMessage?.title ||
+      body.message?.conversation || body.data?.message?.conversation ||
+      body.message?.extendedTextMessage?.text || body.data?.message?.extendedTextMessage?.text ||
       (reactionEmoji ? `Reagiu com ${reactionEmoji}` : null) ||
-      body.message?.text || body.data?.message?.text || body.text || body.body || null;
-    const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone || body.chat?.id;
-    const senderId = body.sender?.id || body.data?.sender?.id || body.participant || body.data?.participant || null;
-    const fromMe = body.fromMe ?? body.data?.fromMe ?? null;
+      body.message?.text || body.data?.message?.text || body.text || body.body || body.data?.text || body.data?.body || null;
+    const chatId =
+      body.chatId || body.chat?.id || body.data?.chatId || body.data?.chat?.id ||
+      body.key?.remoteJid || body.message?.key?.remoteJid || body.data?.key?.remoteJid || body.data?.message?.key?.remoteJid ||
+      body.phone || body.data?.phone;
+    const senderId =
+      body.sender?.id || body.data?.sender?.id || body.participant || body.data?.participant ||
+      body.key?.participant || body.message?.key?.participant || body.data?.key?.participant || body.data?.message?.key?.participant || null;
+    const fromMe = body.fromMe ?? body.data?.fromMe ?? body.key?.fromMe ?? body.message?.key?.fromMe ?? body.data?.key?.fromMe ?? body.data?.message?.key?.fromMe ?? null;
     const isGroup = body.isGroup ?? body.data?.isGroup ?? false;
 
     // Ignore group messages
@@ -130,7 +144,7 @@ Deno.serve(async (req) => {
     // ========= CRM: persist message to whatsapp_messages =========
     // Ignore WhatsApp LID (linked-id) pseudo-numbers — these are not real contacts,
     // they are anonymized identifiers used for our own status callbacks/broadcasts.
-    const isLid = (rawChatStr.includes("@lid") && !senderPhone) || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
+    const isLid = (rawChatStr.includes("@lid") && !senderPhone && !replyMessage) || rawChatStr.includes("@broadcast") || rawChatStr.includes("status@");
     const eventLower = String(event || "").toLowerCase();
     // Only treat as a real CRM message when it is a true incoming message or a real outgoing send,
     // NOT when it is just a delivery/read status webhook for one of OUR messages.
@@ -139,15 +153,17 @@ Deno.serve(async (req) => {
     // These produce empty bubbles in the CRM (WhatsApp message edits, deletes, key rotations, etc.).
     const mcKeys = Object.keys(mc || {}).filter((k) => k !== "messageContextInfo");
     const isProtocolOnly =
-      mcKeys.length === 0 ||
+      (mcKeys.length === 0 && !replyMessage) ||
       mcKeys.every((k) => k === "protocolMessage" || k === "senderKeyDistributionMessage" || k === "secretEncryptedMessage");
     if (phone && !isGroup && !isLid && !isStatusEvent && !isProtocolOnly) {
-      const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage || !!mc?.reactionMessage || !!mc?.stickerMessage);
+      const hasVisibleContent = !!replyMessage || !!mc?.conversation || !!mc?.extendedTextMessage || !!mc?.imageMessage || !!mc?.audioMessage || !!mc?.videoMessage || !!mc?.documentMessage || !!mc?.reactionMessage || !!mc?.stickerMessage || !!body.message?.imageUrl || !!body.message?.audioUrl || !!body.message?.videoUrl || !!body.data?.message?.imageUrl;
+      const isIn = fromMe === false && (body.type === "ReceivedCallback" || eventLower === "webhookreceived" || eventLower === "messages.upsert" || hasVisibleContent);
       const isOut = fromMe === true;
-      if (isIn || isOut) {
+      if ((isIn || isOut) && hasVisibleContent) {
         const contactName =
           body.sender?.pushName || body.sender?.verifiedBizName ||
-          body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || null;
+          body.data?.sender?.pushName || body.data?.sender?.verifiedBizName ||
+          body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || body.data?.chat?.name || null;
         let mediaUrl: string | null =
           mc.imageMessage?.url || mc.audioMessage?.url || mc.videoMessage?.url || mc.documentMessage?.url ||
           body.message?.imageUrl || body.message?.audioUrl || body.message?.videoUrl || body.data?.message?.imageUrl || null;
