@@ -1129,6 +1129,7 @@ export type Database = {
         Row: {
           account_type: string | null
           created_at: string
+          fb_id: string | null
           file_name: string
           folder_id: string
           id: string
@@ -1141,6 +1142,7 @@ export type Database = {
         Insert: {
           account_type?: string | null
           created_at?: string
+          fb_id?: string | null
           file_name: string
           folder_id: string
           id?: string
@@ -1153,6 +1155,7 @@ export type Database = {
         Update: {
           account_type?: string | null
           created_at?: string
+          fb_id?: string | null
           file_name?: string
           folder_id?: string
           id?: string
