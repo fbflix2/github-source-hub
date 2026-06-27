@@ -237,6 +237,48 @@ Deno.serve(async (req) => {
     // Try to find the log entry
     let logEntry = null;
 
+    // ========= CRM: update outgoing message status (sent/delivered/read) =========
+    // W-API sends status callbacks (messageStatus / webhookStatus) that reference
+    // one of OUR outgoing messages by messageId. Reflect those on whatsapp_messages
+    // so the CRM ticks update live (single check → double check → green double check).
+    try {
+      const normalized = (status || "").toString().toLowerCase();
+      const evt = String(event || "").toLowerCase();
+      let newStatus: string | null = null;
+      if (normalized === "read" || normalized === "viewed" || normalized === "played" || evt.includes("read")) {
+        newStatus = "read";
+      } else if (
+        normalized === "delivered" || normalized === "received" ||
+        normalized === "server" || normalized === "device" ||
+        evt.includes("delivery") || evt.includes("delivered")
+      ) {
+        newStatus = "delivered";
+      } else if (normalized === "sent" || normalized === "pending") {
+        newStatus = "sent";
+      }
+      const rank: Record<string, number> = { sent: 1, delivered: 2, read: 3 };
+      if (newStatus && messageId) {
+        const { data: existing } = await admin
+          .from("whatsapp_messages")
+          .select("id,status")
+          .eq("wapi_message_id", messageId)
+          .limit(1)
+          .maybeSingle();
+        if (existing) {
+          const currRank = rank[existing.status as string] || 0;
+          const nextRank = rank[newStatus] || 0;
+          if (nextRank > currRank) {
+            await admin
+              .from("whatsapp_messages")
+              .update({ status: newStatus })
+              .eq("id", existing.id);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("CRM status update error:", e);
+    }
+
     // 1. Try by wapi_message_id (exact match)
     if (messageId) {
       const { data } = await admin
