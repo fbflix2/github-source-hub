@@ -89,7 +89,9 @@ Deno.serve(async (req) => {
       root?.message?.[key],
       root?.data?.message?.[key],
       root?.msgContent?.[key],
+      root?.msgcontent?.[key],
       root?.data?.msgContent?.[key],
+      root?.data?.msgcontent?.[key],
       root?.message?.message?.[key],
       root?.data?.message?.message?.[key],
       root?.[kind],
@@ -104,12 +106,12 @@ Deno.serve(async (req) => {
 
     // W-API webhook fields
     const messageId =
-      body.messageId || body.id || body.data?.messageId || body.data?.id ||
+      body.messageId || body.messageid || body.id || body.data?.messageId || body.data?.messageid || body.data?.id ||
       body.key?.id || body.message?.key?.id || body.data?.key?.id || body.data?.message?.key?.id ||
       body.message?.id || body.data?.message?.id || body.msg?.key?.id || body.data?.msg?.key?.id;
     const status = body.status || body.data?.status || body.type;
     const mc =
-      body.msgContent || body.data?.msgContent || body.message?.msgContent || body.data?.message?.msgContent ||
+      body.msgContent || body.msgcontent || body.data?.msgContent || body.data?.msgcontent || body.message?.msgContent || body.message?.msgcontent || body.data?.message?.msgContent || body.data?.message?.msgcontent ||
       body.message?.message || body.data?.message?.message || body.message || body.data?.message || {};
     const reactionEmoji = mc.reactionMessage?.text || null;
     const replyMessage =
@@ -126,17 +128,17 @@ Deno.serve(async (req) => {
       body.message?.conversation || body.data?.message?.conversation ||
       body.message?.extendedTextMessage?.text || body.data?.message?.extendedTextMessage?.text ||
       (reactionEmoji ? `Reagiu com ${reactionEmoji}` : null) ||
-      body.message?.text || body.data?.message?.text || body.text || body.body || body.data?.text || body.data?.body || null;
+      body.message?.text || body.data?.message?.text || body.text || body.body || body.data?.text || body.data?.body || body.message || body.msg || null;
     const chatId =
       body.chatId || body.chat?.id || body.data?.chatId || body.data?.chat?.id ||
       body.key?.remoteJid || body.message?.key?.remoteJid || body.data?.key?.remoteJid || body.data?.message?.key?.remoteJid ||
-      body.remoteJid || body.data?.remoteJid || body.to || body.data?.to ||
-      body.recipient?.id || body.data?.recipient?.id || body.phone || body.data?.phone;
+      body.remoteJid || body.remotejid || body.data?.remoteJid || body.data?.remotejid || body.to || body.data?.to ||
+      body.recipient?.id || body.data?.recipient?.id || body.phone || body.data?.phone || body.phoneNumber || body.phonenumber || body.data?.phoneNumber || body.data?.phonenumber;
     const senderId =
       body.sender?.id || body.data?.sender?.id || body.participant || body.data?.participant ||
       body.key?.participant || body.message?.key?.participant || body.data?.key?.participant || body.data?.message?.key?.participant || null;
-    const fromMe = body.fromMe ?? body.data?.fromMe ?? body.key?.fromMe ?? body.message?.key?.fromMe ?? body.data?.key?.fromMe ?? body.data?.message?.key?.fromMe ?? null;
-    const isGroup = body.isGroup ?? body.data?.isGroup ?? false;
+    const fromMe = body.fromMe ?? body.fromme ?? body.data?.fromMe ?? body.data?.fromme ?? body.key?.fromMe ?? body.key?.fromme ?? body.message?.key?.fromMe ?? body.message?.key?.fromme ?? body.data?.key?.fromMe ?? body.data?.key?.fromme ?? body.data?.message?.key?.fromMe ?? body.data?.message?.key?.fromme ?? null;
+    const isGroup = body.isGroup ?? body.isgroup ?? body.data?.isGroup ?? body.data?.isgroup ?? false;
 
     // Ignore group messages
     if (isGroup) {
@@ -170,7 +172,7 @@ Deno.serve(async (req) => {
     const chatPhone = rawChatStr && !isChatLid ? onlyDigits(rawChatStr) : null;
     const explicitPhone =
       phoneDigits(body.phone || body.data?.phone || body.phoneNumber || body.data?.phoneNumber ||
-        body.recipient?.phone || body.data?.recipient?.phone || body.toPhone || body.data?.toPhone);
+        body.phonenumber || body.data?.phonenumber || body.recipient?.phone || body.data?.recipient?.phone || body.toPhone || body.data?.toPhone || body.tophone || body.data?.tophone);
     let phone = fromMe === false && senderPhone
       ? senderPhone
       : (explicitPhone || chatPhone || senderPhone || null);
@@ -214,8 +216,10 @@ Deno.serve(async (req) => {
       if ((isIn || isOut) && hasVisibleContent) {
         const contactName =
           body.sender?.pushName || body.sender?.verifiedBizName ||
+          body.sender?.pushname || body.sender?.verifiedbizname ||
           body.data?.sender?.pushName || body.data?.sender?.verifiedBizName ||
-          body.senderName || body.notifyName || body.chat?.name || body.data?.senderName || body.data?.chat?.name || null;
+          body.data?.sender?.pushname || body.data?.sender?.verifiedbizname ||
+          body.senderName || body.sendername || body.notifyName || body.notifyname || body.chat?.name || body.data?.senderName || body.data?.sendername || body.data?.chat?.name || null;
         const imageNode = getMediaNode(mc, body, "image");
         const audioNode = getMediaNode(mc, body, "audio");
         const videoNode = getMediaNode(mc, body, "video");
@@ -224,7 +228,9 @@ Deno.serve(async (req) => {
         let mediaUrl: string | null = pick(
           imageNode?.url, audioNode?.url, videoNode?.url, documentNode?.url, stickerNode?.url,
           body.message?.imageUrl, body.message?.audioUrl, body.message?.videoUrl, body.message?.documentUrl,
+          body.message?.imageurl, body.message?.audiourl, body.message?.videourl, body.message?.documenturl,
           body.data?.message?.imageUrl, body.data?.message?.audioUrl, body.data?.message?.videoUrl, body.data?.message?.documentUrl,
+          body.data?.message?.imageurl, body.data?.message?.audiourl, body.data?.message?.videourl, body.data?.message?.documenturl,
         ) || null;
         const msgType =
           mc.reactionMessage ? "reaction" :
@@ -233,7 +239,7 @@ Deno.serve(async (req) => {
           videoNode ? "video" :
           documentNode ? "document" :
           stickerNode ? "sticker" :
-          body.message?.imageUrl ? "image" : body.message?.audioUrl ? "audio" : body.message?.videoUrl ? "video" : "text";
+          body.message?.imageUrl || body.message?.imageurl ? "image" : body.message?.audioUrl || body.message?.audiourl ? "audio" : body.message?.videoUrl || body.message?.videourl ? "video" : "text";
 
         // The raw mmg.whatsapp.net URLs are encrypted and not directly playable/viewable.
         // Rehost media to public Supabase Storage so the CRM can render it.
@@ -242,7 +248,7 @@ Deno.serve(async (req) => {
             : msgType === "audio" ? "ogg"
             : msgType === "video" ? "mp4"
             : msgType === "sticker" ? "webp"
-            : (mc.documentMessage?.fileName?.split(".").pop() || "bin");
+            : (documentNode?.fileName?.split(".").pop() || documentNode?.filename?.split(".").pop() || mc.documentMessage?.fileName?.split(".").pop() || "bin");
 
           // 1) Try W-API decrypted download endpoint (works for encrypted WhatsApp media)
           //    W-API requires: mediaKey, directPath, type, mimetype
@@ -250,8 +256,8 @@ Deno.serve(async (req) => {
           const dlPayload: Record<string, any> = {
             messageId, phone, chatId,
             type: msgType,
-            mediaKey: pick(mediaNode.mediaKey, mediaNode.media_key, mediaNode.mediaKeyTimestamp),
-            directPath: pick(mediaNode.directPath, mediaNode.direct_path),
+            mediaKey: pick(mediaNode.mediaKey, mediaNode.mediakey, mediaNode.media_key, mediaNode.mediaKeyTimestamp, mediaNode.mediakeytimestamp),
+            directPath: pick(mediaNode.directPath, mediaNode.directpath, mediaNode.direct_path),
             url: mediaNode.url,
             mimetype: mediaNode.mimetype || (msgType === "audio" ? "audio/ogg; codecs=opus" : undefined),
           };
@@ -263,9 +269,9 @@ Deno.serve(async (req) => {
           if (decrypted) publicUrl = await rehostToStorage(decrypted, ext);
 
           // 2) Image fallback: use the inline jpegThumbnail (always present in payload)
-          if (!publicUrl && msgType === "image" && (imageNode?.jpegThumbnail || imageNode?.JPEGThumbnail)) {
+          if (!publicUrl && msgType === "image" && (imageNode?.jpegThumbnail || imageNode?.JPEGThumbnail || imageNode?.jpegthumbnail)) {
             publicUrl = await rehostToStorage(
-              `data:image/jpeg;base64,${imageNode.jpegThumbnail || imageNode.JPEGThumbnail}`, "jpg",
+              `data:image/jpeg;base64,${imageNode.jpegThumbnail || imageNode.JPEGThumbnail || imageNode.jpegthumbnail}`, "jpg",
             );
           }
 
@@ -310,7 +316,7 @@ Deno.serve(async (req) => {
       if (normalized === "read" || normalized === "viewed" || normalized === "played" || evt.includes("read")) {
         newStatus = "read";
       } else if (
-        normalized === "delivered" || normalized === "received" ||
+        normalized === "delivered" || normalized === "delivery" || normalized === "received" ||
         normalized === "server" || normalized === "device" ||
         evt.includes("delivery") || evt.includes("delivered")
       ) {
@@ -383,7 +389,7 @@ Deno.serve(async (req) => {
     // Status progression: sent -> delivered -> read
     const currentStatus = logEntry.status;
 
-    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || eventStr.includes("delivery")) {
+    if (normalizedStatus === "delivered" || normalizedStatus === "delivery" || normalizedStatus === "received" || normalizedStatus === "server" || eventStr.includes("delivery")) {
       if (currentStatus === "sent" || currentStatus === "delivered") {
         updates.delivered_at = now;
         updates.status = "delivered";
