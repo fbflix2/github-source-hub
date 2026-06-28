@@ -10,6 +10,7 @@ import {
   MousePointerClick, Route, CreditCard, CircleCheck, Activity, Wrench,
 } from "lucide-react";
 import ToolsTab from "@/components/partner/ToolsTab";
+import { PushNotificationToggle } from "@/components/partner/PushNotificationToggle";
 
 function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
   const fallback: PromoBanner[] = [
@@ -495,6 +496,9 @@ export default function GanheAqui() {
 
       {tab === "overview" && (
         <>
+          <div className="mb-4 flex justify-end">
+            <PushNotificationToggle />
+          </div>
           {/* Compact Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">

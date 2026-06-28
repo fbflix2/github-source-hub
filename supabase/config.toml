@@ -108,3 +108,6 @@ verify_jwt = false
 
 [functions.proxy-status]
 verify_jwt = false
+
+[functions.send-partner-push]
+verify_jwt = false
