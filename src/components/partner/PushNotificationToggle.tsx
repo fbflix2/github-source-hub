@@ -84,6 +84,33 @@ export function PushNotificationToggle() {
     }
   };
 
+  const sendTest = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Faça login"); return; }
+      const { data, error } = await supabase.functions.invoke("send-partner-push", {
+        body: {
+          user_id: user.id,
+          title: "🎉 Venda de teste",
+          body: "Você ganhou R$ 47,00 de comissão (teste)",
+          url: "/parceria",
+          tag: "partner-sale-test",
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.sent > 0) {
+        toast.success(`Notificação enviada para ${(data as any).sent} dispositivo(s)`);
+      } else {
+        toast.warning("Nenhum dispositivo inscrito. Ative as notificações antes.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao enviar teste");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!supported) {
     return (
       <div className="text-xs text-muted-foreground p-3 rounded-lg border border-border bg-card/40">
@@ -93,17 +120,29 @@ export function PushNotificationToggle() {
   }
 
   return (
-    <button
-      onClick={enabled ? disable : enable}
-      disabled={loading}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-        enabled
-          ? "border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20"
-          : "border-border bg-card hover:bg-muted text-foreground"
-      } disabled:opacity-50`}
-    >
-      {loading ? <Loader2 className="size-4 animate-spin" /> : enabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
-      {enabled ? "Notificações ativadas" : "Ativar notificações de venda"}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={enabled ? disable : enable}
+        disabled={loading}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+          enabled
+            ? "border-green-500/30 bg-green-500/10 text-green-500 hover:bg-green-500/20"
+            : "border-border bg-card hover:bg-muted text-foreground"
+        } disabled:opacity-50`}
+      >
+        {loading ? <Loader2 className="size-4 animate-spin" /> : enabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
+        {enabled ? "Notificações ativadas" : "Ativar notificações de venda"}
+      </button>
+      {enabled && (
+        <button
+          onClick={sendTest}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Bell className="size-4" />}
+          Enviar venda de teste
+        </button>
+      )}
+    </div>
   );
 }
