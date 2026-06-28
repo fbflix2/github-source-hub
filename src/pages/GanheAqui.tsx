@@ -10,6 +10,7 @@ import {
   MousePointerClick, Route, CreditCard, CircleCheck, Activity, Wrench,
 } from "lucide-react";
 import ToolsTab from "@/components/partner/ToolsTab";
+import { PushNotificationToggle } from "@/components/partner/PushNotificationToggle";
 
 function OverviewBanner({ banners }: { banners: PromoBanner[] }) {
   const fallback: PromoBanner[] = [
