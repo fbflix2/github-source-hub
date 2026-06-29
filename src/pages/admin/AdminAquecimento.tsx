@@ -658,18 +658,26 @@ export default function AdminAquecimento() {
   };
 
   const getProfileTaskEvidence = (profile: WarmingProfile, profileTasks: WarmingTask[]) => {
+    const elapsedDays = Math.max(
+      1,
+      Math.floor((Date.now() - new Date(profile.start_date || profile.created_at).getTime()) / 86400000),
+    );
+    const completedUntilDay = Math.max(profile.current_day - 1, elapsedDays);
     const savedTaskEvidence = profileTasks.map((task) => ({
       ...task,
       completed:
         task.completed ||
         profile.status === "completed" ||
         profile.status === "sent_to_store" ||
-        task.day_number < profile.current_day,
+        task.day_number <= completedUntilDay,
     }));
 
     // Fallback obrigatório: se as tarefas reais não vierem/estiverem antigas, ainda usamos
     // a configuração atual da esteira para inferir o que já foi feito até o dia atual.
-    return [...savedTaskEvidence, ...getConfiguredTrackEvidence(profile)];
+    return [
+      ...savedTaskEvidence,
+      ...getConfiguredTrackEvidence({ ...profile, current_day: completedUntilDay + 1 }),
+    ];
   };
 
   const getEffectiveQualityForProfile = (
