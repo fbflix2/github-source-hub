@@ -685,14 +685,21 @@ export default function AdminAquecimento() {
     if (activeTab !== "revisao" || visibleProfiles.length === 0) return;
     const loadQuality = async () => {
       setReviewLoading(true);
-      const keys = visibleProfiles.map(p => `warming_quality_${p.id}`);
-      const { data } = await supabase
-        .from("site_settings")
-        .select("key, value")
-        .in("key", keys);
       const map: Record<string, any> = {};
-      if (data) {
-        data.forEach(row => {
+      const allKeys = visibleProfiles.map(p => `warming_quality_${p.id}`);
+      // Chunk to avoid URL length limits and the 1000-row default cap
+      const chunkSize = 100;
+      for (let i = 0; i < allKeys.length; i += chunkSize) {
+        const chunk = allKeys.slice(i, i + chunkSize);
+        const { data, error } = await supabase
+          .from("site_settings")
+          .select("key, value")
+          .in("key", chunk);
+        if (error) {
+          console.error("[review] erro carregando warming_quality:", error);
+          continue;
+        }
+        (data || []).forEach((row: any) => {
           const profileId = row.key.replace("warming_quality_", "");
           try { map[profileId] = JSON.parse(row.value); } catch { }
         });
