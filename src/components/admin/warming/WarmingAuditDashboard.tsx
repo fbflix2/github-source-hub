@@ -427,6 +427,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
             const days = getProfileWarmingDays(profile);
             const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
             const isApproved = profile.status === "completed";
+            const isDisabled = profile.status === "disabled";
 
             return (
               <div
@@ -458,6 +459,10 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                   <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
                     <MIcon name="check_circle" className="text-base" /> Aprovado
                   </span>
+                ) : isDisabled ? (
+                  <span className="flex items-center gap-1 text-rose-400 text-xs font-bold shrink-0">
+                    <MIcon name="no_accounts" className="text-base" /> Conta Desabilitada
+                  </span>
                 ) : profile.status === "checkpoint" ? (
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="flex items-center gap-1 text-yellow-400 text-xs font-bold">
@@ -470,6 +475,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                     >
                       <MIcon name="verified" className="text-sm" /> Aprovar
                     </button>
+                    <button
+                      onClick={() => markDisabled(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="no_accounts" className="text-sm" /> Desabilitada
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 shrink-0">
@@ -480,6 +492,14 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                     >
                       <MIcon name="pause_circle" className="text-base" />
                       Checkpoint
+                    </button>
+                    <button
+                      onClick={() => markDisabled(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="no_accounts" className="text-base" />
+                      Desabilitada
                     </button>
                     <button
                       onClick={() => approveProfile(profile)}
