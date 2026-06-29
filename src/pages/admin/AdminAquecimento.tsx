@@ -1693,6 +1693,34 @@ export default function AdminAquecimento() {
                     >
                       <MIcon name={isEditing ? "close" : "edit"} className="text-sm" /> {isEditing ? "Fechar" : "Editar"}
                     </button>
+                    {profile.status !== "disabled" && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Marcar o perfil ${profile.profile_code} como CONTA DESABILITADA?\n\nEle entrará na métrica de Perdas do mês e os ganhos do operador serão cancelados.`)) return;
+                          try {
+                            await supabase.from("warming_profiles" as any).update({ status: "disabled" }).eq("id", profile.id);
+                            await supabase
+                              .from("operator_earnings")
+                              .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+                              .eq("profile_id", profile.id)
+                              .neq("status", "cancelled");
+                            toast.success(`🚫 ${profile.profile_code} marcado como Conta Desabilitada.`);
+                            fetchProfiles();
+                          } catch (e) {
+                            console.error(e);
+                            toast.error("Erro ao marcar como desabilitada");
+                          }
+                        }}
+                        className="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                      >
+                        <MIcon name="no_accounts" className="text-sm" /> Conta Desabilitada
+                      </button>
+                    )}
+                    {profile.status === "disabled" && (
+                      <span className="flex items-center gap-1 text-rose-400 text-xs font-bold shrink-0">
+                        <MIcon name="no_accounts" className="text-base" /> Conta Desabilitada
+                      </span>
+                    )}
                     </div>
                     {isEditing && (
                       <div className="border-t border-white/10 pt-4">
