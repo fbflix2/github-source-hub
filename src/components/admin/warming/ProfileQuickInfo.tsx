@@ -46,12 +46,13 @@ function getTierForScore(score: number) {
   return tiers[0];
 }
 
-export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
+export default function ProfileQuickInfo({ profileId, initialQuality }: { profileId: string; initialQuality?: Partial<ProfileQualityData> }) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_PROFILE_QUALITY_DATA);
   const [loaded, setLoaded] = useState(false);
 
   const loadData = (pid: string) => {
     const key = `warming_quality_${pid}`;
+    setData({ ...DEFAULT_PROFILE_QUALITY_DATA, ...initialQuality });
     supabase
       .from("site_settings")
       .select("value")
@@ -59,17 +60,27 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
       .maybeSingle()
       .then(({ data: row }) => {
         if (row?.value) {
-          try { setData({ ...DEFAULT_PROFILE_QUALITY_DATA, ...JSON.parse(row.value) }); } catch {}
+          try {
+            const saved = JSON.parse(row.value);
+            setData({
+              ...DEFAULT_PROFILE_QUALITY_DATA,
+              ...saved,
+              has2FA: Boolean(saved.has2FA || initialQuality?.has2FA),
+              hasBM: Boolean(saved.hasBM || initialQuality?.hasBM),
+              hasPage: Boolean(saved.hasPage || initialQuality?.hasPage),
+              friendRange: saved.friendRange || initialQuality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+            });
+          } catch {}
         }
         setLoaded(true);
       });
   };
 
   useEffect(() => {
-    setData(DEFAULT_PROFILE_QUALITY_DATA);
+    setData({ ...DEFAULT_PROFILE_QUALITY_DATA, ...initialQuality });
     setLoaded(false);
     loadData(profileId);
-  }, [profileId]);
+  }, [profileId, initialQuality]);
 
   const saveFriendRange = async (range: string) => {
     const newData = { ...data, friendRange: range };
