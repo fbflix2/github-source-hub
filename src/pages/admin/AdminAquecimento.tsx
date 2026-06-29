@@ -12,8 +12,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DEFAULT_PROFILE_QUALITY_DATA,
   DEFAULT_READY_CRITERIA,
+  getEffectiveProfileQuality,
   isProfileReadyForSale,
   parseReadyCriteria,
+  type ProfileQualityData,
 } from "@/lib/warming-ready";
 
 // ── Track definitions ──────────────────────────────────────────
@@ -173,7 +175,7 @@ export default function AdminAquecimento() {
   const [reviewFilterBM, setReviewFilterBM] = useState(false);
   const [reviewFilterPage, setReviewFilterPage] = useState(false);
   const [reviewSearch, setReviewSearch] = useState("");
-  const [reviewQualityMap, setReviewQualityMap] = useState<Record<string, any>>({});
+  const [reviewQualityMap, setReviewQualityMap] = useState<Record<string, Partial<ProfileQualityData>>>({});
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewEditingId, setReviewEditingId] = useState<string | null>(null);
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
@@ -374,24 +376,33 @@ export default function AdminAquecimento() {
       toast.error("Erro ao carregar perfis");
     } else {
       setProfiles(data || []);
-      // Fetch tasks for ALL profiles (needed for avg time calculation)
+      // Fetch tasks for ALL profiles (needed for avg time calculation and quality evidence)
       if (data && data.length > 0) {
-        // Paginate tasks to avoid 1000 row limit
+        // Paginate tasks in profile chunks to avoid URL length limits and the 1000 row cap
         const profileIds = data.map((p: any) => p.id);
         const allTasks: any[] = [];
         const pageSize = 1000;
-        let from = 0;
-        while (true) {
-          const { data: batch } = await supabase
-            .from("warming_tasks")
-            .select("*")
-            .in("profile_id", profileIds)
-            .order("day_number", { ascending: true })
-            .range(from, from + pageSize - 1);
-          if (!batch || batch.length === 0) break;
-          allTasks.push(...batch);
-          if (batch.length < pageSize) break;
-          from += pageSize;
+        const chunkSize = 100;
+        for (let i = 0; i < profileIds.length; i += chunkSize) {
+          const chunk = profileIds.slice(i, i + chunkSize);
+          let from = 0;
+          while (true) {
+            const { data: batch, error: taskError } = await supabase
+              .from("warming_tasks")
+              .select("*")
+              .in("profile_id", chunk)
+              .order("profile_id", { ascending: true })
+              .order("day_number", { ascending: true })
+              .range(from, from + pageSize - 1);
+            if (taskError) {
+              console.error("Erro ao carregar tarefas da esteira:", taskError);
+              break;
+            }
+            if (!batch || batch.length === 0) break;
+            allTasks.push(...batch);
+            if (batch.length < pageSize) break;
+            from += pageSize;
+          }
         }
         const grouped: Record<string, WarmingTask[]> = {};
         allTasks.forEach((t: any) => {
@@ -400,6 +411,8 @@ export default function AdminAquecimento() {
         });
         setTasks(grouped);
         // Auto-selection will be handled by the useEffect with sortedActiveQueue
+      } else {
+        setTasks({});
       }
       // Fetch creator names
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
@@ -449,8 +462,12 @@ export default function AdminAquecimento() {
     const quality = qualityRow?.value
       ? { ...DEFAULT_PROFILE_QUALITY_DATA, ...JSON.parse(qualityRow.value) }
       : DEFAULT_PROFILE_QUALITY_DATA;
+    const effectiveQuality = getEffectiveProfileQuality(
+      quality,
+      getProfileTaskEvidence(profile, tasks[profileId] || []),
+    );
 
-    if (!isProfileReadyForSale(profile, quality, readyCriteria)) return false;
+    if (!isProfileReadyForSale(profile, effectiveQuality, readyCriteria)) return false;
 
     await supabase
       .from("warming_profiles")
@@ -614,10 +631,63 @@ export default function AdminAquecimento() {
     return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
   };
 
+  const getConfiguredTrackEvidence = (profile: WarmingProfile): WarmingTask[] => {
+    const configuredTasks = configTasks[profile.track_type];
+    const defaultTasks = TRACKS[profile.track_type]?.tasks.map((task) => ({
+      title: task.title,
+      description: task.description,
+    })) || [];
+    const tasksToUse = configuredTasks?.length ? configuredTasks : defaultTasks;
+
+    return tasksToUse.map((task, index) => {
+      const dayNumber = index + 1;
+      return {
+        id: `virtual-${profile.id}-${dayNumber}`,
+        profile_id: profile.id,
+        day_number: dayNumber,
+        title: task.title,
+        description: task.description,
+        completed:
+          profile.status === "completed" ||
+          profile.status === "sent_to_store" ||
+          dayNumber < profile.current_day,
+        completed_at: null,
+        duration_seconds: null,
+      };
+    });
+  };
+
+  const getProfileTaskEvidence = (profile: WarmingProfile, profileTasks: WarmingTask[]) => {
+    const savedTaskEvidence = profileTasks.map((task) => ({
+      ...task,
+      completed:
+        task.completed ||
+        profile.status === "completed" ||
+        profile.status === "sent_to_store" ||
+        task.day_number < profile.current_day,
+    }));
+
+    // Fallback obrigatório: se as tarefas reais não vierem/estiverem antigas, ainda usamos
+    // a configuração atual da esteira para inferir o que já foi feito até o dia atual.
+    return [...savedTaskEvidence, ...getConfiguredTrackEvidence(profile)];
+  };
+
+  const getEffectiveQualityForProfile = (
+    profile: WarmingProfile,
+    manualQuality?: Partial<ProfileQualityData>,
+  ) => getEffectiveProfileQuality(
+    manualQuality,
+    getProfileTaskEvidence(profile, tasks[profile.id] || []),
+  );
+
   const selectedProfile = profiles.find(
     (p) => p.id === selectedProfileId && (isUserAdmin || p.created_by === currentUserId)
   );
   const selectedTasks = selectedProfileId ? tasks[selectedProfileId] || [] : [];
+  const selectedTaskQuality = useMemo(
+    () => selectedProfile ? getEffectiveQualityForProfile(selectedProfile) : DEFAULT_PROFILE_QUALITY_DATA,
+    [selectedProfile, tasks, configTasks],
+  );
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
@@ -713,17 +783,16 @@ export default function AdminAquecimento() {
   // Filter profiles for review tab
   const reviewFilteredProfiles = useMemo(() => {
     const searchTrimmed = reviewSearch.trim().toLowerCase();
-    const hasAnyFilter = reviewFilter2FA || reviewFilterBM || reviewFilterPage || searchTrimmed;
     
     return visibleProfiles.filter(p => {
       if (searchTrimmed && !p.profile_code.toLowerCase().includes(searchTrimmed)) return false;
-      const q = reviewQualityMap[p.id] || {};
+      const q = getEffectiveQualityForProfile(p, reviewQualityMap[p.id]);
       if (reviewFilter2FA && !q.has2FA) return false;
       if (reviewFilterBM && !q.hasBM) return false;
       if (reviewFilterPage && !q.hasPage) return false;
       return true;
     });
-  }, [visibleProfiles, reviewQualityMap, reviewFilter2FA, reviewFilterBM, reviewFilterPage, reviewSearch]);
+  }, [visibleProfiles, reviewQualityMap, tasks, configTasks, reviewFilter2FA, reviewFilterBM, reviewFilterPage, reviewSearch]);
 
   useEffect(() => {
     if (userContextReadyRef.current && currentUserId) {
@@ -1468,6 +1537,7 @@ export default function AdminAquecimento() {
                   key={selectedProfile.id}
                   profileId={selectedProfile.id}
                   profileCode={selectedProfile.profile_code}
+                  initialQuality={selectedTaskQuality}
                 />
               </div>
             )}
@@ -1476,7 +1546,7 @@ export default function AdminAquecimento() {
           {/* Right sidebar: Notes */}
           {selectedProfile && (
             <section className="lg:col-span-3 space-y-3">
-              <ProfileQuickInfo profileId={selectedProfile.id} />
+              <ProfileQuickInfo profileId={selectedProfile.id} initialQuality={selectedTaskQuality} />
               <ProfileQuickNotes profileId={selectedProfile.id} profileCode={selectedProfile.profile_code} />
             </section>
           )}
@@ -1568,7 +1638,7 @@ export default function AdminAquecimento() {
               </div>
             ) : (
               reviewFilteredProfiles.map((profile) => {
-                const q = reviewQualityMap[profile.id] || {};
+                const q = getEffectiveQualityForProfile(profile, reviewQualityMap[profile.id]);
                 const days = Math.max(1, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
                 const isEditing = reviewEditingId === profile.id;
                 return (
@@ -1618,7 +1688,7 @@ export default function AdminAquecimento() {
                     </div>
                     {isEditing && (
                       <div className="border-t border-white/10 pt-4">
-                        <ProfileQualityMeter profileId={profile.id} profileCode={profile.profile_code} />
+                        <ProfileQualityMeter profileId={profile.id} profileCode={profile.profile_code} initialQuality={q} />
                       </div>
                     )}
                   </div>

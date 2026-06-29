@@ -75,6 +75,7 @@ const QUALITY_EVIDENCE_PATTERNS = {
     /bm\s*(fully|check|criada)/i,
   ],
   hasPage: [
+    /bm\s*\/\s*page/i,
     /\bposts?\s+na\s+page\b/i,
     /criar\s+p[aá]g/i,
     /p[aá]gina\s+caso/i,

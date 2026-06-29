@@ -16,6 +16,7 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
 interface Props {
   profileId: string;
   profileCode: string;
+  initialQuality?: Partial<ProfileQualityData>;
 }
 
 const FRIEND_RANGES = [
@@ -58,7 +59,7 @@ function getTierForScore(score: number) {
   return tiers[0];
 }
 
-export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
+export default function ProfileQualityMeter({ profileId, profileCode, initialQuality }: Props) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_DATA);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -66,7 +67,7 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
 
   // Reset state when profile changes
   useEffect(() => {
-    setData(DEFAULT_DATA);
+    setData({ ...DEFAULT_DATA, ...initialQuality });
     setLoaded(false);
     const key = `warming_quality_${profileId}`;
     supabase
@@ -77,12 +78,20 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
       .then(({ data: row }) => {
         if (row?.value) {
           try {
-            setData({ ...DEFAULT_DATA, ...JSON.parse(row.value) });
+            const saved = JSON.parse(row.value);
+            setData({
+              ...DEFAULT_DATA,
+              ...saved,
+              has2FA: Boolean(saved.has2FA || initialQuality?.has2FA),
+              hasBM: Boolean(saved.hasBM || initialQuality?.hasBM),
+              hasPage: Boolean(saved.hasPage || initialQuality?.hasPage),
+              friendRange: saved.friendRange || initialQuality?.friendRange || DEFAULT_DATA.friendRange,
+            });
           } catch {}
         }
         setLoaded(true);
       });
-  }, [profileId]);
+  }, [profileId, initialQuality?.has2FA, initialQuality?.hasBM, initialQuality?.hasPage, initialQuality?.friendRange]);
 
   useEffect(() => {
     supabase
