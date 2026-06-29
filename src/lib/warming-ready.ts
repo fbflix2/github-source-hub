@@ -58,6 +58,12 @@ const FRIEND_RANGE_MIN: Record<string, number> = {
   "50-100+": 50,
 };
 
+const FRIEND_RANGE_FROM_COUNT = [
+  { min: 50, value: "50-100+" },
+  { min: 20, value: "20-50" },
+  { min: 5, value: "5-19" },
+];
+
 // Broader patterns to match real task titles from the database
 const QUALITY_EVIDENCE_PATTERNS = {
   has2FA: [
@@ -103,10 +109,38 @@ function taskMatchesEvidence(task: QualityEvidenceTaskLike, patterns: RegExp[]):
   });
 }
 
+function inferFriendCountFromTasks(tasks: QualityEvidenceTaskLike[]): number {
+  return tasks.reduce((total, task) => {
+    if (task.completed === false) return total;
+
+    const normalized = normalizeEvidenceText(`${task.title} ${task.description ?? ""}`);
+    if (!/amig/.test(normalized)) return total;
+
+    let taskTotal = 0;
+    const rangeMatches = normalized.matchAll(/(?:adicionar|add|adicionando)?\s*(?:de\s*)?(\d+)\s*a\s*(\d+)\s+amig/g);
+    for (const match of rangeMatches) {
+      taskTotal += Number(match[1] || 0);
+    }
+
+    const singleMatches = normalized.matchAll(/(?:adicionar|add|adicionando)\s+(\d+)\s+amig/g);
+    for (const match of singleMatches) {
+      taskTotal += Number(match[1] || 0);
+    }
+
+    return total + taskTotal;
+  }, 0);
+}
+
+function getInferredFriendRange(tasks: QualityEvidenceTaskLike[]): string | null {
+  const friendCount = inferFriendCountFromTasks(tasks);
+  return FRIEND_RANGE_FROM_COUNT.find((range) => friendCount >= range.min)?.value || null;
+}
+
 export function getEffectiveProfileQuality(
   quality: Partial<ProfileQualityData> | undefined,
   tasks: QualityEvidenceTaskLike[] = [],
 ): ProfileQualityData {
+  const inferredFriendRange = getInferredFriendRange(tasks);
   return {
     has2FA:
       Boolean(quality?.has2FA) ||
@@ -117,7 +151,9 @@ export function getEffectiveProfileQuality(
     hasPage:
       Boolean(quality?.hasPage) ||
       tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasPage)),
-    friendRange: quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+    friendRange: quality?.friendRange && quality.friendRange !== DEFAULT_PROFILE_QUALITY_DATA.friendRange
+      ? quality.friendRange
+      : inferredFriendRange || quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
   };
 }
 
@@ -131,6 +167,7 @@ export function getEffectiveProfileQualityWithSource(
   const taskBM = tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasBM));
   const manualPage = Boolean(quality?.hasPage);
   const taskPage = tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasPage));
+  const inferredFriendRange = getInferredFriendRange(tasks);
 
   function source(manual: boolean, task: boolean): "manual" | "task" | "both" | null {
     if (manual && task) return "both";
@@ -146,7 +183,9 @@ export function getEffectiveProfileQualityWithSource(
     hasBM_source: source(manualBM, taskBM),
     hasPage: manualPage || taskPage,
     hasPage_source: source(manualPage, taskPage),
-    friendRange: quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+    friendRange: quality?.friendRange && quality.friendRange !== DEFAULT_PROFILE_QUALITY_DATA.friendRange
+      ? quality.friendRange
+      : inferredFriendRange || quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
   };
 }
 
