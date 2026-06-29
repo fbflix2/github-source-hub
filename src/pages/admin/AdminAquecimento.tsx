@@ -631,8 +631,34 @@ export default function AdminAquecimento() {
     return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
   };
 
+  const getConfiguredTrackEvidence = (profile: WarmingProfile): WarmingTask[] => {
+    const configuredTasks = configTasks[profile.track_type];
+    const defaultTasks = TRACKS[profile.track_type]?.tasks.map((task) => ({
+      title: task.title,
+      description: task.description,
+    })) || [];
+    const tasksToUse = configuredTasks?.length ? configuredTasks : defaultTasks;
+
+    return tasksToUse.map((task, index) => {
+      const dayNumber = index + 1;
+      return {
+        id: `virtual-${profile.id}-${dayNumber}`,
+        profile_id: profile.id,
+        day_number: dayNumber,
+        title: task.title,
+        description: task.description,
+        completed:
+          profile.status === "completed" ||
+          profile.status === "sent_to_store" ||
+          dayNumber < profile.current_day,
+        completed_at: null,
+        duration_seconds: null,
+      };
+    });
+  };
+
   const getProfileTaskEvidence = (profile: WarmingProfile, profileTasks: WarmingTask[]) => {
-    return profileTasks.map((task) => ({
+    const savedTaskEvidence = profileTasks.map((task) => ({
       ...task,
       completed:
         task.completed ||
@@ -640,6 +666,10 @@ export default function AdminAquecimento() {
         profile.status === "sent_to_store" ||
         task.day_number < profile.current_day,
     }));
+
+    // Fallback obrigatório: se as tarefas reais não vierem/estiverem antigas, ainda usamos
+    // a configuração atual da esteira para inferir o que já foi feito até o dia atual.
+    return [...savedTaskEvidence, ...getConfiguredTrackEvidence(profile)];
   };
 
   const getEffectiveQualityForProfile = (
@@ -656,7 +686,7 @@ export default function AdminAquecimento() {
   const selectedTasks = selectedProfileId ? tasks[selectedProfileId] || [] : [];
   const selectedTaskQuality = useMemo(
     () => selectedProfile ? getEffectiveQualityForProfile(selectedProfile) : DEFAULT_PROFILE_QUALITY_DATA,
-    [selectedProfile, tasks],
+    [selectedProfile, tasks, configTasks],
   );
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
@@ -762,7 +792,7 @@ export default function AdminAquecimento() {
       if (reviewFilterPage && !q.hasPage) return false;
       return true;
     });
-  }, [visibleProfiles, reviewQualityMap, tasks, reviewFilter2FA, reviewFilterBM, reviewFilterPage, reviewSearch]);
+  }, [visibleProfiles, reviewQualityMap, tasks, configTasks, reviewFilter2FA, reviewFilterBM, reviewFilterPage, reviewSearch]);
 
   useEffect(() => {
     if (userContextReadyRef.current && currentUserId) {
