@@ -91,7 +91,7 @@ export default function ProfileQualityMeter({ profileId, profileCode, initialQua
         }
         setLoaded(true);
       });
-  }, [profileId, initialQuality]);
+  }, [profileId, initialQuality?.has2FA, initialQuality?.hasBM, initialQuality?.hasPage, initialQuality?.friendRange]);
 
   useEffect(() => {
     supabase

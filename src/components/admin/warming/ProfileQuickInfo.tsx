@@ -80,7 +80,7 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
     setData({ ...DEFAULT_PROFILE_QUALITY_DATA, ...initialQuality });
     setLoaded(false);
     loadData(profileId);
-  }, [profileId, initialQuality]);
+  }, [profileId, initialQuality?.has2FA, initialQuality?.hasBM, initialQuality?.hasPage, initialQuality?.friendRange]);
 
   const saveFriendRange = async (range: string) => {
     const newData = { ...data, friendRange: range };

@@ -462,8 +462,12 @@ export default function AdminAquecimento() {
     const quality = qualityRow?.value
       ? { ...DEFAULT_PROFILE_QUALITY_DATA, ...JSON.parse(qualityRow.value) }
       : DEFAULT_PROFILE_QUALITY_DATA;
+    const effectiveQuality = getEffectiveProfileQuality(
+      quality,
+      getProfileTaskEvidence(profile, tasks[profileId] || []),
+    );
 
-    if (!isProfileReadyForSale(profile, quality, readyCriteria)) return false;
+    if (!isProfileReadyForSale(profile, effectiveQuality, readyCriteria)) return false;
 
     await supabase
       .from("warming_profiles")
@@ -749,11 +753,10 @@ export default function AdminAquecimento() {
   // Filter profiles for review tab
   const reviewFilteredProfiles = useMemo(() => {
     const searchTrimmed = reviewSearch.trim().toLowerCase();
-    const hasAnyFilter = reviewFilter2FA || reviewFilterBM || reviewFilterPage || searchTrimmed;
     
     return visibleProfiles.filter(p => {
       if (searchTrimmed && !p.profile_code.toLowerCase().includes(searchTrimmed)) return false;
-      const q = getEffectiveProfileQuality(reviewQualityMap[p.id], tasks[p.id] || []);
+      const q = getEffectiveQualityForProfile(p, reviewQualityMap[p.id]);
       if (reviewFilter2FA && !q.has2FA) return false;
       if (reviewFilterBM && !q.hasBM) return false;
       if (reviewFilterPage && !q.hasPage) return false;
@@ -1605,7 +1608,7 @@ export default function AdminAquecimento() {
               </div>
             ) : (
               reviewFilteredProfiles.map((profile) => {
-                const q = getEffectiveProfileQuality(reviewQualityMap[profile.id], tasks[profile.id] || []);
+                const q = getEffectiveQualityForProfile(profile, reviewQualityMap[profile.id]);
                 const days = Math.max(1, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
                 const isEditing = reviewEditingId === profile.id;
                 return (
