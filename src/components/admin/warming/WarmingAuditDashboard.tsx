@@ -64,7 +64,7 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
-type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent";
+type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent" | "disabled";
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "all", label: "Todos", icon: "list" },
@@ -73,6 +73,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "checkpoint", label: "Checkpoint", icon: "pause_circle" },
   { value: "restricted", label: "Restritos", icon: "block" },
   { value: "sent", label: "Enviados", icon: "local_shipping" },
+  { value: "disabled", label: "Desabilitadas", icon: "no_accounts" },
 ];
 
 function SourceBadge({ active, label }: { active: boolean; label: string; source?: "manual" | "task" | "both" | null }) {
@@ -130,12 +131,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
   // Status-based counts (always from full profile list)
   const statusCounts = useMemo(() => {
-    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0 };
+    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0, disabled: 0 };
     profiles.forEach((p) => {
       if (p.status === "completed") counts.approved++;
       else if (p.status === "checkpoint") counts.checkpoint++;
       else if (p.status === "restricted" || p.status === "blocked") counts.restricted++;
       else if (p.status === "sent_to_store") counts.sent++;
+      else if (p.status === "disabled") counts.disabled++;
       else counts.pending++; // active
     });
     return counts;
@@ -169,6 +171,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
         if (statusFilter === "approved" && p.status !== "completed") return false;
         if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
         if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
+        if (statusFilter === "disabled" && p.status !== "disabled") return false;
       }
 
       const quality = effectiveQualityMap[p.id];
