@@ -957,7 +957,7 @@ export default function AdminAquecimento() {
   const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
   const completedProfiles = visibleProfiles.filter(p => p.status === "completed").length;
   const checkpointProfiles = visibleProfiles.filter(p => p.status === "checkpoint").length;
-  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted" || p.status === "blocked").length;
+  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted" || p.status === "blocked" || p.status === "disabled").length;
   const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
 
   const newProfiles = visibleProfiles.filter(p => p.track_type === "7_days").length;

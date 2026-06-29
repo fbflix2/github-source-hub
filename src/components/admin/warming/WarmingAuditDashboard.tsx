@@ -64,7 +64,7 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
-type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent";
+type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent" | "disabled";
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "all", label: "Todos", icon: "list" },
@@ -73,6 +73,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "checkpoint", label: "Checkpoint", icon: "pause_circle" },
   { value: "restricted", label: "Restritos", icon: "block" },
   { value: "sent", label: "Enviados", icon: "local_shipping" },
+  { value: "disabled", label: "Desabilitadas", icon: "no_accounts" },
 ];
 
 function SourceBadge({ active, label }: { active: boolean; label: string; source?: "manual" | "task" | "both" | null }) {
@@ -130,12 +131,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
   // Status-based counts (always from full profile list)
   const statusCounts = useMemo(() => {
-    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0 };
+    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0, disabled: 0 };
     profiles.forEach((p) => {
       if (p.status === "completed") counts.approved++;
       else if (p.status === "checkpoint") counts.checkpoint++;
       else if (p.status === "restricted" || p.status === "blocked") counts.restricted++;
       else if (p.status === "sent_to_store") counts.sent++;
+      else if (p.status === "disabled") counts.disabled++;
       else counts.pending++; // active
     });
     return counts;
@@ -169,6 +171,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
         if (statusFilter === "approved" && p.status !== "completed") return false;
         if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
         if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
+        if (statusFilter === "disabled" && p.status !== "disabled") return false;
       }
 
       const quality = effectiveQualityMap[p.id];
@@ -240,6 +243,31 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
     } catch (err) {
       console.error(err);
       toast.error("Erro ao marcar checkpoint");
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const markDisabled = async (profile: WarmingProfile) => {
+    if (!confirm(`Marcar o perfil ${profile.profile_code} como CONTA DESABILITADA?\n\nEle entrará na métrica de Perdas do mês e os ganhos do operador serão cancelados.`)) return;
+    setApproving(profile.id);
+    try {
+      await supabase
+        .from("warming_profiles" as any)
+        .update({ status: "disabled" })
+        .eq("id", profile.id);
+
+      await supabase
+        .from("operator_earnings")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("profile_id", profile.id)
+        .neq("status", "cancelled");
+
+      toast.success(`🚫 Perfil ${profile.profile_code} marcado como Conta Desabilitada.`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao marcar como desabilitada");
     } finally {
       setApproving(null);
     }
@@ -399,6 +427,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
             const days = getProfileWarmingDays(profile);
             const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
             const isApproved = profile.status === "completed";
+            const isDisabled = profile.status === "disabled";
 
             return (
               <div
@@ -430,6 +459,10 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                   <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
                     <MIcon name="check_circle" className="text-base" /> Aprovado
                   </span>
+                ) : isDisabled ? (
+                  <span className="flex items-center gap-1 text-rose-400 text-xs font-bold shrink-0">
+                    <MIcon name="no_accounts" className="text-base" /> Conta Desabilitada
+                  </span>
                 ) : profile.status === "checkpoint" ? (
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="flex items-center gap-1 text-yellow-400 text-xs font-bold">
@@ -442,6 +475,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                     >
                       <MIcon name="verified" className="text-sm" /> Aprovar
                     </button>
+                    <button
+                      onClick={() => markDisabled(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="no_accounts" className="text-sm" /> Desabilitada
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 shrink-0">
@@ -452,6 +492,14 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                     >
                       <MIcon name="pause_circle" className="text-base" />
                       Checkpoint
+                    </button>
+                    <button
+                      onClick={() => markDisabled(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="no_accounts" className="text-base" />
+                      Desabilitada
                     </button>
                     <button
                       onClick={() => approveProfile(profile)}
