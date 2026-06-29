@@ -14,10 +14,37 @@ export function CookieConsent() {
   const [prefs, setPrefs] = useState<Prefs>({ necessary: true, analytics: true, marketing: false });
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) setOpen(true);
-    } catch { setOpen(true); }
+    (async () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return;
+      } catch {}
+      // Fallback: check DB for prior consent of this user (covers cleared localStorage / other devices)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from("consent_logs")
+            .select("event_type, preferences, policy_version")
+            .eq("user_id", user.id)
+            .in("event_type", ["cookies_accept_all", "cookies_reject_all", "cookies_custom"])
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (data) {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                preferences: data.preferences,
+                version: data.policy_version,
+                ts: new Date().toISOString(),
+              }));
+            } catch {}
+            return;
+          }
+        }
+      } catch {}
+      setOpen(true);
+    })();
   }, []);
 
   const persist = async (eventType: string, preferences: Prefs) => {
