@@ -660,9 +660,9 @@ export default function AdminAquecimento() {
   const getProfileTaskEvidence = (profile: WarmingProfile, profileTasks: WarmingTask[]) => {
     const elapsedDays = Math.max(
       1,
-      Math.floor((Date.now() - new Date(profile.start_date || profile.created_at).getTime()) / 86400000) + 1,
+      Math.floor((Date.now() - new Date(profile.start_date || profile.created_at).getTime()) / 86400000),
     );
-    const completedUntilDay = Math.max(profile.current_day, elapsedDays);
+    const completedUntilDay = Math.max(profile.current_day - 1, elapsedDays);
     const savedTaskEvidence = profileTasks.map((task) => ({
       ...task,
       completed:
