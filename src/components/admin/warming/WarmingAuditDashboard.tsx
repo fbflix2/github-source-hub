@@ -248,6 +248,31 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
     }
   };
 
+  const markDisabled = async (profile: WarmingProfile) => {
+    if (!confirm(`Marcar o perfil ${profile.profile_code} como CONTA DESABILITADA?\n\nEle entrará na métrica de Perdas do mês e os ganhos do operador serão cancelados.`)) return;
+    setApproving(profile.id);
+    try {
+      await supabase
+        .from("warming_profiles" as any)
+        .update({ status: "disabled" })
+        .eq("id", profile.id);
+
+      await supabase
+        .from("operator_earnings")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("profile_id", profile.id)
+        .neq("status", "cancelled");
+
+      toast.success(`🚫 Perfil ${profile.profile_code} marcado como Conta Desabilitada.`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao marcar como desabilitada");
+    } finally {
+      setApproving(null);
+    }
+  };
+
   return (
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
       <div className="flex items-center gap-3 mb-2">
