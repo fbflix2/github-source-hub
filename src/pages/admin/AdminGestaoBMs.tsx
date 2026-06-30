@@ -463,6 +463,32 @@ export default function AdminGestaoBMs() {
         _hasSafeBm: protectedStockIds.has(m.id),
       }));
 
+      // Verifica quais itens já foram notificados (safe_bm_offer enviado)
+      try {
+        const stockIds = enriched.map((e: any) => e.id);
+        if (stockIds.length > 0) {
+          const { data: logs } = await supabase
+            .from("whatsapp_logs")
+            .select("metadata, created_at, status")
+            .eq("event_key", "safe_bm_offer")
+            .in("status", ["sent", "delivered", "read"]);
+          const notifiedMap: Record<string, string> = {};
+          (logs || []).forEach((l: any) => {
+            const sid = l?.metadata?.stock_item_id;
+            if (sid && stockIds.includes(sid)) {
+              if (!notifiedMap[sid] || new Date(l.created_at) > new Date(notifiedMap[sid])) {
+                notifiedMap[sid] = l.created_at;
+              }
+            }
+          });
+          enriched.forEach((e: any) => {
+            if (notifiedMap[e.id]) e._notifiedAt = notifiedMap[e.id];
+          });
+        }
+      } catch (e) {
+        console.warn("Falha ao checar notificações prévias", e);
+      }
+
       setGlobalSearchResults(enriched);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
