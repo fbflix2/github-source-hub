@@ -25,6 +25,7 @@ const EVENT_KEYS = [
    { value: "proxy_cancelled", label: "Cancelamento de Proxy" },
    { value: "password_reset", label: "Reset de Senha" },
   { value: "safe_bm_offer", label: "Oferta Safe BM (BM antiga)" },
+  { value: "safe_bm_offer_followup", label: "Oferta Safe BM - Follow-up 24h" },
   { value: "promo", label: "Oferta / Promoção" },
   { value: "general", label: "Aviso Geral" },
   { value: "custom", label: "Personalizado" },

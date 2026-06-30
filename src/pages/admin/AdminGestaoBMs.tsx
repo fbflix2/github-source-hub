@@ -522,7 +522,13 @@ export default function AdminGestaoBMs() {
           message,
           user_id: buyer.user_id,
           event_key: "safe_bm_offer",
-          metadata: { stock_item_id: item.id, days_since_purchase: days },
+          metadata: {
+            stock_item_id: item.id,
+            days_since_purchase: days,
+            nome: firstName,
+            bm: bmList,
+            user_id: buyer.user_id,
+          },
         },
       });
       if (error) throw error;
