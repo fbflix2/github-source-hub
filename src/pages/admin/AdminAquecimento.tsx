@@ -1840,7 +1840,6 @@ export default function AdminAquecimento() {
 
       {/* Status Modal — listing profiles in Checkpoint / Losses */}
       {statusModal && (() => {
-        const isCheckpoint = statusModal === "checkpoint";
         const filterFn: Record<string, (p: any) => boolean> = {
           total: () => true,
           active: (p) => p.status === "active" || p.status === "in_progress" || !p.status,
