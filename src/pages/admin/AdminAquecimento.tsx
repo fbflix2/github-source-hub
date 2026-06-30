@@ -178,6 +178,7 @@ export default function AdminAquecimento() {
   const [reviewQualityMap, setReviewQualityMap] = useState<Record<string, Partial<ProfileQualityData>>>({});
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewEditingId, setReviewEditingId] = useState<string | null>(null);
+  const [statusModal, setStatusModal] = useState<null | "checkpoint" | "losses">(null);
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
