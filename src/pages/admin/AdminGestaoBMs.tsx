@@ -891,14 +891,47 @@ export default function AdminGestaoBMs() {
                     <div className="text-[10px] text-muted-foreground mb-2">
                       Criado em: {new Date(item.created_at).toLocaleDateString("pt-BR")}
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => window.open(`/admin/estoque?search=${item.id}`, "_blank")}
-                      className="text-[11px] h-7"
-                    >
-                      Ver no Estoque
-                    </Button>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/admin/estoque?search=${item.id}`, "_blank")}
+                        className="text-[11px] h-7"
+                      >
+                        Ver no Estoque
+                      </Button>
+                      {item.status === "vendido" && item._buyer && (() => {
+                        const orderDate = item._buyer.order_created_at ? new Date(item._buyer.order_created_at) : null;
+                        const days = orderDate
+                          ? Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24))
+                          : 0;
+                        if (item._hasSafeBm) {
+                          return (
+                            <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] gap-1">
+                              <Shield className="size-3" /> Já possui Safe BM
+                            </Badge>
+                          );
+                        }
+                        if (days >= 7 && item._buyer.phone) {
+                          return (
+                            <Button
+                              size="sm"
+                              onClick={() => handleNotifySafeBm(item)}
+                              disabled={notifyingItemId === item.id}
+                              className="text-[11px] h-7 gap-1 bg-primary hover:bg-primary/90"
+                            >
+                              {notifyingItemId === item.id ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                <Send className="size-3" />
+                              )}
+                              Notificar cliente ({days}d)
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
