@@ -506,10 +506,10 @@ export default function AdminGestaoBMs() {
       .maybeSingle();
     const template = tpl?.message_body || fallback;
     const message = template
-      .replaceAll("{{nome}}", firstName)
-      .replaceAll("{{saudacao}}", greeting)
-      .replaceAll("{{dias}}", String(days))
-      .replaceAll("{{bm}}", bmList);
+      .split("{{nome}}").join(firstName)
+      .split("{{saudacao}}").join(greeting)
+      .split("{{dias}}").join(String(days))
+      .split("{{bm}}").join(bmList);
 
     setNotifyingItemId(item.id);
     try {
