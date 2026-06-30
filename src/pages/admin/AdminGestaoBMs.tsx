@@ -472,6 +472,55 @@ export default function AdminGestaoBMs() {
     }
   };
 
+  const [notifyingItemId, setNotifyingItemId] = useState<string | null>(null);
+  const handleNotifySafeBm = async (item: any) => {
+    const buyer = item._buyer;
+    if (!buyer?.phone) {
+      toast.error("Cliente sem telefone cadastrado.");
+      return;
+    }
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "bom dia" : hour < 18 ? "boa tarde" : "boa noite";
+    const firstName = String(buyer.name || "Cliente").split(" ")[0];
+    const bmList = Array.isArray(item.data?.bmNames)
+      ? item.data.bmNames.join(", ")
+      : (item.data?.bmNames || item.identification || "");
+    const orderDate = buyer.order_created_at ? new Date(buyer.order_created_at) : null;
+    const days = orderDate
+      ? Math.max(0, Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    const message =
+      `Olá ${firstName}, ${greeting}, tudo bem?\n\n` +
+      `Percebemos que já se passaram *${days} dias* desde a aquisição da sua BM *${bmList}* e ela ainda consta no nosso perfil matriz de backup. 🔒\n\n` +
+      `Deseja adicionar esse BM ao *Safe BM (Cofre Digital)* e não correr o risco de perder esse BM?\n\n` +
+      `Caso seu perfil caia ou seja desabilitado, você recebe o acesso da sua BM de forma *automática, na hora*, mesmo com o perfil bloqueado. ✅\n\n` +
+      `Podemos seguir e remover nosso perfil matriz, ou deseja aplicar a proteção do *Cofre Digital* ao seu BM?\n\n` +
+      `👉 fbflix.com.br/safe-bm`;
+
+    setNotifyingItemId(item.id);
+    try {
+      const phone = String(buyer.phone).replace(/\D/g, "");
+      const normalized = phone.startsWith("55") ? phone : `55${phone}`;
+      const { error } = await supabase.functions.invoke("wapi-send", {
+        body: {
+          action: "send-text",
+          phone: normalized,
+          message,
+          user_id: buyer.user_id,
+          event_key: "safe_bm_offer",
+          metadata: { stock_item_id: item.id, days_since_purchase: days },
+        },
+      });
+      if (error) throw error;
+      toast.success(`Notificação enviada para ${firstName}`);
+    } catch (err: any) {
+      toast.error("Falha ao enviar: " + err.message);
+    } finally {
+      setNotifyingItemId(null);
+    }
+  };
+
   const handleBulkSearch = async () => {
     const lines = bulkSearchList.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
