@@ -1721,6 +1721,32 @@ export default function AdminAquecimento() {
                         <MIcon name="no_accounts" className="text-sm" /> Conta Desabilitada
                       </button>
                     )}
+                    {profile.status !== "disabled" && profile.status !== "completed" && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Marcar o perfil ${profile.profile_code} como PRONTO?\n\nEle sairá da fila de aquecimento e ficará disponível como Perfil Pronto.`)) return;
+                          try {
+                            await supabase
+                              .from("warming_profiles" as any)
+                              .update({ status: "completed", updated_at: new Date().toISOString() })
+                              .eq("id", profile.id);
+                            toast.success(`✅ ${profile.profile_code} marcado como Pronto.`);
+                            fetchProfiles();
+                          } catch (e) {
+                            console.error(e);
+                            toast.error("Erro ao marcar como pronto");
+                          }
+                        }}
+                        className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                      >
+                        <MIcon name="check_circle" className="text-sm" /> Pronto
+                      </button>
+                    )}
+                    {profile.status === "completed" && (
+                      <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
+                        <MIcon name="check_circle" className="text-base" /> Pronto
+                      </span>
+                    )}
                     {profile.status === "disabled" && (
                       <span className="flex items-center gap-1 text-rose-400 text-xs font-bold shrink-0">
                         <MIcon name="no_accounts" className="text-base" /> Conta Desabilitada
