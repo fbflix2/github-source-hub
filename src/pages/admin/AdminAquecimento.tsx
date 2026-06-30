@@ -1841,17 +1841,22 @@ export default function AdminAquecimento() {
       {/* Status Modal — listing profiles in Checkpoint / Losses */}
       {statusModal && (() => {
         const isCheckpoint = statusModal === "checkpoint";
-        const list = visibleProfiles.filter(p =>
-          isCheckpoint
-            ? p.status === "checkpoint"
-            : (p.status === "restricted" || p.status === "blocked" || p.status === "disabled")
-        );
-        const title = isCheckpoint ? "Perfis em Checkpoint" : "Perdas do Mês";
-        const subtitle = isCheckpoint
-          ? "Perfis que requerem atenção"
-          : "Perfis bloqueados, restritos ou desabilitados";
-        const accent = isCheckpoint ? "text-yellow-500" : "text-rose-500";
-        const icon = isCheckpoint ? "warning" : "block";
+        const filterFn: Record<string, (p: any) => boolean> = {
+          total: () => true,
+          active: (p) => p.status === "active" || p.status === "in_progress" || !p.status,
+          completed: (p) => p.status === "completed",
+          checkpoint: (p) => p.status === "checkpoint",
+          losses: (p) => p.status === "restricted" || p.status === "blocked" || p.status === "disabled",
+        };
+        const list = visibleProfiles.filter(filterFn[statusModal]);
+        const meta: Record<string, { title: string; subtitle: string; accent: string; icon: string; bg: string }> = {
+          total: { title: "Todos os Perfis", subtitle: "Lista completa de perfis", accent: "text-[#1876f2]", icon: "group", bg: "bg-[#1876f2]/10" },
+          active: { title: "Perfis em Aquecimento", subtitle: "Perfis ativos na esteira", accent: "text-amber-500", icon: "local_fire_department", bg: "bg-amber-500/10" },
+          completed: { title: "Perfis Prontos para Uso", subtitle: "Perfis com alta maturidade", accent: "text-emerald-500", icon: "check_circle", bg: "bg-emerald-500/10" },
+          checkpoint: { title: "Perfis em Checkpoint", subtitle: "Perfis que requerem atenção", accent: "text-yellow-500", icon: "warning", bg: "bg-yellow-500/10" },
+          losses: { title: "Perdas do Mês", subtitle: "Perfis bloqueados, restritos ou desabilitados", accent: "text-rose-500", icon: "block", bg: "bg-rose-500/10" },
+        };
+        const { title, subtitle, accent, icon, bg } = meta[statusModal];
         return (
           <div
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
