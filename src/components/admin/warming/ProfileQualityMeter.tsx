@@ -79,15 +79,21 @@ export default function ProfileQualityMeter({ profileId, profileCode, initialQua
         if (row?.value) {
           try {
             const saved = JSON.parse(row.value);
-            setData({
+            const merged = {
               ...DEFAULT_DATA,
               ...saved,
               has2FA: Boolean(saved.has2FA || initialQuality?.has2FA),
               hasBM: Boolean(saved.hasBM || initialQuality?.hasBM),
               hasPage: Boolean(saved.hasPage || initialQuality?.hasPage),
               friendRange: saved.friendRange || initialQuality?.friendRange || DEFAULT_DATA.friendRange,
-            });
+            };
+            setData(merged);
+            // Auto-promove para Prontos se já atingiu Nível 3 (atalho).
+            void maybeAutoComplete(merged);
           } catch {}
+        } else if (initialQuality) {
+          const merged = { ...DEFAULT_DATA, ...initialQuality } as ProfileQualityData;
+          void maybeAutoComplete(merged);
         }
         setLoaded(true);
       });
@@ -145,6 +151,34 @@ export default function ProfileQualityMeter({ profileId, profileCode, initialQua
       console.error("Erro ao salvar qualidade:", err);
     }
     setSaving(false);
+  };
+
+  const maybeAutoComplete = async (q: ProfileQualityData) => {
+    try {
+      const { data: profileRow } = await supabase
+        .from("warming_profiles")
+        .select("id, created_at, start_date, status")
+        .eq("id", profileId)
+        .maybeSingle();
+      if (!profileRow || profileRow.status === "completed") return;
+      const { data: criteriaRow } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "warming_ready_criteria")
+        .maybeSingle();
+      const criteria = criteriaRow?.value
+        ? parseReadyCriteria(JSON.parse(criteriaRow.value))
+        : DEFAULT_READY_CRITERIA;
+      if (isProfileReadyForSale(profileRow, q, criteria)) {
+        await supabase
+          .from("warming_profiles")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("id", profileId);
+        toast.success(`Perfil ${profileCode} movido para Perfis Prontos.`);
+      }
+    } catch (err) {
+      console.error("auto-complete check failed", err);
+    }
   };
 
   if (!loaded) return null;
