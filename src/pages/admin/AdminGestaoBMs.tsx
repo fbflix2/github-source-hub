@@ -957,6 +957,21 @@ export default function AdminGestaoBMs() {
                             </Badge>
                           );
                         }
+                        if (item._notifiedAt) {
+                          const notifDate = new Date(item._notifiedAt);
+                          const hoursAgo = Math.floor((Date.now() - notifDate.getTime()) / (1000 * 60 * 60));
+                          const label = hoursAgo < 24
+                            ? `há ${hoursAgo}h`
+                            : `há ${Math.floor(hoursAgo / 24)}d`;
+                          return (
+                            <Badge
+                              className="bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[10px] gap-1"
+                              title={`Notificado em ${notifDate.toLocaleString("pt-BR")}`}
+                            >
+                              <Send className="size-3" /> Notificado {label}
+                            </Badge>
+                          );
+                        }
                         if (days >= 7 && item._buyer.phone) {
                           return (
                             <Button
