@@ -1155,10 +1155,14 @@ export default function AdminAquecimento() {
               { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores" },
               { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total` },
               { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500" },
-              { label: "Checkpoint", value: checkpointProfiles, icon: "warning", color: "text-yellow-500", sub: checkpointProfiles > 0 ? "Requer atenção" : "Nenhum no momento", subIcon: checkpointProfiles > 0 ? "priority_high" : undefined, subColor: checkpointProfiles > 0 ? "text-yellow-500" : undefined },
-              { label: "Perdas (Mês)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: restrictedProfiles > 0 ? `${restrictedProfiles} bloqueado(s)` : "Sem dados anteriores", subColor: restrictedProfiles > 0 ? "text-rose-500" : undefined },
-            ].map(kpi => (
-              <div key={kpi.label} className="bg-white dark:bg-white/5 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              { label: "Checkpoint", value: checkpointProfiles, icon: "warning", color: "text-yellow-500", sub: checkpointProfiles > 0 ? "Requer atenção" : "Nenhum no momento", subIcon: checkpointProfiles > 0 ? "priority_high" : undefined, subColor: checkpointProfiles > 0 ? "text-yellow-500" : undefined, onClick: () => setStatusModal("checkpoint") },
+              { label: "Perdas (Mês)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: restrictedProfiles > 0 ? `${restrictedProfiles} bloqueado(s)` : "Sem dados anteriores", subColor: restrictedProfiles > 0 ? "text-rose-500" : undefined, onClick: () => setStatusModal("losses") },
+            ].map((kpi: any) => (
+              <div
+                key={kpi.label}
+                onClick={kpi.onClick}
+                className={`bg-white dark:bg-white/5 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm ${kpi.onClick ? "cursor-pointer hover:border-[#1876f2]/40 hover:bg-white/10 transition-all" : ""}`}
+              >
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-slate-500 dark:text-white/50 font-medium text-[11px]">{kpi.label}</p>
                   <MIcon name={kpi.icon} className={`text-base ${kpi.color}`} />
