@@ -490,13 +490,26 @@ export default function AdminGestaoBMs() {
       ? Math.max(0, Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
 
-    const message =
-      `Olá ${firstName}, ${greeting}, tudo bem?\n\n` +
-      `Percebemos que já se passaram *${days} dias* desde a aquisição da sua BM *${bmList}* e ela ainda consta no nosso perfil matriz de backup. 🔒\n\n` +
+    // Try to load editable template from DB; fall back to inline default
+    const fallback =
+      `Olá {{nome}}, {{saudacao}}, tudo bem?\n\n` +
+      `Percebemos que já se passaram *{{dias}} dias* desde a aquisição da sua BM *{{bm}}* e ela ainda consta no nosso perfil matriz de backup. 🔒\n\n` +
       `Deseja adicionar esse BM ao *Safe BM (Cofre Digital)* e não correr o risco de perder esse BM?\n\n` +
       `Caso seu perfil caia ou seja desabilitado, você recebe o acesso da sua BM de forma *automática, na hora*, mesmo com o perfil bloqueado. ✅\n\n` +
       `Podemos seguir e remover nosso perfil matriz, ou deseja aplicar a proteção do *Cofre Digital* ao seu BM?\n\n` +
       `👉 fbflix.com.br/safe-bm`;
+    const { data: tpl } = await supabase
+      .from("whatsapp_templates")
+      .select("message_body")
+      .eq("event_key", "safe_bm_offer")
+      .eq("active", true)
+      .maybeSingle();
+    const template = tpl?.message_body || fallback;
+    const message = template
+      .split("{{nome}}").join(firstName)
+      .split("{{saudacao}}").join(greeting)
+      .split("{{dias}}").join(String(days))
+      .split("{{bm}}").join(bmList);
 
     setNotifyingItemId(item.id);
     try {
