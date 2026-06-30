@@ -508,9 +508,12 @@ export default function AdminGestaoBMs() {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "bom dia" : hour < 18 ? "boa tarde" : "boa noite";
     const firstName = String(buyer.name || "Cliente").split(" ")[0];
-    const bmList = Array.isArray(item.data?.bmNames)
-      ? item.data.bmNames.join(", ")
-      : (item.data?.bmNames || item.identification || "");
+    const bmNamesArr = getItemBmNames(item);
+    const bmList = (
+      bmNamesArr.length > 0
+        ? bmNamesArr.join(", ")
+        : (item.identification || item.identification_link || item.data?.rawBmInput || item.name || "")
+    ).toString().trim() || "—";
     const orderDate = buyer.order_created_at ? new Date(buyer.order_created_at) : null;
     const days = orderDate
       ? Math.max(0, Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24)))
