@@ -178,7 +178,7 @@ export default function AdminAquecimento() {
   const [reviewQualityMap, setReviewQualityMap] = useState<Record<string, Partial<ProfileQualityData>>>({});
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewEditingId, setReviewEditingId] = useState<string | null>(null);
-  const [statusModal, setStatusModal] = useState<null | "checkpoint" | "losses">(null);
+  const [statusModal, setStatusModal] = useState<null | "checkpoint" | "losses" | "total" | "active" | "completed">(null);
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
@@ -1152,9 +1152,9 @@ export default function AdminAquecimento() {
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
             {[
-              { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores" },
-              { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total` },
-              { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500" },
+              { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores", onClick: () => setStatusModal("total") },
+              { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total`, onClick: () => setStatusModal("active") },
+              { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500", onClick: () => setStatusModal("completed") },
               { label: "Checkpoint", value: checkpointProfiles, icon: "warning", color: "text-yellow-500", sub: checkpointProfiles > 0 ? "Requer atenção" : "Nenhum no momento", subIcon: checkpointProfiles > 0 ? "priority_high" : undefined, subColor: checkpointProfiles > 0 ? "text-yellow-500" : undefined, onClick: () => setStatusModal("checkpoint") },
               { label: "Perdas (Mês)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: restrictedProfiles > 0 ? `${restrictedProfiles} bloqueado(s)` : "Sem dados anteriores", subColor: restrictedProfiles > 0 ? "text-rose-500" : undefined, onClick: () => setStatusModal("losses") },
             ].map((kpi: any) => (
@@ -1840,18 +1840,22 @@ export default function AdminAquecimento() {
 
       {/* Status Modal — listing profiles in Checkpoint / Losses */}
       {statusModal && (() => {
-        const isCheckpoint = statusModal === "checkpoint";
-        const list = visibleProfiles.filter(p =>
-          isCheckpoint
-            ? p.status === "checkpoint"
-            : (p.status === "restricted" || p.status === "blocked" || p.status === "disabled")
-        );
-        const title = isCheckpoint ? "Perfis em Checkpoint" : "Perdas do Mês";
-        const subtitle = isCheckpoint
-          ? "Perfis que requerem atenção"
-          : "Perfis bloqueados, restritos ou desabilitados";
-        const accent = isCheckpoint ? "text-yellow-500" : "text-rose-500";
-        const icon = isCheckpoint ? "warning" : "block";
+        const filterFn: Record<string, (p: any) => boolean> = {
+          total: () => true,
+          active: (p) => p.status === "active" || p.status === "in_progress" || !p.status,
+          completed: (p) => p.status === "completed",
+          checkpoint: (p) => p.status === "checkpoint",
+          losses: (p) => p.status === "restricted" || p.status === "blocked" || p.status === "disabled",
+        };
+        const list = visibleProfiles.filter(filterFn[statusModal]);
+        const meta: Record<string, { title: string; subtitle: string; accent: string; icon: string; bg: string }> = {
+          total: { title: "Todos os Perfis", subtitle: "Lista completa de perfis", accent: "text-[#1876f2]", icon: "group", bg: "bg-[#1876f2]/10" },
+          active: { title: "Perfis em Aquecimento", subtitle: "Perfis ativos na esteira", accent: "text-amber-500", icon: "local_fire_department", bg: "bg-amber-500/10" },
+          completed: { title: "Perfis Prontos para Uso", subtitle: "Perfis com alta maturidade", accent: "text-emerald-500", icon: "check_circle", bg: "bg-emerald-500/10" },
+          checkpoint: { title: "Perfis em Checkpoint", subtitle: "Perfis que requerem atenção", accent: "text-yellow-500", icon: "warning", bg: "bg-yellow-500/10" },
+          losses: { title: "Perdas do Mês", subtitle: "Perfis bloqueados, restritos ou desabilitados", accent: "text-rose-500", icon: "block", bg: "bg-rose-500/10" },
+        };
+        const { title, subtitle, accent, icon, bg } = meta[statusModal];
         return (
           <div
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -1885,6 +1889,9 @@ export default function AdminAquecimento() {
                 ) : list.map((p) => {
                   const days = Math.max(1, Math.floor((Date.now() - new Date(p.start_date).getTime()) / 86400000));
                   const statusLabel: Record<string, string> = {
+                    active: "Ativo",
+                    in_progress: "Em andamento",
+                    completed: "Pronto",
                     checkpoint: "Checkpoint",
                     restricted: "Restrito",
                     blocked: "Bloqueado",
@@ -1896,7 +1903,7 @@ export default function AdminAquecimento() {
                       className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-3 flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCheckpoint ? "bg-yellow-500/10" : "bg-rose-500/10"}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
                           <MIcon name="person" className={accent} />
                         </div>
                         <div className="min-w-0">
