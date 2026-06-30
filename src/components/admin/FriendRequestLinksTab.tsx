@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, ExternalLink, UserPlus, Link2, Plus } from "lucide-react";
+import { Trash2, ExternalLink, UserPlus, Link2, Plus, Eraser } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 
 type Batch = { id: string; supplier_id: string; name: string };
 type Supplier = { id: string; name: string };
 type Target = {
   id: string;
-  batch_id: string;
+  batch_id: string | null;
   profile_url: string;
   profile_name: string | null;
   added: boolean;
@@ -40,6 +40,7 @@ export default function FriendRequestLinksTab({
   batches: Batch[];
   suppliers: Supplier[];
 }) {
+  const NO_BATCH = "__no_batch__";
   const [targets, setTargets] = useState<Target[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBatch, setSelectedBatch] = useState<string>("");
@@ -78,7 +79,7 @@ export default function FriendRequestLinksTab({
   // Quando um lote é selecionado, busca os profile_link das contas daquele lote
   // e preenche o textarea automaticamente (apenas se ainda estiver vazio).
   useEffect(() => {
-    if (!selectedBatch) return;
+    if (!selectedBatch || selectedBatch === NO_BATCH) return;
     let cancelled = false;
     (async () => {
       setLoadingLinks(true);
@@ -123,7 +124,7 @@ export default function FriendRequestLinksTab({
 
   const addBulk = async () => {
     if (!selectedBatch) {
-      toast.error("Selecione um lote");
+      toast.error("Selecione um lote (ou 'Sem lote')");
       return;
     }
     const lines = bulkInput
@@ -141,7 +142,7 @@ export default function FriendRequestLinksTab({
       const name =
         parts.find((p) => p && !/^https?:\/\//i.test(p)) || extractName(url);
       return {
-        batch_id: selectedBatch,
+        batch_id: selectedBatch === NO_BATCH ? null : selectedBatch,
         profile_url: url,
         profile_name: name,
       };
@@ -169,9 +170,36 @@ export default function FriendRequestLinksTab({
     setTargets((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const clearAll = async () => {
+    if (!targets.length) {
+      toast.message("Nenhum link para limpar");
+      return;
+    }
+    if (
+      !confirm(
+        `Tem certeza? Isso irá remover TODOS os ${targets.length} link(s) cadastrados.`,
+      )
+    )
+      return;
+    const { error } = await supabase
+      .from("friend_request_targets")
+      .delete()
+      .not("id", "is", null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Todos os links foram removidos");
+    setTargets([]);
+  };
+
   const filtered = useMemo(() => {
     return targets.filter((t) =>
-      filterBatch === "all" ? true : t.batch_id === filterBatch,
+      filterBatch === "all"
+        ? true
+        : filterBatch === NO_BATCH
+          ? t.batch_id === null
+          : t.batch_id === filterBatch,
     );
   }, [targets, filterBatch]);
 
@@ -179,9 +207,10 @@ export default function FriendRequestLinksTab({
   const grouped = useMemo(() => {
     const map = new Map<string, Target[]>();
     filtered.forEach((t) => {
-      const arr = map.get(t.batch_id) || [];
+      const key = t.batch_id ?? NO_BATCH;
+      const arr = map.get(key) || [];
       arr.push(t);
-      map.set(t.batch_id, arr);
+      map.set(key, arr);
     });
     return Array.from(map.entries());
   }, [filtered]);
@@ -197,11 +226,20 @@ export default function FriendRequestLinksTab({
             Organize por lote os perfis que receberão pedidos de amizade.
           </p>
         </div>
-        <Button asChild variant="default" className="gap-2">
-          <RouterLink to="/admin/solicitacoes-amizade">
-            <UserPlus className="size-4" /> Abrir página de solicitações
-          </RouterLink>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={clearAll}
+            className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+          >
+            <Eraser className="size-4" /> Limpar todos
+          </Button>
+          <Button asChild variant="default" className="gap-2">
+            <RouterLink to="/admin/solicitacoes-amizade">
+              <UserPlus className="size-4" /> Abrir página de solicitações
+            </RouterLink>
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-white/5 border-white/10">
@@ -214,9 +252,10 @@ export default function FriendRequestLinksTab({
           <div className="grid sm:grid-cols-[280px_1fr] gap-3">
             <Select value={selectedBatch} onValueChange={setSelectedBatch}>
               <SelectTrigger className="bg-background/60">
-                <SelectValue placeholder="Selecione o lote" />
+                <SelectValue placeholder="Selecione o lote (ou Sem lote)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={NO_BATCH}>Sem lote (link avulso)</SelectItem>
                 {batches.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
                     {supplierMap[b.supplier_id] || "—"} • {b.name}
@@ -244,6 +283,7 @@ export default function FriendRequestLinksTab({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os lotes</SelectItem>
+            <SelectItem value={NO_BATCH}>Sem lote (avulsos)</SelectItem>
             {batches.map((b) => (
               <SelectItem key={b.id} value={b.id}>
                 {supplierMap[b.supplier_id] || "—"} • {b.name}
@@ -263,15 +303,18 @@ export default function FriendRequestLinksTab({
       ) : (
         <div className="space-y-3">
           {grouped.map(([batchId, items]) => {
-            const batch = batchMap[batchId];
+            const isNoBatch = batchId === NO_BATCH;
+            const batch = isNoBatch ? null : batchMap[batchId];
             const supplierName = batch ? supplierMap[batch.supplier_id] : "—";
+            const headerLabel = isNoBatch
+              ? "Links avulsos (sem lote)"
+              : `${supplierName} • ${batch?.name || "(lote removido)"}`;
             return (
               <Card key={batchId} className="bg-white/5 border-white/10">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center justify-between">
                     <span>
-                      <span className="text-white/60">{supplierName} •</span>{" "}
-                      {batch?.name || "(lote removido)"}
+                      {headerLabel}
                     </span>
                     <Badge className="bg-primary/15 text-primary border-primary/30">
                       {items.length} perfis

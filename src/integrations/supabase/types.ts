@@ -1517,7 +1517,7 @@ export type Database = {
         Row: {
           added: boolean
           added_at: string | null
-          batch_id: string
+          batch_id: string | null
           blocked_at: string | null
           blocked_reason: string | null
           created_at: string
@@ -1534,7 +1534,7 @@ export type Database = {
         Insert: {
           added?: boolean
           added_at?: string | null
-          batch_id: string
+          batch_id?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
           created_at?: string
@@ -1551,7 +1551,7 @@ export type Database = {
         Update: {
           added?: boolean
           added_at?: string | null
-          batch_id?: string
+          batch_id?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
           created_at?: string
