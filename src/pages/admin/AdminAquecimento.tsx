@@ -1461,10 +1461,6 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  if (selectedProfileId) {
-                    await checkAndMoveProfileToReady(selectedProfileId);
-                  }
-
                   const nextProfile = sortedActiveQueue.find((profile) => profile.id !== selectedProfileId) || null;
 
                   setIsTimerActive(false);
