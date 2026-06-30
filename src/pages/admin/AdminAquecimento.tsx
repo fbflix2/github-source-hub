@@ -1733,9 +1733,9 @@ export default function AdminAquecimento() {
                             toast.error("Erro ao marcar como pronto");
                           }
                         }}
-                        className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                        className="flex items-center gap-1 bg-white/10 hover:bg-white/15 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
                       >
-                        <MIcon name="check_circle" className="text-sm" /> Pronto
+                        <MIcon name="check_circle" className="text-sm" /> Marcar como pronto
                       </button>
                     )}
                     {profile.status === "completed" && (
