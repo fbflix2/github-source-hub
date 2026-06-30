@@ -1,0 +1,1 @@
+ALTER TABLE public.friend_request_targets ALTER COLUMN batch_id DROP NOT NULL;
