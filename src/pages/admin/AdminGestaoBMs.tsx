@@ -463,6 +463,32 @@ export default function AdminGestaoBMs() {
         _hasSafeBm: protectedStockIds.has(m.id),
       }));
 
+      // Verifica quais itens já foram notificados (safe_bm_offer enviado)
+      try {
+        const stockIds = enriched.map((e: any) => e.id);
+        if (stockIds.length > 0) {
+          const { data: logs } = await supabase
+            .from("whatsapp_logs")
+            .select("metadata, created_at, status")
+            .eq("event_key", "safe_bm_offer")
+            .in("status", ["sent", "delivered", "read"]);
+          const notifiedMap: Record<string, string> = {};
+          (logs || []).forEach((l: any) => {
+            const sid = l?.metadata?.stock_item_id;
+            if (sid && stockIds.includes(sid)) {
+              if (!notifiedMap[sid] || new Date(l.created_at) > new Date(notifiedMap[sid])) {
+                notifiedMap[sid] = l.created_at;
+              }
+            }
+          });
+          enriched.forEach((e: any) => {
+            if (notifiedMap[e.id]) e._notifiedAt = notifiedMap[e.id];
+          });
+        }
+      } catch (e) {
+        console.warn("Falha ao checar notificações prévias", e);
+      }
+
       setGlobalSearchResults(enriched);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
@@ -928,6 +954,21 @@ export default function AdminGestaoBMs() {
                           return (
                             <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] gap-1">
                               <Shield className="size-3" /> Já possui Safe BM
+                            </Badge>
+                          );
+                        }
+                        if (item._notifiedAt) {
+                          const notifDate = new Date(item._notifiedAt);
+                          const hoursAgo = Math.floor((Date.now() - notifDate.getTime()) / (1000 * 60 * 60));
+                          const label = hoursAgo < 24
+                            ? `há ${hoursAgo}h`
+                            : `há ${Math.floor(hoursAgo / 24)}d`;
+                          return (
+                            <Badge
+                              className="bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[10px] gap-1"
+                              title={`Notificado em ${notifDate.toLocaleString("pt-BR")}`}
+                            >
+                              <Send className="size-3" /> Notificado {label}
                             </Badge>
                           );
                         }
