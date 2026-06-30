@@ -1890,6 +1890,9 @@ export default function AdminAquecimento() {
                 ) : list.map((p) => {
                   const days = Math.max(1, Math.floor((Date.now() - new Date(p.start_date).getTime()) / 86400000));
                   const statusLabel: Record<string, string> = {
+                    active: "Ativo",
+                    in_progress: "Em andamento",
+                    completed: "Pronto",
                     checkpoint: "Checkpoint",
                     restricted: "Restrito",
                     blocked: "Bloqueado",
@@ -1901,7 +1904,7 @@ export default function AdminAquecimento() {
                       className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-3 flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCheckpoint ? "bg-yellow-500/10" : "bg-rose-500/10"}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
                           <MIcon name="person" className={accent} />
                         </div>
                         <div className="min-w-0">
