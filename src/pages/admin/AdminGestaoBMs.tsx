@@ -405,33 +405,62 @@ export default function AdminGestaoBMs() {
       if (soldIds.length > 0) {
         const { data: oiRows } = await supabase
           .from("order_items")
-          .select("id, order_id, orders:order_id(id, code, user_id)")
+          .select("id, order_id, orders:order_id(id, code, user_id, created_at)")
           .in("id", soldIds);
         const userIds = [
           ...new Set(((oiRows as any[]) || []).map((r) => r.orders?.user_id).filter(Boolean)),
         ];
-        let nameMap: Record<string, string> = {};
+        let profileMap: Record<string, { name?: string; phone?: string }> = {};
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from("profiles")
-            .select("user_id, full_name")
+            .select("user_id, full_name, phone")
             .in("user_id", userIds);
           (profs || []).forEach((p: any) => {
-            if (p.full_name) nameMap[p.user_id] = p.full_name;
+            profileMap[p.user_id] = { name: p.full_name, phone: p.phone };
           });
         }
         ((oiRows as any[]) || []).forEach((r) => {
+          const uid = r.orders?.user_id;
           buyerByItem[r.id] = {
-            name: nameMap[r.orders?.user_id] || "—",
+            name: profileMap[uid]?.name || "—",
             order_code: r.orders?.code,
             order_id: r.orders?.id,
-          };
+            user_id: uid,
+            phone: profileMap[uid]?.phone,
+            order_created_at: r.orders?.created_at,
+          } as any;
         });
+      }
+
+      // Check which stock_items already have a Safe BM vault
+      const stockIds = matches.filter((m: any) => m.status === "vendido").map((m: any) => m.id);
+      const protectedStockIds = new Set<string>();
+      if (stockIds.length > 0) {
+        const { data: trackings } = await supabase
+          .from("bm_tracking")
+          .select("id, stock_item_id")
+          .in("stock_item_id", stockIds);
+        const trackingIds = (trackings || []).map((t: any) => t.id);
+        const trackingToStock: Record<string, string> = {};
+        (trackings || []).forEach((t: any) => { trackingToStock[t.id] = t.stock_item_id; });
+        if (trackingIds.length > 0) {
+          const { data: vaults } = await supabase
+            .from("safe_bm_vaults")
+            .select("bm_tracking_id, status")
+            .in("bm_tracking_id", trackingIds)
+            .in("status", ["active", "pending", "suspended"]);
+          (vaults || []).forEach((v: any) => {
+            const sid = trackingToStock[v.bm_tracking_id];
+            if (sid) protectedStockIds.add(sid);
+          });
+        }
       }
 
       const enriched = matches.map((m: any) => ({
         ...m,
         _buyer: m.order_item_id ? buyerByItem[m.order_item_id] : undefined,
+        _hasSafeBm: protectedStockIds.has(m.id),
       }));
 
       setGlobalSearchResults(enriched);
