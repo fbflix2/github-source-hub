@@ -1838,6 +1838,94 @@ export default function AdminAquecimento() {
         </main>
       )}
 
+      {/* Status Modal — listing profiles in Checkpoint / Losses */}
+      {statusModal && (() => {
+        const isCheckpoint = statusModal === "checkpoint";
+        const list = visibleProfiles.filter(p =>
+          isCheckpoint
+            ? p.status === "checkpoint"
+            : (p.status === "restricted" || p.status === "blocked" || p.status === "disabled")
+        );
+        const title = isCheckpoint ? "Perfis em Checkpoint" : "Perdas do Mês";
+        const subtitle = isCheckpoint
+          ? "Perfis que requerem atenção"
+          : "Perfis bloqueados, restritos ou desabilitados";
+        const accent = isCheckpoint ? "text-yellow-500" : "text-rose-500";
+        const icon = isCheckpoint ? "warning" : "block";
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setStatusModal(null)}
+          >
+            <div
+              className="bg-white dark:bg-[#0f0f0f] border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-white/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <MIcon name={icon} className={`text-2xl ${accent}`} />
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">{title}</h3>
+                    <p className="text-[11px] text-muted-foreground">{subtitle} · {list.length} perfil(is)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setStatusModal(null)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all"
+                >
+                  <MIcon name="close" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {list.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <MIcon name="check_circle" className="text-4xl mb-2 text-emerald-500" />
+                    <p className="text-sm">Nenhum perfil neste status</p>
+                  </div>
+                ) : list.map((p) => {
+                  const days = Math.max(1, Math.floor((Date.now() - new Date(p.start_date).getTime()) / 86400000));
+                  const statusLabel: Record<string, string> = {
+                    checkpoint: "Checkpoint",
+                    restricted: "Restrito",
+                    blocked: "Bloqueado",
+                    disabled: "Desabilitada",
+                  };
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCheckpoint ? "bg-yellow-500/10" : "bg-rose-500/10"}`}>
+                          <MIcon name="person" className={accent} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold truncate text-slate-900 dark:text-white">{p.profile_code}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {days} dias · {p.track_type.replace("_", " ")} · {statusLabel[p.status] || p.status}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setReviewSearch(p.profile_code);
+                          setReviewEditingId(p.id);
+                          setActiveTab("revisao");
+                          setStatusModal(null);
+                        }}
+                        className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                      >
+                        <MIcon name="open_in_new" className="text-sm" /> Abrir
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
