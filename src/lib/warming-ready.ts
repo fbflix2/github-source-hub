@@ -218,6 +218,12 @@ export function isProfileReadyForSale(
   const minFriendsReached = (FRIEND_RANGE_MIN[quality.friendRange] ?? 0) >= criteria.minFriends;
   const daysReached = getProfileWarmingDays(profile) >= criteria.minWarmingDays;
 
+  // Atalho: perfil já atingiu Nível 3 (2FA + BM + Página + amigos suficientes)
+  // pode ser dado como pronto imediatamente, sem precisar cumprir esteira/dias.
+  if (quality.has2FA && quality.hasBM && quality.hasPage && minFriendsReached) {
+    return true;
+  }
+
   if (!minFriendsReached) return false;
   if (criteria.require2FA && !quality.has2FA) return false;
   if (!daysReached) return false;
