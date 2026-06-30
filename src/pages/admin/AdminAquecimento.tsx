@@ -1152,9 +1152,9 @@ export default function AdminAquecimento() {
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
             {[
-              { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores" },
-              { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total` },
-              { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500" },
+              { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores", onClick: () => setStatusModal("total") },
+              { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total`, onClick: () => setStatusModal("active") },
+              { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500", onClick: () => setStatusModal("completed") },
               { label: "Checkpoint", value: checkpointProfiles, icon: "warning", color: "text-yellow-500", sub: checkpointProfiles > 0 ? "Requer atenção" : "Nenhum no momento", subIcon: checkpointProfiles > 0 ? "priority_high" : undefined, subColor: checkpointProfiles > 0 ? "text-yellow-500" : undefined, onClick: () => setStatusModal("checkpoint") },
               { label: "Perdas (Mês)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: restrictedProfiles > 0 ? `${restrictedProfiles} bloqueado(s)` : "Sem dados anteriores", subColor: restrictedProfiles > 0 ? "text-rose-500" : undefined, onClick: () => setStatusModal("losses") },
             ].map((kpi: any) => (
