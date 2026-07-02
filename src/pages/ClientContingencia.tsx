@@ -426,6 +426,21 @@ export default function ClientContingencia() {
                           backgroundColor: item.status === "block" ? "hsl(0 84% 60%)" :
                             item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)"
                         }} />
+                        {(type === "perfil" || type === "perfil_matriz") && (
+                          <div className="h-9 w-9 rounded-full overflow-hidden bg-muted flex items-center justify-center border border-border/50 shrink-0">
+                            {profilePhotos[item.id] ? (
+                              <img
+                                src={profilePhotos[item.id] as string}
+                                alt="Perfil"
+                                className="h-full w-full object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                              />
+                            ) : (
+                              <UserCircle className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        )}
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">
                             {item.identifier ? item.identifier :
