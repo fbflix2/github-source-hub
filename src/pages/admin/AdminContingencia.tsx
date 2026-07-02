@@ -73,6 +73,7 @@ const tierColors: Record<string, string> = {
 
 const typeLabels: Record<string, string> = {
   perfil: "Perfil",
+  perfil_matriz: "Perfil Matriz",
   proxy: "Proxy",
   bm: "BM",
   conta: "Conta de Anúncio",
@@ -98,6 +99,48 @@ export default function AdminContingencia() {
   // Structure modal state
   const [clientItems, setClientItems] = useState<Item[]>([]);
   const [clientReplacements, setClientReplacements] = useState<Replacement[]>([]);
+  const [newItemType, setNewItemType] = useState<string>("perfil");
+  const [newItemIdentifier, setNewItemIdentifier] = useState<string>("");
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
+
+  const handleUpdateItem = async (id: string, patch: { identifier?: string; status?: string }) => {
+    setSavingItemId(id);
+    const { error } = await supabase.from("ct_items").update(patch as any).eq("id", id);
+    setSavingItemId(null);
+    if (error) {
+      toast({ title: "Erro ao salvar item", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => prev.map(it => it.id === id ? { ...it, ...patch } as any : it));
+    toast({ title: "Item atualizado" });
+  };
+
+  const handleAddItem = async () => {
+    if (!showStructure) return;
+    const { data, error } = await supabase.from("ct_items").insert({
+      ct_client_id: showStructure.id,
+      type: newItemType,
+      identifier: newItemIdentifier || null,
+      status: "ativo",
+    } as any).select().single();
+    if (error) {
+      toast({ title: "Erro ao adicionar item", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => [...prev, data as any]);
+    setNewItemIdentifier("");
+    toast({ title: "Item adicionado" });
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!confirm("Remover este item?")) return;
+    const { error } = await supabase.from("ct_items").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => prev.filter(it => it.id !== id));
+  };
 
   // New client form
   const [newClient, setNewClient] = useState({
@@ -897,19 +940,47 @@ export default function AdminContingencia() {
               )}
 
               {/* Items by type */}
-              {(["perfil", "proxy", "bm", "conta"] as const).map(type => {
+              {(["perfil", "perfil_matriz", "bm", "conta", "proxy"] as const).map(type => {
                 const items = clientItems.filter(i => i.type === type);
                 if (!items.length) return null;
                 return (
                   <div key={type}>
-                    <h4 className="text-sm font-semibold text-white/80 mb-2 uppercase">{type === "bm" ? "BMs" : type + "s"} ({items.length})</h4>
-                    <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-white/80 mb-2 uppercase">
+                      {typeLabels[type]} ({items.length})
+                    </h4>
+                    <div className="space-y-2">
                       {items.map(item => (
-                        <div key={item.id} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 text-sm">
-                          <span className="text-white/70">{item.identifier || "Sem identificação"}</span>
-                          <Badge className={`${item.status === "ativo" ? "bg-emerald-500/20 text-emerald-400" : item.status === "block" ? "bg-red-500/20 text-red-400" : "bg-zinc-500/20 text-zinc-400"} text-xs`}>
-                            {item.status}
-                          </Badge>
+                        <div key={item.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-2 text-sm">
+                          <Input
+                            defaultValue={item.identifier || ""}
+                            placeholder={`ID / link do ${typeLabels[type]}`}
+                            className="bg-white/5 border-white/10 text-white h-8 text-xs"
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v !== (item.identifier || "")) {
+                                handleUpdateItem(item.id, { identifier: v || null as any });
+                              }
+                            }}
+                          />
+                          <Select value={item.status} onValueChange={(v) => handleUpdateItem(item.id, { status: v })}>
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 w-32 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ativo">Ativo</SelectItem>
+                              <SelectItem value="block">Block</SelectItem>
+                              <SelectItem value="substituido">Substituído</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={savingItemId === item.id}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -920,6 +991,34 @@ export default function AdminContingencia() {
               {clientItems.length === 0 && (
                 <div className="text-center text-white/40 py-4">Nenhum item cadastrado</div>
               )}
+
+              {/* Add new item */}
+              <div className="border-t border-white/10 pt-4 space-y-2">
+                <h4 className="text-sm font-semibold text-white/80 uppercase">Cadastrar item</h4>
+                <div className="flex items-center gap-2">
+                  <Select value={newItemType} onValueChange={setNewItemType}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-9 w-40 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="perfil">Perfil</SelectItem>
+                      <SelectItem value="perfil_matriz">Perfil Matriz</SelectItem>
+                      <SelectItem value="bm">BM</SelectItem>
+                      <SelectItem value="conta">Conta de Anúncio</SelectItem>
+                      <SelectItem value="proxy">Proxy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={newItemIdentifier}
+                    onChange={(e) => setNewItemIdentifier(e.target.value)}
+                    placeholder="ID / link (opcional)"
+                    className="bg-white/5 border-white/10 text-white h-9 text-xs"
+                  />
+                  <Button size="sm" onClick={handleAddItem} className="bg-emerald-600 hover:bg-emerald-700 h-9">
+                    <Plus className="size-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>
