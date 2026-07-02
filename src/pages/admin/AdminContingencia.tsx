@@ -99,6 +99,48 @@ export default function AdminContingencia() {
   // Structure modal state
   const [clientItems, setClientItems] = useState<Item[]>([]);
   const [clientReplacements, setClientReplacements] = useState<Replacement[]>([]);
+  const [newItemType, setNewItemType] = useState<string>("perfil");
+  const [newItemIdentifier, setNewItemIdentifier] = useState<string>("");
+  const [savingItemId, setSavingItemId] = useState<string | null>(null);
+
+  const handleUpdateItem = async (id: string, patch: { identifier?: string; status?: string }) => {
+    setSavingItemId(id);
+    const { error } = await supabase.from("ct_items").update(patch as any).eq("id", id);
+    setSavingItemId(null);
+    if (error) {
+      toast({ title: "Erro ao salvar item", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => prev.map(it => it.id === id ? { ...it, ...patch } as any : it));
+    toast({ title: "Item atualizado" });
+  };
+
+  const handleAddItem = async () => {
+    if (!showStructure) return;
+    const { data, error } = await supabase.from("ct_items").insert({
+      ct_client_id: showStructure.id,
+      type: newItemType,
+      identifier: newItemIdentifier || null,
+      status: "ativo",
+    } as any).select().single();
+    if (error) {
+      toast({ title: "Erro ao adicionar item", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => [...prev, data as any]);
+    setNewItemIdentifier("");
+    toast({ title: "Item adicionado" });
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (!confirm("Remover este item?")) return;
+    const { error } = await supabase.from("ct_items").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      return;
+    }
+    setClientItems(prev => prev.filter(it => it.id !== id));
+  };
 
   // New client form
   const [newClient, setNewClient] = useState({
