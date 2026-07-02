@@ -17,7 +17,8 @@ import { ptBR } from "date-fns/locale";
 import {
   Shield, CheckCircle2, AlertTriangle, XCircle, Calendar, Wallet,
   Monitor, Globe, Megaphone, UserCircle, RotateCcw, Plus, MessageCircle,
-  History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight
+  History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight, TrendingUp,
+  DollarSign, Activity, FileText, Sparkles, Zap
 } from "lucide-react";
 
 function getOverdueDays(nextBilling: string | null | undefined): number {
@@ -27,6 +28,15 @@ function getOverdueDays(nextBilling: string | null | undefined): number {
   today.setHours(0, 0, 0, 0);
   const diff = today.getTime() - due;
   return diff > 0 ? Math.floor(diff / 86400000) : 0;
+}
+
+function getDaysUntil(nextBilling: string | null | undefined): number {
+  if (!nextBilling) return 0;
+  const due = new Date(nextBilling).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = due - today.getTime();
+  return diff > 0 ? Math.ceil(diff / 86400000) : 0;
 }
 
 const statusColors: Record<string, string> = {
@@ -274,131 +284,352 @@ export default function ClientContingencia() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Shield className="h-7 w-7 text-emerald-400" />
-        <div>
-          <h1 className="text-xl font-bold">Minha Contingência</h1>
-          <p className="text-sm text-muted-foreground">Gerencie sua estrutura e assinatura</p>
+    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
+      {/* ============ HERO ============ */}
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+            <Shield className="h-7 w-7 text-emerald-400" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Minha Contingência</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Gerencie toda sua estrutura de contingência em um único lugar.
+            </p>
+          </div>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium">{plan?.name || "—"}</span>
+          </div>
+          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">Estrutura ativa</span>
+          </div>
+        </div>
+      </header>
 
-      <Tabs defaultValue="visao-geral" className="space-y-6">
-        <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="visao-geral" className="flex-1 min-w-[100px] text-xs">Visão Geral</TabsTrigger>
-          <TabsTrigger value="estrutura" className="flex-1 min-w-[100px] text-xs">Minha Estrutura</TabsTrigger>
-          <TabsTrigger value="historico" className="flex-1 min-w-[100px] text-xs">Histórico</TabsTrigger>
-          <TabsTrigger value="assinatura" className="flex-1 min-w-[100px] text-xs">Assinatura</TabsTrigger>
-          <TabsTrigger value="ajuda" className="flex-1 min-w-[100px] text-xs">Ajuda</TabsTrigger>
+      <Tabs defaultValue="visao-geral" className="space-y-8">
+        {/* Premium tab bar */}
+        <TabsList className="w-full h-auto bg-transparent p-0 border-b border-border/60 rounded-none justify-start gap-1 overflow-x-auto flex-nowrap">
+          {[
+            { value: "visao-geral", label: "Visão Geral" },
+            { value: "estrutura", label: "Minha Estrutura" },
+            { value: "historico", label: "Histórico" },
+            { value: "assinatura", label: "Assinatura" },
+            { value: "ajuda", label: "Ajuda" },
+          ].map((t) => (
+            <TabsTrigger
+              key={t.value}
+              value={t.value}
+              className="relative rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-emerald-400 transition-colors"
+            >
+              {t.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {/* ===== VISÃO GERAL ===== */}
-        <TabsContent value="visao-geral" className="space-y-4">
+        <TabsContent value="visao-geral" className="space-y-6 mt-0 animate-in fade-in slide-in-from-bottom-1 duration-200">
           {/* Overdue billing alert */}
           {(() => {
             const overdueDays = getOverdueDays(ctClient.next_billing);
             if (overdueDays <= 0) return null;
             return (
-              <Card className="border border-red-500/40 bg-red-500/10">
-                <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-5">
-                  <AlertTriangle className="h-10 w-10 text-red-400 shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-base text-red-300">
-                      Sua assinatura está atrasada há {overdueDays} dia{overdueDays > 1 ? "s" : ""}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Renove agora para evitar a suspensão da sua estrutura e manter seus ativos funcionando.
-                    </p>
-                  </div>
-                  <Button
-                    className="bg-red-500 hover:bg-red-600 text-white"
-                    onClick={() => {
-                      const trigger = document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]');
-                      trigger?.click();
-                    }}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" /> Renovar agora
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-center gap-4">
+                <div className="h-9 w-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-red-300">
+                    Assinatura atrasada há {overdueDays} dia{overdueDays > 1 ? "s" : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    Renove agora para evitar a suspensão da sua estrutura.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-red-500 hover:bg-red-600 text-white shrink-0"
+                  onClick={() => {
+                    const trigger = document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]');
+                    trigger?.click();
+                  }}
+                >
+                  Renovar agora
+                </Button>
+              </div>
             );
           })()}
 
-          {/* Status hero */}
-          <Card className={`border ${hasBlocks ? "border-amber-500/40 bg-amber-500/5" : "border-emerald-500/40 bg-emerald-500/5"}`}>
-            <CardContent className="flex items-center gap-4 py-6">
-              {hasBlocks ? (
-                <AlertTriangle className="h-10 w-10 text-amber-400 shrink-0" />
-              ) : (
-                <CheckCircle2 className="h-10 w-10 text-emerald-400 shrink-0" />
-              )}
-              <div>
-                <p className="font-semibold text-lg">
-                  {hasBlocks
-                    ? `Atenção: ${blockedItems.length} item(ns) com block reportado`
-                    : "Sua estrutura está 100% ativa"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {hasBlocks
-                    ? "Nossa equipe já está analisando. Solicite reposição se necessário."
-                    : "Todos os seus ativos estão funcionando normalmente."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* KPI cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card>
-              <CardContent className="pt-4 pb-4 space-y-1">
-                <p className="text-xs text-muted-foreground">Plano Atual</p>
-                <p className="font-bold text-sm">{plan?.name || "—"}</p>
-                <Badge variant="outline" className="text-xs capitalize">{plan?.tier}</Badge>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-4 space-y-1">
-                <p className="text-xs text-muted-foreground">Valor Mensal</p>
-                <p className="font-bold text-lg text-emerald-400">
-                  R$ {Number(ctClient.monthly_value || 0).toFixed(2).replace(".", ",")}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-4 space-y-1">
-                <p className="text-xs text-muted-foreground">Próxima Cobrança</p>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-semibold text-sm">
-                    {ctClient.next_billing
-                      ? format(new Date(ctClient.next_billing), "dd/MM/yyyy")
-                      : "—"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-4 space-y-1">
-                <p className="text-xs text-muted-foreground">Ativos Funcionando</p>
-                <p className="font-bold text-lg">{activeItems.length}/{items.length}</p>
-              </CardContent>
-            </Card>
+          {/* Status banner */}
+          <div className={`rounded-xl border px-5 py-4 flex items-center gap-4 ${hasBlocks ? "border-amber-500/30 bg-amber-500/5" : "border-emerald-500/20 bg-emerald-500/[0.03]"}`}>
+            <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${hasBlocks ? "bg-amber-500/10 border border-amber-500/20" : "bg-emerald-500/10 border border-emerald-500/20"}`}>
+              {hasBlocks ? <AlertTriangle className="h-4 w-4 text-amber-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">
+                {hasBlocks ? `Atenção: ${blockedItems.length} item(ns) com block reportado` : "Sua estrutura está 100% ativa"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {hasBlocks ? "Nossa equipe já está analisando. Solicite reposição se necessário." : "Todos os seus ativos estão funcionando normalmente."}
+              </p>
+            </div>
+            {hasBlocks && (
+              <Button size="sm" variant="outline" className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 shrink-0">
+                Ver detalhes <ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            )}
           </div>
 
-          {/* Replacements progress */}
-          <Card>
-            <CardContent className="pt-4 pb-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Reposições este mês</p>
-                <span className="text-sm text-muted-foreground">{monthReplacements}/{maxReplacements}</span>
+          {/* KPI cards */}
+          {(() => {
+            const daysUntil = getDaysUntil(ctClient.next_billing);
+            const totalCapacity = (plan?.profiles_qty || 0) + (plan?.bms_qty || 0) + (plan?.accounts_qty || 0) + (plan?.proxies_qty || 0);
+            const activePercent = totalCapacity > 0 ? Math.round((activeItems.length / totalCapacity) * 100) : 0;
+            const circumference = 2 * Math.PI * 22;
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Plano Atual */}
+                <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Plano Atual</span>
+                    <CreditCard className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold tracking-tight">{plan?.name || "—"}</p>
+                    <p className="text-xs text-muted-foreground mt-1 capitalize">Plano {plan?.tier || "—"}</p>
+                  </div>
+                  <button
+                    onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]')?.click()}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 self-start transition-colors"
+                  >
+                    Ver detalhes <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                </div>
+
+                {/* Valor Mensal */}
+                <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Valor Mensal</span>
+                    <DollarSign className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold tracking-tight tabular-nums">
+                      R$ {Number(ctClient.monthly_value || 0).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Próx. cobrança {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM") : "—"}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground/60">Débito na carteira</span>
+                </div>
+
+                {/* Próxima Cobrança */}
+                <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Próxima Cobrança</span>
+                    <Calendar className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold tracking-tight tabular-nums">
+                      {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd 'de' MMM", { locale: ptBR }) : "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {daysUntil > 0 ? `Em ${daysUntil} dia${daysUntil > 1 ? "s" : ""}` : "Hoje"}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground/60">Renovação automática</span>
+                </div>
+
+                {/* Ativos com donut */}
+                <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Ativos Funcionando</span>
+                    <Activity className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums">
+                        {activeItems.length}<span className="text-sm text-muted-foreground font-normal">/{totalCapacity || items.length}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{activePercent}% em uso</p>
+                    </div>
+                    <svg width="52" height="52" viewBox="0 0 52 52" className="shrink-0 -rotate-90">
+                      <circle cx="26" cy="26" r="22" strokeWidth="4" className="stroke-border/60" fill="none" />
+                      <circle
+                        cx="26" cy="26" r="22" strokeWidth="4" fill="none"
+                        className="stroke-emerald-400 transition-all duration-500"
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - (circumference * activePercent) / 100}
+                      />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <Progress value={Math.min(replacementPercent, 100)} className="h-2" />
-              {monthReplacements >= maxReplacements && (
-                <p className="text-xs text-amber-400">Limite de reposições atingido este mês</p>
-              )}
-            </CardContent>
-          </Card>
+            );
+          })()}
+
+          {/* Two-column: Seus Ativos + Atividade Recente */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Seus Ativos */}
+            <div className="rounded-xl border border-border/60 bg-card/40 p-5 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Seus Ativos</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Acompanhe o status da sua estrutura</p>
+                </div>
+                <FileText className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+              </div>
+              <div className="space-y-3">
+                {[
+                  { key: "bm", label: "Business Managers", icon: Monitor, active: groupedItems.bm.filter((i:any)=>i.status==="ativo").length, max: plan?.bms_qty || 0 },
+                  { key: "perfil", label: "Perfis", icon: UserCircle, active: [...groupedItems.perfil, ...groupedItems.perfil_matriz].filter((i:any)=>i.status==="ativo").length, max: plan?.profiles_qty || 0 },
+                  { key: "conta", label: "Contas de Anúncio", icon: Megaphone, active: groupedItems.conta.filter((i:any)=>i.status==="ativo").length, max: plan?.accounts_qty || 0 },
+                  { key: "proxy", label: "Proxies", icon: Globe, active: groupedItems.proxy.filter((i:any)=>i.status==="ativo").length, max: plan?.proxies_qty || 0 },
+                ].map((row) => {
+                  const pct = row.max > 0 ? Math.min(100, (row.active / row.max) * 100) : 0;
+                  const Icon = row.icon;
+                  return (
+                    <button
+                      key={row.key}
+                      onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="estrutura"]')?.click()}
+                      className="w-full group flex items-center gap-3 py-2.5 border-b border-border/40 last:border-0 hover:bg-white/[0.02] transition-colors rounded-md px-2 -mx-2"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-muted/40 border border-border/50 flex items-center justify-center shrink-0">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm">{row.label}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{row.active}/{row.max || row.active}</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-border/40 overflow-hidden">
+                          <div className="h-full bg-emerald-400/80 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="estrutura"]')?.click()}
+                className="w-full text-xs text-muted-foreground hover:text-foreground border-t border-border/40 pt-3 inline-flex items-center justify-center gap-1 transition-colors"
+              >
+                Ver estrutura completa <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+
+            {/* Atividade Recente */}
+            <div className="rounded-xl border border-border/60 bg-card/40 p-5 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Atividade Recente</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Últimas atualizações da sua conta</p>
+                </div>
+                <Activity className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+              </div>
+              <div className="space-y-4">
+                {(() => {
+                  const events: { icon: any; color: string; title: string; desc: string; date: Date }[] = [];
+                  if (ctClient.start_date) {
+                    events.push({
+                      icon: CheckCircle2, color: "emerald",
+                      title: "Cobrança realizada com sucesso",
+                      desc: `Plano ${plan?.name || ""} • R$ ${Number(ctClient.monthly_value || 0).toFixed(0)}`,
+                      date: new Date(ctClient.start_date),
+                    });
+                  }
+                  items.slice(0, 2).forEach((i: any) => {
+                    events.push({
+                      icon: Shield, color: "sky",
+                      title: "Novo ativo adicionado",
+                      desc: `${typeLabels[i.type] || i.type} adicionado à estrutura`,
+                      date: new Date(i.created_at || ctClient.start_date),
+                    });
+                  });
+                  replacements.slice(0, 1).forEach((r: any) => {
+                    events.push({
+                      icon: RotateCcw, color: "amber",
+                      title: "Reposição solicitada",
+                      desc: `${typeLabels[r.item_type] || r.item_type} • ${r.reason?.slice(0, 40) || "Sem descrição"}`,
+                      date: new Date(r.created_at),
+                    });
+                  });
+                  blockedItems.slice(0, 1).forEach((i: any) => {
+                    events.push({
+                      icon: AlertTriangle, color: "amber",
+                      title: "Block reportado",
+                      desc: `${typeLabels[i.type] || i.type} necessita verificação da equipe`,
+                      date: new Date(i.updated_at || i.created_at),
+                    });
+                  });
+                  const sorted = events.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 4);
+                  if (sorted.length === 0) {
+                    return <p className="text-xs text-muted-foreground text-center py-8">Sem atividades recentes</p>;
+                  }
+                  const colorMap: Record<string, string> = {
+                    emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+                    sky: "bg-sky-500/10 border-sky-500/20 text-sky-400",
+                    amber: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+                  };
+                  return sorted.map((e, idx) => {
+                    const Icon = e.icon;
+                    const diffDays = Math.floor((Date.now() - e.date.getTime()) / 86400000);
+                    const rel = diffDays === 0 ? "hoje" : diffDays === 1 ? "1d atrás" : diffDays < 7 ? `${diffDays}d atrás` : `${Math.floor(diffDays/7)}sem atrás`;
+                    return (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center shrink-0 ${colorMap[e.color]}`}>
+                          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        </div>
+                        <div className="flex-1 min-w-0 pb-0.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium leading-tight">{e.title}</p>
+                            <span className="text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">{rel}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{e.desc}</p>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+              <button
+                onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="historico"]')?.click()}
+                className="w-full text-xs text-muted-foreground hover:text-foreground border-t border-border/40 pt-3 inline-flex items-center justify-center gap-1 transition-colors"
+              >
+                Ver histórico completo <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* Replacements */}
+          <div className="rounded-xl border border-border/60 bg-card/40 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                <h3 className="text-sm font-medium">Reposições este mês</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  <span className="text-foreground font-medium tabular-nums">{monthReplacements}</span> utilizadas · <span className="text-foreground font-medium tabular-nums">{Math.max(0, maxReplacements - monthReplacements)}</span> restantes
+                </span>
+                <span className="text-xs font-medium tabular-nums text-emerald-400">{Math.round(replacementPercent)}%</span>
+              </div>
+            </div>
+            <div className="h-1 rounded-full bg-border/40 overflow-hidden">
+              <div className="h-full bg-emerald-400/80 rounded-full transition-all duration-500" style={{ width: `${Math.min(replacementPercent, 100)}%` }} />
+            </div>
+            {monthReplacements >= maxReplacements && maxReplacements > 0 && (
+              <p className="text-xs text-amber-400 mt-2">Limite de reposições atingido este mês</p>
+            )}
+          </div>
         </TabsContent>
 
         {/* ===== MINHA ESTRUTURA ===== */}
