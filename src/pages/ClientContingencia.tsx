@@ -286,51 +286,40 @@ export default function ClientContingencia() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
       {/* ============ HERO ============ */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-            <Shield className="h-7 w-7 text-emerald-400" strokeWidth={1.75} />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Minha Contingência</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Gerencie toda sua estrutura de contingência em um único lugar.
-            </p>
-          </div>
+      <header className="flex items-center gap-5">
+        <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <Shield className="h-8 w-8 text-emerald-400" strokeWidth={1.75} />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-medium">{plan?.name || "—"}</span>
-          </div>
-          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">Estrutura ativa</span>
-          </div>
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Minha Contingência</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie sua estrutura e assinatura
+          </p>
         </div>
       </header>
 
       <Tabs defaultValue="visao-geral" className="space-y-8">
         {/* Premium tab bar */}
-        <TabsList className="w-full h-auto bg-transparent p-0 border-b border-border/60 rounded-none justify-start gap-1 overflow-x-auto flex-nowrap">
+        <TabsList className="w-full h-auto bg-transparent p-0 border-b border-border/60 rounded-none grid grid-cols-5 gap-0">
           {[
-            { value: "visao-geral", label: "Visão Geral" },
-            { value: "estrutura", label: "Minha Estrutura" },
-            { value: "historico", label: "Histórico" },
-            { value: "assinatura", label: "Assinatura" },
-            { value: "ajuda", label: "Ajuda" },
-          ].map((t) => (
-            <TabsTrigger
-              key={t.value}
-              value={t.value}
-              className="relative rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-emerald-400 transition-colors"
-            >
-              {t.label}
-            </TabsTrigger>
-          ))}
+            { value: "visao-geral", label: "Visão Geral", icon: BarChart3 },
+            { value: "estrutura", label: "Minha Estrutura", icon: Users },
+            { value: "historico", label: "Histórico", icon: History },
+            { value: "assinatura", label: "Assinatura", icon: CreditCard },
+            { value: "ajuda", label: "Ajuda", icon: HelpCircle },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                className="relative rounded-none border-0 bg-transparent px-4 py-3.5 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-emerald-400 transition-colors gap-2"
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+                {t.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {/* ===== VISÃO GERAL ===== */}
