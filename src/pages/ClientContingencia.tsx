@@ -17,7 +17,8 @@ import { ptBR } from "date-fns/locale";
 import {
   Shield, CheckCircle2, AlertTriangle, XCircle, Calendar, Wallet,
   Monitor, Globe, Megaphone, UserCircle, RotateCcw, Plus, MessageCircle,
-  History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight
+  History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight, TrendingUp,
+  DollarSign, Activity, FileText, Sparkles, Zap
 } from "lucide-react";
 
 function getOverdueDays(nextBilling: string | null | undefined): number {
@@ -27,6 +28,15 @@ function getOverdueDays(nextBilling: string | null | undefined): number {
   today.setHours(0, 0, 0, 0);
   const diff = today.getTime() - due;
   return diff > 0 ? Math.floor(diff / 86400000) : 0;
+}
+
+function getDaysUntil(nextBilling: string | null | undefined): number {
+  if (!nextBilling) return 0;
+  const due = new Date(nextBilling).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = due - today.getTime();
+  return diff > 0 ? Math.ceil(diff / 86400000) : 0;
 }
 
 const statusColors: Record<string, string> = {
