@@ -213,6 +213,40 @@ export default function ClientContingencia() {
     return groups;
   }, [items]);
 
+  // Fetch FB profile photos for perfil / perfil_matriz items
+  useEffect(() => {
+    const profileItems = items.filter(
+      (i: any) =>
+        (i.type === "perfil" || i.type === "perfil_matriz") &&
+        i.identifier &&
+        /facebook\.com/i.test(i.identifier) &&
+        profilePhotos[i.id] === undefined,
+    );
+    if (!profileItems.length) return;
+    let cancelled = false;
+    (async () => {
+      const FN_BASE = "https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1";
+      const results = await Promise.all(
+        profileItems.map(async (it: any) => {
+          try {
+            const r = await fetch(`${FN_BASE}/fb-photo?url=${encodeURIComponent(it.identifier)}`);
+            const j = await r.json();
+            return [it.id, j?.ok ? (j.photoUrl as string) : null] as const;
+          } catch {
+            return [it.id, null] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setProfilePhotos((prev) => {
+        const n = { ...prev };
+        for (const [id, url] of results) n[id] = url;
+        return n;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [items, profilePhotos]);
+
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
