@@ -142,6 +142,10 @@ export default function Subscriptions() {
       navigate("/safe-bm");
       return;
     }
+    if (key === "contingencia" && hasContingencia) {
+      navigate("/contingencia");
+      return;
+    }
     setActiveCategory(key);
   };
 
