@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -60,6 +60,7 @@ export default function ClientContingencia() {
   const [replacementType, setReplacementType] = useState("");
   const [replacementReason, setReplacementReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [profilePhotos, setProfilePhotos] = useState<Record<string, string | null>>({});
 
   // Fetch client subscription
   const { data: ctClient, isLoading } = useQuery({
@@ -211,6 +212,40 @@ export default function ClientContingencia() {
     });
     return groups;
   }, [items]);
+
+  // Fetch FB profile photos for perfil / perfil_matriz items
+  useEffect(() => {
+    const profileItems = items.filter(
+      (i: any) =>
+        (i.type === "perfil" || i.type === "perfil_matriz") &&
+        i.identifier &&
+        /facebook\.com/i.test(i.identifier) &&
+        profilePhotos[i.id] === undefined,
+    );
+    if (!profileItems.length) return;
+    let cancelled = false;
+    (async () => {
+      const FN_BASE = "https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1";
+      const results = await Promise.all(
+        profileItems.map(async (it: any) => {
+          try {
+            const r = await fetch(`${FN_BASE}/fb-photo?url=${encodeURIComponent(it.identifier)}`);
+            const j = await r.json();
+            return [it.id, j?.ok ? (j.photoUrl as string) : null] as const;
+          } catch {
+            return [it.id, null] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setProfilePhotos((prev) => {
+        const n = { ...prev };
+        for (const [id, url] of results) n[id] = url;
+        return n;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [items, profilePhotos]);
 
   if (isLoading) {
     return (
@@ -391,6 +426,21 @@ export default function ClientContingencia() {
                           backgroundColor: item.status === "block" ? "hsl(0 84% 60%)" :
                             item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)"
                         }} />
+                        {(type === "perfil" || type === "perfil_matriz") && (
+                          <div className="h-9 w-9 rounded-full overflow-hidden bg-muted flex items-center justify-center border border-border/50 shrink-0">
+                            {profilePhotos[item.id] ? (
+                              <img
+                                src={profilePhotos[item.id] as string}
+                                alt="Perfil"
+                                className="h-full w-full object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                              />
+                            ) : (
+                              <UserCircle className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        )}
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">
                             {item.identifier ? item.identifier :
