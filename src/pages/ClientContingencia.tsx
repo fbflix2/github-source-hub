@@ -18,7 +18,7 @@ import {
   Shield, CheckCircle2, AlertTriangle, XCircle, Calendar, Wallet,
   Monitor, Globe, Megaphone, UserCircle, RotateCcw, Plus, MessageCircle,
   History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight, TrendingUp,
-  DollarSign, Activity, FileText, Sparkles, Zap
+  DollarSign, Activity, FileText, Sparkles, Zap, Crown, BarChart3, Users
 } from "lucide-react";
 
 function getOverdueDays(nextBilling: string | null | undefined): number {
@@ -286,51 +286,40 @@ export default function ClientContingencia() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-in fade-in duration-300">
       {/* ============ HERO ============ */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-            <Shield className="h-7 w-7 text-emerald-400" strokeWidth={1.75} />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Minha Contingência</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Gerencie toda sua estrutura de contingência em um único lugar.
-            </p>
-          </div>
+      <header className="flex items-center gap-5">
+        <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <Shield className="h-8 w-8 text-emerald-400" strokeWidth={1.75} />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-medium">{plan?.name || "—"}</span>
-          </div>
-          <div className="px-3 py-2 rounded-xl border border-border/60 bg-card/40 flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">Estrutura ativa</span>
-          </div>
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Minha Contingência</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie sua estrutura e assinatura
+          </p>
         </div>
       </header>
 
       <Tabs defaultValue="visao-geral" className="space-y-8">
         {/* Premium tab bar */}
-        <TabsList className="w-full h-auto bg-transparent p-0 border-b border-border/60 rounded-none justify-start gap-1 overflow-x-auto flex-nowrap">
+        <TabsList className="w-full h-auto bg-transparent p-0 border-b border-border/60 rounded-none grid grid-cols-5 gap-0">
           {[
-            { value: "visao-geral", label: "Visão Geral" },
-            { value: "estrutura", label: "Minha Estrutura" },
-            { value: "historico", label: "Histórico" },
-            { value: "assinatura", label: "Assinatura" },
-            { value: "ajuda", label: "Ajuda" },
-          ].map((t) => (
-            <TabsTrigger
-              key={t.value}
-              value={t.value}
-              className="relative rounded-none border-0 bg-transparent px-4 py-3 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-emerald-400 transition-colors"
-            >
-              {t.label}
-            </TabsTrigger>
-          ))}
+            { value: "visao-geral", label: "Visão Geral", icon: BarChart3 },
+            { value: "estrutura", label: "Minha Estrutura", icon: Users },
+            { value: "historico", label: "Histórico", icon: History },
+            { value: "assinatura", label: "Assinatura", icon: CreditCard },
+            { value: "ajuda", label: "Ajuda", icon: HelpCircle },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                className="relative rounded-none border-0 bg-transparent px-4 py-3.5 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-transparent data-[state=active]:after:bg-emerald-400 transition-colors gap-2"
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+                {t.label}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {/* ===== VISÃO GERAL ===== */}
@@ -398,17 +387,21 @@ export default function ClientContingencia() {
                 <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Plano Atual</span>
-                    <CreditCard className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                    <Crown className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <p className="text-xl font-semibold tracking-tight">{plan?.name || "—"}</p>
-                    <p className="text-xs text-muted-foreground mt-1 capitalize">Plano {plan?.tier || "—"}</p>
+                    {plan?.tier && (
+                      <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted/60 border border-border/60 text-muted-foreground capitalize">
+                        {plan.tier}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]')?.click()}
                     className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 self-start transition-colors"
                   >
-                    Ver detalhes <ArrowUpRight className="h-3 w-3" />
+                    Ver detalhes do plano <ChevronRight className="h-3 w-3" />
                   </button>
                 </div>
 
@@ -419,14 +412,14 @@ export default function ClientContingencia() {
                     <DollarSign className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold tracking-tight tabular-nums">
-                      R$ {Number(ctClient.monthly_value || 0).toFixed(0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Próx. cobrança {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM") : "—"}
+                    <p className="text-2xl font-semibold tracking-tight tabular-nums text-emerald-400">
+                      R$ {Number(ctClient.monthly_value || 0).toFixed(2).replace(".", ",")}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground/60">Débito na carteira</span>
+                  <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                    <DollarSign className="h-3 w-3" />
+                    Próxima cobrança em {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM/yyyy") : "—"}
+                  </div>
                 </div>
 
                 {/* Próxima Cobrança */}
@@ -437,39 +430,49 @@ export default function ClientContingencia() {
                   </div>
                   <div>
                     <p className="text-xl font-semibold tracking-tight tabular-nums">
-                      {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd 'de' MMM", { locale: ptBR }) : "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {daysUntil > 0 ? `Em ${daysUntil} dia${daysUntil > 1 ? "s" : ""}` : "Hoje"}
+                      {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM/yyyy") : "—"}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground/60">Renovação automática</span>
+                  <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" />
+                    {daysUntil > 0 ? `Em ${daysUntil} dia${daysUntil > 1 ? "s" : ""}` : "Hoje"}
+                  </div>
                 </div>
 
                 {/* Ativos com donut */}
                 <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Ativos Funcionando</span>
-                    <Activity className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                    <Shield className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className="text-2xl font-semibold tracking-tight tabular-nums">
                         {activeItems.length}<span className="text-sm text-muted-foreground font-normal">/{totalCapacity || items.length}</span>
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">{activePercent}% em uso</p>
                     </div>
-                    <svg width="52" height="52" viewBox="0 0 52 52" className="shrink-0 -rotate-90">
-                      <circle cx="26" cy="26" r="22" strokeWidth="4" className="stroke-border/60" fill="none" />
-                      <circle
-                        cx="26" cy="26" r="22" strokeWidth="4" fill="none"
-                        className="stroke-emerald-400 transition-all duration-500"
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={circumference - (circumference * activePercent) / 100}
-                      />
-                    </svg>
+                    <div className="relative shrink-0">
+                      <svg width="56" height="56" viewBox="0 0 52 52" className="-rotate-90">
+                        <circle cx="26" cy="26" r="22" strokeWidth="4" className="stroke-border/60" fill="none" />
+                        <circle
+                          cx="26" cy="26" r="22" strokeWidth="4" fill="none"
+                          className="stroke-emerald-400 transition-all duration-500"
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={circumference - (circumference * activePercent) / 100}
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-emerald-400 tabular-nums">
+                        {activePercent}%
+                      </span>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="estrutura"]')?.click()}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 self-start transition-colors"
+                  >
+                    Ver estrutura <ChevronRight className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             );
@@ -507,7 +510,9 @@ export default function ClientContingencia() {
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm">{row.label}</span>
-                          <span className="text-xs text-muted-foreground tabular-nums">{row.active}/{row.max || row.active}</span>
+                          <span className="text-[10px] font-medium tabular-nums px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            {row.active}/{row.max || row.active} ativos
+                          </span>
                         </div>
                         <div className="h-1 rounded-full bg-border/40 overflow-hidden">
                           <div className="h-full bg-emerald-400/80 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
