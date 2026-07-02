@@ -387,17 +387,21 @@ export default function ClientContingencia() {
                 <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Plano Atual</span>
-                    <CreditCard className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                    <Crown className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <p className="text-xl font-semibold tracking-tight">{plan?.name || "—"}</p>
-                    <p className="text-xs text-muted-foreground mt-1 capitalize">Plano {plan?.tier || "—"}</p>
+                    {plan?.tier && (
+                      <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted/60 border border-border/60 text-muted-foreground capitalize">
+                        {plan.tier}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]')?.click()}
                     className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 self-start transition-colors"
                   >
-                    Ver detalhes <ArrowUpRight className="h-3 w-3" />
+                    Ver detalhes do plano <ChevronRight className="h-3 w-3" />
                   </button>
                 </div>
 
@@ -408,14 +412,14 @@ export default function ClientContingencia() {
                     <DollarSign className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold tracking-tight tabular-nums">
-                      R$ {Number(ctClient.monthly_value || 0).toFixed(0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Próx. cobrança {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM") : "—"}
+                    <p className="text-2xl font-semibold tracking-tight tabular-nums text-emerald-400">
+                      R$ {Number(ctClient.monthly_value || 0).toFixed(2).replace(".", ",")}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground/60">Débito na carteira</span>
+                  <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                    <DollarSign className="h-3 w-3" />
+                    Próxima cobrança em {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM/yyyy") : "—"}
+                  </div>
                 </div>
 
                 {/* Próxima Cobrança */}
@@ -426,39 +430,49 @@ export default function ClientContingencia() {
                   </div>
                   <div>
                     <p className="text-xl font-semibold tracking-tight tabular-nums">
-                      {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd 'de' MMM", { locale: ptBR }) : "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {daysUntil > 0 ? `Em ${daysUntil} dia${daysUntil > 1 ? "s" : ""}` : "Hoje"}
+                      {ctClient.next_billing ? format(new Date(ctClient.next_billing), "dd/MM/yyyy") : "—"}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground/60">Renovação automática</span>
+                  <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" />
+                    {daysUntil > 0 ? `Em ${daysUntil} dia${daysUntil > 1 ? "s" : ""}` : "Hoje"}
+                  </div>
                 </div>
 
                 {/* Ativos com donut */}
                 <div className="group rounded-xl border border-border/60 bg-card/40 p-5 flex flex-col justify-between min-h-[140px] hover:border-border transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Ativos Funcionando</span>
-                    <Activity className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
+                    <Shield className="h-4 w-4 text-muted-foreground/70" strokeWidth={1.75} />
                   </div>
                   <div className="flex items-end justify-between gap-3">
                     <div>
                       <p className="text-2xl font-semibold tracking-tight tabular-nums">
                         {activeItems.length}<span className="text-sm text-muted-foreground font-normal">/{totalCapacity || items.length}</span>
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">{activePercent}% em uso</p>
                     </div>
-                    <svg width="52" height="52" viewBox="0 0 52 52" className="shrink-0 -rotate-90">
-                      <circle cx="26" cy="26" r="22" strokeWidth="4" className="stroke-border/60" fill="none" />
-                      <circle
-                        cx="26" cy="26" r="22" strokeWidth="4" fill="none"
-                        className="stroke-emerald-400 transition-all duration-500"
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={circumference - (circumference * activePercent) / 100}
-                      />
-                    </svg>
+                    <div className="relative shrink-0">
+                      <svg width="56" height="56" viewBox="0 0 52 52" className="-rotate-90">
+                        <circle cx="26" cy="26" r="22" strokeWidth="4" className="stroke-border/60" fill="none" />
+                        <circle
+                          cx="26" cy="26" r="22" strokeWidth="4" fill="none"
+                          className="stroke-emerald-400 transition-all duration-500"
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={circumference - (circumference * activePercent) / 100}
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-emerald-400 tabular-nums">
+                        {activePercent}%
+                      </span>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => document.querySelector<HTMLButtonElement>('[data-state][value="estrutura"]')?.click()}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 self-start transition-colors"
+                  >
+                    Ver estrutura <ChevronRight className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             );
