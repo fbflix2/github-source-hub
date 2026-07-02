@@ -438,6 +438,22 @@ export default function Orders() {
                                 });
                               });
                             });
+                          } else if (isBm) {
+                            // BMs: grouped row — all BM links open on a single "Detalhes"
+                            rows.push({
+                              key: `bm-group-${item.id}`,
+                              name: item.name,
+                              subtitle: totalQty > 1 ? `${totalQty} BMs neste pedido` : 'Ver dados de acesso',
+                              price: totalPrice,
+                              totalPrice: totalPrice,
+                              itemId: item.id,
+                              isBlocked: !!item.isBlocked,
+                              isReplaced: !!item.isReplaced,
+                              replacedAt: item.replacedAt || null,
+                              isBm: true,
+                              isPage: false,
+                              isProxy: false,
+                            });
                           } else if (isProxy) {
                             // Proxies: grouped row linking to subscriptions
                             rows.push({
