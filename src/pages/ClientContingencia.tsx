@@ -39,6 +39,7 @@ const statusColors: Record<string, string> = {
 
 const typeLabels: Record<string, string> = {
   perfil: "Perfil",
+  perfil_matriz: "Perfil Matriz",
   proxy: "Proxy",
   bm: "BM",
   conta: "Conta de Anúncio",
@@ -46,6 +47,7 @@ const typeLabels: Record<string, string> = {
 
 const typeIcons: Record<string, React.ReactNode> = {
   perfil: <UserCircle className="h-5 w-5" />,
+  perfil_matriz: <Shield className="h-5 w-5" />,
   proxy: <Globe className="h-5 w-5" />,
   bm: <Monitor className="h-5 w-5" />,
   conta: <Megaphone className="h-5 w-5" />,
@@ -203,7 +205,7 @@ export default function ClientContingencia() {
   const activeItems = items.filter((i: any) => i.status === "ativo");
   const hasBlocks = blockedItems.length > 0;
   const groupedItems = useMemo(() => {
-    const groups: Record<string, any[]> = { perfil: [], proxy: [], bm: [], conta: [] };
+    const groups: Record<string, any[]> = { perfil: [], perfil_matriz: [], proxy: [], bm: [], conta: [] };
     items.forEach((item: any) => {
       if (groups[item.type]) groups[item.type].push(item);
     });
@@ -366,7 +368,7 @@ export default function ClientContingencia() {
 
         {/* ===== MINHA ESTRUTURA ===== */}
         <TabsContent value="estrutura" className="space-y-4">
-          {(["perfil", "proxy", "bm", "conta"] as const).map((type) => {
+          {(["perfil", "perfil_matriz", "bm", "conta", "proxy"] as const).map((type) => {
             const typeItems = groupedItems[type] || [];
             if (typeItems.length === 0) return null;
             return (
@@ -374,7 +376,7 @@ export default function ClientContingencia() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     {typeIcons[type]}
-                    {typeLabels[type]}s
+                    {typeLabels[type]}{type === "perfil_matriz" ? "" : "s"}
                     <Badge variant="secondary" className="ml-auto">{typeItems.length}</Badge>
                   </CardTitle>
                 </CardHeader>
@@ -389,11 +391,17 @@ export default function ClientContingencia() {
                           backgroundColor: item.status === "block" ? "hsl(0 84% 60%)" :
                             item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)"
                         }} />
-                        <span className="text-sm font-medium">
-                          {type === "proxy" ? `Proxy BR Dedicado ${idx + 1}` :
-                            type === "bm" ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}` :
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {item.identifier ? item.identifier :
+                              type === "proxy" ? `Proxy BR Dedicado ${idx + 1}` :
+                              type === "bm" ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}` :
                               `${typeLabels[type]} ${idx + 1}`}
-                        </span>
+                          </span>
+                          {item.identifier && (
+                            <span className="text-[10px] text-muted-foreground">{typeLabels[type]}</span>
+                          )}
+                        </div>
                       </div>
                       <Badge variant="outline" className={`text-xs ${statusColors[item.status] || ""}`}>
                         {item.status === "ativo" ? "Ativo" :
