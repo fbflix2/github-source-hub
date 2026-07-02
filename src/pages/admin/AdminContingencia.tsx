@@ -73,6 +73,7 @@ const tierColors: Record<string, string> = {
 
 const typeLabels: Record<string, string> = {
   perfil: "Perfil",
+  perfil_matriz: "Perfil Matriz",
   proxy: "Proxy",
   bm: "BM",
   conta: "Conta de Anúncio",
