@@ -1049,78 +1049,50 @@ function ContingenciaPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Status Hero */}
-      <div className={`glass-card rounded-xl p-6 border ${blockedItems > 0 ? "border-yellow-500/30 bg-yellow-500/5" : "border-green-500/30 bg-green-500/5"}`}>
+      {/* Compact summary + entry to the full panel (single source of truth) */}
+      <a
+        href="/contingencia"
+        className={`block w-full rounded-xl glass-card border p-5 hover:border-primary/40 transition-all group ${
+          blockedItems > 0 ? "border-yellow-500/30 bg-yellow-500/5" : "border-green-500/30 bg-green-500/5"
+        }`}
+      >
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${blockedItems > 0 ? "bg-yellow-500/10" : "bg-green-500/10"}`}>
+          <div
+            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              blockedItems > 0 ? "bg-yellow-500/10" : "bg-green-500/10"
+            }`}
+          >
             {blockedItems > 0 ? (
               <span className="material-symbols-outlined text-yellow-500 text-2xl">warning</span>
             ) : (
               <ShieldCheck className="size-6 text-green-500" />
             )}
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">
-              {blockedItems > 0 ? `${blockedItems} item(ns) com block` : "Estrutura 100% ativa"}
-            </h2>
-            <p className="text-sm text-text-secondary">{activeItems}/{items.length} itens operacionais</p>
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="glass-panel rounded-xl p-4">
-          <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider mb-1">Plano</p>
-          <p className="text-foreground text-sm font-bold">{plan?.name || "—"}</p>
-          <Badge variant="outline" className={`mt-1 text-[10px] ${plan?.tier === "black" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"}`}>
-            {plan?.tier?.toUpperCase() || "—"}
-          </Badge>
-        </div>
-        <div className="glass-panel rounded-xl p-4">
-          <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider mb-1">Valor Mensal</p>
-          <p className="text-foreground text-lg font-bold">R$ {Number(client.monthly_value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-        </div>
-        <div className="glass-panel rounded-xl p-4">
-          <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider mb-1">Próx. Cobrança</p>
-          <p className="text-foreground text-sm font-bold">{client.next_billing ? format(parseISO(client.next_billing), "dd/MM/yyyy") : "—"}</p>
-        </div>
-        <div className="glass-panel rounded-xl p-4">
-          <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider mb-1">Total Itens</p>
-          <p className="text-foreground text-lg font-bold">{items.length}</p>
-        </div>
-      </div>
-
-      {/* Item Groups */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {itemGroups.map((g) => (
-          <div key={g.label} className="glass-card rounded-xl p-4 border border-glass-border">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">{g.icon}</span>
-              <p className="text-sm font-bold text-foreground">{g.label}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold text-foreground">
+                {blockedItems > 0 ? `${blockedItems} item(ns) com block` : "Estrutura 100% ativa"}
+              </h2>
+              <Badge
+                variant="outline"
+                className={`text-[10px] ${
+                  plan?.tier === "black"
+                    ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                    : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                }`}
+              >
+                {plan?.name || "—"}
+              </Badge>
             </div>
-            <p className="text-2xl font-bold text-foreground">{g.active}<span className="text-text-secondary text-sm font-normal">/{g.count}</span></p>
-            <Progress value={g.count > 0 ? (g.active / g.count) * 100 : 0} className="h-1.5 mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeItems}/{items.length} itens operacionais · R$ {Number(client.monthly_value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+              {client.next_billing ? ` · Próx. ${format(parseISO(client.next_billing), "dd/MM/yyyy")}` : ""}
+            </p>
+            <p className="text-xs text-primary mt-2 font-medium">
+              Acessar Painel Completo <span className="group-hover:translate-x-1 inline-block transition-transform">→</span>
+            </p>
           </div>
-        ))}
-      </div>
-
-      {/* Link to full panel */}
-      <a
-        href="/contingencia"
-        className="block w-full rounded-xl glass-panel border border-primary/20 p-5 hover:border-primary/40 transition-all group"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Layers className="size-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Acessar Painel Completo</h3>
-              <p className="text-xs text-muted-foreground">Reposições, tickets, estrutura detalhada e mais</p>
-            </div>
-          </div>
-          <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
+          <Layers className="size-5 text-primary shrink-0" />
         </div>
       </a>
     </div>
