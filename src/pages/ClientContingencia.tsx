@@ -510,7 +510,9 @@ export default function ClientContingencia() {
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-sm">{row.label}</span>
-                          <span className="text-xs text-muted-foreground tabular-nums">{row.active}/{row.max || row.active}</span>
+                          <span className="text-[10px] font-medium tabular-nums px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                            {row.active}/{row.max || row.active} ativos
+                          </span>
                         </div>
                         <div className="h-1 rounded-full bg-border/40 overflow-hidden">
                           <div className="h-full bg-emerald-400/80 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
