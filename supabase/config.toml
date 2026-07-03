@@ -88,6 +88,12 @@ verify_jwt = false
 [functions.wapi-send]
 verify_jwt = false
 
+[functions.request-password-reset]
+verify_jwt = false
+
+[functions.verify-password-reset]
+verify_jwt = false
+
 [functions.proxy-lifecycle]
 verify_jwt = false
 
