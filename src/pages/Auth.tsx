@@ -278,7 +278,7 @@ export default function Auth() {
             <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-muted-foreground pl-1">Email de Recuperação</label>
+                  <label className="text-sm font-medium text-muted-foreground pl-1">Email da conta</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <span className="material-symbols-outlined text-muted-foreground group-focus-within:text-primary transition-colors text-[20px]">
@@ -302,7 +302,7 @@ export default function Auth() {
                 disabled={loading}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm py-3.5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.4)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50"
               >
-                {loading ? "Enviando..." : "Enviar Email de Recuperação"}
+                {loading ? "Enviando..." : "Enviar código no WhatsApp"}
               </button>
 
               <button
@@ -348,7 +348,7 @@ export default function Auth() {
                       }}
                       className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                      Recuperar Senha?
+                      Esqueci minha senha
                     </button>
                   </div>
                   <div className="relative group">
