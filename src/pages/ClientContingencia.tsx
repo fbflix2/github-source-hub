@@ -492,9 +492,9 @@ export default function ClientContingencia() {
               <div className="space-y-3">
                 {[
                   { key: "bm", label: "Business Managers", icon: Monitor, active: groupedItems.bm.filter((i:any)=>i.status==="ativo").length, max: plan?.bms_qty || 0 },
-                  { key: "perfil", label: "Perfis", icon: UserCircle, active: [...groupedItems.perfil, ...groupedItems.perfil_matriz].filter((i:any)=>i.status==="ativo").length, max: plan?.profiles_qty || 0 },
+                  { key: "perfil", label: "Perfis", icon: UserCircle, active: [...groupedItems.perfil, ...groupedItems.perfil_matriz].filter((i:any)=>i.status==="ativo").length, max: (plan?.profiles_qty || 0) + (plan?.matrix_profiles_qty || 0) },
+                  { key: "pagina", label: "Páginas", icon: FileText, active: (groupedItems as any).pagina?.filter?.((i:any)=>i.status==="ativo").length || 0, max: (plan as any)?.pages_qty || 0 },
                   { key: "conta", label: "Contas de Anúncio", icon: Megaphone, active: groupedItems.conta.filter((i:any)=>i.status==="ativo").length, max: plan?.accounts_qty || 0 },
-                  { key: "proxy", label: "Proxies", icon: Globe, active: groupedItems.proxy.filter((i:any)=>i.status==="ativo").length, max: plan?.proxies_qty || 0 },
                 ].map((row) => {
                   const pct = row.max > 0 ? Math.min(100, (row.active / row.max) * 100) : 0;
                   const Icon = row.icon;
