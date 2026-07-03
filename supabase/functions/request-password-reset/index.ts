@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
     // Find user by email
     const { data: userIdRow } = await admin.rpc("get_user_id_by_email", { target_email: emailNorm });
     const userId = (userIdRow as string) || null;
+    console.log("[request-password-reset] email:", emailNorm, "userId:", userId);
 
     // Always return a generic success to avoid leaking whether the email exists.
     const genericOk = () =>
@@ -43,18 +44,25 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 
-    if (!userId) return genericOk();
+    if (!userId) {
+      console.log("[request-password-reset] no user found for email");
+      return genericOk();
+    }
 
     // Fetch profile phone
     const { data: profile } = await admin
       .from("profiles")
-      .select("phone, whatsapp, full_name")
+      .select("phone, full_name")
       .eq("user_id", userId)
       .maybeSingle();
 
-    const phoneRaw = profile?.whatsapp || profile?.phone || "";
+    const phoneRaw = profile?.phone || "";
     const phone = onlyDigits(phoneRaw);
-    if (!phone || phone.length < 10) return genericOk();
+    console.log("[request-password-reset] phone:", phone, "len:", phone.length);
+    if (!phone || phone.length < 10) {
+      console.log("[request-password-reset] phone missing or too short");
+      return genericOk();
+    }
 
     // Invalidate previous active codes
     await admin
@@ -90,7 +98,7 @@ Deno.serve(async (req) => {
 
     // Send via wapi-send (fire and forget-ish, but we await to catch errors)
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/wapi-send`, {
+      const wapiRes = await fetch(`${SUPABASE_URL}/functions/v1/wapi-send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,6 +113,8 @@ Deno.serve(async (req) => {
           event_key: "password_reset_code",
         }),
       });
+      const wapiText = await wapiRes.text();
+      console.log("[request-password-reset] wapi-send status:", wapiRes.status, "body:", wapiText.slice(0, 300));
     } catch (e) {
       console.error("wapi-send failed:", e);
     }
