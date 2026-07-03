@@ -43,6 +43,7 @@ import TokenFBX from "./pages/TokenFBX";
 import ProductPage from "./pages/ProductPage";
 import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 import MigrationLogin from "./pages/MigrationLogin";
+import ResetPassword from "./pages/ResetPassword";
 import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
 import SafeBMLanding from "./pages/SafeBMLanding";
@@ -390,6 +391,7 @@ const App = () => {
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/c/:code" element={<CampaignRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
                 <Route path="/status" element={<Status />} />
