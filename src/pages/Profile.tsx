@@ -25,6 +25,12 @@ interface ProfileFormData {
 }
 
 export default function Profile() {
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwShow, setPwShow] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
     full_name: "",
     cpf: "",
@@ -636,7 +642,10 @@ export default function Profile() {
           </div>
 
           {/* Security Card */}
-          <div className="glass-panel rounded-2xl p-6 mt-6 flex items-center justify-between opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
+          <div
+            onClick={() => setShowPasswordModal(true)}
+            className="glass-panel rounded-2xl p-6 mt-6 flex items-center justify-between opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+          >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                 <span className="material-symbols-outlined">lock</span>
@@ -650,6 +659,126 @@ export default function Profile() {
           </div>
         </div>
       </div>
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !pwSaving && setShowPasswordModal(false)}>
+          <div className="glass-panel rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                <span className="material-symbols-outlined">lock</span>
+              </div>
+              <div>
+                <h3 className="text-foreground font-semibold text-lg">Alterar Senha</h3>
+                <p className="text-xs text-muted-foreground">Você receberá a confirmação no WhatsApp</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Senha Atual</label>
+                <input
+                  type={pwShow ? "text" : "password"}
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  className="mt-1 w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary"
+                  placeholder="Sua senha atual"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Nova Senha</label>
+                <input
+                  type={pwShow ? "text" : "password"}
+                  value={pwNew}
+                  onChange={(e) => setPwNew(e.target.value)}
+                  className="mt-1 w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Confirmar Nova Senha</label>
+                <input
+                  type={pwShow ? "text" : "password"}
+                  value={pwConfirm}
+                  onChange={(e) => setPwConfirm(e.target.value)}
+                  className="mt-1 w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary"
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input type="checkbox" checked={pwShow} onChange={(e) => setPwShow(e.target.checked)} />
+                Mostrar senhas
+              </label>
+            </div>
+            <div className="flex gap-2 justify-end mt-6">
+              <button
+                type="button"
+                disabled={pwSaving}
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={pwSaving || !pwCurrent || !pwNew || !pwConfirm}
+                onClick={async () => {
+                  if (pwNew.length < 6) {
+                    toast({ title: "Senha muito curta", description: "A nova senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+                    return;
+                  }
+                  if (pwNew !== pwConfirm) {
+                    toast({ title: "Senhas não coincidem", description: "A confirmação não corresponde à nova senha.", variant: "destructive" });
+                    return;
+                  }
+                  setPwSaving(true);
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user?.email) throw new Error("Sessão inválida");
+                    // Reauth with current password
+                    const { error: signErr } = await supabase.auth.signInWithPassword({
+                      email: user.email,
+                      password: pwCurrent,
+                    });
+                    if (signErr) throw new Error("Senha atual incorreta");
+                    // Update to new password
+                    const { error: updErr } = await supabase.auth.updateUser({ password: pwNew });
+                    if (updErr) throw updErr;
+
+                    // Send WhatsApp notification (best-effort, non-blocking)
+                    if (formData.whatsapp) {
+                      const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+                      const message =
+                        `🔐 *Senha alterada com sucesso*\n\n` +
+                        `Olá${formData.full_name ? `, ${formData.full_name.split(" ")[0]}` : ""}!\n\n` +
+                        `A senha da sua conta FBFlix foi alterada em ${now}.\n\n` +
+                        `Se não foi você, entre em contato com o suporte imediatamente.`;
+                      supabase.functions.invoke("wapi-send", {
+                        body: {
+                          action: "send-text",
+                          phone: formData.whatsapp,
+                          message,
+                          user_id: user.id,
+                          event_key: "password_changed",
+                        },
+                      }).catch((e) => console.warn("wapi notify failed", e));
+                    }
+
+                    toast({ title: "Senha alterada!", description: formData.whatsapp ? "Enviamos uma confirmação no seu WhatsApp." : "Sua senha foi atualizada." });
+                    setShowPasswordModal(false);
+                    setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                  } catch (e: any) {
+                    toast({ title: "Erro ao alterar senha", description: e.message || "Tente novamente.", variant: "destructive" });
+                  } finally {
+                    setPwSaving(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base">{pwSaving ? "progress_activity" : "lock_reset"}</span>
+                {pwSaving ? "Salvando..." : "Alterar Senha"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </>
       )}
     </div>
