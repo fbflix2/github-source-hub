@@ -127,22 +127,25 @@ export default function Auth() {
     if (!resetEmail) return;
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail);
-
-    if (error) {
+    try {
+      const { data, error } = await supabase.functions.invoke("request-password-reset", {
+        body: { email: resetEmail },
+      });
+      if (error) throw error;
       toast({
-        title: "Erro ao enviar email",
-        description: error.message,
+        title: "Código enviado!",
+        description: "Enviamos um código de confirmação para o seu WhatsApp. Verifique e continue a troca de senha.",
+      });
+      navigate(`/reset-password?email=${encodeURIComponent(resetEmail)}`);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao solicitar troca",
+        description: err.message || "Tente novamente em instantes.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir sua senha.",
-      });
-      setIsResetting(false);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
