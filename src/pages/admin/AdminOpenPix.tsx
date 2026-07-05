@@ -641,6 +641,164 @@ export default function AdminOpenPix() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Withdraw dialog */}
+      <Dialog open={withdrawOpen} onOpenChange={(v) => { setWithdrawOpen(v); if (!v) resetWithdraw(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{wStep === "form" ? "Sacar da OpenPix" : "Confirmar Saque"}</DialogTitle>
+            <DialogDescription>
+              {wStep === "form"
+                ? "O valor será transferido via PIX da sua conta OpenPix para a chave informada."
+                : "Digite o código de 6 dígitos enviado ao seu WhatsApp."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {wStep === "form" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input
+                  value={wAmount}
+                  onChange={(e) => setWAmount(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+                {data?.account && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Disponível: {formatBRL(data.account.balance.available)}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={wKeyMode === "saved" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWKeyMode("saved")}
+                >
+                  Chaves salvas
+                </Button>
+                <Button
+                  type="button"
+                  variant={wKeyMode === "new" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWKeyMode("new")}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Nova chave
+                </Button>
+              </div>
+
+              {wKeyMode === "saved" && (
+                <div className="space-y-2">
+                  {savedKeys.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma chave salva ainda. Use "Nova chave".</p>
+                  ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {savedKeys.map((k) => (
+                        <div
+                          key={k.id}
+                          className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer ${wSavedKeyId === k.id ? "border-green-500 bg-green-500/10" : "border-border"}`}
+                          onClick={() => setWSavedKeyId(k.id)}
+                        >
+                          <div className="text-sm">
+                            <p className="font-medium">{k.name}</p>
+                            <p className="text-xs text-muted-foreground">{k.pix_key_type} — {k.pix_key}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); deleteSavedKey(k.id); }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-400" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {wKeyMode === "new" && (
+                <div className="space-y-2">
+                  <div>
+                    <Label>Tipo de chave</Label>
+                    <Select value={wNewKeyType} onValueChange={setWNewKeyType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CPF">CPF</SelectItem>
+                        <SelectItem value="CNPJ">CNPJ</SelectItem>
+                        <SelectItem value="EMAIL">E-mail</SelectItem>
+                        <SelectItem value="PHONE">Telefone</SelectItem>
+                        <SelectItem value="RANDOM_KEY">Chave aleatória</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Chave PIX</Label>
+                    <Input value={wNewKey} onChange={(e) => setWNewKey(e.target.value)} placeholder="Digite a chave" />
+                  </div>
+                  <div>
+                    <Label>Nome/Identificação (opcional)</Label>
+                    <Input value={wNewKeyName} onChange={(e) => setWNewKeyName(e.target.value)} placeholder="Ex.: Fabricio pessoal" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={wSaveNewKey} onCheckedChange={(v) => setWSaveNewKey(!!v)} />
+                    <span>Salvar esta chave para saques futuros</span>
+                  </label>
+                </div>
+              )}
+
+              <div>
+                <Label>Descrição (opcional)</Label>
+                <Input value={wDescription} onChange={(e) => setWDescription(e.target.value.slice(0, 140))} placeholder="Ex.: Retirada mensal" />
+              </div>
+            </div>
+          )}
+
+          {wStep === "code" && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-secondary/30 text-sm">
+                <p>Enviamos um código de 6 dígitos para o WhatsApp cadastrado no seu perfil.</p>
+                <p className="text-xs text-muted-foreground mt-1">O código expira em 10 minutos.</p>
+              </div>
+              <div>
+                <Label>Código de confirmação</Label>
+                <Input
+                  value={wCode}
+                  onChange={(e) => setWCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  className="text-center text-2xl tracking-widest font-mono"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {wStep === "form" ? (
+              <>
+                <Button variant="outline" onClick={() => setWithdrawOpen(false)} disabled={wLoading}>
+                  Cancelar
+                </Button>
+                <Button onClick={submitWithdrawRequest} disabled={wLoading}>
+                  {wLoading ? "Enviando código..." : "Enviar código no WhatsApp"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setWStep("form")} disabled={wLoading}>
+                  Voltar
+                </Button>
+                <Button onClick={submitWithdrawConfirm} disabled={wLoading || wCode.length !== 6}>
+                  {wLoading ? "Executando..." : "Confirmar Saque"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
