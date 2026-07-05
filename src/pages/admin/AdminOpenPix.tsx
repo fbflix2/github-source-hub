@@ -94,6 +94,100 @@ export default function AdminOpenPix() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Withdrawal
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [wStep, setWStep] = useState<"form" | "code">("form");
+  const [wAmount, setWAmount] = useState("");
+  const [wKeyMode, setWKeyMode] = useState<"saved" | "new">("saved");
+  const [wSavedKeyId, setWSavedKeyId] = useState("");
+  const [wNewKey, setWNewKey] = useState("");
+  const [wNewKeyType, setWNewKeyType] = useState("EMAIL");
+  const [wNewKeyName, setWNewKeyName] = useState("");
+  const [wSaveNewKey, setWSaveNewKey] = useState(false);
+  const [wDescription, setWDescription] = useState("");
+  const [wLoading, setWLoading] = useState(false);
+  const [wWithdrawalId, setWWithdrawalId] = useState("");
+  const [wCode, setWCode] = useState("");
+  const [savedKeys, setSavedKeys] = useState<Array<{ id: string; name: string; pix_key: string; pix_key_type: string }>>([]);
+
+  const loadSavedKeys = async () => {
+    const { data } = await supabase
+      .from("openpix_saved_pix_keys")
+      .select("id, name, pix_key, pix_key_type")
+      .order("created_at", { ascending: false });
+    setSavedKeys((data as any) || []);
+  };
+
+  useEffect(() => { if (withdrawOpen) loadSavedKeys(); }, [withdrawOpen]);
+
+  const resetWithdraw = () => {
+    setWStep("form"); setWAmount(""); setWKeyMode("saved"); setWSavedKeyId("");
+    setWNewKey(""); setWNewKeyType("EMAIL"); setWNewKeyName(""); setWSaveNewKey(false);
+    setWDescription(""); setWWithdrawalId(""); setWCode("");
+  };
+
+  const submitWithdrawRequest = async () => {
+    const val = Number(wAmount.replace(",", "."));
+    if (!val || val <= 0) { toast.error("Informe um valor válido"); return; }
+
+    let pix_key = "", pix_key_type = "", pix_key_name: string | undefined;
+    if (wKeyMode === "saved") {
+      const k = savedKeys.find((s) => s.id === wSavedKeyId);
+      if (!k) { toast.error("Selecione uma chave"); return; }
+      pix_key = k.pix_key; pix_key_type = k.pix_key_type; pix_key_name = k.name;
+    } else {
+      if (!wNewKey.trim()) { toast.error("Informe a chave PIX"); return; }
+      pix_key = wNewKey.trim(); pix_key_type = wNewKeyType; pix_key_name = wNewKeyName || undefined;
+    }
+
+    setWLoading(true);
+    try {
+      if (wKeyMode === "new" && wSaveNewKey) {
+        await supabase.from("openpix_saved_pix_keys").insert({
+          name: wNewKeyName || pix_key, pix_key, pix_key_type,
+        });
+      }
+      const { data: res, error: err } = await supabase.functions.invoke("openpix-withdraw-request", {
+        body: { amount: val, pix_key, pix_key_type, pix_key_name, description: wDescription },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      setWWithdrawalId(res.withdrawal_id);
+      setWStep("code");
+      toast.success("Código enviado para seu WhatsApp");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao solicitar saque");
+    } finally {
+      setWLoading(false);
+    }
+  };
+
+  const submitWithdrawConfirm = async () => {
+    if (!wCode.trim()) { toast.error("Digite o código"); return; }
+    setWLoading(true);
+    try {
+      const { data: res, error: err } = await supabase.functions.invoke("openpix-withdraw-confirm", {
+        body: { withdrawal_id: wWithdrawalId, code: wCode.trim() },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      toast.success("Saque enviado com sucesso!");
+      setWithdrawOpen(false);
+      resetWithdraw();
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao confirmar saque");
+    } finally {
+      setWLoading(false);
+    }
+  };
+
+  const deleteSavedKey = async (id: string) => {
+    if (!confirm("Excluir esta chave?")) return;
+    await supabase.from("openpix_saved_pix_keys").delete().eq("id", id);
+    loadSavedKeys();
+  };
+
   const load = async () => {
     setLoading(true);
     setError(null);
