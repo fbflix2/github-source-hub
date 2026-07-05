@@ -1936,6 +1936,87 @@ export type Database = {
           },
         ]
       }
+      openpix_saved_pix_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          pix_key: string
+          pix_key_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          pix_key: string
+          pix_key_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          pix_key?: string
+          pix_key_type?: string
+        }
+        Relationships: []
+      }
+      openpix_withdrawals: {
+        Row: {
+          amount: number
+          confirmation_code: string
+          confirmed_at: string | null
+          created_at: string
+          description: string | null
+          error_message: string | null
+          executed_at: string | null
+          expires_at: string
+          id: string
+          openpix_transaction_id: string | null
+          pix_key: string
+          pix_key_name: string | null
+          pix_key_type: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          confirmation_code: string
+          confirmed_at?: string | null
+          created_at?: string
+          description?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          expires_at: string
+          id?: string
+          openpix_transaction_id?: string | null
+          pix_key: string
+          pix_key_name?: string | null
+          pix_key_type: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          confirmation_code?: string
+          confirmed_at?: string | null
+          created_at?: string
+          description?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          expires_at?: string
+          id?: string
+          openpix_transaction_id?: string | null
+          pix_key?: string
+          pix_key_name?: string | null
+          pix_key_type?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: []
+      }
       operator_earnings: {
         Row: {
           amount: number

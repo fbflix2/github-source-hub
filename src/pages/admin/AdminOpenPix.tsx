@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Wallet, TrendingUp, AlertCircle, Building2, Undo2, History, Download } from "lucide-react";
+import { RefreshCw, Wallet, TrendingUp, AlertCircle, Building2, Undo2, History, Download, Send, Plus, Trash2 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -93,6 +93,100 @@ export default function AdminOpenPix() {
   const [history, setHistory] = useState<{ count: number; total: number; fees: number; net: number; charges: HistoryCharge[] } | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [search, setSearch] = useState("");
+
+  // Withdrawal
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [wStep, setWStep] = useState<"form" | "code">("form");
+  const [wAmount, setWAmount] = useState("");
+  const [wKeyMode, setWKeyMode] = useState<"saved" | "new">("saved");
+  const [wSavedKeyId, setWSavedKeyId] = useState("");
+  const [wNewKey, setWNewKey] = useState("");
+  const [wNewKeyType, setWNewKeyType] = useState("EMAIL");
+  const [wNewKeyName, setWNewKeyName] = useState("");
+  const [wSaveNewKey, setWSaveNewKey] = useState(false);
+  const [wDescription, setWDescription] = useState("");
+  const [wLoading, setWLoading] = useState(false);
+  const [wWithdrawalId, setWWithdrawalId] = useState("");
+  const [wCode, setWCode] = useState("");
+  const [savedKeys, setSavedKeys] = useState<Array<{ id: string; name: string; pix_key: string; pix_key_type: string }>>([]);
+
+  const loadSavedKeys = async () => {
+    const { data } = await supabase
+      .from("openpix_saved_pix_keys")
+      .select("id, name, pix_key, pix_key_type")
+      .order("created_at", { ascending: false });
+    setSavedKeys((data as any) || []);
+  };
+
+  useEffect(() => { if (withdrawOpen) loadSavedKeys(); }, [withdrawOpen]);
+
+  const resetWithdraw = () => {
+    setWStep("form"); setWAmount(""); setWKeyMode("saved"); setWSavedKeyId("");
+    setWNewKey(""); setWNewKeyType("EMAIL"); setWNewKeyName(""); setWSaveNewKey(false);
+    setWDescription(""); setWWithdrawalId(""); setWCode("");
+  };
+
+  const submitWithdrawRequest = async () => {
+    const val = Number(wAmount.replace(",", "."));
+    if (!val || val <= 0) { toast.error("Informe um valor válido"); return; }
+
+    let pix_key = "", pix_key_type = "", pix_key_name: string | undefined;
+    if (wKeyMode === "saved") {
+      const k = savedKeys.find((s) => s.id === wSavedKeyId);
+      if (!k) { toast.error("Selecione uma chave"); return; }
+      pix_key = k.pix_key; pix_key_type = k.pix_key_type; pix_key_name = k.name;
+    } else {
+      if (!wNewKey.trim()) { toast.error("Informe a chave PIX"); return; }
+      pix_key = wNewKey.trim(); pix_key_type = wNewKeyType; pix_key_name = wNewKeyName || undefined;
+    }
+
+    setWLoading(true);
+    try {
+      if (wKeyMode === "new" && wSaveNewKey) {
+        await supabase.from("openpix_saved_pix_keys").insert({
+          name: wNewKeyName || pix_key, pix_key, pix_key_type,
+        });
+      }
+      const { data: res, error: err } = await supabase.functions.invoke("openpix-withdraw-request", {
+        body: { amount: val, pix_key, pix_key_type, pix_key_name, description: wDescription },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      setWWithdrawalId(res.withdrawal_id);
+      setWStep("code");
+      toast.success("Código enviado para seu WhatsApp");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao solicitar saque");
+    } finally {
+      setWLoading(false);
+    }
+  };
+
+  const submitWithdrawConfirm = async () => {
+    if (!wCode.trim()) { toast.error("Digite o código"); return; }
+    setWLoading(true);
+    try {
+      const { data: res, error: err } = await supabase.functions.invoke("openpix-withdraw-confirm", {
+        body: { withdrawal_id: wWithdrawalId, code: wCode.trim() },
+      });
+      if (err) throw err;
+      if (res?.error) throw new Error(res.error);
+      toast.success("Saque enviado com sucesso!");
+      setWithdrawOpen(false);
+      resetWithdraw();
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao confirmar saque");
+    } finally {
+      setWLoading(false);
+    }
+  };
+
+  const deleteSavedKey = async (id: string) => {
+    if (!confirm("Excluir esta chave?")) return;
+    await supabase.from("openpix_saved_pix_keys").delete().eq("id", id);
+    loadSavedKeys();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -219,10 +313,19 @@ export default function AdminOpenPix() {
             {lastUpdate && ` • Atualizado ${format(lastUpdate, "HH:mm:ss", { locale: ptBR })}`}
           </p>
         </div>
-        <Button onClick={load} disabled={loading} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setWithdrawOpen(true)}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Sacar
+          </Button>
+          <Button onClick={load} disabled={loading} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -535,6 +638,164 @@ export default function AdminOpenPix() {
             <Button onClick={submitRefund} disabled={refundLoading}>
               {refundLoading ? "Enviando..." : "Confirmar Estorno"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw dialog */}
+      <Dialog open={withdrawOpen} onOpenChange={(v) => { setWithdrawOpen(v); if (!v) resetWithdraw(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{wStep === "form" ? "Sacar da OpenPix" : "Confirmar Saque"}</DialogTitle>
+            <DialogDescription>
+              {wStep === "form"
+                ? "O valor será transferido via PIX da sua conta OpenPix para a chave informada."
+                : "Digite o código de 6 dígitos enviado ao seu WhatsApp."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {wStep === "form" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input
+                  value={wAmount}
+                  onChange={(e) => setWAmount(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+                {data?.account && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Disponível: {formatBRL(data.account.balance.available)}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={wKeyMode === "saved" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWKeyMode("saved")}
+                >
+                  Chaves salvas
+                </Button>
+                <Button
+                  type="button"
+                  variant={wKeyMode === "new" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWKeyMode("new")}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Nova chave
+                </Button>
+              </div>
+
+              {wKeyMode === "saved" && (
+                <div className="space-y-2">
+                  {savedKeys.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhuma chave salva ainda. Use "Nova chave".</p>
+                  ) : (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {savedKeys.map((k) => (
+                        <div
+                          key={k.id}
+                          className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer ${wSavedKeyId === k.id ? "border-green-500 bg-green-500/10" : "border-border"}`}
+                          onClick={() => setWSavedKeyId(k.id)}
+                        >
+                          <div className="text-sm">
+                            <p className="font-medium">{k.name}</p>
+                            <p className="text-xs text-muted-foreground">{k.pix_key_type} — {k.pix_key}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); deleteSavedKey(k.id); }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-400" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {wKeyMode === "new" && (
+                <div className="space-y-2">
+                  <div>
+                    <Label>Tipo de chave</Label>
+                    <Select value={wNewKeyType} onValueChange={setWNewKeyType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CPF">CPF</SelectItem>
+                        <SelectItem value="CNPJ">CNPJ</SelectItem>
+                        <SelectItem value="EMAIL">E-mail</SelectItem>
+                        <SelectItem value="PHONE">Telefone</SelectItem>
+                        <SelectItem value="RANDOM_KEY">Chave aleatória</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Chave PIX</Label>
+                    <Input value={wNewKey} onChange={(e) => setWNewKey(e.target.value)} placeholder="Digite a chave" />
+                  </div>
+                  <div>
+                    <Label>Nome/Identificação (opcional)</Label>
+                    <Input value={wNewKeyName} onChange={(e) => setWNewKeyName(e.target.value)} placeholder="Ex.: Fabricio pessoal" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={wSaveNewKey} onCheckedChange={(v) => setWSaveNewKey(!!v)} />
+                    <span>Salvar esta chave para saques futuros</span>
+                  </label>
+                </div>
+              )}
+
+              <div>
+                <Label>Descrição (opcional)</Label>
+                <Input value={wDescription} onChange={(e) => setWDescription(e.target.value.slice(0, 140))} placeholder="Ex.: Retirada mensal" />
+              </div>
+            </div>
+          )}
+
+          {wStep === "code" && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-secondary/30 text-sm">
+                <p>Enviamos um código de 6 dígitos para o WhatsApp cadastrado no seu perfil.</p>
+                <p className="text-xs text-muted-foreground mt-1">O código expira em 10 minutos.</p>
+              </div>
+              <div>
+                <Label>Código de confirmação</Label>
+                <Input
+                  value={wCode}
+                  onChange={(e) => setWCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  className="text-center text-2xl tracking-widest font-mono"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {wStep === "form" ? (
+              <>
+                <Button variant="outline" onClick={() => setWithdrawOpen(false)} disabled={wLoading}>
+                  Cancelar
+                </Button>
+                <Button onClick={submitWithdrawRequest} disabled={wLoading}>
+                  {wLoading ? "Enviando código..." : "Enviar código no WhatsApp"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setWStep("form")} disabled={wLoading}>
+                  Voltar
+                </Button>
+                <Button onClick={submitWithdrawConfirm} disabled={wLoading || wCode.length !== 6}>
+                  {wLoading ? "Executando..." : "Confirmar Saque"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
