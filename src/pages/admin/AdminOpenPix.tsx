@@ -219,10 +219,19 @@ export default function AdminOpenPix() {
             {lastUpdate && ` • Atualizado ${format(lastUpdate, "HH:mm:ss", { locale: ptBR })}`}
           </p>
         </div>
-        <Button onClick={load} disabled={loading} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setWithdrawOpen(true)}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Sacar
+          </Button>
+          <Button onClick={load} disabled={loading} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {error && (
