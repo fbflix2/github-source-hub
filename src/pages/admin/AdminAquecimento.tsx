@@ -1131,7 +1131,9 @@ export default function AdminAquecimento() {
                     {isCurrency ? "Seu Saldo" : "Total Meus Perfis"}
                   </p>
                   <p className={`font-black mt-1 ${isCurrency ? "text-xl text-emerald-400" : "text-2xl"}`}>
-                    {isCurrency ? fmtVal(myAllTimeCompleted) : myProfiles.length}
+                    {isCurrency
+                      ? `R$ ${totalEarnedAllTime.toFixed(2).replace(".", ",")}`
+                      : myProfiles.length}
                   </p>
                 </div>
               </div>
