@@ -524,6 +524,29 @@ export default function WarmingSessionTimer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Confirmação: Marcar pronto */}
+      <AlertDialog open={confirmMarkReady} onOpenChange={(open) => !open && setConfirmMarkReady(false)}>
+        <AlertDialogContent className="dark:bg-zinc-900 dark:border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="dark:text-white">Marcar perfil como pronto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai pular todas as tarefas restantes de <strong>{profile.profile_code}</strong>, preencher a barra de progresso e marcar o perfil como <strong>concluído</strong>. Use para perfis que já vêm bem completos e não precisam da esteira inteira.
+              <br /><br />
+              <span className="text-amber-600 dark:text-amber-400 text-xs">⚠️ Tarefas puladas não geram ganho para o operador.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="dark:bg-white/10 dark:text-white dark:border-white/10">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 hover:bg-green-700"
+              onClick={markProfileReady}
+              disabled={markingReady}
+            >
+              {markingReady ? "Marcando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
