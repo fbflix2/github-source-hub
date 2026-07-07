@@ -273,6 +273,36 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
     }
   };
 
+  const returnToOperator = async (profile: WarmingProfile) => {
+    if (!confirm(`Devolver o perfil ${profile.profile_code} para a esteira do operador?\n\nO perfil sai de "prontos" e volta ao ponto onde parou.`)) return;
+    setApproving(profile.id);
+    try {
+      const profileTasks = tasks[profile.id] || [];
+      const completedCount = profileTasks.filter((t) => t.completed).length;
+      const newDay = Math.max(1, Math.min(completedCount + 1, profile.track_days));
+
+      await supabase
+        .from("warming_profiles" as any)
+        .update({ status: "active", current_day: newDay })
+        .eq("id", profile.id);
+
+      // Revert confirmed earnings back to pending so admin re-approves later
+      await supabase
+        .from("operator_earnings")
+        .update({ status: "pending", confirmed_at: null })
+        .eq("profile_id", profile.id)
+        .eq("status", "confirmed");
+
+      toast.success(`↩️ Perfil ${profile.profile_code} devolvido para a esteira (dia ${newDay}).`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao devolver perfil");
+    } finally {
+      setApproving(null);
+    }
+  };
+
   return (
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
       <div className="flex items-center gap-3 mb-2">
@@ -456,9 +486,18 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                 </div>
 
                 {isApproved ? (
-                  <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
-                    <MIcon name="check_circle" className="text-base" /> Aprovado
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                      <MIcon name="check_circle" className="text-base" /> Aprovado
+                    </span>
+                    <button
+                      onClick={() => returnToOperator(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="undo" className="text-sm" /> Devolver
+                    </button>
+                  </div>
                 ) : isDisabled ? (
                   <span className="flex items-center gap-1 text-rose-400 text-xs font-bold shrink-0">
                     <MIcon name="no_accounts" className="text-base" /> Conta Desabilitada
@@ -474,6 +513,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                       className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                     >
                       <MIcon name="verified" className="text-sm" /> Aprovar
+                    </button>
+                    <button
+                      onClick={() => returnToOperator(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="undo" className="text-sm" /> Devolver
                     </button>
                     <button
                       onClick={() => markDisabled(profile)}
@@ -492,6 +538,14 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                     >
                       <MIcon name="pause_circle" className="text-base" />
                       Checkpoint
+                    </button>
+                    <button
+                      onClick={() => returnToOperator(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="undo" className="text-base" />
+                      Devolver
                     </button>
                     <button
                       onClick={() => markDisabled(profile)}
