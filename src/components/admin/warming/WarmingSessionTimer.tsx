@@ -77,6 +77,8 @@ export default function WarmingSessionTimer({
   const [elapsed, setElapsed] = useState(0);
   const [isDelaying, setIsDelaying] = useState(false);
   const [confirmStatus, setConfirmStatus] = useState<{ status: string; label: string } | null>(null);
+  const [confirmMarkReady, setConfirmMarkReady] = useState(false);
+  const [markingReady, setMarkingReady] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerStartRef = useRef(timerStart);
@@ -266,6 +268,39 @@ export default function WarmingSessionTimer({
     onTaskCompleted();
   };
 
+  const markProfileReady = async () => {
+    if (markingReady) return;
+    setMarkingReady(true);
+    try {
+      const pendingIds = tasks.filter(t => !t.completed).map(t => t.id);
+      if (pendingIds.length > 0) {
+        const nowIso = new Date().toISOString();
+        const { error: tErr } = await supabase
+          .from("warming_tasks")
+          .update({ completed: true, completed_at: nowIso, duration_seconds: 0 })
+          .in("id", pendingIds);
+        if (tErr) throw tErr;
+      }
+      const { error: pErr } = await supabase
+        .from("warming_profiles")
+        .update({
+          current_day: profile.track_days,
+          status: "completed",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+      if (pErr) throw pErr;
+      toast.success(`✅ Perfil "${profile.profile_code}" marcado como pronto!`);
+      onTaskCompleted();
+    } catch (e: any) {
+      console.error("markProfileReady:", e);
+      toast.error(e?.message || "Erro ao marcar perfil como pronto");
+    } finally {
+      setMarkingReady(false);
+      setConfirmMarkReady(false);
+    }
+  };
+
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
   const totalTime = tasks.reduce((acc, t) => acc + (t.completed ? (t.duration_seconds || 0) : 0), 0);
@@ -334,6 +369,18 @@ export default function WarmingSessionTimer({
                   </div>
                 </PopoverContent>
               </Popover>
+            )}
+            {/* Marcar Pronto — pula fila e conclui o perfil */}
+            {profile.status !== "completed" && (
+              <button
+                onClick={() => setConfirmMarkReady(true)}
+                disabled={markingReady}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-500/30 transition-colors disabled:opacity-50"
+                title="Pular etapas e marcar o perfil como pronto"
+              >
+                <MIcon name="rocket_launch" className="text-sm" />
+                Marcar pronto
+              </button>
             )}
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
               profile.status === "completed" ? "bg-green-50 text-green-600" :
