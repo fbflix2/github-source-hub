@@ -455,7 +455,8 @@ export default function AdminClientes() {
           {paginated.map((client) => (
             <div
               key={client.id}
-              className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl flex flex-col gap-4 relative overflow-hidden group hover:bg-[rgba(45,20,20,0.6)] hover:border-primary/30 hover:-translate-y-0.5 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+              onClick={() => setHistoryClient(client)}
+              className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl flex flex-col gap-4 relative overflow-hidden group hover:bg-[rgba(45,20,20,0.6)] hover:border-primary/30 hover:-translate-y-0.5 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)] cursor-pointer"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -485,7 +486,7 @@ export default function AdminClientes() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setHistoryClient(client)}
+                  onClick={(e) => { e.stopPropagation(); setHistoryClient(client); }}
                   className="size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white transition-colors hover:bg-white/10"
                   title="Histórico do Cliente"
                 >
@@ -508,7 +509,7 @@ export default function AdminClientes() {
               </div>
 
               {/* Balance and Actions */}
-              <div className="flex items-end justify-between mt-auto">
+              <div className="flex items-end justify-between mt-auto" onClick={(e) => e.stopPropagation()}>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-white/40 font-bold mb-1">Saldo Atual</p>
                   <p className={`text-xl font-black tracking-tight ${client.balance > 0 ? "text-emerald-400" : "text-white/50"}`}>

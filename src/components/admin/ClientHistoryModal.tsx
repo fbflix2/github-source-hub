@@ -165,7 +165,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
   return (
     <>
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[100vw] max-w-[100vw] h-[100dvh] sm:h-auto sm:w-auto sm:max-w-2xl sm:max-h-[85vh] rounded-none sm:rounded-lg p-4 sm:p-6 overflow-hidden flex flex-col z-[100]">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold flex items-center gap-2">
             <UserRound className="size-5 text-primary" /> Perfil do Cliente
@@ -173,41 +173,43 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
         </DialogHeader>
 
         {/* Client Summary */}
-        <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border">
-          {client.avatar_url ? (
-            <div
-              className="size-14 rounded-xl bg-center bg-cover border border-border"
-              style={{ backgroundImage: `url(${client.avatar_url})` }}
-            />
-          ) : (
-            <div className="size-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xl font-bold text-primary border border-border">
-              <UserRound className="size-7 text-primary" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-foreground truncate">{client.full_name || "Sem nome"}</h3>
-            <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" /> Cliente há {clientSince}
-              </span>
-              <span className="flex items-center gap-1">
-                <Wallet className="size-3" /> Saldo: {formatCurrency(client.balance)}
-              </span>
-              <span className="flex items-center gap-1">
-                <ShoppingBag className="size-3" /> Total gasto: {formatCurrency(totalSpent)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" /> Último acesso: {lastSeenAt
-                  ? new Date(lastSeenAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                  : "Nunca"}
-              </span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/50 border border-border">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {client.avatar_url ? (
+              <div
+                className="size-14 rounded-xl bg-center bg-cover border border-border shrink-0"
+                style={{ backgroundImage: `url(${client.avatar_url})` }}
+              />
+            ) : (
+              <div className="size-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xl font-bold text-primary border border-border shrink-0">
+                <UserRound className="size-7 text-primary" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-foreground truncate">{client.full_name || "Sem nome"}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" /> Cliente há {clientSince}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Wallet className="size-3" /> Saldo: {formatCurrency(client.balance)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ShoppingBag className="size-3" /> Total gasto: {formatCurrency(totalSpent)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" /> Último acesso: {lastSeenAt
+                    ? new Date(lastSeenAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                    : "Nunca"}
+                </span>
+              </div>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowAdjustBalance(true)}
-            className="shrink-0 gap-1.5"
+            className="shrink-0 gap-1.5 w-full sm:w-auto"
           >
             <DollarSign className="size-3.5" />
             Ajustar Saldo
@@ -215,12 +217,12 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-border">
+        <div className="flex gap-1 border-b border-border overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === tab.key
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -234,7 +236,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto -mx-6 px-6 min-h-0">
+        <div className="flex-1 overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6 min-h-0 pb-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="size-6 animate-spin text-primary" />
