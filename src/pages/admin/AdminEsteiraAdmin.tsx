@@ -1506,7 +1506,7 @@ export default function AdminEsteiraAdmin() {
                     const latestCompletedTask = [...profileTasks]
                       .filter((task) => task.completed_at)
                       .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())[0];
-                    const isSent = profile.status === "sent_to_store" || profile.status === "removed_multilogin";
+                    const isSent = profile.status === "sent_to_store";
 
                     return (
                       <div
@@ -1519,9 +1519,7 @@ export default function AdminEsteiraAdmin() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-black text-foreground">{profile.profile_code}</span>
-                              {profile.status === "removed_multilogin" ? (
-                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 uppercase">Removido ML</span>
-                              ) : profile.status === "sent_to_store" ? (
+                              {profile.status === "sent_to_store" ? (
                                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 uppercase">Enviado</span>
                               ) : (
                                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 uppercase">Pronto</span>
@@ -1541,79 +1539,29 @@ export default function AdminEsteiraAdmin() {
                         {/* Right: actions */}
                         <div className="shrink-0 flex items-center gap-2">
                           {!isSent ? (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  const { error } = await supabase
-                                    .from("warming_profiles" as any)
-                                    .update({ status: "sent_to_store" })
-                                    .eq("id", profile.id);
-                                  if (error) {
-                                    toast.error("Erro ao marcar como enviado");
-                                  } else {
-                                    toast.success(`Perfil ${profile.profile_code} enviado para loja!`);
-                                    fetchProfiles();
-                                  }
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
-                              >
-                                <span className="material-symbols-outlined text-sm">storefront</span>
-                                Enviado p/ Loja
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const { error } = await supabase
-                                    .from("warming_profiles" as any)
-                                    .update({ status: "removed_multilogin" })
-                                    .eq("id", profile.id);
-                                  if (error) {
-                                    toast.error("Erro ao marcar remoção");
-                                  } else {
-                                    toast.success(`Perfil ${profile.profile_code} removido do Multilogin!`);
-                                    fetchProfiles();
-                                  }
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
-                              >
-                                <span className="material-symbols-outlined text-sm">delete_sweep</span>
-                                Removido do ML
-                              </button>
-                            </>
+                            <button
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from("warming_profiles" as any)
+                                  .update({ status: "sent_to_store" })
+                                  .eq("id", profile.id);
+                                if (error) {
+                                  toast.error("Erro ao marcar como enviado");
+                                } else {
+                                  toast.success(`Perfil ${profile.profile_code} enviado para loja!`);
+                                  fetchProfiles();
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-sm">storefront</span>
+                              Enviado p/ Loja
+                            </button>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">check</span>
-                                Enviado
-                              </span>
-                              {profile.status !== "removed_multilogin" && (
-                                <button
-                                  onClick={async () => {
-                                    const { error } = await supabase
-                                      .from("warming_profiles" as any)
-                                      .update({ status: "removed_multilogin" })
-                                      .eq("id", profile.id);
-                                    if (error) {
-                                      toast.error("Erro ao marcar remoção");
-                                    } else {
-                                      toast.success(`Perfil ${profile.profile_code} removido do Multilogin!`);
-                                      fetchProfiles();
-                                    }
-                                  }}
-                                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
-                                >
-                                  <span className="material-symbols-outlined text-sm">delete_sweep</span>
-                                  Removido do ML
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          {profile.status === "removed_multilogin" && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">check_circle</span>
-                                Finalizado
-                              </span>
-                            </div>
+                            <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">check</span>
+                              Enviado p/ Loja
+                            </span>
                           )}
                         </div>
                       </div>
