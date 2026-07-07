@@ -1476,6 +1476,15 @@ export default function AdminEsteiraAdmin() {
                     <option key={title} value={title}>{title}</option>
                   ))}
                 </select>
+                <select
+                  value={readyStatusFilter}
+                  onChange={(e) => setReadyStatusFilter(e.target.value as "all" | "ready" | "sent")}
+                  className="text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 [&>option]:bg-white dark:[&>option]:bg-slate-900 [&>option]:text-slate-900 dark:[&>option]:text-white"
+                >
+                  <option value="all">Todos os status</option>
+                  <option value="ready">Prontos</option>
+                  <option value="sent">Enviados p/ Loja</option>
+                </select>
                 <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                   {filteredReadyProfiles.length} disponíveis
                 </span>
