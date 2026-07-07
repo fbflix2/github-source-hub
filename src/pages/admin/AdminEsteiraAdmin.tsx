@@ -98,6 +98,7 @@ export default function AdminEsteiraAdmin() {
   const [editingCode, setEditingCode] = useState("");
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
   const [readySearch, setReadySearch] = useState("");
+  const [readyStatusFilter, setReadyStatusFilter] = useState<"all" | "ready" | "sent">("all");
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
   const [analiseSearch, setAnaliseSearch] = useState("");
@@ -909,7 +910,7 @@ export default function AdminEsteiraAdmin() {
   const totalProfiles = profiles.length;
   const completedProfiles = profiles.filter(p => p.status === "completed").length;
   const readyProfiles = useMemo(
-    () => profiles.filter((p) => (p.status === "completed" || p.status === "sent_to_store" || p.status === "removed_multilogin") && approvedProfileIds.has(p.id)),
+    () => profiles.filter((p) => (p.status === "completed" || p.status === "sent_to_store") && approvedProfileIds.has(p.id)),
     [profiles, approvedProfileIds],
   );
 
@@ -929,9 +930,11 @@ export default function AdminEsteiraAdmin() {
         if (!profileTasks.some((t) => t.completed && t.title === readyTaskFilter)) return false;
       }
       if (q && !p.profile_code.toLowerCase().includes(q)) return false;
+      if (readyStatusFilter === "ready" && p.status !== "completed") return false;
+      if (readyStatusFilter === "sent" && p.status !== "sent_to_store") return false;
       return true;
     });
-  }, [readyProfiles, tasks, readyTaskFilter, readySearch]);
+  }, [readyProfiles, tasks, readyTaskFilter, readySearch, readyStatusFilter]);
 
   const activeProfiles = useMemo(
     () => profiles.filter((p) => p.status !== "completed"),
