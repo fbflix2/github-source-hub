@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_PROFILE_QUALITY_DATA,
@@ -49,6 +49,8 @@ function getTierForScore(score: number) {
 export default function ProfileQuickInfo({ profileId, initialQuality }: { profileId: string; initialQuality?: Partial<ProfileQualityData> }) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_PROFILE_QUALITY_DATA);
   const [loaded, setLoaded] = useState(false);
+  const [yearInput, setYearInput] = useState<string>("");
+  const yearSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadData = (pid: string) => {
     const key = `warming_quality_${pid}`;
@@ -62,15 +64,19 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
         if (row?.value) {
           try {
             const saved = JSON.parse(row.value);
-            setData({
+            const merged = {
               ...DEFAULT_PROFILE_QUALITY_DATA,
               ...saved,
               has2FA: Boolean(saved.has2FA || initialQuality?.has2FA),
               hasBM: Boolean(saved.hasBM || initialQuality?.hasBM),
               hasPage: Boolean(saved.hasPage || initialQuality?.hasPage),
               friendRange: saved.friendRange || initialQuality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
-            });
+            };
+            setData(merged);
+            setYearInput(merged.profileYear ? String(merged.profileYear) : "");
           } catch {}
+        } else {
+          setYearInput(initialQuality?.profileYear ? String(initialQuality.profileYear) : "");
         }
         setLoaded(true);
       });
@@ -81,6 +87,16 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
     setLoaded(false);
     loadData(profileId);
   }, [profileId, initialQuality?.has2FA, initialQuality?.hasBM, initialQuality?.hasPage, initialQuality?.friendRange]);
+
+  // Save any pending year change when unmounting or switching profile
+  useEffect(() => {
+    return () => {
+      if (yearSaveTimer.current) {
+        clearTimeout(yearSaveTimer.current);
+        yearSaveTimer.current = null;
+      }
+    };
+  }, [profileId]);
 
   const saveFriendRange = async (range: string) => {
     const newData = { ...data, friendRange: range };
@@ -122,6 +138,14 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
     }
   };
 
+  const handleYearChange = (raw: string) => {
+    setYearInput(raw);
+    if (yearSaveTimer.current) clearTimeout(yearSaveTimer.current);
+    yearSaveTimer.current = setTimeout(() => {
+      saveProfileYear(raw);
+    }, 500);
+  };
+
   if (!loaded) return null;
 
   const score = calcScore(data);
@@ -146,8 +170,15 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
             min={2004}
             max={new Date().getFullYear()}
             placeholder="Ex: 2020"
-            defaultValue={data.profileYear ?? ""}
-            onBlur={(e) => saveProfileYear(e.target.value)}
+            value={yearInput}
+            onChange={(e) => handleYearChange(e.target.value)}
+            onBlur={(e) => {
+              if (yearSaveTimer.current) {
+                clearTimeout(yearSaveTimer.current);
+                yearSaveTimer.current = null;
+              }
+              saveProfileYear(e.target.value);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
             }}
