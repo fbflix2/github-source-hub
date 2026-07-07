@@ -164,6 +164,7 @@ export default function AdminAquecimento() {
   const [operatorCoverUrl, setOperatorCoverUrl] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const [commissionRate, setCommissionRate] = useState(0.25);
+  const [totalEarnedAllTime, setTotalEarnedAllTime] = useState(0);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
