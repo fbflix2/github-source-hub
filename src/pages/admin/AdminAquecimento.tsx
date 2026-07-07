@@ -726,7 +726,7 @@ export default function AdminAquecimento() {
         const { data } = await (supabase as any)
           .from("operator_earnings")
           .select("amount,status")
-          .eq("operator_id", currentUserId);
+          .eq("user_id", currentUserId);
         if (!data) return;
         const total = (data as Array<{ amount: number; status: string }>)
           .filter((e) => e.status !== "cancelled")
