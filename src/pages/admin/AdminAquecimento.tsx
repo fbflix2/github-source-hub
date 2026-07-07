@@ -721,6 +721,18 @@ export default function AdminAquecimento() {
       supabase.from("site_settings").select("value").eq("key", `operator_cover_${currentUserId}`).maybeSingle().then(({ data }) => {
         if (data?.value) setOperatorCoverUrl(data.value);
       });
+      // Load accumulated total earnings across all time (all confirmed + pending)
+      supabase
+        .from("operator_earnings")
+        .select("amount,status")
+        .eq("operator_id", currentUserId)
+        .then(({ data }) => {
+          if (!data) return;
+          const total = data
+            .filter((e: { status: string }) => e.status !== "cancelled")
+            .reduce((sum: number, e: { amount: number }) => sum + Number(e.amount || 0), 0);
+          setTotalEarnedAllTime(total);
+        });
     }
   }, [currentUserId]);
 
