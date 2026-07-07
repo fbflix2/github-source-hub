@@ -164,6 +164,7 @@ export default function AdminAquecimento() {
   const [operatorCoverUrl, setOperatorCoverUrl] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const [commissionRate, setCommissionRate] = useState(0.25);
+  const [totalEarnedAllTime, setTotalEarnedAllTime] = useState(0);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
@@ -720,6 +721,18 @@ export default function AdminAquecimento() {
       supabase.from("site_settings").select("value").eq("key", `operator_cover_${currentUserId}`).maybeSingle().then(({ data }) => {
         if (data?.value) setOperatorCoverUrl(data.value);
       });
+      // Load accumulated total earnings across all time (all except cancelled)
+      (async () => {
+        const { data } = await (supabase as any)
+          .from("operator_earnings")
+          .select("amount,status")
+          .eq("operator_id", currentUserId);
+        if (!data) return;
+        const total = (data as Array<{ amount: number; status: string }>)
+          .filter((e) => e.status !== "cancelled")
+          .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+        setTotalEarnedAllTime(total);
+      })();
     }
   }, [currentUserId]);
 
@@ -1118,7 +1131,9 @@ export default function AdminAquecimento() {
                     {isCurrency ? "Seu Saldo" : "Total Meus Perfis"}
                   </p>
                   <p className={`font-black mt-1 ${isCurrency ? "text-xl text-emerald-400" : "text-2xl"}`}>
-                    {isCurrency ? fmtVal(myAllTimeCompleted) : myProfiles.length}
+                    {isCurrency
+                      ? `R$ ${totalEarnedAllTime.toFixed(2).replace(".", ",")}`
+                      : myProfiles.length}
                   </p>
                 </div>
               </div>
