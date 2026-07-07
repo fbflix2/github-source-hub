@@ -97,6 +97,7 @@ export default function AdminEsteiraAdmin() {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState("");
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
+  const [readySearch, setReadySearch] = useState("");
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
   const [analiseSearch, setAnaliseSearch] = useState("");
@@ -921,12 +922,16 @@ export default function AdminEsteiraAdmin() {
   }, [readyProfiles, tasks]);
 
   const filteredReadyProfiles = useMemo(() => {
-    if (!readyTaskFilter) return readyProfiles;
+    const q = readySearch.trim().toLowerCase();
     return readyProfiles.filter((p) => {
-      const profileTasks = tasks[p.id] || [];
-      return profileTasks.some((t) => t.completed && t.title === readyTaskFilter);
+      if (readyTaskFilter) {
+        const profileTasks = tasks[p.id] || [];
+        if (!profileTasks.some((t) => t.completed && t.title === readyTaskFilter)) return false;
+      }
+      if (q && !p.profile_code.toLowerCase().includes(q)) return false;
+      return true;
     });
-  }, [readyProfiles, tasks, readyTaskFilter]);
+  }, [readyProfiles, tasks, readyTaskFilter, readySearch]);
 
   const activeProfiles = useMemo(
     () => profiles.filter((p) => p.status !== "completed"),
@@ -1448,10 +1453,20 @@ export default function AdminEsteiraAdmin() {
                 </p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-base text-slate-400 dark:text-white/40 pointer-events-none">search</span>
+                  <input
+                    type="text"
+                    value={readySearch}
+                    onChange={(e) => setReadySearch(e.target.value)}
+                    placeholder="Buscar por ID do perfil..."
+                    className="text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg pl-8 pr-3 py-2 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary/40 w-56"
+                  />
+                </div>
                 <select
                   value={readyTaskFilter}
                   onChange={(e) => setReadyTaskFilter(e.target.value)}
-                  className="text-xs bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-slate-700 dark:text-white/80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 [&>option]:bg-white dark:[&>option]:bg-slate-900 [&>option]:text-slate-900 dark:[&>option]:text-white"
                 >
                   <option value="">Todas as tarefas</option>
                   {readyTaskTitles.map((title) => (
