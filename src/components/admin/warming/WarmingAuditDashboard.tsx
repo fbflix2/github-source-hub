@@ -483,6 +483,20 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-muted-foreground">
                     {friendMin}+ amigos
                   </span>
+                  {manualQualityMap[profile.id]?.profileYear ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 flex items-center gap-1">
+                      <MIcon name="event" className="text-xs" />
+                      {manualQualityMap[profile.id]?.profileYear}
+                    </span>
+                  ) : (
+                    <span
+                      title="Ano do perfil não informado"
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 flex items-center gap-1"
+                    >
+                      <MIcon name="event_busy" className="text-xs" />
+                      Sem ano
+                    </span>
+                  )}
                 </div>
 
                 {isApproved ? (
