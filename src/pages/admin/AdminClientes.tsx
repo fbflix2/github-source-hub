@@ -625,7 +625,7 @@ export default function AdminClientes() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] px-4 py-2 rounded-full flex items-center gap-4 shadow-2xl shadow-black/80">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
