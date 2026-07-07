@@ -820,6 +820,10 @@ export default function AdminEsteiraAdmin() {
                 hasBM: !!parsed.hasBM,
                 hasPage: !!parsed.hasPage,
                 friendRange: parsed.friendRange || "0-5",
+                profileYear:
+                  typeof parsed.profileYear === "number" && !isNaN(parsed.profileYear)
+                    ? parsed.profileYear
+                    : null,
               };
             } catch {
               manualQualityMap[profileId] = {};

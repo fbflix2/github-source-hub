@@ -99,6 +99,29 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
     }
   };
 
+  const saveProfileYear = async (yearRaw: string) => {
+    const trimmed = yearRaw.trim();
+    const parsed = trimmed === "" ? null : parseInt(trimmed, 10);
+    const year =
+      parsed !== null && !isNaN(parsed) && parsed >= 2004 && parsed <= new Date().getFullYear()
+        ? parsed
+        : null;
+    const newData = { ...data, profileYear: year };
+    setData(newData);
+    const key = `warming_quality_${profileId}`;
+    const jsonValue = JSON.stringify(newData);
+    const { data: existing } = await supabase
+      .from("site_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("site_settings").update({ value: jsonValue }).eq("key", key);
+    } else {
+      await supabase.from("site_settings").insert({ key, value: jsonValue });
+    }
+  };
+
   if (!loaded) return null;
 
   const score = calcScore(data);
@@ -108,6 +131,34 @@ export default function ProfileQuickInfo({ profileId, initialQuality }: { profil
   return (
     <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
       <div className="p-4 space-y-3">
+        {/* Profile year (required) */}
+        <div>
+          <p className="text-[11px] font-bold text-slate-700 dark:text-white/70 mb-2 flex items-center gap-1.5">
+            <MIcon name="event" className="text-sm text-amber-500" />
+            Ano do Perfil <span className="text-rose-500">*</span>
+            {!data.profileYear && (
+              <span className="ml-1 text-[9px] font-bold text-rose-500 uppercase">obrigatório</span>
+            )}
+          </p>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={2004}
+            max={new Date().getFullYear()}
+            placeholder="Ex: 2020"
+            defaultValue={data.profileYear ?? ""}
+            onBlur={(e) => saveProfileYear(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+            className={`w-full px-3 py-1.5 rounded-lg border text-sm font-bold text-center transition-colors ${
+              data.profileYear
+                ? "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-300"
+                : "bg-white dark:bg-white/5 border-rose-300 dark:border-rose-500/40 text-slate-700 dark:text-white/70"
+            }`}
+          />
+        </div>
+
         {/* Friend count */}
         <div>
           <p className="text-[11px] font-bold text-slate-700 dark:text-white/70 mb-2 flex items-center gap-1.5">

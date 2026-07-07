@@ -3,6 +3,7 @@ export interface ProfileQualityData {
   hasBM: boolean;
   hasPage: boolean;
   friendRange: string;
+  profileYear?: number | null;
 }
 
 export interface ProfileQualityWithSource {
@@ -13,6 +14,7 @@ export interface ProfileQualityWithSource {
   hasPage: boolean;
   hasPage_source: "manual" | "task" | "both" | null;
   friendRange: string;
+  profileYear?: number | null;
 }
 
 export interface ReadyCriteria {
@@ -40,6 +42,7 @@ export const DEFAULT_PROFILE_QUALITY_DATA: ProfileQualityData = {
   hasBM: false,
   hasPage: false,
   friendRange: "0-5",
+  profileYear: null,
 };
 
 export const DEFAULT_READY_CRITERIA: ReadyCriteria = {
@@ -186,6 +189,7 @@ export function getEffectiveProfileQualityWithSource(
     friendRange: quality?.friendRange && quality.friendRange !== DEFAULT_PROFILE_QUALITY_DATA.friendRange
       ? quality.friendRange
       : inferredFriendRange || quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+    profileYear: quality?.profileYear ?? null,
   };
 }
 
