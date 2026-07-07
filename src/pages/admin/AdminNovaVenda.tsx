@@ -135,7 +135,8 @@ export default function AdminNovaVenda() {
         .from("profiles")
         .select("user_id, full_name, phone, cpf")
         .or(`full_name.ilike.%${clientSearch}%,phone.ilike.%${clientSearch}%,cpf.ilike.%${clientSearch}%`)
-        .limit(8);
+        .order("created_at", { ascending: false })
+        .limit(20);
       setClients(data || []);
       setShowClientDropdown(true);
     }, 300);
