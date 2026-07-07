@@ -174,38 +174,36 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
 
         {/* Client Summary */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/50 border border-border">
-          <div className="flex items-center gap-3 sm:contents">
-          {client.avatar_url ? (
-            <div
-              className="size-14 rounded-xl bg-center bg-cover border border-border shrink-0"
-              style={{ backgroundImage: `url(${client.avatar_url})` }}
-            />
-          ) : (
-            <div className="size-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xl font-bold text-primary border border-border shrink-0">
-              <UserRound className="size-7 text-primary" />
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {client.avatar_url ? (
+              <div
+                className="size-14 rounded-xl bg-center bg-cover border border-border shrink-0"
+                style={{ backgroundImage: `url(${client.avatar_url})` }}
+              />
+            ) : (
+              <div className="size-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xl font-bold text-primary border border-border shrink-0">
+                <UserRound className="size-7 text-primary" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-foreground truncate">{client.full_name || "Sem nome"}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" /> Cliente há {clientSince}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Wallet className="size-3" /> Saldo: {formatCurrency(client.balance)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <ShoppingBag className="size-3" /> Total gasto: {formatCurrency(totalSpent)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" /> Último acesso: {lastSeenAt
+                    ? new Date(lastSeenAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                    : "Nunca"}
+                </span>
+              </div>
             </div>
-          )}
-          <div className="flex-1 min-w-0 sm:contents">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-foreground truncate">{client.full_name || "Sem nome"}</h3>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" /> Cliente há {clientSince}
-              </span>
-              <span className="flex items-center gap-1">
-                <Wallet className="size-3" /> Saldo: {formatCurrency(client.balance)}
-              </span>
-              <span className="flex items-center gap-1">
-                <ShoppingBag className="size-3" /> Total gasto: {formatCurrency(totalSpent)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" /> Último acesso: {lastSeenAt
-                  ? new Date(lastSeenAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                  : "Nunca"}
-              </span>
-            </div>
-          </div>
-          </div>
           </div>
           <Button
             variant="outline"
