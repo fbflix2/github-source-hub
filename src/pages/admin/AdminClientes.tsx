@@ -300,28 +300,28 @@ export default function AdminClientes() {
   }, [searchTerm, activeFilter]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-1.5rem)] pt-4">
+    <div className="flex flex-col min-h-full md:h-[calc(100vh-1.5rem)] pt-2 md:pt-4">
       {/* Header */}
       <section className="flex flex-col gap-4 flex-shrink-0">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
           <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tight text-white mb-1 md:mb-2">
               Base de Clientes
             </h1>
-            <p className="text-white/60 text-lg">
+            <p className="text-white/60 text-sm md:text-lg">
               Gerencie usuários, saldos e assinaturas de forma centralizada.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowImport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-4 py-3 h-auto rounded-xl font-bold flex items-center gap-2">
+          <div className="flex gap-2 w-full md:w-auto flex-wrap">
+            <Button onClick={() => setShowImport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-3 md:px-4 py-2.5 md:py-3 h-auto rounded-xl font-bold flex items-center gap-2 flex-1 md:flex-none justify-center text-sm">
               <Upload className="w-4 h-4" />
               Importar
             </Button>
-            <Button onClick={() => setShowExport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-4 py-3 h-auto rounded-xl font-bold flex items-center gap-2">
+            <Button onClick={() => setShowExport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-3 md:px-4 py-2.5 md:py-3 h-auto rounded-xl font-bold flex items-center gap-2 flex-1 md:flex-none justify-center text-sm">
               <Download className="w-4 h-4" />
               Exportar
             </Button>
-            <Button onClick={() => setShowNewClient(true)} className="bg-primary hover:bg-primary/80 text-white px-6 py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105">
+            <Button onClick={() => setShowNewClient(true)} className="bg-primary hover:bg-primary/80 text-white px-4 md:px-6 py-2.5 md:py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105 w-full md:w-auto justify-center text-sm">
               <UserPlus className="w-5 h-5" />
               Novo Cliente
             </Button>
@@ -329,7 +329,7 @@ export default function AdminClientes() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
           <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col gap-1">
               <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Total de Clientes</p>
@@ -625,7 +625,7 @@ export default function AdminClientes() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] px-4 py-2 rounded-full flex items-center gap-4 shadow-2xl shadow-black/80">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
