@@ -459,6 +459,7 @@ const App = () => {
                   <Route path="imagens" element={<AdminImageViewer />} />
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
+                  <Route path="scale-pro-pool" element={<AdminScaleProPool />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                   <Route path="reposicao-fornecedor" element={<AdminReposicaoFornecedor />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
