@@ -840,6 +840,8 @@ export type Database = {
           id: string
           last_payment_at: string | null
           last_payment_id: string | null
+          lauth_email: string | null
+          lauth_status: string
           monthly_value: number
           next_billing: string | null
           notes: string | null
@@ -857,6 +859,8 @@ export type Database = {
           id?: string
           last_payment_at?: string | null
           last_payment_id?: string | null
+          lauth_email?: string | null
+          lauth_status?: string
           monthly_value?: number
           next_billing?: string | null
           notes?: string | null
@@ -874,6 +878,8 @@ export type Database = {
           id?: string
           last_payment_at?: string | null
           last_payment_id?: string | null
+          lauth_email?: string | null
+          lauth_status?: string
           monthly_value?: number
           next_billing?: string | null
           notes?: string | null

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wallet, QrCode, Loader2, Copy, CheckCircle2, Shield } from "lucide-react";
+import { Wallet, QrCode, Loader2, Copy, CheckCircle2, Shield, ExternalLink, UserPlus, Mail } from "lucide-react";
 
 interface CTPlan {
   id: string;
@@ -23,7 +23,10 @@ interface Props {
   onClose: () => void;
 }
 
-type Step = "choose" | "processing" | "pix" | "success";
+type Step = "choose" | "processing" | "pix" | "success" | "lauth_choice" | "lauth_email";
+
+const LAUTH_SIGNUP_URL =
+  "https://www.lauth.com.br/?src=hotmart&ref=S97050697H&utm_source=parceiro&utm_medium=fbflix&utm_campaign=fornecedor_de_perfis";
 
 export default function CTCheckoutModal({ plan, open, onClose }: Props) {
   const navigate = useNavigate();
@@ -32,6 +35,10 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
   const [balance, setBalance] = useState<number>(0);
   const [pixData, setPixData] = useState<{ payment_id: string; qr_code: string; qr_code_base64: string | null; expires_at: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [ctClientId, setCtClientId] = useState<string | null>(null);
+  const [hasLauth, setHasLauth] = useState<boolean | null>(null);
+  const [lauthEmail, setLauthEmail] = useState("");
+  const [savingLauth, setSavingLauth] = useState(false);
 
   const price = Number(plan?.price ?? 0);
 
@@ -41,6 +48,9 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
     setMethod(null);
     setPixData(null);
     setCopied(false);
+    setCtClientId(null);
+    setHasLauth(null);
+    setLauthEmail("");
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -60,7 +70,14 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
         .maybeSingle();
       if (data?.status === "completed") {
         clearInterval(interval);
-        setStep("success");
+        // Try to fetch ct_client_id linked to this payment
+        const { data: ct } = await supabase
+          .from("ct_clients")
+          .select("id")
+          .eq("last_payment_id", pixData.payment_id)
+          .maybeSingle();
+        if (ct?.id) setCtClientId(ct.id);
+        setStep("lauth_choice");
       }
     }, 4000);
     return () => clearInterval(interval);
@@ -78,7 +95,8 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
       if (data?.error) throw new Error(data.error);
 
       if (chosen === "saldo") {
-        setStep("success");
+        setCtClientId(data?.ct_client_id ?? null);
+        setStep("lauth_choice");
       } else {
         setPixData({
           payment_id: data.payment_id,
@@ -98,6 +116,32 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
   function handleClose() {
     if (step === "processing") return;
     onClose();
+  }
+
+  async function submitLauthEmail() {
+    const email = lauthEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Informe um e-mail válido");
+      return;
+    }
+    if (!ctClientId) {
+      toast.error("Assinatura não encontrada");
+      return;
+    }
+    setSavingLauth(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ct-set-lauth-email", {
+        body: { ct_client_id: ctClientId, lauth_email: email, has_account: hasLauth === true },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("E-mail enviado! Nossa equipe vai liberar seu acesso em instantes.");
+      setStep("success");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar e-mail");
+    } finally {
+      setSavingLauth(false);
+    }
   }
 
   function goToDashboard() {
@@ -233,6 +277,122 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
             <Button onClick={goToDashboard} className="w-full mt-2">
               Ir para meu painel CT
             </Button>
+          </div>
+        )}
+
+        {step === "lauth_choice" && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
+              <p className="text-xs font-bold text-primary mb-1">✅ Pagamento confirmado</p>
+              <p className="text-[11px] text-muted-foreground">
+                Agora precisamos configurar sua conta <b>Lauth</b> para entregar sua estrutura Scale Pro.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-foreground mb-1">Passo 1 — Conta Lauth</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                O Lauth é o app onde seus perfis serão entregues. Você já tem uma conta?
+              </p>
+            </div>
+
+            <a
+              href={LAUTH_SIGNUP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setHasLauth(false)}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+                <UserPlus className="size-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-sm text-foreground flex items-center gap-1">
+                  Criar conta Lauth <ExternalLink className="size-3" />
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Abre o site do Lauth. Baixe e instale o app após criar a conta.
+                </p>
+              </div>
+            </a>
+
+            <button
+              onClick={() => { setHasLauth(true); setStep("lauth_email"); }}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-glass-border bg-card hover:bg-muted/40 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-green-500/15 flex items-center justify-center">
+                <CheckCircle2 className="size-5 text-green-500" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-sm text-foreground">Já possuo conta Lauth</p>
+                <p className="text-[11px] text-muted-foreground">Vou informar o e-mail da minha conta.</p>
+              </div>
+            </button>
+
+            {hasLauth === false && (
+              <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3 space-y-2">
+                <p className="text-xs text-yellow-500 font-semibold">
+                  📩 Após criar a conta e instalar o Lauth
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Volte aqui e informe o e-mail que você usou no cadastro do Lauth — é nele que
+                  vamos entregar sua estrutura Scale Pro.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => setStep("lauth_email")}
+                  className="w-full mt-1"
+                >
+                  Já criei minha conta, informar e-mail
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === "lauth_email" && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+                <Mail className="size-4 text-primary" /> Passo 2 — E-mail da sua conta Lauth
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Informe abaixo o e-mail usado {hasLauth ? "no cadastro" : "para criar a conta"} no Lauth.
+                É nele que sua estrutura Scale Pro será entregue.
+              </p>
+            </div>
+
+            <input
+              type="email"
+              autoFocus
+              value={lauthEmail}
+              onChange={(e) => setLauthEmail(e.target.value)}
+              placeholder="seu-email@lauth.com.br"
+              maxLength={255}
+              className="w-full px-3 py-2.5 rounded-lg bg-muted border border-glass-border text-sm text-foreground focus:outline-none focus:border-primary"
+            />
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setStep("lauth_choice")}
+                disabled={savingLauth}
+                className="flex-1"
+              >
+                Voltar
+              </Button>
+              <Button
+                onClick={submitLauthEmail}
+                disabled={savingLauth || !lauthEmail.trim()}
+                className="flex-1"
+              >
+                {savingLauth ? <Loader2 className="size-4 animate-spin" /> : "Enviar e-mail"}
+              </Button>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground text-center">
+              Nossa equipe será notificada e vai liberar seu acesso em instantes.
+            </p>
           </div>
         )}
       </DialogContent>
