@@ -13,12 +13,13 @@ interface MainLayoutProps {
   userEmail: string;
   onLogout: () => void;
   unreadTickets?: number;
+  forceResellerMode?: boolean;
 }
 
 const WHATSAPP_NUMBER = "5519989411105";
 const WHATSAPP_MESSAGE = encodeURIComponent("oi tenho uma dúvida rápida");
 
-export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }: MainLayoutProps) {
+export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, forceResellerMode = false }: MainLayoutProps) {
   const [balance, setBalance] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isPartner, setIsPartner] = useState(false);
@@ -109,7 +110,8 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         avatarUrl={avatarUrl || undefined}
         isPartner={isPartner}
         partnerEarned={partnerEarned}
-        isReseller={isReseller}
+        isReseller={forceResellerMode || isReseller}
+        resellerOnly={forceResellerMode}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
       />
@@ -120,10 +122,10 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       </main>
 
       {/* Waitlist stock alert popup */}
-      <WaitlistStockAlert />
+      {!forceResellerMode && <WaitlistStockAlert />}
 
       {/* Mobile bottom navigation */}
-      <MobileBottomNav />
+      {!forceResellerMode && <MobileBottomNav />}
 
       {/* Floating Help Button with Dropdown */}
       <div className="fixed bottom-6 right-6 z-40" ref={supportMenuRef}>

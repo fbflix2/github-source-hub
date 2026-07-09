@@ -23,6 +23,7 @@ interface NavbarProps {
   isPartner?: boolean;
   partnerEarned?: number | null;
   isReseller?: boolean;
+  resellerOnly?: boolean;
   onLogout: () => void;
   unreadTickets?: number;
 }
@@ -46,7 +47,7 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, onLogout, unreadTickets = 0 }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
@@ -66,21 +67,29 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
   }, []);
 
   const isPartnerMode = location.pathname === "/parceria";
-  const navLinks = allNavLinks.filter(link => !hiddenLinks.includes(link.key));
+  const navLinks = resellerOnly ? [] : allNavLinks.filter(link => !hiddenLinks.includes(link.key));
   const currentTab = searchParams.get("tab") || "";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <NavLink to="/loja" className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
+        <NavLink to={resellerOnly ? "/revenda" : "/loja"} className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
           <img src={logoFbflix} alt="FBFLIX" style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
           <span className="sr-only">FBFLIX</span>
         </NavLink>
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-6 whitespace-nowrap">
-          {isPartnerMode ? (
+          {resellerOnly ? (
+            <NavLink
+              to="/revenda"
+              className="font-medium transition-colors relative group text-foreground"
+            >
+              Painel Revenda
+              <span className="absolute -bottom-6 left-0 w-full h-0.5 bg-primary scale-x-100" />
+            </NavLink>
+          ) : isPartnerMode ? (
             partnerNavLinks.map((link) => {
               const isActive = currentTab === link.tab;
               return (
@@ -124,10 +133,10 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Notification Popup Overlay */}
-          <NotificationPopup />
+          {!resellerOnly && <NotificationPopup />}
 
           {/* Tickets Button */}
-          <NavLink
+          {!resellerOnly && <NavLink
             to="/tickets"
             className="relative flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-primary/10 transition-all group"
           >
@@ -137,13 +146,13 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
                 {unreadTickets > 9 ? "9+" : unreadTickets}
               </span>
             )}
-          </NavLink>
+          </NavLink>}
 
           {/* Theme Toggle */}
           <ThemeToggle />
 
           {/* Balance Badge */}
-          {!isPartnerMode && <NavLink
+          {!isPartnerMode && !resellerOnly && <NavLink
             to="/wallet"
             className={`hidden sm:flex items-center gap-2 border px-4 py-1.5 rounded-full backdrop-blur-sm transition-colors cursor-pointer group ${
               balance > 0
@@ -193,19 +202,23 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-card border-border">
-              <DropdownMenuItem asChild>
-                <NavLink to="/profile" className="flex items-center gap-2 text-foreground">
-                  <span className="material-symbols-outlined text-[18px]">person</span>
-                  Meu Perfil
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/wallet" className="flex items-center gap-2 text-foreground">
-                  <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-                  Minha Carteira
-                </NavLink>
-              </DropdownMenuItem>
-              {isPartner && (
+              {!resellerOnly && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/profile" className="flex items-center gap-2 text-foreground">
+                      <span className="material-symbols-outlined text-[18px]">person</span>
+                      Meu Perfil
+                    </NavLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/wallet" className="flex items-center gap-2 text-foreground">
+                      <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                      Minha Carteira
+                    </NavLink>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isPartner && !resellerOnly && (
                 <>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem asChild>
