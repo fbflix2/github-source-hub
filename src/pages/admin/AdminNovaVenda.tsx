@@ -292,7 +292,7 @@ export default function AdminNovaVenda() {
          const plan = ctPlans.find(p => p.id === selectedCtPlanId);
          orderItemsData = [{
            order_id: order.id,
-           name: `Assinatura Contingência Total — ${plan?.name}`,
+           name: `Assinatura Scale Pro — ${plan?.name}`,
            price: plan?.price || 0,
            quantity: 1,
            product_id: null,
@@ -329,7 +329,7 @@ export default function AdminNovaVenda() {
       // Create a public invoice link so admin can share payment URL with the client
       try {
         const productName = saleType === "subscription"
-          ? `Assinatura Contingência Total — ${ctPlans.find(p => p.id === selectedCtPlanId)?.name || ""}`
+          ? `Assinatura Scale Pro — ${ctPlans.find(p => p.id === selectedCtPlanId)?.name || ""}`
           : (items[0]?.name || "Cobrança");
         const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
         const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
@@ -453,7 +453,7 @@ export default function AdminNovaVenda() {
          const plan = ctPlans.find(p => p.id === selectedCtPlanId);
          orderItemsData = [{
            order_id: order.id,
-           name: `Assinatura Contingência Total — ${plan?.name}`,
+           name: `Assinatura Scale Pro — ${plan?.name}`,
            price: plan?.price || 0,
            quantity: 1,
            product_id: null,
@@ -746,7 +746,7 @@ export default function AdminNovaVenda() {
                      : "text-gray-400 hover:text-white"
                  }`}
                >
-                 🛡️ Contingência Total
+                 🛡️ Scale Pro
                </button>
              </div>
  
@@ -1060,7 +1060,7 @@ export default function AdminNovaVenda() {
                            if (plan) {
                              setItems([{
                                id: crypto.randomUUID(),
-                               name: `Contingência Total — ${plan.name}`,
+                               name: `Scale Pro — ${plan.name}`,
                                quantity: 1,
                                price: plan.price,
                                productId: null

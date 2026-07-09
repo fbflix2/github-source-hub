@@ -94,7 +94,7 @@ export default function AdminClientes() {
 
     const activeSubUserIds = new Set((activeSubs || []).map(s => s.user_id));
 
-    // Also count Safe BM vaults and Contingência Total clients as "assinantes"
+    // Also count Safe BM vaults and Scale Pro clients as "assinantes"
     const [{ data: safeBmActive }, { data: ctActive }] = await Promise.all([
       supabase.from("safe_bm_vaults").select("user_id").eq("status", "active"),
       supabase.from("ct_clients").select("user_id").eq("status", "ativo"),

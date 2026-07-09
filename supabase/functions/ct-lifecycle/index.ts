@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         await admin.from("wallet_transactions").insert({
           user_id: sub.user_id,
           type: "debit",
-          title: "Renovação Contingência Total",
+          title: "Renovação Scale Pro",
           amount: price,
           balance_after: newBal,
           reference_id: sub.id,
