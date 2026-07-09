@@ -540,8 +540,8 @@ export default function ClientContingencia() {
             )}
           </div>
 
-          {/* Passo a passo Scale Pro */}
-          <ScaleProSteps />
+          {/* Ativação Lauth */}
+          <LauthActivation ctClient={ctClient as any} />
 
           {/* KPI cards */}
           {(() => {
