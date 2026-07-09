@@ -830,7 +830,7 @@ export default function ClientContingencia() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {typeItems.map((item: any, idx: number) => {
                       const statusColor =
                         item.status === "block" ? "hsl(0 84% 60%)" :
@@ -844,14 +844,24 @@ export default function ClientContingencia() {
                             ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}`
                             : `${typeLabels[type]} ${idx + 1}`;
                       const isUrl = typeof displayName === "string" && /^https?:\/\//i.test(displayName);
+                      const statusLabel =
+                        item.status === "ativo" ? "Ativo" :
+                        item.status === "block" ? "Block" :
+                        item.status === "substituido" ? "Substituído" : item.status;
                       return (
                         <div
                           key={item.id}
-                          className="group relative flex flex-col rounded-lg border border-border/60 bg-card/40 p-2.5 hover:border-emerald-500/30 hover:bg-card/60 transition-all overflow-hidden"
+                          className="group relative flex flex-col items-center text-center rounded-xl border border-border/60 bg-gradient-to-b from-card/60 to-card/20 p-3.5 hover:border-emerald-500/40 hover:from-card/80 hover:shadow-lg hover:shadow-emerald-500/5 transition-all overflow-hidden"
                         >
-                          <div className="absolute top-0 left-0 h-full w-[2px]" style={{ backgroundColor: statusColor }} />
-                          <div className="flex items-center justify-between gap-1.5 mb-2">
-                            <div className="h-8 w-8 rounded-md overflow-hidden bg-muted/40 border border-border/60 flex items-center justify-center shrink-0">
+                          {/* status dot corner */}
+                          <span
+                            className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full ring-2 ring-background"
+                            style={{ backgroundColor: statusColor, boxShadow: `0 0 8px ${statusColor}` }}
+                          />
+                          {/* avatar */}
+                          <div className="relative mb-2.5">
+                            <div className="absolute inset-0 rounded-full blur-md opacity-40" style={{ backgroundColor: statusColor }} />
+                            <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted/40 border border-border/70 flex items-center justify-center">
                               {isProfile && profilePhotos[item.id] ? (
                                 <img
                                   src={profilePhotos[item.id] as string}
@@ -861,34 +871,37 @@ export default function ClientContingencia() {
                                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                                 />
                               ) : (
-                                <span className="text-muted-foreground [&_svg]:h-3.5 [&_svg]:w-3.5">{typeIcons[type]}</span>
+                                <span className="text-muted-foreground [&_svg]:h-6 [&_svg]:w-6">{typeIcons[type]}</span>
                               )}
                             </div>
-                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 ${statusColors[item.status] || ""}`}>
-                              <span className="inline-block h-1 w-1 rounded-full mr-1" style={{ backgroundColor: statusColor }} />
-                              {item.status === "ativo" ? "Ativo" :
-                                item.status === "block" ? "Block" :
-                                item.status === "substituido" ? "Substituído" : item.status}
-                            </Badge>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-0.5">{typeLabels[type]}</p>
-                            {isUrl ? (
-                              <a
-                                href={displayName}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[11px] font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2 leading-tight"
-                                title={displayName}
-                              >
-                                {displayName}
-                              </a>
-                            ) : (
-                              <p className="text-xs font-medium text-foreground break-all line-clamp-2 leading-tight" title={displayName}>
-                                {displayName}
-                              </p>
-                            )}
-                          </div>
+                          {/* type label */}
+                          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {typeLabels[type]}
+                          </p>
+                          {/* identifier */}
+                          {isUrl ? (
+                            <a
+                              href={displayName}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-1 text-[11px] font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2 leading-tight"
+                              title={displayName}
+                            >
+                              {displayName}
+                            </a>
+                          ) : (
+                            <p className="mt-1 text-xs font-medium text-foreground break-all line-clamp-2 leading-tight" title={displayName}>
+                              {displayName}
+                            </p>
+                          )}
+                          {/* status pill */}
+                          <Badge
+                            variant="outline"
+                            className={`mt-2.5 text-[9px] px-2 py-0 h-4 shrink-0 ${statusColors[item.status] || ""}`}
+                          >
+                            {statusLabel}
+                          </Badge>
                         </div>
                       );
                     })}
