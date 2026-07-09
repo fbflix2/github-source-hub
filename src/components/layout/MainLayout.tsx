@@ -23,6 +23,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isPartner, setIsPartner] = useState(false);
   const [partnerEarned, setPartnerEarned] = useState<number | null>(null);
+  const [isReseller, setIsReseller] = useState(false);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -40,6 +41,9 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       const { data: partnerData } = await supabase.from("partners").select("id, total_earned").eq("user_id", user.id).eq("status", "active").maybeSingle();
       setIsPartner(!!partnerData);
       if (partnerData) setPartnerEarned(Number(partnerData.total_earned ?? 0));
+      // Check if user is a reseller
+      const { data: resellerData } = await supabase.from("resellers").select("id").eq("user_id", user.id).maybeSingle();
+      setIsReseller(!!resellerData);
     }
     fetchProfile();
 
@@ -105,6 +109,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         avatarUrl={avatarUrl || undefined}
         isPartner={isPartner}
         partnerEarned={partnerEarned}
+        isReseller={isReseller}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
       />
