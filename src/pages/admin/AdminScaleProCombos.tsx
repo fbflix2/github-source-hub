@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus, ShieldAlert } from "lucide-react";
+import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus, ShieldAlert, X } from "lucide-react";
 
 type PoolType = "perfil" | "bm" | "pagina" | "ad_account";
 const TYPE_LABELS: Record<PoolType, string> = {
@@ -271,6 +271,11 @@ export default function AdminScaleProCombos() {
                   <div key={it.id} className="grid grid-cols-12 gap-3 px-4 py-3 border-b border-border/30 items-center text-sm">
                     <div className="col-span-4 truncate font-mono text-xs">
                       {it.identifier || <span className="text-muted-foreground italic">sem identificador</span>}
+                      {Array.isArray((it.metadata as any)?.bms) && (it.metadata as any).bms.length > 0 && (
+                        <div className="text-[10px] text-emerald-400 mt-0.5 font-sans">
+                          Combo com {(it.metadata as any).bms.length} BMs
+                        </div>
+                      )}
                     </div>
                     <div className="col-span-3 text-xs text-muted-foreground truncate">
                       {Object.keys(it.metadata || {}).length
