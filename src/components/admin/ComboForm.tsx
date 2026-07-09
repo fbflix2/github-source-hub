@@ -34,10 +34,10 @@ interface ComboData {
 }
 
 interface BMEntry {
-  nomeBM: string; linkBM: string; descricao: string;
+  nomeBM: string; linkBM: string; descricao: string; perfilMatriz: string;
 }
 
-const emptyBM = (): BMEntry => ({ nomeBM: "", linkBM: "", descricao: "" });
+const emptyBM = (): BMEntry => ({ nomeBM: "", linkBM: "", descricao: "", perfilMatriz: "" });
 
 const emptyProfile = (): ProfileData => ({
   nomePerfil: "", linkPerfil: "", idPerfil: "",
@@ -205,6 +205,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
               nomeBM: b.nomeBM,
               linkBM: b.linkBM,
               descricao: b.descricao,
+              perfilMatriz: b.perfilMatriz,
               _comboName: formData.nomeCombo,
               _comboIndex: i + 1,
             },
@@ -533,6 +534,20 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
                     }))}
                     placeholder="Detalhes desta BM (limite, tipo, observações)..."
                     className="h-16 bg-black/30 border-white/5 text-white resize-none text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1">
+                    <CircleUser className="h-3 w-3" /> Perfil Matriz (link ou ID)
+                  </label>
+                  <Input
+                    value={bm.perfilMatriz}
+                    onChange={e => setFormData(prev => ({
+                      ...prev,
+                      bms: prev.bms.map((b, i) => i === index ? { ...b, perfilMatriz: e.target.value } : b),
+                    }))}
+                    placeholder="Ex: https://facebook.com/... ou ID do perfil matriz desta BM"
+                    className="bg-black/30 border-white/5 text-white placeholder:text-zinc-600 h-9 text-sm"
                   />
                 </div>
               </div>
