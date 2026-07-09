@@ -376,6 +376,9 @@ export default function ClientContingencia() {
             )}
           </div>
 
+          {/* Passo a passo Scale Pro */}
+          <ScaleProSteps />
+
           {/* KPI cards */}
           {(() => {
             const daysUntil = getDaysUntil(ctClient.next_billing);
