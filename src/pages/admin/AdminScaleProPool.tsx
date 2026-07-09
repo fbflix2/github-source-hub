@@ -4,13 +4,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink } from "lucide-react";
 
 export default function AdminScaleProPool() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [candidatesOpen, setCandidatesOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<string>("");
+  const [selectedProxy, setSelectedProxy] = useState<string>("");
 
   // Todos proxies do escopo Scale Pro: no pool (available/sem cliente) OU vinculados a um ct_client
   const { data: rows = [], isLoading: loadingRows } = useQuery({
@@ -19,7 +37,7 @@ export default function AdminScaleProPool() {
       const { data: subs } = await supabase
         .from("subscriptions")
         .select("id, name, type, raw_data, status, user_id, included_in_ct_client_id, created_at")
-        .eq("type", "proxyfbflix")
+        .in("type", ["proxyfbflix", "proxybr"])
         .or("included_in_ct_client_id.not.is.null,and(user_id.is.null,status.eq.available)")
         .order("created_at", { ascending: false })
         .limit(1000);
@@ -52,6 +70,35 @@ export default function AdminScaleProPool() {
     },
   });
 
+  // Clientes Scale Pro (ct_clients ativos) — para vincular
+  const { data: ctClientsList = [] } = useQuery({
+    queryKey: ["ct-clients-scale-pro-list"],
+    queryFn: async () => {
+      const { data: cs } = await supabase
+        .from("ct_clients")
+        .select("id, user_id, status, plan_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      const userIds = Array.from(new Set((cs || []).map((c: any) => c.user_id).filter(Boolean)));
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+      const { data: plans } = await supabase.from("ct_plans").select("id, name");
+      const nameByUser: Record<string, string> = {};
+      (profs || []).forEach((p: any) => { nameByUser[p.user_id] = p.full_name || "Cliente"; });
+      const planById: Record<string, string> = {};
+      (plans || []).forEach((p: any) => { planById[p.id] = p.name; });
+      return (cs || []).map((c: any) => ({
+        id: c.id,
+        userId: c.user_id,
+        fullName: nameByUser[c.user_id] || "Cliente",
+        planName: planById[c.plan_id] || "—",
+        status: c.status,
+      }));
+    },
+  });
+
   // Candidatos para mover ao pool: proxies sem cliente mas fora do pool (status != available)
   const { data: candidates = [], isLoading: loadingCand } = useQuery({
     queryKey: ["scale-pro-candidates"],
@@ -59,7 +106,7 @@ export default function AdminScaleProPool() {
       const { data } = await supabase
         .from("subscriptions")
         .select("id, name, type, raw_data, status, created_at")
-        .in("type", ["proxyfbflix"])
+        .in("type", ["proxyfbflix", "proxybr"])
         .is("user_id", null)
         .is("included_in_ct_client_id", null)
         .neq("status", "available")
@@ -117,6 +164,49 @@ export default function AdminScaleProPool() {
     },
   });
 
+  const linkToClient = useMutation({
+    mutationFn: async ({ proxyId, ctClientId, userId }: { proxyId: string; ctClientId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          included_in_ct_client_id: ctClientId,
+          user_id: userId,
+          status: "active",
+        })
+        .eq("id", proxyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Proxy vinculado ao cliente Scale Pro");
+      setLinkOpen(false);
+      setSelectedClient("");
+      setSelectedProxy("");
+      qc.invalidateQueries({ queryKey: ["scale-pro-proxies-all"] });
+      qc.invalidateQueries({ queryKey: ["scale-pro-candidates"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao vincular"),
+  });
+
+  const unlinkFromClient = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ included_in_ct_client_id: null, user_id: null, status: "available" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Vínculo removido — proxy voltou ao pool");
+      qc.invalidateQueries({ queryKey: ["scale-pro-proxies-all"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao desvincular"),
+  });
+
+  const availableForLink = useMemo(
+    () => rows.filter((p: any) => !p.client),
+    [rows]
+  );
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -151,16 +241,26 @@ export default function AdminScaleProPool() {
             className="pl-9 h-9"
           />
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setCandidatesOpen((v) => !v)}
-          className="gap-2"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Adicionar ao pool ({candidates.length})
-          {candidatesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setLinkOpen(true)}
+            className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            Vincular a cliente
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCandidatesOpen((v) => !v)}
+            className="gap-2"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar ao pool ({candidates.length})
+            {candidatesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
       </div>
 
       {candidatesOpen && (
@@ -261,7 +361,17 @@ export default function AdminScaleProPool() {
                       {p.created_at ? new Date(p.created_at).toLocaleDateString("pt-BR") : "—"}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      {!isLinked && (
+                      {isLinked ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity gap-1"
+                          onClick={() => unlinkFromClient.mutate(p.id)}
+                          disabled={unlinkFromClient.isPending}
+                        >
+                          <Unlink className="h-3.5 w-3.5" /> Desvincular
+                        </Button>
+                      ) : (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -280,6 +390,87 @@ export default function AdminScaleProPool() {
           </table>
         </div>
       </div>
+
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Vincular proxy a cliente Scale Pro</DialogTitle>
+            <DialogDescription>
+              Selecione o cliente e o proxy do pool que será vinculado a ele.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cliente</label>
+              <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente…" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {ctClientsList.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{c.fullName}</span>
+                        <span className="text-[10px] text-muted-foreground">· {c.planName}</span>
+                        {c.status !== "ativo" && (
+                          <span className="text-[10px] text-amber-400">({c.status})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Proxy do pool ({availableForLink.length} disponíveis)
+              </label>
+              <Select value={selectedProxy} onValueChange={setSelectedProxy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um proxy…" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {availableForLink.map((p: any) => {
+                    const rd = p.raw_data || {};
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{rd.proxy_address}:{rd.port}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">
+                            · {p.type === "proxybr" ? "BR" : "FBFlix"}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancelar</Button>
+            <Button
+              className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              disabled={!selectedClient || !selectedProxy || linkToClient.isPending}
+              onClick={() => {
+                const client = ctClientsList.find((c: any) => c.id === selectedClient);
+                if (!client) return;
+                linkToClient.mutate({
+                  proxyId: selectedProxy,
+                  ctClientId: client.id,
+                  userId: client.userId,
+                });
+              }}
+            >
+              <Link2 className="h-3.5 w-3.5 mr-1.5" />
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
