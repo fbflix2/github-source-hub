@@ -150,6 +150,47 @@ import { FloatingCart } from "./components/FloatingCart";
 
 const queryClient = new QueryClient();
 
+async function checkIsReseller(userId: string) {
+  const { data } = await supabase
+    .from("resellers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
+function AuthLoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center gap-2">
+        <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
+        <span className="text-xl font-bold text-foreground">​</span>
+      </div>
+    </div>
+  );
+}
+
+function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: string }) {
+  const [target, setTarget] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    checkIsReseller(user.id)
+      .then((isReseller) => {
+        if (!cancelled) setTarget(isReseller ? "/revenda" : fallback);
+      })
+      .catch(() => {
+        if (!cancelled) setTarget(fallback);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fallback, user.id]);
+
+  if (!target) return <AuthLoadingScreen />;
+  return <Navigate to={target} replace />;
+}
+
 function ProductRedirect({ logo }: { logo: string }) {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -181,6 +222,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
   const { totalUnread } = useTickets();
   const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
+  const [isResellerAccount, setIsResellerAccount] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchProfileName = async () => {
@@ -193,6 +235,45 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
     };
     fetchProfileName();
   }, [user.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    checkIsReseller(user.id)
+      .then((isReseller) => {
+        if (!cancelled) setIsResellerAccount(isReseller);
+      })
+      .catch(() => {
+        if (!cancelled) setIsResellerAccount(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id]);
+
+  if (isResellerAccount === null) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (isResellerAccount) {
+    return (
+      <Routes>
+        <Route
+          element={
+            <MainLayout
+              userName={userName}
+              userEmail={userEmail}
+              onLogout={onLogout}
+              unreadTickets={totalUnread}
+              forceResellerMode
+            />
+          }
+        >
+          <Route path="/revenda" element={<RevendaPortal />} />
+          <Route path="*" element={<Navigate to="/revenda" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
 
   return (
     <Routes>
@@ -229,7 +310,6 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/contingencia" element={<ClientContingencia />} />
         <Route path="/esteira-aquecimento" element={<ClientWarming />} />
         <Route path="/meus-dados" element={<MeusDados />} />
-        <Route path="/revenda" element={<RevendaPortal />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
 
@@ -352,14 +432,7 @@ const App = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-2">
-          <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
-           <span className="text-xl font-bold text-foreground">​</span>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen />;
   }
 
   return (
@@ -373,13 +446,13 @@ const App = () => {
               <Routes>
                 <Route
                   path="/auth"
-                  element={user ? <Navigate to={sessionStorage.getItem("product_redirect") || "/loja"} replace /> : <Auth />}
+                  element={user ? <ResellerAwareRedirect user={user} fallback={sessionStorage.getItem("product_redirect") || "/loja"} /> : <Auth />}
                 />
                 <Route
                   path="/welcome"
                   element={user ? <Welcome /> : <Navigate to="/auth" replace />}
                 />
-                <Route path="/" element={user ? <Navigate to="/loja" replace /> : <Index />} />
+                <Route path="/" element={user ? <ResellerAwareRedirect user={user} fallback="/loja" /> : <Index />} />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
                 <Route path="/cookies" element={<CookiePolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
