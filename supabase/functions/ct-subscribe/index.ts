@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(price * 100),
-        comment: `Scale Pro — ${plan.name}`,
+        comment: `Scale Pro - ${plan.name}`.replace(/[^\x20-\x7E]/g, ""),
         expiresIn: 60 * 60 * 24, // 24h
       }),
     });
