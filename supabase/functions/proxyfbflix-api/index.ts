@@ -470,6 +470,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (bodyClone.action === "internal-delete-webshare-proxy-noauth") {
+      const { fbflix_proxy_id } = bodyClone;
+      if (!fbflix_proxy_id) throw new Error("fbflix_proxy_id é obrigatório");
+      const resp = await webFetch(`/proxy/list/${fbflix_proxy_id}/`, WEBSHARE_API_KEY, "DELETE");
+      if (resp.status !== 204 && resp.status !== 404) {
+        const text = await resp.text();
+        throw new Error(`Webshare delete error [${resp.status}]: ${text.slice(0, 200)}`);
+      }
+      const supabaseInternal2 = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await supabaseInternal2.from("subscriptions").delete().eq("raw_data->>fbflix_proxy_id", fbflix_proxy_id);
+      return new Response(JSON.stringify({ success: true, fbflix_proxy_id, status: resp.status }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
