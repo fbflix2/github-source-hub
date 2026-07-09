@@ -88,13 +88,20 @@ function LauthActivation({ ctClient }: { ctClient: { id: string; lauth_email?: s
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("ct_clients")
-      .update({ lauth_email: clean, lauth_status: "pending_activation" })
-      .eq("id", ctClient.id);
+    const { data, error } = await supabase.functions.invoke("ct-set-lauth-email", {
+      body: {
+        ct_client_id: ctClient.id,
+        lauth_email: clean,
+        has_account: hasAccount === true,
+      },
+    });
     setSaving(false);
-    if (error) {
-      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+    if (error || (data as any)?.error) {
+      toast({
+        title: "Erro ao enviar",
+        description: (data as any)?.error || error?.message || "Tente novamente.",
+        variant: "destructive",
+      });
       return;
     }
     toast({ title: "E-mail enviado!", description: "Nossa equipe já foi notificada e vai ativar sua estrutura no Lauth." });
