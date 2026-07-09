@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import CTCheckoutModal from "@/components/contingencia/CTCheckoutModal";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -838,6 +839,7 @@ function ContingenciaPanel() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+  const [checkoutPlan, setCheckoutPlan] = useState<any | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1011,7 +1013,7 @@ function ContingenciaPanel() {
                   <Button
                     className={`w-full gap-2 font-bold ${popular ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
                     variant={popular ? "default" : "outline"}
-                    onClick={() => window.open("https://wa.me/5511999999999?text=Quero%20assinar%20o%20plano%20" + encodeURIComponent(p.name) + "%20da%20Contingência%20Total", "_blank")}
+                    onClick={() => setCheckoutPlan(p)}
                   >
                     <Zap className="size-4" />
                     Assinar {p.name}
@@ -1033,6 +1035,12 @@ function ContingenciaPanel() {
             <a href="/suporte" className="text-primary hover:underline font-semibold">ticket de suporte</a>.
           </p>
         </div>
+
+        <CTCheckoutModal
+          plan={checkoutPlan}
+          open={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+        />
       </div>
     );
   }

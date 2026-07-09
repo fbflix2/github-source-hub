@@ -326,7 +326,8 @@ Deno.serve(async (req) => {
     const orderId = existingPayment.order_id;
     const metadataObj: any = (typeof existingPayment.metadata === "object" && existingPayment.metadata) || {};
     const isInvoiceLink = metadataObj.type === "invoice_link";
-    const isWalletRecharge = !orderId && !isInvoiceLink;
+    const isCtSubscription = metadataObj.type === "ct_subscription";
+    const isWalletRecharge = !orderId && !isInvoiceLink && !isCtSubscription;
 
     if (isInvoiceLink) {
       await supabase.from("invoice_links")
@@ -337,6 +338,31 @@ Deno.serve(async (req) => {
         message: `Cobrança ${metadataObj.invoice_code || ""} de R$ ${amount.toFixed(2)} paga via OpenPix.`,
         type: "payment", global: true,
       });
+    } else if (isCtSubscription) {
+      const ctClientId = metadataObj.ct_client_id;
+      const planName = metadataObj.plan_name || "Contingência Total";
+      if (ctClientId) {
+        const nextBilling = new Date();
+        nextBilling.setDate(nextBilling.getDate() + 30);
+        await supabase.from("ct_clients").update({
+          status: "ativo",
+          start_date: new Date().toISOString().slice(0, 10),
+          next_billing: nextBilling.toISOString().slice(0, 10),
+          last_payment_id: paymentId,
+          last_payment_at: new Date().toISOString(),
+          trial_ends_at: null,
+        }).eq("id", ctClientId);
+
+        const { data: prof } = await supabase
+          .from("profiles").select("full_name").eq("user_id", userId).single();
+
+        await supabase.from("notifications").insert({
+          title: "Nova assinatura CT",
+          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX.`,
+          type: "subscription",
+          global: true,
+        });
+      }
     } else if (isWalletRecharge) {
       const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", userId).single();
       const newBalance = (profile?.balance || 0) + amount;
