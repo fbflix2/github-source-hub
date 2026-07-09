@@ -2396,6 +2396,7 @@ export type Database = {
           payment_expiry: string | null
           payment_last4: string | null
           payment_method: string | null
+          reseller_id: string | null
           status: string
           subtotal: number
           total: number
@@ -2412,6 +2413,7 @@ export type Database = {
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
+          reseller_id?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -2428,6 +2430,7 @@ export type Database = {
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
+          reseller_id?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -2440,6 +2443,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
             referencedColumns: ["id"]
           },
         ]
@@ -3452,6 +3462,7 @@ export type Database = {
           proxy_fixed_price: number | null
           proxy_price_multiplier: number | null
           referrer_id: string | null
+          reseller_id: string | null
           rua: string | null
           show_proxy_city_on_checkout: boolean
           status: string
@@ -3489,6 +3500,7 @@ export type Database = {
           proxy_fixed_price?: number | null
           proxy_price_multiplier?: number | null
           referrer_id?: string | null
+          reseller_id?: string | null
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
@@ -3526,6 +3538,7 @@ export type Database = {
           proxy_fixed_price?: number | null
           proxy_price_multiplier?: number | null
           referrer_id?: string | null
+          reseller_id?: string | null
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
@@ -3547,6 +3560,13 @@ export type Database = {
             columns: ["referrer_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
             referencedColumns: ["id"]
           },
         ]
@@ -3821,6 +3841,228 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reseller_commissions: {
+        Row: {
+          commission_amount: number
+          created_at: string
+          credited_at: string | null
+          id: string
+          order_id: string | null
+          order_total: number
+          referred_user_id: string | null
+          reseller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount: number
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          order_id?: string | null
+          order_total: number
+          referred_user_id?: string | null
+          reseller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          order_id?: string | null
+          order_total?: number
+          referred_user_id?: string | null
+          reseller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_commissions_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_credit_ledger: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          reseller_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reseller_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reseller_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_credit_ledger_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reseller_price_overrides: {
+        Row: {
+          created_at: string
+          custom_price: number
+          enabled: boolean
+          id: string
+          product_id: string
+          reseller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_price: number
+          enabled?: boolean
+          id?: string
+          product_id: string
+          reseller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_price?: number
+          enabled?: boolean
+          id?: string
+          product_id?: string
+          reseller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_price_overrides_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resellers: {
+        Row: {
+          accent_color: string | null
+          balance_credits: number
+          brand_name: string | null
+          commission_rate: number
+          company_name: string
+          created_at: string
+          custom_domain: string | null
+          domain_status: string | null
+          domain_verification_token: string | null
+          domain_verified_at: string | null
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          min_monthly_recharge: number
+          min_proxies_per_month: number
+          model: string
+          openpix_pix_key: string | null
+          openpix_pix_key_type: string | null
+          primary_color: string | null
+          proxy_unit_cost: number
+          slug: string
+          status: string
+          support_email: string | null
+          support_whatsapp: string | null
+          total_commissions_earned: number
+          total_gmv: number
+          total_referrals: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          balance_credits?: number
+          brand_name?: string | null
+          commission_rate?: number
+          company_name: string
+          created_at?: string
+          custom_domain?: string | null
+          domain_status?: string | null
+          domain_verification_token?: string | null
+          domain_verified_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          min_monthly_recharge?: number
+          min_proxies_per_month?: number
+          model?: string
+          openpix_pix_key?: string | null
+          openpix_pix_key_type?: string | null
+          primary_color?: string | null
+          proxy_unit_cost?: number
+          slug: string
+          status?: string
+          support_email?: string | null
+          support_whatsapp?: string | null
+          total_commissions_earned?: number
+          total_gmv?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          balance_credits?: number
+          brand_name?: string | null
+          commission_rate?: number
+          company_name?: string
+          created_at?: string
+          custom_domain?: string | null
+          domain_status?: string | null
+          domain_verification_token?: string | null
+          domain_verified_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          min_monthly_recharge?: number
+          min_proxies_per_month?: number
+          model?: string
+          openpix_pix_key?: string | null
+          openpix_pix_key_type?: string | null
+          primary_color?: string | null
+          proxy_unit_cost?: number
+          slug?: string
+          status?: string
+          support_email?: string | null
+          support_whatsapp?: string | null
+          total_commissions_earned?: number
+          total_gmv?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       safe_bm_renewals: {
         Row: {
@@ -4373,6 +4615,7 @@ export type Database = {
           notifications_enabled: boolean
           product_id: string | null
           raw_data: Json | null
+          reseller_id: string | null
           start_date: string
           status: string
           type: string | null
@@ -4391,6 +4634,7 @@ export type Database = {
           notifications_enabled?: boolean
           product_id?: string | null
           raw_data?: Json | null
+          reseller_id?: string | null
           start_date?: string
           status?: string
           type?: string | null
@@ -4409,6 +4653,7 @@ export type Database = {
           notifications_enabled?: boolean
           product_id?: string | null
           raw_data?: Json | null
+          reseller_id?: string | null
           start_date?: string
           status?: string
           type?: string | null
@@ -4428,6 +4673,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
             referencedColumns: ["id"]
           },
         ]
@@ -5731,6 +5983,7 @@ export type Database = {
       }
       process_whatsapp_queue: { Args: never; Returns: undefined }
       release_partner_commissions: { Args: never; Returns: number }
+      release_reseller_commissions: { Args: never; Returns: number }
       search_stock_items_global: {
         Args: { q: string }
         Returns: {
