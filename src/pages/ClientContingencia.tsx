@@ -54,6 +54,8 @@ const typeLabels: Record<string, string> = {
   proxy: "Proxy",
   bm: "BM",
   conta: "Conta de Anúncio",
+  ad_account: "Conta de Anúncio",
+  pagina: "Página",
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -62,6 +64,8 @@ const typeIcons: Record<string, React.ReactNode> = {
   proxy: <Globe className="h-5 w-5" />,
   bm: <Monitor className="h-5 w-5" />,
   conta: <Megaphone className="h-5 w-5" />,
+  ad_account: <Megaphone className="h-5 w-5" />,
+  pagina: <FileText className="h-5 w-5" />,
 };
 
 const SCALE_PRO_STEPS = [
@@ -354,7 +358,7 @@ export default function ClientContingencia() {
   const activeItems = items.filter((i: any) => i.status === "ativo");
   const hasBlocks = blockedItems.length > 0;
   const groupedItems = useMemo(() => {
-    const groups: Record<string, any[]> = { perfil: [], perfil_matriz: [], proxy: [], bm: [], conta: [] };
+    const groups: Record<string, any[]> = { perfil: [], perfil_matriz: [], proxy: [], bm: [], conta: [], ad_account: [], pagina: [] };
     items.forEach((item: any) => {
       if (groups[item.type]) groups[item.type].push(item);
     });
@@ -783,7 +787,7 @@ export default function ClientContingencia() {
 
         {/* ===== MINHA ESTRUTURA ===== */}
         <TabsContent value="estrutura" className="space-y-4">
-          {(["perfil", "perfil_matriz", "bm", "conta", "proxy"] as const).map((type) => {
+          {(["perfil", "perfil_matriz", "bm", "pagina", "ad_account", "conta", "proxy"] as const).map((type) => {
             const typeItems = groupedItems[type] || [];
             if (typeItems.length === 0) return null;
             return (
@@ -791,7 +795,7 @@ export default function ClientContingencia() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     {typeIcons[type]}
-                    {typeLabels[type]}{type === "perfil_matriz" ? "" : "s"}
+                    {typeLabels[type]}{(type === "perfil_matriz" || type === "ad_account" || type === "conta") ? (typeItems.length > 1 ? "s" : "") : "s"}
                     <Badge variant="secondary" className="ml-auto">{typeItems.length}</Badge>
                   </CardTitle>
                 </CardHeader>
