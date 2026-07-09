@@ -388,12 +388,25 @@ Deno.serve(async (req) => {
           trial_ends_at: null,
         }).eq("id", ctClientId);
 
+        // Auto-atribuir proxies inclusos (1 por perfil do plano)
+        const { data: ctRow } = await supabase
+          .from("ct_clients").select("plan_id").eq("id", ctClientId).maybeSingle();
+        let profilesQty = 1;
+        if (ctRow?.plan_id) {
+          const { data: planRow } = await supabase
+            .from("ct_plans").select("profiles_qty").eq("id", ctRow.plan_id).maybeSingle();
+          profilesQty = Number(planRow?.profiles_qty || 1);
+        }
+        const proxyResult = await assignScaleProProxies(supabase, {
+          ctClientId, userId, qty: profilesQty, planName,
+        });
+
         const { data: prof } = await supabase
           .from("profiles").select("full_name, phone").eq("user_id", userId).single();
 
         await supabase.from("notifications").insert({
           title: "Nova assinatura CT",
-          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX.`,
+          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
           type: "subscription",
           global: true,
         });
