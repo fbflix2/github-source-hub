@@ -237,7 +237,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
         },
       }));
 
-      const { error: childError } = await supabase.from("stock_items").insert(childInserts);
+      const { error: childError } = await supabase.from("stock_items").insert(childInserts as any);
       if (childError) throw childError;
 
       localStorage.removeItem(COMBO_DRAFT_KEY);
