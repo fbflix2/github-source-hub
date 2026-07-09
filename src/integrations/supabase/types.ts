@@ -974,6 +974,7 @@ export type Database = {
           accounts_qty: number
           active: boolean
           bms_qty: number
+          combo_config: Json
           created_at: string
           id: string
           name: string
@@ -988,6 +989,7 @@ export type Database = {
           accounts_qty?: number
           active?: boolean
           bms_qty?: number
+          combo_config?: Json
           created_at?: string
           id?: string
           name: string
@@ -1002,6 +1004,7 @@ export type Database = {
           accounts_qty?: number
           active?: boolean
           bms_qty?: number
+          combo_config?: Json
           created_at?: string
           id?: string
           name?: string
@@ -1013,6 +1016,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ct_pool_items: {
+        Row: {
+          assigned_at: string | null
+          assigned_ct_client_id: string | null
+          created_at: string
+          id: string
+          identifier: string | null
+          metadata: Json
+          notes: string | null
+          plan_id: string | null
+          released_at: string | null
+          reserved_for_user_id: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_ct_client_id?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string | null
+          metadata?: Json
+          notes?: string | null
+          plan_id?: string | null
+          released_at?: string | null
+          reserved_for_user_id?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_ct_client_id?: string | null
+          created_at?: string
+          id?: string
+          identifier?: string | null
+          metadata?: Json
+          notes?: string | null
+          plan_id?: string | null
+          released_at?: string | null
+          reserved_for_user_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_pool_items_assigned_ct_client_id_fkey"
+            columns: ["assigned_ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ct_pool_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ct_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ct_replacements: {
         Row: {
