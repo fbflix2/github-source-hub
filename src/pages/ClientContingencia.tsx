@@ -109,8 +109,8 @@ function LauthActivation({ ctClient }: { ctClient: { id: string; lauth_email?: s
     queryClient.invalidateQueries({ queryKey: ["ct-client-self"] });
   };
 
-  // Se já ativado, mostra badge de sucesso compacto
-  if (alreadySaved && activated) {
+  // Se já enviou o e-mail, oculta o passo a passo e mostra badge compacto
+  if (alreadySaved) {
     return (
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4 flex items-center gap-3">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center shrink-0">
