@@ -659,10 +659,10 @@ export default function AdminContingencia() {
                               await supabase.from("ct_items").delete().eq("ct_client_id", client.id);
                               const { error } = await supabase.from("ct_clients").delete().eq("id", client.id);
                               if (error) throw error;
-                              toast.success("Cliente excluído");
+                              toast({ title: "Cliente excluído" });
                               loadClients();
                             } catch (err: any) {
-                              toast.error(err.message || "Erro ao excluir cliente");
+                              toast({ title: err.message || "Erro ao excluir cliente", variant: "destructive" });
                             }
                           }}
                         >
