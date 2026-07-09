@@ -15,7 +15,28 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const summary = { expired_trials: 0, renewed: 0, suspended: 0 };
+  const summary = { expired_trials: 0, renewed: 0, suspended: 0, proxies_released: 0 };
+
+  async function releaseProxies(ctClientIds: string[]) {
+    if (!ctClientIds.length) return 0;
+    const { data: subs } = await admin
+      .from("subscriptions")
+      .select("id")
+      .in("included_in_ct_client_id", ctClientIds);
+    const subIds = (subs || []).map((s: any) => s.id);
+    if (subIds.length) {
+      await admin
+        .from("subscriptions")
+        .update({ user_id: null, included_in_ct_client_id: null, status: "available", auto_renew: false })
+        .in("id", subIds);
+      await admin
+        .from("ct_client_proxies")
+        .update({ released_at: new Date().toISOString() })
+        .in("ct_client_id", ctClientIds)
+        .is("released_at", null);
+    }
+    return subIds.length;
+  }
 
   try {
     // 1) Expire trials/pending payment past 24h
@@ -30,6 +51,7 @@ Deno.serve(async (req) => {
         .update({ status: "cancelado" })
         .in("id", ids);
       summary.expired_trials = ids.length;
+      summary.proxies_released += await releaseProxies(ids);
     }
 
     // 2) Renew subscriptions where next_billing <= today
@@ -67,6 +89,7 @@ Deno.serve(async (req) => {
         summary.renewed++;
       } else {
         await admin.from("ct_clients").update({ status: "suspenso" }).eq("id", sub.id);
+        summary.proxies_released += await releaseProxies([sub.id]);
         await admin.from("notifications").insert({
           title: "Assinatura CT suspensa",
           message: `${prof?.full_name || "Cliente"} ficou sem saldo para renovar (R$ ${price.toFixed(2)}).`,

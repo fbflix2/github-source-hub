@@ -789,6 +789,51 @@ export type Database = {
           },
         ]
       }
+      ct_client_proxies: {
+        Row: {
+          assigned_at: string
+          created_at: string
+          ct_client_id: string
+          id: string
+          released_at: string | null
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          created_at?: string
+          ct_client_id: string
+          id?: string
+          released_at?: string | null
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          created_at?: string
+          ct_client_id?: string
+          id?: string
+          released_at?: string | null
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_client_proxies_ct_client_id_fkey"
+            columns: ["ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ct_client_proxies_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ct_clients: {
         Row: {
           created_at: string
@@ -4251,6 +4296,7 @@ export type Database = {
           end_date: string | null
           grace_notifications: Json | null
           id: string
+          included_in_ct_client_id: string | null
           name: string
           notifications_enabled: boolean
           product_id: string | null
@@ -4268,6 +4314,7 @@ export type Database = {
           end_date?: string | null
           grace_notifications?: Json | null
           id?: string
+          included_in_ct_client_id?: string | null
           name: string
           notifications_enabled?: boolean
           product_id?: string | null
@@ -4285,6 +4332,7 @@ export type Database = {
           end_date?: string | null
           grace_notifications?: Json | null
           id?: string
+          included_in_ct_client_id?: string | null
           name?: string
           notifications_enabled?: boolean
           product_id?: string | null
@@ -4296,6 +4344,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_included_in_ct_client_id_fkey"
+            columns: ["included_in_ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_product_id_fkey"
             columns: ["product_id"]

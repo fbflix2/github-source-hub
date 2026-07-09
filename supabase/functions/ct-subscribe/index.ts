@@ -40,11 +40,11 @@ Deno.serve(async (req) => {
     // Fetch plan
     const { data: plan, error: planErr } = await admin
       .from("ct_plans")
-      .select("id, name, price, status")
+      .select("id, name, price, active, profiles_qty")
       .eq("id", planId)
       .maybeSingle();
     if (planErr || !plan) return json({ error: "Plano não encontrado" }, 404);
-    if (plan.status !== "active") return json({ error: "Plano indisponível" }, 400);
+    if (plan.active === false) return json({ error: "Plano indisponível" }, 400);
 
     // Block if already has an active/trial subscription
     const { data: existing } = await admin
@@ -102,9 +102,17 @@ Deno.serve(async (req) => {
         reference_id: ctClient.id,
       });
 
+      // Auto-atribuir proxies inclusos do pool (1 por perfil)
+      const proxyResult = await assignPoolProxies(admin, {
+        ctClientId: ctClient.id,
+        userId,
+        qty: Number((plan as any).profiles_qty || 1),
+        planName: plan.name,
+      });
+
       await admin.from("notifications").insert({
         title: "Nova assinatura CT",
-        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo.`,
+        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
         type: "subscription",
         global: true,
       });
@@ -248,4 +256,61 @@ function json(data: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+/**
+ * Auto-atribui proxies inclusos do pool à assinatura Scale Pro ativada.
+ * - Pega até `qty` proxies do pool (user_id IS NULL, status=available, sem vínculo Scale Pro)
+ * - Vincula ao cliente e à ct_client (auto_renew desligado — a assinatura mãe cobre)
+ * - Se pool insuficiente, notifica admin
+ */
+export async function assignPoolProxies(
+  admin: ReturnType<typeof createClient>,
+  params: { ctClientId: string; userId: string; qty: number; planName?: string },
+) {
+  const { ctClientId, userId, qty, planName } = params;
+  if (!qty || qty < 1) return { assigned: 0, missing: 0 };
+
+  const { data: pool } = await admin
+    .from("subscriptions")
+    .select("id")
+    .in("type", ["proxyfbflix"])
+    .is("user_id", null)
+    .is("included_in_ct_client_id", null)
+    .eq("status", "available")
+    .limit(qty);
+
+  const available = pool || [];
+  let assigned = 0;
+
+  for (const p of available) {
+    const { error: updErr } = await admin
+      .from("subscriptions")
+      .update({
+        user_id: userId,
+        included_in_ct_client_id: ctClientId,
+        auto_renew: false,
+        status: "active",
+      })
+      .eq("id", p.id)
+      .is("user_id", null); // guard contra corrida
+    if (updErr) continue;
+    await admin.from("ct_client_proxies").insert({
+      ct_client_id: ctClientId,
+      subscription_id: p.id,
+    });
+    assigned++;
+  }
+
+  const missing = Math.max(0, qty - assigned);
+  if (missing > 0) {
+    await admin.from("notifications").insert({
+      title: "Pool de proxies Scale Pro insuficiente",
+      message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Atribuir manualmente ao cliente ${userId}.`,
+      type: "subscription",
+      global: true,
+    }).catch(() => {});
+  }
+
+  return { assigned, missing };
 }

@@ -15,6 +15,41 @@ const ok = (data: any = { received: true }) =>
 
 const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
 
+async function assignScaleProProxies(
+  supabase: any,
+  params: { ctClientId: string; userId: string; qty: number; planName?: string },
+) {
+  const { ctClientId, userId, qty, planName } = params;
+  if (!qty || qty < 1) return { assigned: 0, missing: 0 };
+  const { data: pool } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .in("type", ["proxyfbflix"])
+    .is("user_id", null)
+    .is("included_in_ct_client_id", null)
+    .eq("status", "available")
+    .limit(qty);
+  let assigned = 0;
+  for (const p of (pool || [])) {
+    const { error: updErr } = await supabase
+      .from("subscriptions")
+      .update({ user_id: userId, included_in_ct_client_id: ctClientId, auto_renew: false, status: "active" })
+      .eq("id", p.id).is("user_id", null);
+    if (updErr) continue;
+    await supabase.from("ct_client_proxies").insert({ ct_client_id: ctClientId, subscription_id: p.id });
+    assigned++;
+  }
+  const missing = Math.max(0, qty - assigned);
+  if (missing > 0) {
+    await supabase.from("notifications").insert({
+      title: "Pool de proxies Scale Pro insuficiente",
+      message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Atribuir manualmente ao cliente ${userId}.`,
+      type: "subscription", global: true,
+    }).catch(() => {});
+  }
+  return { assigned, missing };
+}
+
 async function fulfillOrder(supabase: any, orderId: string, userId: string) {
   try {
     const { data: orderItems } = await supabase.from("order_items").select("*").eq("order_id", orderId);
@@ -353,12 +388,25 @@ Deno.serve(async (req) => {
           trial_ends_at: null,
         }).eq("id", ctClientId);
 
+        // Auto-atribuir proxies inclusos (1 por perfil do plano)
+        const { data: ctRow } = await supabase
+          .from("ct_clients").select("plan_id").eq("id", ctClientId).maybeSingle();
+        let profilesQty = 1;
+        if (ctRow?.plan_id) {
+          const { data: planRow } = await supabase
+            .from("ct_plans").select("profiles_qty").eq("id", ctRow.plan_id).maybeSingle();
+          profilesQty = Number(planRow?.profiles_qty || 1);
+        }
+        const proxyResult = await assignScaleProProxies(supabase, {
+          ctClientId, userId, qty: profilesQty, planName,
+        });
+
         const { data: prof } = await supabase
           .from("profiles").select("full_name, phone").eq("user_id", userId).single();
 
         await supabase.from("notifications").insert({
           title: "Nova assinatura CT",
-          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX.`,
+          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
           type: "subscription",
           global: true,
         });
