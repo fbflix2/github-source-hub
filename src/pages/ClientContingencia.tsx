@@ -19,8 +19,9 @@ import {
   Shield, CheckCircle2, AlertTriangle, XCircle, Calendar, Wallet,
   Monitor, Globe, Megaphone, UserCircle, RotateCcw, Plus, MessageCircle,
   History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight, TrendingUp,
-  DollarSign, Activity, FileText, Sparkles, Zap, Crown, BarChart3, Users
+  DollarSign, Activity, FileText, Sparkles, Zap, Crown, BarChart3, Users, MoreVertical
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 function getOverdueDays(nextBilling: string | null | undefined): number {
   if (!nextBilling) return 0;
@@ -817,120 +818,222 @@ export default function ClientContingencia() {
 
         {/* ===== MINHA ESTRUTURA ===== */}
         <TabsContent value="estrutura" className="space-y-4">
-          {(["perfil", "perfil_matriz", "bm", "pagina", "ad_account", "conta", "proxy"] as const).map((type) => {
-            const typeItems = groupedItems[type] || [];
-            if (typeItems.length === 0) return null;
+          {(() => {
+            const ORDER = ["perfil", "perfil_matriz", "bm", "pagina", "ad_account", "conta", "proxy"] as const;
+            const rows = ORDER.flatMap((type) =>
+              (groupedItems[type] || []).map((item: any, idx: number) => ({ type, item, idx }))
+            );
+            const activeCount = rows.filter((r) => r.item.status === "ativo").length;
+            const typeIconClass: Record<string, string> = {
+              perfil: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+              perfil_matriz: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+              bm: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+              pagina: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+              conta: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+              ad_account: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+              proxy: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+            };
+            const GRID = "grid grid-cols-[minmax(180px,1.1fr)_minmax(260px,2.2fr)_120px_60px] gap-4";
+
             return (
-              <Card key={type}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {typeIcons[type]}
-                    {typeLabels[type]}{(type === "perfil_matriz" || type === "ad_account" || type === "conta") ? (typeItems.length > 1 ? "s" : "") : "s"}
-                    <Badge variant="secondary" className="ml-auto">{typeItems.length}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {typeItems.map((item: any, idx: number) => {
-                      const statusColor =
-                        item.status === "block" ? "hsl(0 84% 60%)" :
-                        item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)";
-                      const isProfile = type === "perfil" || type === "perfil_matriz";
-                      const displayName = item.identifier
-                        ? item.identifier
-                        : type === "proxy"
+              <>
+                <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-card/80 to-card/40 overflow-hidden shadow-[0_1px_0_0_hsl(var(--border)/0.4)_inset]">
+                  {/* Card header */}
+                  <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border/50">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-semibold tracking-tight">Minha Estrutura</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Veja e gerencie todos os itens da sua assinatura
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/5 gap-1.5">
+                      <CheckCircle2 className="h-3 w-3" /> {activeCount} itens ativos
+                    </Badge>
+                  </div>
+
+                  {/* Table header (desktop) */}
+                  <div className={`hidden md:grid grid-cols-[minmax(180px,1.1fr)_minmax(260px,2.2fr)_120px_60px] gap-4 items-center px-6 py-3 border-b border-border/40 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground`}>
+                    <div>Tipo de Item</div>
+                    <div>Detalhes</div>
+                    <div>Status</div>
+                    <div className="text-right">Ações</div>
+                  </div>
+
+                  {/* Rows */}
+                  <div className="divide-y divide-border/40">
+                    {rows.length === 0 && (
+                      <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+                        Sua estrutura ainda não tem itens.
+                      </div>
+                    )}
+                    {rows.map(({ type, item, idx }) => {
+                      const identifier: string = item.identifier || "";
+                      const isUrl = typeof identifier === "string" && /^https?:\/\//i.test(identifier);
+                      const meta: any = item.metadata || {};
+                      const fallbackName =
+                        type === "proxy"
                           ? `Proxy BR Dedicado ${idx + 1}`
                           : type === "bm"
-                            ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}`
+                            ? `BM ${meta.label || (idx === 0 ? "Matriz" : "Reserva")}`
                             : `${typeLabels[type]} ${idx + 1}`;
-                      const isUrl = typeof displayName === "string" && /^https?:\/\//i.test(displayName);
+                      const primary = isUrl
+                        ? (meta.name || meta.label || typeLabels[type])
+                        : identifier || fallbackName;
+                      const secondary = isUrl ? identifier : (meta.id || meta.label || "");
+                      const isProfile = type === "perfil" || type === "perfil_matriz";
+                      const isActive = item.status === "ativo";
+                      const isBlock = item.status === "block";
                       const statusLabel =
-                        item.status === "ativo" ? "Ativo" :
-                        item.status === "block" ? "Block" :
-                        item.status === "substituido" ? "Substituído" : item.status;
+                        isActive ? "Ativo" : isBlock ? "Block" : item.status === "substituido" ? "Substituído" : item.status;
+                      const statusTone = isActive
+                        ? "text-emerald-400"
+                        : isBlock
+                          ? "text-red-400"
+                          : "text-amber-400";
+                      const statusDot = isActive
+                        ? "bg-emerald-400"
+                        : isBlock
+                          ? "bg-red-400"
+                          : "bg-amber-400";
+
                       return (
                         <div
                           key={item.id}
-                          className="group relative flex flex-col items-center text-center rounded-xl border border-border/60 bg-gradient-to-b from-card/60 to-card/20 p-3.5 hover:border-emerald-500/40 hover:from-card/80 hover:shadow-lg hover:shadow-emerald-500/5 transition-all overflow-hidden"
+                          className={`group ${GRID} items-center px-6 py-5 min-h-[88px] hover:bg-muted/20 transition-colors duration-150`}
                         >
-                          {/* status dot corner */}
-                          <span
-                            className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full ring-2 ring-background"
-                            style={{ backgroundColor: statusColor, boxShadow: `0 0 8px ${statusColor}` }}
-                          />
-                          {/* avatar */}
-                          <div className="relative mb-2.5">
-                            <div className="absolute inset-0 rounded-full blur-md opacity-40" style={{ backgroundColor: statusColor }} />
-                            <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted/40 border border-border/70 flex items-center justify-center">
-                              {isProfile && profilePhotos[item.id] ? (
-                                <img
-                                  src={profilePhotos[item.id] as string}
-                                  alt="Perfil"
-                                  className="h-full w-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                                />
-                              ) : (
-                                <span className="text-muted-foreground [&_svg]:h-6 [&_svg]:w-6">{typeIcons[type]}</span>
+                          {/* Tipo */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`h-10 w-10 rounded-lg border flex items-center justify-center shrink-0 transition-transform duration-150 group-hover:scale-[1.04] ${typeIconClass[type]}`}
+                            >
+                              <span className="[&_svg]:h-[18px] [&_svg]:w-[18px]">{typeIcons[type]}</span>
+                            </div>
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              {typeLabels[type]}
+                            </span>
+                          </div>
+
+                          {/* Detalhes */}
+                          <div className="min-w-0 flex items-center gap-3">
+                            {isProfile && profilePhotos[item.id] && (
+                              <img
+                                src={profilePhotos[item.id] as string}
+                                alt=""
+                                className="h-9 w-9 rounded-full object-cover border border-border/60 shrink-0"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{primary}</p>
+                              {secondary && (
+                                isUrl ? (
+                                  <a
+                                    href={secondary}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-muted-foreground hover:text-emerald-400 truncate block max-w-[42ch]"
+                                    title={secondary}
+                                  >
+                                    {secondary}
+                                  </a>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground truncate" title={String(secondary)}>
+                                    {secondary}
+                                  </p>
+                                )
                               )}
                             </div>
                           </div>
-                          {/* type label */}
-                          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {typeLabels[type]}
-                          </p>
-                          {/* identifier */}
-                          {isUrl ? (
-                            <a
-                              href={displayName}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-1 text-[11px] font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2 leading-tight"
-                              title={displayName}
-                            >
-                              {displayName}
-                            </a>
-                          ) : (
-                            <p className="mt-1 text-xs font-medium text-foreground break-all line-clamp-2 leading-tight" title={displayName}>
-                              {displayName}
-                            </p>
-                          )}
-                          {/* status pill */}
-                          <Badge
-                            variant="outline"
-                            className={`mt-2.5 text-[9px] px-2 py-0 h-4 shrink-0 ${statusColors[item.status] || ""}`}
-                          >
-                            {statusLabel}
-                          </Badge>
+
+                          {/* Status */}
+                          <div>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusTone}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
+                              {statusLabel}
+                            </span>
+                          </div>
+
+                          {/* Ações */}
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label="Ações"
+                                  className="h-8 w-8 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => setReplacementOpen(true)}>
+                                  <RotateCcw className="h-3.5 w-3.5 mr-2" /> Pedir reposição
+                                </DropdownMenuItem>
+                                {isUrl && (
+                                  <DropdownMenuItem asChild>
+                                    <a href={identifier} target="_blank" rel="noopener noreferrer">
+                                      <ArrowUpRight className="h-3.5 w-3.5 mr-2" /> Abrir link
+                                    </a>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                  {type === "proxy" && (
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Trocas de proxy são realizadas pela equipe mediante solicitação.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
 
-          {/* Action buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button
-              onClick={() => setReplacementOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white h-12"
-              disabled={monthReplacements >= maxReplacements}
-            >
-              <RotateCcw className="mr-2 h-4 w-4" /> Pedir Reposição
-            </Button>
-            <Button variant="outline" className="h-12" asChild>
-              <a href="https://wa.me/5500000000000" target="_blank" rel="noopener noreferrer">
-                <Plus className="mr-2 h-4 w-4" /> Adicionar Conta Extra (+R$25)
-              </a>
-            </Button>
-          </div>
+                {/* Bottom action buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => setReplacementOpen(true)}
+                    disabled={monthReplacements >= maxReplacements}
+                    className="group relative flex items-center gap-4 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 to-emerald-500/[0.04] px-5 py-4 text-left hover:from-emerald-500/20 hover:border-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                      <RotateCcw className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Pedir Reposição</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Solicite a reposição de qualquer item da sua estrutura
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+
+                  <a
+                    href="https://wa.me/5500000000000"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card/40 px-5 py-4 hover:bg-card/60 hover:border-border transition-all"
+                  >
+                    <div className="h-10 w-10 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-center shrink-0">
+                      <Plus className="h-4 w-4 text-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        Adicionar Estrutura{" "}
+                        <span className="text-muted-foreground font-normal">(+R$25)</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Expanda sua estrutura com um novo item
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-all" />
+                  </a>
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
 
         {/* ===== HISTÓRICO ===== */}
