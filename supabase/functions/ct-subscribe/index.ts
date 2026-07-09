@@ -334,7 +334,7 @@ export async function assignPoolProxies(
       message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Atribuir manualmente ao cliente ${userId}.`,
       type: "subscription",
       global: true,
-    }).catch(() => {});
+    });
   }
 
   return { assigned, missing };
@@ -398,7 +398,7 @@ export async function assignPoolComboItems(
         identifier: upd.identifier,
         metadata: { ...(upd.metadata || {}), pool_item_id: upd.id },
         status: "ativo",
-      }).catch(() => {});
+      });
       assigned++;
     }
     const missing = Math.max(0, qty - assigned);
@@ -408,7 +408,7 @@ export async function assignPoolComboItems(
         title: `Pool Scale Pro insuficiente (${type})`,
         message: `Faltam ${missing} ${type}(s) para o plano ${planName || ""}. Cadastre ou atribua manualmente ao cliente ${userId}.`,
         type: "subscription", global: true,
-      }).catch(() => {});
+      });
     }
   }
   return summary;
