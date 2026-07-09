@@ -72,6 +72,7 @@ import AdminNovaVenda from "./pages/admin/AdminNovaVenda";
 import AdminBalanco from "./pages/admin/AdminBalanco";
 import AdminClientes from "./pages/admin/AdminClientes";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
+import AdminRevendedores from "./pages/admin/AdminRevendedores";
 import AdminCupons from "./pages/admin/AdminCupons";
 import AdminTutoriais from "./pages/admin/AdminTutoriais";
 import AdminBanners from "./pages/admin/AdminBanners";
