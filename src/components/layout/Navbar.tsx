@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationPopup } from "@/components/NotificationBell";
-import { Ticket, Handshake } from "lucide-react";
+import { Ticket, Handshake, Store } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 import { FaturamentoMeter } from "@/components/FaturamentoMeter";
 
@@ -22,6 +22,7 @@ interface NavbarProps {
   avatarUrl?: string;
   isPartner?: boolean;
   partnerEarned?: number | null;
+  isReseller?: boolean;
   onLogout: () => void;
   unreadTickets?: number;
 }
@@ -45,7 +46,7 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, onLogout, unreadTickets = 0 }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
@@ -211,6 +212,17 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
                     <NavLink to={isPartnerMode ? "/loja" : "/parceria"} className="flex items-center gap-2 text-foreground">
                       <Handshake className="size-[18px]" />
                       {isPartnerMode ? "Painel Cliente" : "Painel Parceiro"}
+                    </NavLink>
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isReseller && (
+                <>
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/revenda" className="flex items-center gap-2 text-foreground">
+                      <Store className="size-[18px]" />
+                      Painel Revenda
                     </NavLink>
                   </DropdownMenuItem>
                 </>
