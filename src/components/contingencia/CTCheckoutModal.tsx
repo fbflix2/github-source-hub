@@ -70,7 +70,14 @@ export default function CTCheckoutModal({ plan, open, onClose }: Props) {
         .maybeSingle();
       if (data?.status === "completed") {
         clearInterval(interval);
-        setStep("success");
+        // Try to fetch ct_client_id linked to this payment
+        const { data: ct } = await supabase
+          .from("ct_clients")
+          .select("id")
+          .eq("last_payment_id", pixData.payment_id)
+          .maybeSingle();
+        if (ct?.id) setCtClientId(ct.id);
+        setStep("lauth_choice");
       }
     }, 4000);
     return () => clearInterval(interval);
