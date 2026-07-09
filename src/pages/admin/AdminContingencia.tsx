@@ -993,6 +993,9 @@ export default function AdminContingencia() {
                 <div className="text-center text-white/40 py-4">Nenhum item cadastrado</div>
               )}
 
+              {/* Proxies inclusos Scale Pro */}
+              <AdminScaleProProxies ctClientId={showStructure.id} userId={showStructure.user_id} />
+
               {/* Add new item */}
               <div className="border-t border-white/10 pt-4 space-y-2">
                 <h4 className="text-sm font-semibold text-white/80 uppercase">Cadastrar item</h4>
