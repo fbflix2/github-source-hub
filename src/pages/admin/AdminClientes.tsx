@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, UserRound, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, UserRound, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +50,9 @@ export default function AdminClientes() {
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
+  const [deleteClient, setDeleteClient] = useState<Client | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
