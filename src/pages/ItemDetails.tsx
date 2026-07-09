@@ -258,6 +258,30 @@ export default function ItemDetails() {
           if (mainStockItem.type === "combo" || children.length > 0) {
             setIsCombo(true);
             setComboChildren(children);
+
+            // BM combo: aggregate all child BM links + surface perfil matriz from first child
+            const bmChildren = children.filter((c: any) => c.type === "bm");
+            if (bmChildren.length > 0 && bmChildren.length === children.length) {
+              const links: string[] = [];
+              bmChildren.forEach((c: any) => {
+                if (c.identification_link) {
+                  c.identification_link.split("\n").forEach((line: string) => {
+                    const trimmed = extractBmInviteLink(line);
+                    if (trimmed) links.push(trimmed);
+                  });
+                }
+              });
+              const unique = [...new Set(links.map((l) => l.trim()).filter(Boolean))];
+              if (unique.length > 0) setBmLinks(unique);
+
+              const firstChildData = (bmChildren[0]?.data && typeof bmChildren[0].data === "object")
+                ? bmChildren[0].data
+                : {};
+              if ((firstChildData as any).perfilMatriz && !mergedData.perfilMatriz) {
+                mergedData.perfilMatriz = (firstChildData as any).perfilMatriz;
+                setStockData({ ...mergedData });
+              }
+            }
           }
         }
       }

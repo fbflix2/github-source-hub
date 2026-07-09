@@ -11,6 +11,7 @@ interface ComboProfile {
   identification: string | null;
   identificationLink: string | null;
   isReplaced?: boolean;
+  type?: string | null;
 }
 
 interface OrderItem {
@@ -137,7 +138,7 @@ export default function Orders() {
         if (missingParentIds.length > 0) {
           const { data: extra } = await supabase
             .from("stock_items")
-            .select("id, parent_id, name, identification, identification_link, order_item_id")
+            .select("id, parent_id, name, identification, identification_link, order_item_id, type")
             .in("parent_id", missingParentIds);
           extraChildren = extra || [];
         }
@@ -171,6 +172,7 @@ export default function Orders() {
             identification: child.identification || null,
             identificationLink: child.identification_link || null,
             isReplaced: replacedStockItemIds.has(child.id),
+            type: child.type || null,
           }));
 
         if (children.length > 0 || parent.type === "combo") {
@@ -418,6 +420,25 @@ export default function Orders() {
 
                           // If it has combo profiles, expand them individually as they have distinct child profiles
                           if (item.comboProfiles && item.comboProfiles.length > 0) {
+            // BM combos: keep as ONE grouped row (all BM links appear inside "Detalhes")
+            const allBmChildren = item.comboProfiles.every((c) => c.type === "bm");
+            if (allBmChildren) {
+              rows.push({
+                key: `bm-combo-${item.id}`,
+                name: item.name,
+                subtitle: `${item.comboProfiles.length} BMs neste combo`,
+                price: totalPrice,
+                totalPrice: totalPrice,
+                itemId: item.id,
+                isBlocked: !!item.isBlocked,
+                isReplaced: !!item.isReplaced,
+                replacedAt: item.replacedAt || null,
+                isBm: true,
+                isPage: false,
+                isProxy: false,
+              });
+              return;
+            }
                             items.forEach(it => {
                               it.comboProfiles?.forEach((profile, idx) => {
                                 rows.push({
