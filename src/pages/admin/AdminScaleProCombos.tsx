@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus } from "lucide-react";
+import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus, ShieldAlert } from "lucide-react";
 
 type PoolType = "perfil" | "bm" | "pagina" | "ad_account";
 const TYPE_LABELS: Record<PoolType, string> = {
