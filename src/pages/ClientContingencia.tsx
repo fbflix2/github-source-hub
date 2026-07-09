@@ -822,53 +822,72 @@ export default function ClientContingencia() {
                     <Badge variant="secondary" className="ml-auto">{typeItems.length}</Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {typeItems.map((item: any, idx: number) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-emerald-400" style={{
-                          backgroundColor: item.status === "block" ? "hsl(0 84% 60%)" :
-                            item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)"
-                        }} />
-                        {(type === "perfil" || type === "perfil_matriz") && (
-                          <div className="h-9 w-9 rounded-full overflow-hidden bg-muted flex items-center justify-center border border-border/50 shrink-0">
-                            {profilePhotos[item.id] ? (
-                              <img
-                                src={profilePhotos[item.id] as string}
-                                alt="Perfil"
-                                className="h-full w-full object-cover"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                              />
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {typeItems.map((item: any, idx: number) => {
+                      const statusColor =
+                        item.status === "block" ? "hsl(0 84% 60%)" :
+                        item.status === "substituido" ? "hsl(45 93% 47%)" : "hsl(160 84% 39%)";
+                      const isProfile = type === "perfil" || type === "perfil_matriz";
+                      const displayName = item.identifier
+                        ? item.identifier
+                        : type === "proxy"
+                          ? `Proxy BR Dedicado ${idx + 1}`
+                          : type === "bm"
+                            ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}`
+                            : `${typeLabels[type]} ${idx + 1}`;
+                      const isUrl = typeof displayName === "string" && /^https?:\/\//i.test(displayName);
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative flex flex-col rounded-xl border border-border/60 bg-card/40 p-4 hover:border-emerald-500/30 hover:bg-card/60 transition-all overflow-hidden"
+                        >
+                          <div className="absolute top-0 left-0 h-full w-[3px]" style={{ backgroundColor: statusColor }} />
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="h-11 w-11 rounded-lg overflow-hidden bg-muted/40 border border-border/60 flex items-center justify-center shrink-0">
+                              {isProfile && profilePhotos[item.id] ? (
+                                <img
+                                  src={profilePhotos[item.id] as string}
+                                  alt="Perfil"
+                                  className="h-full w-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                />
+                              ) : (
+                                <span className="text-muted-foreground">{typeIcons[type]}</span>
+                              )}
+                            </div>
+                            <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[item.status] || ""}`}>
+                              <span className="inline-block h-1.5 w-1.5 rounded-full mr-1.5" style={{ backgroundColor: statusColor }} />
+                              {item.status === "ativo" ? "Ativo" :
+                                item.status === "block" ? "Block" :
+                                item.status === "substituido" ? "Substituído" : item.status}
+                            </Badge>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{typeLabels[type]}</p>
+                            {isUrl ? (
+                              <a
+                                href={displayName}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2"
+                                title={displayName}
+                              >
+                                {displayName}
+                              </a>
                             ) : (
-                              <UserCircle className="h-5 w-5 text-muted-foreground" />
+                              <p className="text-sm font-medium text-foreground break-all line-clamp-2" title={displayName}>
+                                {displayName}
+                              </p>
                             )}
                           </div>
-                        )}
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {item.identifier ? item.identifier :
-                              type === "proxy" ? `Proxy BR Dedicado ${idx + 1}` :
-                              type === "bm" ? `BM ${(item.metadata as any)?.label || (idx === 0 ? "Matriz" : "Reserva")}` :
-                              `${typeLabels[type]} ${idx + 1}`}
-                          </span>
-                          {item.identifier && (
-                            <span className="text-[10px] text-muted-foreground">{typeLabels[type]}</span>
-                          )}
                         </div>
-                      </div>
-                      <Badge variant="outline" className={`text-xs ${statusColors[item.status] || ""}`}>
-                        {item.status === "ativo" ? "Ativo" :
-                          item.status === "block" ? "Block" :
-                            item.status === "substituido" ? "Substituído" : item.status}
-                      </Badge>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                   {type === "proxy" && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-3">
                       Trocas de proxy são realizadas pela equipe mediante solicitação.
                     </p>
                   )}
