@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus, ShieldAlert } from "lucide-react";
+import { Package, Plus, Trash2, Pencil, UserPlus, UserMinus } from "lucide-react";
 
 type PoolType = "perfil" | "bm" | "pagina" | "ad_account";
 const TYPE_LABELS: Record<PoolType, string> = {
@@ -20,6 +20,20 @@ const TYPE_LABELS: Record<PoolType, string> = {
   bm: "BMs",
   pagina: "Páginas",
   ad_account: "Ad Accounts",
+};
+
+const TYPE_FIELD_LABEL: Record<PoolType, string> = {
+  perfil: "Link do perfil",
+  bm: "Nome da BM",
+  pagina: "Link da página",
+  ad_account: "Conta de anúncio",
+};
+
+const TYPE_FIELD_PLACEHOLDER: Record<PoolType, string> = {
+  perfil: "https://facebook.com/...",
+  bm: "Ex: BM Cliente 01",
+  pagina: "https://facebook.com/minhapagina",
+  ad_account: "act_123456789",
 };
 
 type PoolItem = {
@@ -404,14 +418,15 @@ function ItemFormDialog({
   }, [open, initial]);
 
   const submit = () => {
-    let meta: Record<string, any> = {};
-    try { meta = metadataText.trim() ? JSON.parse(metadataText) : {}; }
-    catch { toast.error("Metadata inválido (JSON)"); return; }
+    if (!identifier.trim()) {
+      toast.error(`Preencha ${TYPE_FIELD_LABEL[type].toLowerCase()}`);
+      return;
+    }
     onSave({
       id: initial?.id,
       type,
-      identifier: identifier || null,
-      metadata: meta,
+      identifier: identifier.trim(),
+      metadata: {},
       notes,
     });
   };
@@ -435,17 +450,12 @@ function ItemFormDialog({
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Identificador (id, link, nome)</Label>
-            <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Ex: link da BM, id do perfil" />
-          </div>
-          <div>
-            <Label className="text-xs">Metadata (JSON) — senhas, 2FA, dados extras</Label>
-            <Textarea
-              value={metadataText}
-              onChange={(e) => setMetadataText(e.target.value)}
-              rows={5}
-              className="font-mono text-xs"
-              placeholder='{"senha": "...", "2fa": "...", "email": "..."}'
+            <Label className="text-xs">{TYPE_FIELD_LABEL[type]}</Label>
+            <Input
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder={TYPE_FIELD_PLACEHOLDER[type]}
+              autoFocus
             />
           </div>
           <div>
