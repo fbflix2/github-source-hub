@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink } from "lucide-react";
+import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink, Copy, Shield } from "lucide-react";
 
 export default function AdminScaleProPool() {
   const qc = useQueryClient();
@@ -29,6 +29,36 @@ export default function AdminScaleProPool() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [selectedProxy, setSelectedProxy] = useState<string>("");
+
+  const detectProtocol = (p: any): "SOCKS5" | "HTTP" => {
+    const hay = `${p?.name || ""} ${(p?.raw_data as any)?.product?.name || ""}`.toUpperCase();
+    if (hay.includes("SOCKS")) return "SOCKS5";
+    return "HTTP";
+  };
+  const detectIpVersion = (p: any): "IPv6" | "IPv4" => {
+    const rd = p?.raw_data || {};
+    const addr = String(rd.proxy_address || "");
+    if (addr.includes(":")) return "IPv6";
+    const hay = `${p?.name || ""} ${(rd?.product?.name) || ""}`.toUpperCase();
+    if (hay.includes("IPV6")) return "IPv6";
+    return "IPv4";
+  };
+  const formatFullProxy = (p: any) => {
+    const rd = p?.raw_data || {};
+    const host = rd.proxy_address || "";
+    const port = rd.port || "";
+    const user = rd.username || "";
+    const pass = rd.password || "";
+    return `${host}:${port}:${user}:${pass}`;
+  };
+  const copyProxy = async (p: any) => {
+    try {
+      await navigator.clipboard.writeText(formatFullProxy(p));
+      toast.success("Proxy copiado");
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
 
   // Todos proxies do escopo Scale Pro: no pool (available/sem cliente) OU vinculados a um ct_client
   const { data: rows = [], isLoading: loadingRows } = useQuery({
@@ -328,18 +358,38 @@ export default function AdminScaleProPool() {
               {filteredRows.map((p: any) => {
                 const rd = p.raw_data || {};
                 const isLinked = !!p.client;
+                const ipv = detectIpVersion(p);
+                const proto = detectProtocol(p);
                 return (
                   <tr key={p.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-4 py-3.5">
                       <span className="font-medium text-foreground">{p.name}</span>
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">
-                        {(rd.country_code || "BR").toUpperCase()} · Dedicado
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                          {ipv}
+                        </span>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                          {proto}
+                        </span>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30 inline-flex items-center gap-0.5">
+                          <Shield className="h-2.5 w-2.5" /> Contingência FB
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-foreground">
-                        {rd.proxy_address}:{rd.port}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-foreground">
+                          {rd.proxy_address}:{rd.port}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyProxy(p)}
+                          title="Copiar proxy completo (host:port:user:pass)"
+                          className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       <div className="text-xs text-muted-foreground mt-0.5 font-mono">
                         {rd.username} / {rd.password}
                       </div>
