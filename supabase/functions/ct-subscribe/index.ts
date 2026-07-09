@@ -40,11 +40,11 @@ Deno.serve(async (req) => {
     // Fetch plan
     const { data: plan, error: planErr } = await admin
       .from("ct_plans")
-      .select("id, name, price, status")
+      .select("id, name, price, active, profiles_qty")
       .eq("id", planId)
       .maybeSingle();
     if (planErr || !plan) return json({ error: "Plano não encontrado" }, 404);
-    if (plan.status !== "active") return json({ error: "Plano indisponível" }, 400);
+    if (!plan.active) return json({ error: "Plano indisponível" }, 400);
 
     // Block if already has an active/trial subscription
     const { data: existing } = await admin
