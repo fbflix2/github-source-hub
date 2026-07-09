@@ -11,6 +11,7 @@ interface ComboProfile {
   identification: string | null;
   identificationLink: string | null;
   isReplaced?: boolean;
+  type?: string | null;
 }
 
 interface OrderItem {
@@ -137,7 +138,7 @@ export default function Orders() {
         if (missingParentIds.length > 0) {
           const { data: extra } = await supabase
             .from("stock_items")
-            .select("id, parent_id, name, identification, identification_link, order_item_id")
+            .select("id, parent_id, name, identification, identification_link, order_item_id, type")
             .in("parent_id", missingParentIds);
           extraChildren = extra || [];
         }
@@ -171,6 +172,7 @@ export default function Orders() {
             identification: child.identification || null,
             identificationLink: child.identification_link || null,
             isReplaced: replacedStockItemIds.has(child.id),
+            type: child.type || null,
           }));
 
         if (children.length > 0 || parent.type === "combo") {
