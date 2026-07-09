@@ -83,7 +83,7 @@ type SubscriptionCategory = "proxies" | "safebm" | "contingencia";
 const categoryTabs: { key: SubscriptionCategory; label: string; icon: React.ReactNode }[] = [
   { key: "proxies", label: "Proxies", icon: <Globe className="size-4" /> },
   { key: "safebm", label: "Safe BM", icon: <Shield className="size-4" /> },
-  { key: "contingencia", label: "Contingência Total", icon: <Layers className="size-4" /> },
+  { key: "contingencia", label: "Scale Pro", icon: <Layers className="size-4" /> },
 ];
 
 export default function Subscriptions() {
@@ -894,13 +894,13 @@ function ContingenciaPanel() {
                   <Layers className="size-6 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">Contingência Total</h2>
+                  <h2 className="text-2xl font-bold text-foreground">Scale Pro</h2>
                   <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] mt-1">Estrutura Completa</Badge>
                 </div>
               </div>
 
               <p className="text-muted-foreground leading-relaxed max-w-2xl">
-                Pare de comprar itens avulsos e perder dinheiro com blocks. Com a <strong className="text-foreground">Contingência Total</strong>, 
+                Pare de comprar itens avulsos e perder dinheiro com blocks. Com a <strong className="text-foreground">Scale Pro</strong>, 
                 você aluga uma estrutura completa com <strong className="text-foreground">reposição garantida</strong>. 
                 Se algo cair, a gente repõe — sem custo extra dentro do seu plano.
               </p>
@@ -946,7 +946,7 @@ function ContingenciaPanel() {
             <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 space-y-2">
               <p className="text-sm font-bold text-green-500 flex items-center gap-2">
                 <span className="material-symbols-outlined text-base">check</span>
-                Contingência Total
+                Scale Pro
               </p>
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 <li>• Reposição inclusa sem custo extra</li>

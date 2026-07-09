@@ -438,7 +438,7 @@ export default function AdminContingencia() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Shield className="size-6 text-blue-400" />
-            Contingência Total FBFlix
+            Scale Pro FBFlix
           </h1>
           <p className="text-sm text-white/50 mt-1">Gerenciamento de assinaturas de estrutura</p>
         </div>
@@ -873,7 +873,7 @@ export default function AdminContingencia() {
       <Dialog open={showNewClient} onOpenChange={setShowNewClient}>
         <DialogContent className="bg-[#1a1010] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Novo Cliente - Contingência Total</DialogTitle>
+            <DialogTitle>Novo Cliente - Scale Pro</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>

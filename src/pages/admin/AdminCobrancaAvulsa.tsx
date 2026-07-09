@@ -152,7 +152,7 @@ export default function AdminCobrancaAvulsa() {
       .eq("status", "active")
       .order("name");
 
-    // Load CT plans (Contingência Total)
+    // Load CT plans (Scale Pro)
     const { data: ctPlans } = await supabase
       .from("ct_plans")
       .select("id, name, price, tier")

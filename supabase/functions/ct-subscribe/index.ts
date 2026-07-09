@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
       await admin.from("wallet_transactions").insert({
         user_id: userId,
         type: "debit",
-        title: `Assinatura Contingência Total — ${plan.name}`,
+        title: `Assinatura Scale Pro — ${plan.name}`,
         amount: price,
         balance_after: newBalance,
         reference_id: ctClient.id,
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       if (profPhone?.phone) {
         const firstName = (profPhone.full_name || "").split(" ")[0] || "cliente";
         const msg =
-          `✅ *Contingência Total ativada!*\n\n` +
+          `✅ *Scale Pro ativada!*\n\n` +
           `Olá ${firstName}, sua assinatura do plano *${plan.name}* foi ativada com sucesso.\n\n` +
           `💰 Valor: R$ ${price.toFixed(2)}\n` +
           `📅 Próxima renovação: ${nextBilling.toLocaleDateString("pt-BR")}\n\n` +
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(price * 100),
-        comment: `Contingência Total — ${plan.name}`,
+        comment: `Scale Pro — ${plan.name}`,
         expiresIn: 60 * 60 * 24, // 24h
       }),
     });

@@ -269,9 +269,9 @@ export default function ClientContingencia() {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-6">
         <Shield className="h-16 w-16 mx-auto text-muted-foreground/40" />
-        <h1 className="text-2xl font-bold">Contingência Total FBFlix</h1>
+        <h1 className="text-2xl font-bold">Scale Pro FBFlix</h1>
         <p className="text-muted-foreground">
-          Você ainda não possui uma assinatura de Contingência Total.
+          Você ainda não possui uma assinatura de Scale Pro.
           Entre em contato com o suporte para contratar.
         </p>
         <Button asChild variant="outline">

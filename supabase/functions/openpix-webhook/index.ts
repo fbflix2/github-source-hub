@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
       });
     } else if (isCtSubscription) {
       const ctClientId = metadataObj.ct_client_id;
-      const planName = metadataObj.plan_name || "Contingência Total";
+      const planName = metadataObj.plan_name || "Scale Pro";
       if (ctClientId) {
         const nextBilling = new Date();
         nextBilling.setDate(nextBilling.getDate() + 30);
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
         if (prof?.phone) {
           const firstName = (prof.full_name || "").split(" ")[0] || "cliente";
           const msg =
-            `✅ *Contingência Total ativada!*\n\n` +
+            `✅ *Scale Pro ativada!*\n\n` +
             `Olá ${firstName}, seu pagamento PIX foi confirmado e sua assinatura do plano *${planName}* já está ativa.\n\n` +
             `💰 Valor: R$ ${amount.toFixed(2)}\n` +
             `📅 Próxima renovação: ${nextBilling.toLocaleDateString("pt-BR")}\n\n` +

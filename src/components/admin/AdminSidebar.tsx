@@ -95,7 +95,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Proxy Interno", icon: Shield, path: "/admin/central-proxy/interno" },
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   ]},
-  { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
+  { title: "Scale Pro", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
   { title: "Solicitações de Amizade", icon: Users, path: "/admin/solicitacoes-amizade" },
