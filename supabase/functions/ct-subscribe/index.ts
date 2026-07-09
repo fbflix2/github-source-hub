@@ -51,10 +51,25 @@ Deno.serve(async (req) => {
       .from("ct_clients")
       .select("id, status")
       .eq("user_id", userId)
-      .in("status", ["ativo", "trial", "pendente_pagamento"])
+      .in("status", ["ativo", "trial"])
       .maybeSingle();
     if (existing) {
-      return json({ error: "Você já possui uma assinatura ativa ou pendente." }, 400);
+      return json({ error: "Você já possui uma assinatura ativa." }, 400);
+    }
+
+    // Cancela qualquer tentativa anterior de PIX pendente para não bloquear nova compra
+    const { data: pendings } = await admin
+      .from("ct_clients")
+      .select("id, last_payment_id")
+      .eq("user_id", userId)
+      .eq("status", "pendente_pagamento");
+    if (pendings && pendings.length > 0) {
+      const pendingIds = pendings.map((p: any) => p.id);
+      const paymentIds = pendings.map((p: any) => p.last_payment_id).filter(Boolean);
+      await admin.from("ct_clients").update({ status: "cancelado" }).in("id", pendingIds);
+      if (paymentIds.length > 0) {
+        await admin.from("payments").update({ status: "cancelled" }).in("id", paymentIds).eq("status", "pending");
+      }
     }
 
     const price = Number(plan.price);
