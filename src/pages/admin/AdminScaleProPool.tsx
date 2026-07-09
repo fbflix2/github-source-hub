@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink } from "lucide-react";
+import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink, Copy, Facebook } from "lucide-react";
 
 export default function AdminScaleProPool() {
   const qc = useQueryClient();
@@ -29,6 +29,36 @@ export default function AdminScaleProPool() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [selectedProxy, setSelectedProxy] = useState<string>("");
+
+  const detectProtocol = (p: any): "SOCKS5" | "HTTP" => {
+    const hay = `${p?.name || ""} ${(p?.raw_data as any)?.product?.name || ""}`.toUpperCase();
+    if (hay.includes("SOCKS")) return "SOCKS5";
+    return "HTTP";
+  };
+  const detectIpVersion = (p: any): "IPv6" | "IPv4" => {
+    const rd = p?.raw_data || {};
+    const addr = String(rd.proxy_address || "");
+    if (addr.includes(":")) return "IPv6";
+    const hay = `${p?.name || ""} ${(rd?.product?.name) || ""}`.toUpperCase();
+    if (hay.includes("IPV6")) return "IPv6";
+    return "IPv4";
+  };
+  const formatFullProxy = (p: any) => {
+    const rd = p?.raw_data || {};
+    const host = rd.proxy_address || "";
+    const port = rd.port || "";
+    const user = rd.username || "";
+    const pass = rd.password || "";
+    return `${host}:${port}:${user}:${pass}`;
+  };
+  const copyProxy = async (p: any) => {
+    try {
+      await navigator.clipboard.writeText(formatFullProxy(p));
+      toast.success("Proxy copiado");
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
 
   // Todos proxies do escopo Scale Pro: no pool (available/sem cliente) OU vinculados a um ct_client
   const { data: rows = [], isLoading: loadingRows } = useQuery({
