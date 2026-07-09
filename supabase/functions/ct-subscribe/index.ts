@@ -109,6 +109,28 @@ Deno.serve(async (req) => {
         global: true,
       });
 
+      // WhatsApp notification to the client
+      const { data: profPhone } = await admin
+        .from("profiles").select("phone, full_name").eq("user_id", userId).single();
+      if (profPhone?.phone) {
+        const firstName = (profPhone.full_name || "").split(" ")[0] || "cliente";
+        const msg =
+          `✅ *Contingência Total ativada!*\n\n` +
+          `Olá ${firstName}, sua assinatura do plano *${plan.name}* foi ativada com sucesso.\n\n` +
+          `💰 Valor: R$ ${price.toFixed(2)}\n` +
+          `📅 Próxima renovação: ${nextBilling.toLocaleDateString("pt-BR")}\n\n` +
+          `Acesse seu painel: https://fbflix.com.br/contingencia`;
+        await admin.functions.invoke("wapi-send", {
+          body: {
+            action: "send-text",
+            phone: profPhone.phone,
+            message: msg,
+            user_id: userId,
+            event_key: "ct_subscription_activated",
+          },
+        }).catch((e) => console.error("wapi-send failed:", e));
+      }
+
       return json({
         ok: true,
         method: "saldo",
