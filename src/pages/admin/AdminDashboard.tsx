@@ -510,7 +510,18 @@ export default function AdminDashboard() {
 
     const isContingenciaServiceName = (value?: string | null) => {
       const lower = (value || "").toLowerCase();
-      return lower.includes("plano black") || lower.includes("plano white");
+      return (
+        lower.includes("scale pro") ||
+        lower.includes("contingência") ||
+        lower.includes("contingencia") ||
+        lower.includes("plano black") ||
+        lower.includes("plano white") ||
+        lower.includes("black starter") ||
+        lower.includes("black pro") ||
+        lower.includes("white starter") ||
+        lower.includes("white pro") ||
+        lower.includes("white enterprise")
+      );
     };
 
     // Filter category items by period
@@ -566,7 +577,7 @@ export default function AdminDashboard() {
       revenue: safeBmInvoices.reduce((s, o) => s + o.total, 0) + safeBmOrderItems.reduce((s, i) => s + i.revenue, 0) 
     });
     result.push({ 
-      name: "Contingência", 
+      name: "Scale Pro", 
       sales: ctInvoices.length + ctOrderItems.reduce((s, i) => s + i.qty, 0), 
       revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) 
     });
