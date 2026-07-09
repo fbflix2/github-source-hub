@@ -408,21 +408,56 @@ function ItemFormDialog({
 }) {
   const [type, setType] = useState<PoolType>((initial?.type as PoolType) || "perfil");
   const [identifier, setIdentifier] = useState(initial?.identifier || "");
-  const [metadataText, setMetadataText] = useState(
-    initial?.metadata ? JSON.stringify(initial.metadata, null, 2) : "{}",
-  );
   const [notes, setNotes] = useState(initial?.notes || "");
+  type BmEntry = { name: string; link: string; description: string };
+  const [bms, setBms] = useState<BmEntry[]>([{ name: "", link: "", description: "" }]);
 
   useEffect(() => {
     if (open) {
       setType((initial?.type as PoolType) || "perfil");
       setIdentifier(initial?.identifier || "");
-      setMetadataText(initial?.metadata ? JSON.stringify(initial.metadata, null, 2) : "{}");
       setNotes(initial?.notes || "");
+      const initialBms = (initial?.metadata as any)?.bms;
+      if (Array.isArray(initialBms) && initialBms.length > 0) {
+        setBms(initialBms.map((b: any) => ({
+          name: b.name || "",
+          link: b.link || "",
+          description: b.description || "",
+        })));
+      } else {
+        setBms([{ name: "", link: "", description: "" }]);
+      }
     }
   }, [open, initial]);
 
   const submit = () => {
+    if (type === "bm") {
+      const cleaned = bms
+        .map((b) => ({ name: b.name.trim(), link: b.link.trim(), description: b.description.trim() }))
+        .filter((b) => b.name || b.link);
+      if (cleaned.length === 0) {
+        toast.error("Adicione ao menos uma BM com nome e link");
+        return;
+      }
+      for (const b of cleaned) {
+        if (!b.name || !b.link) {
+          toast.error("Cada BM precisa de nome e link");
+          return;
+        }
+      }
+      const summary =
+        cleaned.length > 1
+          ? `Combo ${cleaned.length} BMs — ${cleaned.map((b) => b.name).join(", ").slice(0, 80)}`
+          : cleaned[0].name;
+      onSave({
+        id: initial?.id,
+        type,
+        identifier: summary,
+        metadata: { bms: cleaned },
+        notes,
+      });
+      return;
+    }
     if (!identifier.trim()) {
       toast.error(`Preencha ${TYPE_FIELD_LABEL[type].toLowerCase()}`);
       return;
@@ -436,9 +471,14 @@ function ItemFormDialog({
     });
   };
 
+  const updateBm = (i: number, patch: Partial<BmEntry>) =>
+    setBms((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  const addBm = () => setBms((prev) => [...prev, { name: "", link: "", description: "" }]);
+  const removeBm = (i: number) => setBms((prev) => prev.filter((_, idx) => idx !== i));
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initial?.id ? "Editar item" : "Adicionar ao pool"}</DialogTitle>
         </DialogHeader>
@@ -454,15 +494,67 @@ function ItemFormDialog({
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-xs">{TYPE_FIELD_LABEL[type]}</Label>
-            <Input
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder={TYPE_FIELD_PLACEHOLDER[type]}
-              autoFocus
-            />
-          </div>
+          {type === "bm" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">BMs deste combo ({bms.length})</Label>
+                <Button type="button" size="sm" variant="outline" onClick={addBm}>
+                  <Plus className="size-3 mr-1" /> Adicionar BM
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Todas as BMs listadas abaixo serão entregues juntas na mesma compra.
+              </p>
+              {bms.map((b, i) => (
+                <div key={i} className="rounded-lg border border-border/60 p-3 space-y-2 bg-background/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">BM #{i + 1}</span>
+                    {bms.length > 1 && (
+                      <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400"
+                        onClick={() => removeBm(i)}>
+                        <X className="size-3" />
+                      </Button>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Nome da BM</Label>
+                    <Input
+                      value={b.name}
+                      onChange={(e) => updateBm(i, { name: e.target.value })}
+                      placeholder="Ex: BM Cliente 01"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Link da BM</Label>
+                    <Input
+                      value={b.link}
+                      onChange={(e) => updateBm(i, { link: e.target.value })}
+                      placeholder="https://business.facebook.com/..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[11px]">Descrição</Label>
+                    <Textarea
+                      value={b.description}
+                      onChange={(e) => updateBm(i, { description: e.target.value })}
+                      rows={2}
+                      placeholder="Detalhes desta BM (opcional)"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <Label className="text-xs">{TYPE_FIELD_LABEL[type]}</Label>
+              <Input
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={TYPE_FIELD_PLACEHOLDER[type]}
+                autoFocus
+              />
+            </div>
+          )}
           <div>
             <Label className="text-xs">Observações internas</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
