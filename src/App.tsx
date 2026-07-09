@@ -52,6 +52,7 @@ import ClientContingencia from "./pages/ClientContingencia";
 import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 import Public2FA from "./pages/Public2FA";
+import RevendaPortal from "./pages/revenda/RevendaPortal";
 
 // SocialSafe Pages
 import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
