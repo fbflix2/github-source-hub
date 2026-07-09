@@ -445,8 +445,10 @@ export default function AdminScaleProPool() {
                   {linkableProxies.map((p: any) => {
                     const rd = p.raw_data || {};
                     const isBR = p.type === "proxybr";
+                    const pickName = (v: any) =>
+                      typeof v === "string" ? v : v && typeof v === "object" ? (v.name || v.title || "") : "";
                     const label = isBR
-                      ? (rd.product || rd.product_variant || p.name || "ProxyBR")
+                      ? (pickName(rd.product) || pickName(rd.product_variant) || p.name || "ProxyBR")
                       : (rd.proxy_address ? `${rd.proxy_address}:${rd.port}` : p.name);
                     const app = isBR
                       ? `Rotativo · ${rd.proxies ?? 1}x`
