@@ -148,12 +148,21 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
   const handleSave = async () => {
     if (!formData.nomeCombo.trim()) { toast.error("Dê um nome ao combo"); return; }
+    const isBmMode = formData.childType === "bm";
     const filledProfiles = formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso);
-    if (filledProfiles.length === 0) { toast.error("Adicione pelo menos 1 perfil com dados"); return; }
+    const filledBms = formData.bms.filter(b => b.linkBM.trim() || b.nomeBM.trim());
+    if (isBmMode) {
+      if (filledBms.length === 0) { toast.error("Adicione pelo menos 1 BM com nome e link"); return; }
+      const invalid = filledBms.find(b => !b.nomeBM.trim() || !b.linkBM.trim());
+      if (invalid) { toast.error("Cada BM precisa de nome e link"); return; }
+    } else {
+      if (filledProfiles.length === 0) { toast.error("Adicione pelo menos 1 perfil com dados"); return; }
+    }
 
     setSaving(true);
     try {
       // 1. Create parent combo item
+      const childCount = isBmMode ? filledBms.length : filledProfiles.length;
       const comboInsert: any = {
         name: formData.nomeCombo,
         type: "combo",
@@ -168,7 +177,8 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
           nomeProduto: formData.nomeProduto || undefined,
           foto_url: formData.fotoUrl || undefined,
           tags: formData.tags.length > 0 ? formData.tags : undefined,
-          childCount: filledProfiles.length,
+          childCount,
+          childType: isBmMode ? "bm" : "perfil",
         },
       };
 
@@ -181,8 +191,25 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
       if (parentError) throw parentError;
       const parentId = parentData.id;
 
-      // 2. Create child profile items linked to parent
-      const childInserts = filledProfiles.map((p, i) => ({
+      // 2. Create child items linked to parent
+      const childInserts = isBmMode
+        ? filledBms.map((b, i) => ({
+            name: b.nomeBM || `BM ${i + 1} do Combo`,
+            type: "bm",
+            identification: null,
+            identification_link: b.linkBM || null,
+            status: "aguardando",
+            folder: folder.id,
+            parent_id: parentId,
+            data: {
+              nomeBM: b.nomeBM,
+              linkBM: b.linkBM,
+              descricao: b.descricao,
+              _comboName: formData.nomeCombo,
+              _comboIndex: i + 1,
+            },
+          }))
+        : filledProfiles.map((p, i) => ({
         name: p.nomePerfil || p.emailAcesso || `Perfil ${i + 1} do Combo`,
         type: "perfil",
         identification: p.idPerfil || null,
@@ -215,7 +242,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
       localStorage.removeItem(COMBO_DRAFT_KEY);
       setHasDraft(false);
-      toast.success(`${formData.isPacote ? "📦 Pacote" : "Combo"} "${formData.nomeCombo}" com ${filledProfiles.length} perfis adicionado!`);
+      toast.success(`${formData.isPacote ? "📦 Pacote" : "Combo"} "${formData.nomeCombo}" com ${childCount} ${isBmMode ? "BMs" : "perfis"} adicionado!`);
       setFormData(emptyCombo());
       onSaved();
     } catch (err: any) {
