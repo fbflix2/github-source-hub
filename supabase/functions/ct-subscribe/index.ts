@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     // Fetch plan
     const { data: plan, error: planErr } = await admin
       .from("ct_plans")
-      .select("id, name, price, active, profiles_qty")
+      .select("id, name, price, active, profiles_qty, combo_config")
       .eq("id", planId)
       .maybeSingle();
     if (planErr || !plan) return json({ error: "Plano não encontrado" }, 404);
@@ -109,10 +109,20 @@ Deno.serve(async (req) => {
         qty: Number((plan as any).profiles_qty || 1),
         planName: plan.name,
       });
+      const comboResult = await assignPoolComboItems(admin, {
+        ctClientId: ctClient.id,
+        userId,
+        planId: plan.id,
+        comboConfig: ((plan as any).combo_config as any) || {},
+        planName: plan.name,
+      });
+      const comboSummaryText = Object.entries(comboResult)
+        .map(([t, v]: any) => `${t}: ${v.assigned}${v.missing ? `/${v.missing} faltam` : ""}`)
+        .join(", ");
 
       await admin.from("notifications").insert({
         title: "Nova assinatura CT",
-        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
+        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}${comboSummaryText ? `. Combo — ${comboSummaryText}` : ""}.`,
         type: "subscription",
         global: true,
       });
