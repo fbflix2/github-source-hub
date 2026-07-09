@@ -210,8 +210,7 @@ export default function AdminScaleProPool() {
         .select("id, name, type, raw_data, status, user_id, created_at")
         .in("type", ["proxyfbflix", "proxybr"])
         .is("included_in_ct_client_id", null)
-        .is("user_id", null)
-        .in("status", ["available", "active"])
+        .in("status", ["available", "cancelled", "expired"])
         .order("created_at", { ascending: false })
         .limit(2000);
       return data || [];
