@@ -28,8 +28,16 @@ interface ComboData {
   nomeCombo: string; preco: string; categoryId: string;
   nomeProduto: string; fotoUrl: string; tags: string[];
   descricaoCombo: string; isPacote: boolean;
+  childType: "perfil" | "bm";
+  bms: BMEntry[];
   profiles: ProfileData[];
 }
+
+interface BMEntry {
+  nomeBM: string; linkBM: string; descricao: string;
+}
+
+const emptyBM = (): BMEntry => ({ nomeBM: "", linkBM: "", descricao: "" });
 
 const emptyProfile = (): ProfileData => ({
   nomePerfil: "", linkPerfil: "", idPerfil: "",
@@ -43,6 +51,8 @@ const emptyCombo = (): ComboData => ({
   nomeCombo: "", preco: "", categoryId: "",
   nomeProduto: "", fotoUrl: "", tags: [],
   descricaoCombo: "", isPacote: true,
+  childType: "perfil",
+  bms: [emptyBM(), emptyBM(), emptyBM()],
   profiles: [emptyProfile(), emptyProfile(), emptyProfile()],
 });
 
