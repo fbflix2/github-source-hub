@@ -124,6 +124,7 @@ import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import AdminContingencia from "./pages/admin/AdminContingencia";
 import AdminScaleProPool from "./pages/admin/AdminScaleProPool";
+import AdminScaleProCombos from "./pages/admin/AdminScaleProCombos";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
@@ -460,6 +461,7 @@ const App = () => {
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="scale-pro-pool" element={<AdminScaleProPool />} />
+                  <Route path="scale-pro-combos" element={<AdminScaleProCombos />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                   <Route path="reposicao-fornecedor" element={<AdminReposicaoFornecedor />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />

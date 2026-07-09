@@ -50,6 +50,82 @@ async function assignScaleProProxies(
   return { assigned, missing };
 }
 
+/**
+ * Atribui itens do combo (perfil, bm, pagina, ad_account) do pool à assinatura Scale Pro.
+ * Prioriza itens reservados manualmente para o usuário; depois pega do pool geral do plano.
+ */
+async function assignScaleProComboItems(
+  supabase: any,
+  params: { ctClientId: string; userId: string; planId: string; comboConfig: Record<string, number>; planName?: string },
+) {
+  const { ctClientId, userId, planId, comboConfig, planName } = params;
+  const summary: Record<string, { assigned: number; missing: number }> = {};
+  const types = ["perfil", "bm", "pagina", "ad_account"] as const;
+
+  for (const type of types) {
+    const qty = Number(comboConfig?.[type] || 0);
+    if (!qty || qty < 1) continue;
+
+    // 1) Reservados para o usuário
+    const { data: reserved } = await supabase
+      .from("ct_pool_items")
+      .select("id")
+      .eq("plan_id", planId)
+      .eq("type", type)
+      .eq("status", "reserved")
+      .eq("reserved_for_user_id", userId)
+      .limit(qty);
+    const picked: string[] = (reserved || []).map((r: any) => r.id);
+
+    // 2) Disponíveis no pool do plano
+    if (picked.length < qty) {
+      const { data: available } = await supabase
+        .from("ct_pool_items")
+        .select("id")
+        .eq("plan_id", planId)
+        .eq("type", type)
+        .eq("status", "available")
+        .limit(qty - picked.length);
+      picked.push(...(available || []).map((r: any) => r.id));
+    }
+
+    let assigned = 0;
+    for (const id of picked) {
+      const { data: upd, error: updErr } = await supabase
+        .from("ct_pool_items")
+        .update({
+          status: "assigned",
+          assigned_ct_client_id: ctClientId,
+          assigned_at: new Date().toISOString(),
+          released_at: null,
+        })
+        .eq("id", id)
+        .in("status", ["available", "reserved"])
+        .select("id, identifier, metadata, type")
+        .maybeSingle();
+      if (updErr || !upd) continue;
+      await supabase.from("ct_items").insert({
+        ct_client_id: ctClientId,
+        type: upd.type,
+        identifier: upd.identifier,
+        metadata: { ...(upd.metadata || {}), pool_item_id: upd.id },
+        status: "ativo",
+      }).catch(() => {});
+      assigned++;
+    }
+    const missing = Math.max(0, qty - assigned);
+    summary[type] = { assigned, missing };
+    if (missing > 0) {
+      await supabase.from("notifications").insert({
+        title: `Pool Scale Pro insuficiente (${type})`,
+        message: `Faltam ${missing} ${type}(s) para o plano ${planName || ""}. Cadastre ou atribua manualmente ao cliente ${userId}.`,
+        type: "subscription", global: true,
+      }).catch(() => {});
+    }
+  }
+  return summary;
+}
+
 async function fulfillOrder(supabase: any, orderId: string, userId: string) {
   try {
     const { data: orderItems } = await supabase.from("order_items").select("*").eq("order_id", orderId);
@@ -392,21 +468,31 @@ Deno.serve(async (req) => {
         const { data: ctRow } = await supabase
           .from("ct_clients").select("plan_id").eq("id", ctClientId).maybeSingle();
         let profilesQty = 1;
+        let comboConfig: Record<string, number> = {};
         if (ctRow?.plan_id) {
           const { data: planRow } = await supabase
-            .from("ct_plans").select("profiles_qty").eq("id", ctRow.plan_id).maybeSingle();
+            .from("ct_plans").select("profiles_qty, combo_config").eq("id", ctRow.plan_id).maybeSingle();
           profilesQty = Number(planRow?.profiles_qty || 1);
+          comboConfig = (planRow?.combo_config as any) || {};
         }
         const proxyResult = await assignScaleProProxies(supabase, {
           ctClientId, userId, qty: profilesQty, planName,
         });
+        const comboResult = ctRow?.plan_id
+          ? await assignScaleProComboItems(supabase, {
+              ctClientId, userId, planId: ctRow.plan_id, comboConfig, planName,
+            })
+          : {};
 
         const { data: prof } = await supabase
           .from("profiles").select("full_name, phone").eq("user_id", userId).single();
 
+        const comboSummaryText = Object.entries(comboResult)
+          .map(([t, v]: any) => `${t}: ${v.assigned}${v.missing ? `/${v.missing} faltam` : ""}`)
+          .join(", ");
         await supabase.from("notifications").insert({
           title: "Nova assinatura CT",
-          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
+          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}${comboSummaryText ? `. Combo — ${comboSummaryText}` : ""}.`,
           type: "subscription",
           global: true,
         });

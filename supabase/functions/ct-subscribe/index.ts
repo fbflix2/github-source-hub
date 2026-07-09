@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     // Fetch plan
     const { data: plan, error: planErr } = await admin
       .from("ct_plans")
-      .select("id, name, price, active, profiles_qty")
+      .select("id, name, price, active, profiles_qty, combo_config")
       .eq("id", planId)
       .maybeSingle();
     if (planErr || !plan) return json({ error: "Plano não encontrado" }, 404);
@@ -109,10 +109,20 @@ Deno.serve(async (req) => {
         qty: Number((plan as any).profiles_qty || 1),
         planName: plan.name,
       });
+      const comboResult = await assignPoolComboItems(admin, {
+        ctClientId: ctClient.id,
+        userId,
+        planId: plan.id,
+        comboConfig: ((plan as any).combo_config as any) || {},
+        planName: plan.name,
+      });
+      const comboSummaryText = Object.entries(comboResult)
+        .map(([t, v]: any) => `${t}: ${v.assigned}${v.missing ? `/${v.missing} faltam` : ""}`)
+        .join(", ");
 
       await admin.from("notifications").insert({
         title: "Nova assinatura CT",
-        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
+        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}${comboSummaryText ? `. Combo — ${comboSummaryText}` : ""}.`,
         type: "subscription",
         global: true,
       });
@@ -313,4 +323,78 @@ export async function assignPoolProxies(
   }
 
   return { assigned, missing };
+}
+
+/**
+ * Atribui itens do combo (perfil/bm/pagina/ad_account) do pool à assinatura Scale Pro.
+ * Prioriza reservas manuais para o usuário; depois o pool geral do plano.
+ */
+export async function assignPoolComboItems(
+  admin: ReturnType<typeof createClient>,
+  params: { ctClientId: string; userId: string; planId: string; comboConfig: Record<string, number>; planName?: string },
+) {
+  const { ctClientId, userId, planId, comboConfig, planName } = params;
+  const summary: Record<string, { assigned: number; missing: number }> = {};
+  const types = ["perfil", "bm", "pagina", "ad_account"] as const;
+
+  for (const type of types) {
+    const qty = Number(comboConfig?.[type] || 0);
+    if (!qty || qty < 1) continue;
+
+    const { data: reserved } = await admin
+      .from("ct_pool_items")
+      .select("id")
+      .eq("plan_id", planId)
+      .eq("type", type)
+      .eq("status", "reserved")
+      .eq("reserved_for_user_id", userId)
+      .limit(qty);
+    const picked: string[] = (reserved || []).map((r: any) => r.id);
+
+    if (picked.length < qty) {
+      const { data: available } = await admin
+        .from("ct_pool_items")
+        .select("id")
+        .eq("plan_id", planId)
+        .eq("type", type)
+        .eq("status", "available")
+        .limit(qty - picked.length);
+      picked.push(...(available || []).map((r: any) => r.id));
+    }
+
+    let assigned = 0;
+    for (const id of picked) {
+      const { data: upd, error: updErr } = await admin
+        .from("ct_pool_items")
+        .update({
+          status: "assigned",
+          assigned_ct_client_id: ctClientId,
+          assigned_at: new Date().toISOString(),
+          released_at: null,
+        })
+        .eq("id", id)
+        .in("status", ["available", "reserved"])
+        .select("id, identifier, metadata, type")
+        .maybeSingle();
+      if (updErr || !upd) continue;
+      await admin.from("ct_items").insert({
+        ct_client_id: ctClientId,
+        type: upd.type,
+        identifier: upd.identifier,
+        metadata: { ...(upd.metadata || {}), pool_item_id: upd.id },
+        status: "ativo",
+      }).catch(() => {});
+      assigned++;
+    }
+    const missing = Math.max(0, qty - assigned);
+    summary[type] = { assigned, missing };
+    if (missing > 0) {
+      await admin.from("notifications").insert({
+        title: `Pool Scale Pro insuficiente (${type})`,
+        message: `Faltam ${missing} ${type}(s) para o plano ${planName || ""}. Cadastre ou atribua manualmente ao cliente ${userId}.`,
+        type: "subscription", global: true,
+      }).catch(() => {});
+    }
+  }
+  return summary;
 }
