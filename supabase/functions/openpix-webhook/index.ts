@@ -468,21 +468,31 @@ Deno.serve(async (req) => {
         const { data: ctRow } = await supabase
           .from("ct_clients").select("plan_id").eq("id", ctClientId).maybeSingle();
         let profilesQty = 1;
+        let comboConfig: Record<string, number> = {};
         if (ctRow?.plan_id) {
           const { data: planRow } = await supabase
-            .from("ct_plans").select("profiles_qty").eq("id", ctRow.plan_id).maybeSingle();
+            .from("ct_plans").select("profiles_qty, combo_config").eq("id", ctRow.plan_id).maybeSingle();
           profilesQty = Number(planRow?.profiles_qty || 1);
+          comboConfig = (planRow?.combo_config as any) || {};
         }
         const proxyResult = await assignScaleProProxies(supabase, {
           ctClientId, userId, qty: profilesQty, planName,
         });
+        const comboResult = ctRow?.plan_id
+          ? await assignScaleProComboItems(supabase, {
+              ctClientId, userId, planId: ctRow.plan_id, comboConfig, planName,
+            })
+          : {};
 
         const { data: prof } = await supabase
           .from("profiles").select("full_name, phone").eq("user_id", userId).single();
 
+        const comboSummaryText = Object.entries(comboResult)
+          .map(([t, v]: any) => `${t}: ${v.assigned}${v.missing ? `/${v.missing} faltam` : ""}`)
+          .join(", ");
         await supabase.from("notifications").insert({
           title: "Nova assinatura CT",
-          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
+          message: `${prof?.full_name || "Cliente"} assinou o plano ${planName} (R$ ${amount.toFixed(2)}) via PIX. Proxies: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}${comboSummaryText ? `. Combo — ${comboSummaryText}` : ""}.`,
           type: "subscription",
           global: true,
         });
