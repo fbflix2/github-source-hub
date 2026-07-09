@@ -1,60 +1,86 @@
 ## Objetivo
-Cada plano Scale Pro entrega **1 proxy por perfil incluso** (usar `ct_plans.profiles_qty` como quantidade padrão de proxies). Proxies vinculados à assinatura Scale Pro não geram cobrança individual — a assinatura mãe cobre tudo.
 
-## Mudanças no banco
+Permitir que o admin **cadastre itens (perfil, BM, página, ad account)** com antecedência num pool ligado a cada plano Scale Pro. Quando o cliente ativar o plano, o sistema pega automaticamente os itens do pool e vincula ao cliente — ou o admin pode reservar itens específicos para um cliente antes da ativação (modelo híbrido).
 
-**1. Nova tabela `ct_client_proxies`** — vínculo N:1 entre proxies e assinatura Scale Pro:
-- `ct_client_id` → assinatura Scale Pro
-- `subscription_id` → linha em `subscriptions` (proxy existente do tipo `proxyfbflix`/`webshare`)
-- `assigned_at`, `released_at`
-- Unique em `subscription_id` (um proxy só pode estar em uma assinatura Scale Pro)
+Proxies continuam usando o pool próprio já implementado (`subscriptions` type=proxyfbflix). Este pool é para os **outros itens** do combo.
 
-**2. Coluna nova em `subscriptions`**:
-- `included_in_ct_client_id uuid` — quando preenchido, indica que o proxy é incluso e **não deve ser cobrado/renovado individualmente**
+## Banco de dados
 
-**3. Ajuste em `ct_lifecycle`**:
-- Ao cancelar/expirar um Scale Pro: liberar todos os proxies vinculados (set `included_in_ct_client_id=null`, marcar `released_at`, deixar o proxy voltando ao pool interno com `user_id=null` e `status='available'`)
+**Nova tabela `ct_pool_items`** — estoque pré-cadastrado por plano:
+- `plan_id uuid` → `ct_plans` (a qual plano este item serve)
+- `type text` → `perfil` | `bm` | `pagina` | `ad_account`
+- `identifier text` → id/link/nome do item (ex: link BM, id perfil FB)
+- `metadata jsonb` → credenciais, notas, dados extras (senha, 2FA, etc)
+- `status text` → `available` | `reserved` | `assigned`
+- `reserved_for_user_id uuid` (nullable) → cliente com reserva manual
+- `assigned_ct_client_id uuid` (nullable) → assinatura que consumiu o item
+- `assigned_at`, `released_at`, `created_at`, `updated_at`
 
-## Fluxo de atribuição automática
+RLS: admin gerencia tudo, cliente não lê (itens só aparecem via `ct_items` após vinculação).
 
-Ao ativar Scale Pro (tanto em `ct-subscribe` saldo quanto no webhook PIX):
-1. Ler `plan.profiles_qty` — quantos proxies vincular
-2. Buscar N proxies internos disponíveis: `subscriptions WHERE type='proxyfbflix' AND user_id IS NULL AND status='available' AND included_in_ct_client_id IS NULL LIMIT N`
-3. Para cada proxy: 
-   - `UPDATE subscriptions SET user_id=<client>, included_in_ct_client_id=<ct_client_id>, auto_renew=false, status='active'`
-   - `INSERT INTO ct_client_proxies`
-4. Se pool insuficiente: criar `admin_notifications` alertando falta de proxy e prosseguir com os que tem
-5. Notificar cliente via WhatsApp com os proxies atribuídos
+**Regras de composição do combo por plano** — adicionar em `ct_plans`:
+- `combo_config jsonb` → ex: `{"perfil": 1, "bm": 1, "pagina": 1, "ad_account": 0}` (quantos itens de cada tipo entregar; `profiles_qty` continua sendo a quantidade de perfis/proxies)
 
-## Pool de proxies disponíveis
+## Fluxo de ativação (atualiza `ct-subscribe` e `openpix-webhook`)
 
-Como hoje não há um "pool" explícito, adaptar admin para marcar proxies como pool interno:
-- Nova tela **Admin > Scale Pro > Pool de Proxies**: lista proxies com `user_id=null` prontos para atribuir a Scale Pro
-- Botão em cada proxy do estoque interno: **"Adicionar ao Pool Scale Pro"** (só seta `status='available'` sem `user_id`)
+Após ativar Scale Pro:
+1. Ler `plan.combo_config` (fallback: `{perfil: profiles_qty}`)
+2. Para cada tipo, buscar N itens no pool priorizando:
+   - **1º**: `status='reserved' AND reserved_for_user_id = <user>` (reservas manuais)
+   - **2º**: `status='available' AND plan_id = <plan>`
+3. Para cada item selecionado:
+   - `UPDATE ct_pool_items SET status='assigned', assigned_ct_client_id=<ct_client>, assigned_at=now()`
+   - `INSERT INTO ct_items (ct_client_id, type, identifier, metadata, status='ativo')`
+4. Se pool insuficiente → notificação admin (igual ao fluxo de proxies)
+5. Proxies seguem via `assignPoolProxies` já existente
 
-## UI
+## Fluxo de liberação (atualiza `ct-lifecycle` + trigger)
 
-**Admin (`AdminContingencia`)**: 
-- Card na assinatura mostrando proxies vinculados (IP:porta, país)
-- Botão "Atribuir proxy manualmente" (caso auto falhe)
-- Botão "Liberar proxy" (volta ao pool)
+Ao cancelar/suspender/expirar Scale Pro:
+- Trigger `release_scale_pro_proxies_on_status_change` estendido para também:
+  - `UPDATE ct_pool_items SET status='available', assigned_ct_client_id=null, released_at=now() WHERE assigned_ct_client_id = <ct_client>`
+- Admin decide se os `ct_items` do cliente ficam arquivados ou removidos (mantém histórico)
 
-**Cliente (`/contingencia`)**:
-- Aba **"Meus Proxies"** listando os vinculados com credenciais (mesmo componente já usado em `/subscriptions`)
+## UI Admin
 
-## Regras críticas
-- Proxies com `included_in_ct_client_id != null` **nunca** entram no fluxo de cobrança/renovação individual
-- Ao cancelar Scale Pro: proxy volta ao pool **imediatamente** (user_id=null, included=null)
-- Renovação mensal do Scale Pro **não cobra** proxies (eles seguem ativos enquanto a assinatura mãe estiver)
-- Manter `auto_renew_active=false` durante a vinculação (respeitar memory Proxy Sync)
+**Nova aba em `/admin/contingencia` → "Pool de Combos"** (ou rota separada `/admin/scale-pro-combos`):
 
-## Arquivos a alterar
-- migration: criar `ct_client_proxies`, adicionar `included_in_ct_client_id` em `subscriptions`
-- `supabase/functions/ct-subscribe/index.ts` — auto-atribuir proxies após ativar
-- `supabase/functions/openpix-webhook/index.ts` — auto-atribuir proxies após confirmar PIX
-- `supabase/functions/ct-lifecycle/index.ts` — liberar proxies ao expirar/cancelar
-- `src/pages/admin/AdminContingencia.tsx` — UI de proxies vinculados + botões
-- `src/pages/ClientContingencia.tsx` — aba "Meus Proxies"
-- novo: `src/pages/admin/AdminScaleProPool.tsx` — gestão do pool
+Layout:
+```
+[Selector: Plano ▼]  [Botão: + Adicionar item ao pool]
 
-Confirma que posso seguir com essa estrutura?
+Tabs por tipo: [Perfis] [BMs] [Páginas] [Ad Accounts]
+
+Tabela:
+| Identificador | Metadata | Status | Reservado para | Ações |
+|---------------|----------|--------|----------------|-------|
+| link/id       | senha... | avail  | —              | Reservar / Editar / Remover |
+| ...           | ...      | reserv | joão@x.com     | Liberar / Editar |
+| ...           | ...      | assign | cliente ativo  | Ver assinatura |
+```
+
+Modal "Adicionar item": tipo, identificador, metadata (form dinâmico por tipo), plano, opção "reservar para cliente X".
+
+**No modal de "Estrutura" do cliente (já existente)**: adicionar seção mostrando itens do pool vinculados (já aparecem via `ct_items`), com botão "Trocar item do pool" para admin substituir manualmente.
+
+## UI Cliente (`/contingencia`)
+
+Sem mudanças — os itens já aparecem na aba "Estrutura" via `ct_items`. Só ganha visibilidade automática dos itens pré-cadastrados após ativação.
+
+## Arquivos a criar/alterar
+
+- migration: `ct_pool_items` + coluna `combo_config` em `ct_plans` + extensão do trigger
+- novo: `src/pages/admin/AdminScaleProCombos.tsx` (aba/rota nova)
+- novo: `src/components/scale-pro/PoolItemForm.tsx` (modal add/edit item)
+- edit: `src/App.tsx` + `AdminSidebar.tsx` (rota + menu)
+- edit: `supabase/functions/ct-subscribe/index.ts` — função `assignPoolComboItems`
+- edit: `supabase/functions/openpix-webhook/index.ts` — mesmo helper
+- edit: `supabase/functions/ct-lifecycle/index.ts` — liberar itens do pool ao expirar
+
+## Perguntas antes de implementar
+
+1. **Quantidades por plano**: quero usar `combo_config jsonb` (flexível por plano) ou colunas fixas em `ct_plans` (`bms_qty`, `pages_qty`, `ad_accounts_qty`)? Recomendo `combo_config` (mais fácil de evoluir).
+2. **Reserva manual**: um item reservado para cliente A que ainda não ativou o plano — se A nunca ativar, admin pode liberar manualmente? (sim por padrão)
+3. **Cliente pode ver credenciais do item?** (senha da BM, 2FA do perfil) — mostrar no portal do cliente ou só o identificador?
+
+Confirma este desenho e responde as 3 perguntas para eu seguir com a migration.
