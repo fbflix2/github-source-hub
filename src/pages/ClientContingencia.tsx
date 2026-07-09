@@ -830,7 +830,7 @@ export default function ClientContingencia() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                     {typeItems.map((item: any, idx: number) => {
                       const statusColor =
                         item.status === "block" ? "hsl(0 84% 60%)" :
@@ -847,11 +847,11 @@ export default function ClientContingencia() {
                       return (
                         <div
                           key={item.id}
-                          className="group relative flex flex-col rounded-xl border border-border/60 bg-card/40 p-4 hover:border-emerald-500/30 hover:bg-card/60 transition-all overflow-hidden"
+                          className="group relative flex flex-col rounded-lg border border-border/60 bg-card/40 p-2.5 hover:border-emerald-500/30 hover:bg-card/60 transition-all overflow-hidden"
                         >
-                          <div className="absolute top-0 left-0 h-full w-[3px]" style={{ backgroundColor: statusColor }} />
-                          <div className="flex items-start justify-between gap-2 mb-3">
-                            <div className="h-11 w-11 rounded-lg overflow-hidden bg-muted/40 border border-border/60 flex items-center justify-center shrink-0">
+                          <div className="absolute top-0 left-0 h-full w-[2px]" style={{ backgroundColor: statusColor }} />
+                          <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <div className="h-8 w-8 rounded-md overflow-hidden bg-muted/40 border border-border/60 flex items-center justify-center shrink-0">
                               {isProfile && profilePhotos[item.id] ? (
                                 <img
                                   src={profilePhotos[item.id] as string}
@@ -861,30 +861,30 @@ export default function ClientContingencia() {
                                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                                 />
                               ) : (
-                                <span className="text-muted-foreground">{typeIcons[type]}</span>
+                                <span className="text-muted-foreground [&_svg]:h-3.5 [&_svg]:w-3.5">{typeIcons[type]}</span>
                               )}
                             </div>
-                            <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[item.status] || ""}`}>
-                              <span className="inline-block h-1.5 w-1.5 rounded-full mr-1.5" style={{ backgroundColor: statusColor }} />
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 shrink-0 ${statusColors[item.status] || ""}`}>
+                              <span className="inline-block h-1 w-1 rounded-full mr-1" style={{ backgroundColor: statusColor }} />
                               {item.status === "ativo" ? "Ativo" :
                                 item.status === "block" ? "Block" :
                                 item.status === "substituido" ? "Substituído" : item.status}
                             </Badge>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{typeLabels[type]}</p>
+                            <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-0.5">{typeLabels[type]}</p>
                             {isUrl ? (
                               <a
                                 href={displayName}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2"
+                                className="text-[11px] font-medium text-foreground hover:text-emerald-400 break-all line-clamp-2 leading-tight"
                                 title={displayName}
                               >
                                 {displayName}
                               </a>
                             ) : (
-                              <p className="text-sm font-medium text-foreground break-all line-clamp-2" title={displayName}>
+                              <p className="text-xs font-medium text-foreground break-all line-clamp-2 leading-tight" title={displayName}>
                                 {displayName}
                               </p>
                             )}
