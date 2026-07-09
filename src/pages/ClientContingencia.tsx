@@ -64,6 +64,143 @@ const typeIcons: Record<string, React.ReactNode> = {
   conta: <Megaphone className="h-5 w-5" />,
 };
 
+const SCALE_PRO_STEPS = [
+  {
+    title: "Aqueça seu perfil matriz",
+    desc: "Acesse o perfil entregue, use por 3–5 dias como usuário real: curta posts, envie mensagens, adicione amigos. Isso reduz o risco de bloqueio ao anunciar.",
+    icon: UserCircle,
+  },
+  {
+    title: "Conecte o proxy dedicado",
+    desc: "Configure o proxy no navegador (AdsPower/Multilogin) antes de logar no perfil. Sempre use o mesmo proxy para o mesmo perfil.",
+    icon: Globe,
+  },
+  {
+    title: "Vincule sua BM",
+    desc: "Acesse a BM entregue no Facebook Business, aceite o convite e crie/adicione sua página. Não altere o admin da BM.",
+    icon: Monitor,
+  },
+  {
+    title: "Suba sua página e criativo",
+    desc: "Publique 3–5 posts orgânicos na página antes de anunciar. Isso melhora a reputação e aprovação do anúncio.",
+    icon: Megaphone,
+  },
+  {
+    title: "Ative sua conta de anúncio",
+    desc: "Adicione o cartão/método de pagamento, defina orçamento baixo no 1º dia (R$ 10–30) e escale de forma gradual.",
+    icon: Zap,
+  },
+  {
+    title: "Peça reposição se algo bloquear",
+    desc: "Se qualquer item bloquear, use 'Pedir Reposição' em Minha Estrutura. Reposições inclusas conforme seu plano.",
+    icon: RotateCcw,
+  },
+];
+
+function ScaleProSteps() {
+  const storageKey = "ct_steps_done_v1";
+  const [done, setDone] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem("ct_steps_collapsed_v1") === "1";
+  });
+
+  const toggle = (i: number) => {
+    setDone((prev) => {
+      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("ct_steps_collapsed_v1", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
+
+  const pct = Math.round((done.length / SCALE_PRO_STEPS.length) * 100);
+  const allDone = done.length === SCALE_PRO_STEPS.length;
+
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.04] via-transparent to-transparent overflow-hidden">
+      <button
+        onClick={toggleCollapsed}
+        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-emerald-500/[0.03] transition-colors text-left"
+      >
+        <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+          <Sparkles className="h-4 w-4 text-emerald-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">
+            {allDone ? "Passo a passo concluído 🎉" : "Passo a passo Scale Pro"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {allDone
+              ? "Você completou todas as etapas de setup."
+              : `${done.length} de ${SCALE_PRO_STEPS.length} etapas concluídas — siga o passo a passo para ativar sua estrutura sem risco de block.`}
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 shrink-0">
+          <div className="w-24">
+            <Progress value={pct} className="h-1.5" />
+          </div>
+          <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
+        </div>
+        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${collapsed ? "" : "rotate-90"}`} />
+      </button>
+
+      {!collapsed && (
+        <div className="border-t border-border/60 p-4 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {SCALE_PRO_STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isDone = done.includes(i);
+            return (
+              <button
+                key={i}
+                onClick={() => toggle(i)}
+                className={`w-full flex items-start gap-3 rounded-lg border p-3.5 text-left transition-all ${
+                  isDone
+                    ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                    : "border-border/60 bg-card/30 hover:border-emerald-500/30 hover:bg-emerald-500/[0.02]"
+                }`}
+              >
+                <div className={`h-8 w-8 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                  isDone ? "bg-emerald-500/15 border-emerald-500/40" : "bg-muted/40 border-border/60"
+                }`}>
+                  {isDone ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  ) : (
+                    <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                      Passo {i + 1}
+                    </span>
+                    <span className={`text-sm font-medium ${isDone ? "text-emerald-300 line-through decoration-emerald-500/40" : ""}`}>
+                      {step.title}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClientContingencia() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
