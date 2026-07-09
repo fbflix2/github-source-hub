@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink, Copy, Facebook } from "lucide-react";
+import { Globe, Search, Plus, X, User, ChevronDown, ChevronUp, Link2, Unlink, Copy, Shield } from "lucide-react";
 
 export default function AdminScaleProPool() {
   const qc = useQueryClient();
