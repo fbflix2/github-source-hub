@@ -112,11 +112,17 @@ export default function Auth() {
         isStaff = isMod;
       }
 
+      const { data: resellerData } = await supabase
+        .from("resellers")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
       toast({
         title: "Bem-vindo!",
         description: "Login realizado com sucesso.",
       });
-      navigate(isStaff ? "/admin" : "/loja");
+      navigate(isStaff ? "/admin" : resellerData ? "/revenda" : "/loja");
     }
 
     setLoading(false);
