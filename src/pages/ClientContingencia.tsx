@@ -19,8 +19,9 @@ import {
   Shield, CheckCircle2, AlertTriangle, XCircle, Calendar, Wallet,
   Monitor, Globe, Megaphone, UserCircle, RotateCcw, Plus, MessageCircle,
   History, CreditCard, HelpCircle, ArrowUpRight, ChevronRight, TrendingUp,
-  DollarSign, Activity, FileText, Sparkles, Zap, Crown, BarChart3, Users
+  DollarSign, Activity, FileText, Sparkles, Zap, Crown, BarChart3, Users, MoreVertical
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 function getOverdueDays(nextBilling: string | null | undefined): number {
   if (!nextBilling) return 0;
