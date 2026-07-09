@@ -1035,6 +1035,12 @@ function ContingenciaPanel() {
             <a href="/suporte" className="text-primary hover:underline font-semibold">ticket de suporte</a>.
           </p>
         </div>
+
+        <CTCheckoutModal
+          plan={checkoutPlan}
+          open={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+        />
       </div>
     );
   }
