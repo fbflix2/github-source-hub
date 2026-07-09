@@ -15,6 +15,41 @@ const ok = (data: any = { received: true }) =>
 
 const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
 
+async function assignScaleProProxies(
+  supabase: any,
+  params: { ctClientId: string; userId: string; qty: number; planName?: string },
+) {
+  const { ctClientId, userId, qty, planName } = params;
+  if (!qty || qty < 1) return { assigned: 0, missing: 0 };
+  const { data: pool } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .in("type", ["proxyfbflix"])
+    .is("user_id", null)
+    .is("included_in_ct_client_id", null)
+    .eq("status", "available")
+    .limit(qty);
+  let assigned = 0;
+  for (const p of (pool || [])) {
+    const { error: updErr } = await supabase
+      .from("subscriptions")
+      .update({ user_id: userId, included_in_ct_client_id: ctClientId, auto_renew: false, status: "active" })
+      .eq("id", p.id).is("user_id", null);
+    if (updErr) continue;
+    await supabase.from("ct_client_proxies").insert({ ct_client_id: ctClientId, subscription_id: p.id });
+    assigned++;
+  }
+  const missing = Math.max(0, qty - assigned);
+  if (missing > 0) {
+    await supabase.from("notifications").insert({
+      title: "Pool de proxies Scale Pro insuficiente",
+      message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Atribuir manualmente ao cliente ${userId}.`,
+      type: "subscription", global: true,
+    }).catch(() => {});
+  }
+  return { assigned, missing };
+}
+
 async function fulfillOrder(supabase: any, orderId: string, userId: string) {
   try {
     const { data: orderItems } = await supabase.from("order_items").select("*").eq("order_id", orderId);
