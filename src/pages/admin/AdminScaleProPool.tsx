@@ -210,6 +210,8 @@ export default function AdminScaleProPool() {
         .select("id, name, type, raw_data, status, user_id, created_at")
         .in("type", ["proxyfbflix", "proxybr"])
         .is("included_in_ct_client_id", null)
+        .is("user_id", null)
+        .in("status", ["available", "active"])
         .order("created_at", { ascending: false })
         .limit(2000);
       return data || [];
@@ -443,15 +445,27 @@ export default function AdminScaleProPool() {
                 <SelectContent className="max-h-72">
                   {linkableProxies.map((p: any) => {
                     const rd = p.raw_data || {};
+                    const isBR = p.type === "proxybr";
+                    const label = isBR
+                      ? (rd.product || rd.product_variant || p.name || "ProxyBR")
+                      : (rd.proxy_address ? `${rd.proxy_address}:${rd.port}` : p.name);
+                    const app = isBR
+                      ? `Rotativo · ${rd.proxies ?? 1}x`
+                      : `${(rd.country_code || "BR").toUpperCase()} · Dedicado`;
                     return (
                       <SelectItem key={p.id} value={p.id}>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">
-                            {rd.proxy_address ? `${rd.proxy_address}:${rd.port}` : p.name}
+                          <span
+                            className={`text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                              isBR
+                                ? "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            }`}
+                          >
+                            {isBR ? "BR" : "FBFlix"}
                           </span>
-                          <span className="text-[10px] text-muted-foreground uppercase">
-                            · {p.type === "proxybr" ? "BR" : "FBFlix"} · {p.status}
-                          </span>
+                          <span className="font-mono text-xs">{label}</span>
+                          <span className="text-[10px] text-muted-foreground">· {app}</span>
                         </div>
                       </SelectItem>
                     );
