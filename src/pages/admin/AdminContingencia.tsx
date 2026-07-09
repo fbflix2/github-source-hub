@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminScaleProProxies } from "@/components/scale-pro/AdminScaleProProxies";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
@@ -991,6 +992,9 @@ export default function AdminContingencia() {
               {clientItems.length === 0 && (
                 <div className="text-center text-white/40 py-4">Nenhum item cadastrado</div>
               )}
+
+              {/* Proxies inclusos Scale Pro */}
+              <AdminScaleProProxies ctClientId={showStructure.id} userId={showStructure.user_id} />
 
               {/* Add new item */}
               <div className="border-t border-white/10 pt-4 space-y-2">

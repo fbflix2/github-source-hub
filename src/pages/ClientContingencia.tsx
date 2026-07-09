@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClientScaleProProxies } from "@/components/scale-pro/ClientScaleProProxies";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -635,6 +636,9 @@ export default function ClientContingencia() {
               <p className="text-xs text-amber-400 mt-2">Limite de reposições atingido este mês</p>
             )}
           </div>
+
+          {/* Proxies inclusos no plano */}
+          <ClientScaleProProxies ctClientId={ctClient.id} />
         </TabsContent>
 
         {/* ===== MINHA ESTRUTURA ===== */}
