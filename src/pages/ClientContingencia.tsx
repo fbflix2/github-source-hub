@@ -857,7 +857,7 @@ export default function ClientContingencia() {
                   </div>
 
                   {/* Table header (desktop) */}
-                  <div className={`hidden md:${GRID} items-center px-6 py-3 border-b border-border/40 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground`}>
+                  <div className={`hidden md:grid grid-cols-[minmax(180px,1.1fr)_minmax(260px,2.2fr)_120px_60px] gap-4 items-center px-6 py-3 border-b border-border/40 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground`}>
                     <div>Tipo de Item</div>
                     <div>Detalhes</div>
                     <div>Status</div>
