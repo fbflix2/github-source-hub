@@ -102,9 +102,17 @@ Deno.serve(async (req) => {
         reference_id: ctClient.id,
       });
 
+      // Auto-atribuir proxies inclusos do pool (1 por perfil)
+      const proxyResult = await assignPoolProxies(admin, {
+        ctClientId: ctClient.id,
+        userId,
+        qty: Number((plan as any).profiles_qty || 1),
+        planName: plan.name,
+      });
+
       await admin.from("notifications").insert({
         title: "Nova assinatura CT",
-        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo.`,
+        message: `${profile?.full_name || "Cliente"} assinou o plano ${plan.name} (R$ ${price.toFixed(2)}) via saldo. Proxies atribuídos: ${proxyResult.assigned}${proxyResult.missing ? ` (faltam ${proxyResult.missing})` : ""}.`,
         type: "subscription",
         global: true,
       });
