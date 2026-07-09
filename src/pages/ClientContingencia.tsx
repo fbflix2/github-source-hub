@@ -68,138 +68,161 @@ const typeIcons: Record<string, React.ReactNode> = {
   pagina: <FileText className="h-5 w-5" />,
 };
 
-const SCALE_PRO_STEPS = [
-  {
-    title: "Aqueça seu perfil matriz",
-    desc: "Acesse o perfil entregue, use por 3–5 dias como usuário real: curta posts, envie mensagens, adicione amigos. Isso reduz o risco de bloqueio ao anunciar.",
-    icon: UserCircle,
-  },
-  {
-    title: "Conecte o proxy dedicado",
-    desc: "Configure o proxy no navegador (AdsPower/Multilogin) antes de logar no perfil. Sempre use o mesmo proxy para o mesmo perfil.",
-    icon: Globe,
-  },
-  {
-    title: "Vincule sua BM",
-    desc: "Acesse a BM entregue no Facebook Business, aceite o convite e crie/adicione sua página. Não altere o admin da BM.",
-    icon: Monitor,
-  },
-  {
-    title: "Suba sua página e criativo",
-    desc: "Publique 3–5 posts orgânicos na página antes de anunciar. Isso melhora a reputação e aprovação do anúncio.",
-    icon: Megaphone,
-  },
-  {
-    title: "Ative sua conta de anúncio",
-    desc: "Adicione o cartão/método de pagamento, defina orçamento baixo no 1º dia (R$ 10–30) e escale de forma gradual.",
-    icon: Zap,
-  },
-  {
-    title: "Peça reposição se algo bloquear",
-    desc: "Se qualquer item bloquear, use 'Pedir Reposição' em Minha Estrutura. Reposições inclusas conforme seu plano.",
-    icon: RotateCcw,
-  },
-];
+const LAUTH_SIGNUP_URL = "https://lauth.io/";
 
-function ScaleProSteps() {
-  const storageKey = "ct_steps_done_v1";
-  const [done, setDone] = useState<number[]>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem("ct_steps_collapsed_v1") === "1";
-  });
+function LauthActivation({ ctClient }: { ctClient: { id: string; lauth_email?: string | null; lauth_status?: string | null } }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const alreadySaved = !!ctClient.lauth_email;
+  const status = ctClient.lauth_status || "pending";
+  const activated = status === "active" || status === "ativado" || status === "activated";
 
-  const toggle = (i: number) => {
-    setDone((prev) => {
-      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
-  const toggleCollapsed = () => {
-    setCollapsed((c) => {
-      const next = !c;
-      try { localStorage.setItem("ct_steps_collapsed_v1", next ? "1" : "0"); } catch {}
-      return next;
-    });
+  const [hasAccount, setHasAccount] = useState<null | boolean>(alreadySaved ? true : null);
+  const [email, setEmail] = useState<string>(ctClient.lauth_email || "");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const clean = email.trim().toLowerCase();
+    if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      toast({ title: "E-mail inválido", description: "Informe o e-mail que você usou no cadastro do Lauth.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("ct_clients")
+      .update({ lauth_email: clean, lauth_status: "pending_activation" })
+      .eq("id", ctClient.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "E-mail enviado!", description: "Nossa equipe já foi notificada e vai ativar sua estrutura no Lauth." });
+    queryClient.invalidateQueries({ queryKey: ["ct-client-self"] });
   };
 
-  const pct = Math.round((done.length / SCALE_PRO_STEPS.length) * 100);
-  const allDone = done.length === SCALE_PRO_STEPS.length;
+  // Se já ativado, mostra badge de sucesso compacto
+  if (alreadySaved && activated) {
+    return (
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4 flex items-center gap-3">
+        <div className="h-9 w-9 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center shrink-0">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-emerald-300">Estrutura ativada no Lauth</p>
+          <p className="text-xs text-muted-foreground truncate">Vinculada a <span className="text-foreground">{ctClient.lauth_email}</span></p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.04] via-transparent to-transparent overflow-hidden">
-      <button
-        onClick={toggleCollapsed}
-        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-emerald-500/[0.03] transition-colors text-left"
-      >
+    <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.05] via-transparent to-transparent p-5">
+      <div className="flex items-start gap-4">
         <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
           <Sparkles className="h-4 w-4 text-emerald-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">
-            {allDone ? "Passo a passo concluído 🎉" : "Passo a passo Scale Pro"}
-          </p>
+          <p className="text-sm font-semibold">Ative sua estrutura no Lauth</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {allDone
-              ? "Você completou todas as etapas de setup."
-              : `${done.length} de ${SCALE_PRO_STEPS.length} etapas concluídas — siga o passo a passo para ativar sua estrutura sem risco de block.`}
+            Sua estrutura Scale Pro é entregue dentro do <span className="font-medium text-foreground">Lauth</span> (anti-detect). Precisamos apenas do e-mail que você usou no cadastro para vincular tudo à sua conta.
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-3 shrink-0">
-          <div className="w-24">
-            <Progress value={pct} className="h-1.5" />
-          </div>
-          <span className="text-xs tabular-nums text-muted-foreground">{pct}%</span>
-        </div>
-        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${collapsed ? "" : "rotate-90"}`} />
-      </button>
+      </div>
 
-      {!collapsed && (
-        <div className="border-t border-border/60 p-4 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-          {SCALE_PRO_STEPS.map((step, i) => {
-            const Icon = step.icon;
-            const isDone = done.includes(i);
-            return (
+      {alreadySaved && !activated && (
+        <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-3 flex items-start gap-2">
+          <Activity className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-xs">
+            <p className="font-medium text-amber-300">Aguardando ativação da equipe</p>
+            <p className="text-muted-foreground">Recebemos seu e-mail <span className="text-foreground">{ctClient.lauth_email}</span>. Vamos vincular sua estrutura em até algumas horas.</p>
+          </div>
+        </div>
+      )}
+
+      {!alreadySaved && (
+        <>
+          <div className="mt-4">
+            <p className="text-xs font-medium mb-2">Você já tem conta no Lauth?</p>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                key={i}
-                onClick={() => toggle(i)}
-                className={`w-full flex items-start gap-3 rounded-lg border p-3.5 text-left transition-all ${
-                  isDone
-                    ? "border-emerald-500/30 bg-emerald-500/[0.04]"
-                    : "border-border/60 bg-card/30 hover:border-emerald-500/30 hover:bg-emerald-500/[0.02]"
+                onClick={() => setHasAccount(true)}
+                className={`rounded-lg border p-3 text-left transition-all ${
+                  hasAccount === true
+                    ? "border-emerald-500/40 bg-emerald-500/[0.08]"
+                    : "border-border/60 bg-card/30 hover:border-emerald-500/30"
                 }`}
               >
-                <div className={`h-8 w-8 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                  isDone ? "bg-emerald-500/15 border-emerald-500/40" : "bg-muted/40 border-border/60"
-                }`}>
-                  {isDone ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-                  )}
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`h-4 w-4 ${hasAccount === true ? "text-emerald-400" : "text-muted-foreground"}`} />
+                  <span className="text-sm font-medium">Sim, já tenho</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
-                      Passo {i + 1}
-                    </span>
-                    <span className={`text-sm font-medium ${isDone ? "text-emerald-300 line-through decoration-emerald-500/40" : ""}`}>
-                      {step.title}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Informe o e-mail cadastrado no Lauth.</p>
               </button>
-            );
-          })}
-        </div>
+              <button
+                onClick={() => setHasAccount(false)}
+                className={`rounded-lg border p-3 text-left transition-all ${
+                  hasAccount === false
+                    ? "border-emerald-500/40 bg-emerald-500/[0.08]"
+                    : "border-border/60 bg-card/30 hover:border-emerald-500/30"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className={`h-4 w-4 ${hasAccount === false ? "text-emerald-400" : "text-muted-foreground"}`} />
+                  <span className="text-sm font-medium">Não tenho ainda</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Vamos te mostrar como criar em 2 min.</p>
+              </button>
+            </div>
+          </div>
+
+          {hasAccount === false && (
+            <div className="mt-4 rounded-lg border border-border/60 bg-card/30 p-4 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-start gap-3">
+                <span className="h-6 w-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center shrink-0">1</span>
+                <div className="text-xs">
+                  <p className="font-medium">Crie sua conta gratuita no Lauth</p>
+                  <a href={LAUTH_SIGNUP_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1 text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                    Abrir cadastro no Lauth <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="h-6 w-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center shrink-0">2</span>
+                <div className="text-xs">
+                  <p className="font-medium">Baixe e instale o Lauth</p>
+                  <p className="text-muted-foreground">Após criar a conta, baixe o app no próprio site e faça o login.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="h-6 w-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center shrink-0">3</span>
+                <div className="text-xs">
+                  <p className="font-medium">Volte aqui e informe o e-mail que você usou no cadastro</p>
+                  <p className="text-muted-foreground">Assim conseguimos vincular sua estrutura à sua conta.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasAccount !== null && (
+            <div className="mt-4 flex flex-col sm:flex-row gap-2 animate-in fade-in duration-200">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu-email@usado-no-lauth.com"
+                className="flex-1 rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-emerald-500/50"
+              />
+              <Button
+                onClick={submit}
+                disabled={saving || !email.trim()}
+                className="bg-emerald-500 hover:bg-emerald-500/90 text-emerald-950"
+              >
+                {saving ? "Enviando..." : "Ativar estrutura"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -517,8 +540,8 @@ export default function ClientContingencia() {
             )}
           </div>
 
-          {/* Passo a passo Scale Pro */}
-          <ScaleProSteps />
+          {/* Ativação Lauth */}
+          <LauthActivation ctClient={ctClient as any} />
 
           {/* KPI cards */}
           {(() => {
