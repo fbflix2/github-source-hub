@@ -54,6 +54,8 @@ const typeLabels: Record<string, string> = {
   proxy: "Proxy",
   bm: "BM",
   conta: "Conta de Anúncio",
+  ad_account: "Conta de Anúncio",
+  pagina: "Página",
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -62,6 +64,8 @@ const typeIcons: Record<string, React.ReactNode> = {
   proxy: <Globe className="h-5 w-5" />,
   bm: <Monitor className="h-5 w-5" />,
   conta: <Megaphone className="h-5 w-5" />,
+  ad_account: <Megaphone className="h-5 w-5" />,
+  pagina: <FileText className="h-5 w-5" />,
 };
 
 const SCALE_PRO_STEPS = [
