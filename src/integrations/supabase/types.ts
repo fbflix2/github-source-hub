@@ -793,39 +793,51 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_payment_at: string | null
+          last_payment_id: string | null
           monthly_value: number
           next_billing: string | null
           notes: string | null
+          payment_method: string | null
           plan_id: string | null
           start_date: string
           status: string
           telegram: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          last_payment_at?: string | null
+          last_payment_id?: string | null
           monthly_value?: number
           next_billing?: string | null
           notes?: string | null
+          payment_method?: string | null
           plan_id?: string | null
           start_date?: string
           status?: string
           telegram?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          last_payment_at?: string | null
+          last_payment_id?: string | null
           monthly_value?: number
           next_billing?: string | null
           notes?: string | null
+          payment_method?: string | null
           plan_id?: string | null
           start_date?: string
           status?: string
           telegram?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }
