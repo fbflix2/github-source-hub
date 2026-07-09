@@ -1,86 +1,96 @@
-## Objetivo
 
-Permitir que o admin **cadastre itens (perfil, BM, página, ad account)** com antecedência num pool ligado a cada plano Scale Pro. Quando o cliente ativar o plano, o sistema pega automaticamente os itens do pool e vincula ao cliente — ou o admin pode reservar itens específicos para um cliente antes da ativação (modelo híbrido).
+# Onda 1 — Correções críticas de dados
 
-Proxies continuam usando o pool próprio já implementado (`subscriptions` type=proxyfbflix). Este pool é para os **outros itens** do combo.
+Escopo restrito: apenas o que o scanner classificou como crítico e que **não altera comportamento de leitura pública** do app. Cada mudança abaixo foi validada no schema atual do banco.
 
-## Banco de dados
+## O que será alterado
 
-**Nova tabela `ct_pool_items`** — estoque pré-cadastrado por plano:
-- `plan_id uuid` → `ct_plans` (a qual plano este item serve)
-- `type text` → `perfil` | `bm` | `pagina` | `ad_account`
-- `identifier text` → id/link/nome do item (ex: link BM, id perfil FB)
-- `metadata jsonb` → credenciais, notas, dados extras (senha, 2FA, etc)
-- `status text` → `available` | `reserved` | `assigned`
-- `reserved_for_user_id uuid` (nullable) → cliente com reserva manual
-- `assigned_ct_client_id uuid` (nullable) → assinatura que consumiu o item
-- `assigned_at`, `released_at`, `created_at`, `updated_at`
+### A. RLS `USING (true)` / `WITH CHECK (true)` em escrita
 
-RLS: admin gerencia tudo, cliente não lê (itens só aparecem via `ct_items` após vinculação).
+O scanner detectou 3 policies permissivas em operações de escrita. Investigando as 5 candidatas encontradas no banco, classifico assim:
 
-**Regras de composição do combo por plano** — adicionar em `ct_plans`:
-- `combo_config jsonb` → ex: `{"perfil": 1, "bm": 1, "pagina": 1, "ad_account": 0}` (quantos itens de cada tipo entregar; `profiles_qty` continua sendo a quantidade de perfis/proxies)
+| Tabela | Policy | Cmd | Ação | Justificativa |
+|---|---|---|---|---|
+| `whatsapp_logs` | "Service can update logs" | UPDATE `true` | **DROP + recriar restrita a `is_staff`** | UPDATE aberto a qualquer usuário logado é risco real. |
+| `whatsapp_logs` | "Service can insert logs" | INSERT `true` | **DROP + recriar restrita a `is_staff`** | Logs devem vir só de edge functions (service_role bypassa RLS mesmo assim) ou staff. |
+| `consent_logs` | "Anyone can insert consent logs" | INSERT `true` | **Manter** (necessário no fluxo LGPD antes do login) — adicionar `WITH CHECK (user_id IS NULL OR user_id = auth.uid())`. |
+| `partner_journey_events` | "anyone can insert journey events" | INSERT `true` | **Manter** (tracking anônimo por visitor_id) — adicionar validação de tamanho de payload e `user_id IS NULL OR user_id = auth.uid()`. |
+| `product_views` | "Anyone can insert product views" | INSERT `true` | **Manter** (analytics público) — adicionar `WITH CHECK (user_id IS NULL OR user_id = auth.uid())`. |
 
-## Fluxo de ativação (atualiza `ct-subscribe` e `openpix-webhook`)
+### B. `password_reset_codes` — RLS ligado, sem policies
 
-Após ativar Scale Pro:
-1. Ler `plan.combo_config` (fallback: `{perfil: profiles_qty}`)
-2. Para cada tipo, buscar N itens no pool priorizando:
-   - **1º**: `status='reserved' AND reserved_for_user_id = <user>` (reservas manuais)
-   - **2º**: `status='available' AND plan_id = <plan>`
-3. Para cada item selecionado:
-   - `UPDATE ct_pool_items SET status='assigned', assigned_ct_client_id=<ct_client>, assigned_at=now()`
-   - `INSERT INTO ct_items (ct_client_id, type, identifier, metadata, status='ativo')`
-4. Se pool insuficiente → notificação admin (igual ao fluxo de proxies)
-5. Proxies seguem via `assignPoolProxies` já existente
+Estado atual: RLS ativa, 0 policies → tabela já está **totalmente bloqueada** para `anon`/`authenticated` (apenas `service_role` via edge functions `request-password-reset` e `verify-password-reset` acessa). Comportamento correto, mas scanner sinaliza como INFO.
 
-## Fluxo de liberação (atualiza `ct-lifecycle` + trigger)
+Ação: adicionar policy explícita "Deny all" para deixar a intenção documentada e silenciar o finding, sem alterar comportamento.
 
-Ao cancelar/suspender/expirar Scale Pro:
-- Trigger `release_scale_pro_proxies_on_status_change` estendido para também:
-  - `UPDATE ct_pool_items SET status='available', assigned_ct_client_id=null, released_at=now() WHERE assigned_ct_client_id = <ct_client>`
-- Admin decide se os `ct_items` do cliente ficam arquivados ou removidos (mantém histórico)
-
-## UI Admin
-
-**Nova aba em `/admin/contingencia` → "Pool de Combos"** (ou rota separada `/admin/scale-pro-combos`):
-
-Layout:
-```
-[Selector: Plano ▼]  [Botão: + Adicionar item ao pool]
-
-Tabs por tipo: [Perfis] [BMs] [Páginas] [Ad Accounts]
-
-Tabela:
-| Identificador | Metadata | Status | Reservado para | Ações |
-|---------------|----------|--------|----------------|-------|
-| link/id       | senha... | avail  | —              | Reservar / Editar / Remover |
-| ...           | ...      | reserv | joão@x.com     | Liberar / Editar |
-| ...           | ...      | assign | cliente ativo  | Ver assinatura |
+```sql
+CREATE POLICY "No client access" ON public.password_reset_codes
+  FOR ALL TO anon, authenticated USING (false) WITH CHECK (false);
 ```
 
-Modal "Adicionar item": tipo, identificador, metadata (form dinâmico por tipo), plano, opção "reservar para cliente X".
+### C. Functions sem `search_path` fixado
 
-**No modal de "Estrutura" do cliente (já existente)**: adicionar seção mostrando itens do pool vinculados (já aparecem via `ct_items`), com botão "Trocar item do pool" para admin substituir manualmente.
+Duas funções `SECURITY DEFINER` sem `SET search_path`:
+- `public.process_partner_referral`
+- `public.process_safe_bm_renewals`
 
-## UI Cliente (`/contingencia`)
+Ação: `ALTER FUNCTION ... SET search_path = public` (não muda lógica, elimina risco de search_path injection).
 
-Sem mudanças — os itens já aparecem na aba "Estrutura" via `ct_items`. Só ganha visibilidade automática dos itens pré-cadastrados após ativação.
+## Detalhes técnicos (SQL da migration)
 
-## Arquivos a criar/alterar
+```sql
+-- 1) whatsapp_logs — restringir escrita a staff
+DROP POLICY "Service can insert logs" ON public.whatsapp_logs;
+DROP POLICY "Service can update logs" ON public.whatsapp_logs;
 
-- migration: `ct_pool_items` + coluna `combo_config` em `ct_plans` + extensão do trigger
-- novo: `src/pages/admin/AdminScaleProCombos.tsx` (aba/rota nova)
-- novo: `src/components/scale-pro/PoolItemForm.tsx` (modal add/edit item)
-- edit: `src/App.tsx` + `AdminSidebar.tsx` (rota + menu)
-- edit: `supabase/functions/ct-subscribe/index.ts` — função `assignPoolComboItems`
-- edit: `supabase/functions/openpix-webhook/index.ts` — mesmo helper
-- edit: `supabase/functions/ct-lifecycle/index.ts` — liberar itens do pool ao expirar
+CREATE POLICY "Staff can insert logs" ON public.whatsapp_logs
+  FOR INSERT TO authenticated
+  WITH CHECK (public.is_staff(auth.uid()));
 
-## Perguntas antes de implementar
+CREATE POLICY "Staff can update logs" ON public.whatsapp_logs
+  FOR UPDATE TO authenticated
+  USING (public.is_staff(auth.uid()))
+  WITH CHECK (public.is_staff(auth.uid()));
 
-1. **Quantidades por plano**: quero usar `combo_config jsonb` (flexível por plano) ou colunas fixas em `ct_plans` (`bms_qty`, `pages_qty`, `ad_accounts_qty`)? Recomendo `combo_config` (mais fácil de evoluir).
-2. **Reserva manual**: um item reservado para cliente A que ainda não ativou o plano — se A nunca ativar, admin pode liberar manualmente? (sim por padrão)
-3. **Cliente pode ver credenciais do item?** (senha da BM, 2FA do perfil) — mostrar no portal do cliente ou só o identificador?
+-- 2) consent_logs / partner_journey_events / product_views — vincular user_id
+DROP POLICY "Anyone can insert consent logs" ON public.consent_logs;
+CREATE POLICY "Insert own consent logs" ON public.consent_logs
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
 
-Confirma este desenho e responde as 3 perguntas para eu seguir com a migration.
+DROP POLICY "anyone can insert journey events" ON public.partner_journey_events;
+CREATE POLICY "Insert own journey events" ON public.partner_journey_events
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
+
+DROP POLICY "Anyone can insert product views" ON public.product_views;
+CREATE POLICY "Insert own product views" ON public.product_views
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
+
+-- 3) password_reset_codes — deny explícito
+CREATE POLICY "No client access" ON public.password_reset_codes
+  FOR ALL TO anon, authenticated USING (false) WITH CHECK (false);
+
+-- 4) search_path
+ALTER FUNCTION public.process_partner_referral() SET search_path = public;
+ALTER FUNCTION public.process_safe_bm_renewals() SET search_path = public;
+```
+
+## Impacto no app (arquivos)
+
+Nenhuma alteração de código frontend. Edge functions `wapi-webhook`, `wapi-send`, `wapi-import` usam `SUPABASE_SERVICE_ROLE_KEY` e continuam funcionando (service_role bypassa RLS). Fluxos anônimos de consent/journey/views seguem funcionando pois `user_id` já é `NULL` nesses casos.
+
+## Riscos
+
+- Baixo. Todas as escritas afetadas por `whatsapp_logs` vêm de edge functions com service_role, que bypassam RLS.
+- Se algum código cliente escrever direto em `whatsapp_logs` (não encontrado no grep), quebrará — mas isso seria exatamente a vulnerabilidade que estamos fechando.
+
+## O que NÃO está nesta onda
+
+- REVOKE EXECUTE em SECURITY DEFINER (Onda 2)
+- Storage bucket listing (Onda 3)
+- CORS / índices / edge functions públicas (Onda 4)
+- Toda essa lista será tratada em ondas subsequentes após você aprovar cada uma.
+
+Aprovando este plano, executo a migration única acima e depois rodo o scanner de novo para confirmar que os 6 findings (3 permissive + 1 RLS-no-policy + 2 search_path) sumiram.
