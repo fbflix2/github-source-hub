@@ -296,11 +296,11 @@ export async function assignPoolProxies(
 
   const missing = Math.max(0, qty - assigned);
   if (missing > 0) {
-    await admin.from("admin_notifications").insert({
+    await admin.from("notifications").insert({
       title: "Pool de proxies Scale Pro insuficiente",
-      message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Cliente: ${userId}. Atribuir manualmente.`,
-      severity: "warning",
-      category: "scale_pro",
+      message: `Faltam ${missing} proxy(s) para o plano ${planName || ""}. Atribuir manualmente ao cliente ${userId}.`,
+      type: "subscription",
+      global: true,
     }).catch(() => {});
   }
 
