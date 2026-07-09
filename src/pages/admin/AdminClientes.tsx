@@ -537,6 +537,9 @@ export default function AdminClientes() {
                   <button onClick={() => setEditClient(client)} className="size-8 flex items-center justify-center rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
+                  <button onClick={() => { setDeleteClient(client); setDeleteConfirm(""); }} className="size-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500 text-white/70 hover:text-white border border-white/5 hover:border-red-500 transition-all" title="Excluir cliente">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -614,6 +617,9 @@ export default function AdminClientes() {
                         </button>
                         <button onClick={() => setHistoryClient(client)} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-white/5 transition-all" title="Histórico">
                           <UserRound className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => { setDeleteClient(client); setDeleteConfirm(""); }} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-red-500 text-white/70 hover:text-white border border-white/5 hover:border-red-500 transition-all" title="Excluir cliente">
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
@@ -716,6 +722,65 @@ export default function AdminClientes() {
         onClose={() => setShowNewClient(false)}
         onCreated={fetchClients}
       />
+
+      {deleteClient && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !deleting && setDeleteClient(null)}>
+          <div className="bg-[#1a0a0a] border border-red-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="size-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Excluir Cliente</h3>
+                <p className="text-white/50 text-xs">Ação permanente e irreversível</p>
+              </div>
+            </div>
+            <p className="text-white/70 text-sm mb-4">
+              Você está prestes a excluir <span className="text-white font-semibold">{deleteClient.full_name || deleteClient.email}</span>.
+              O usuário será removido da autenticação e do banco. Pedidos e registros vinculados podem ficar órfãos.
+            </p>
+            <label className="block text-white/60 text-xs mb-1.5">Digite <span className="text-red-400 font-mono">EXCLUIR</span> para confirmar</label>
+            <Input
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="EXCLUIR"
+              className="bg-white/5 border-white/10 text-white mb-4"
+              disabled={deleting}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setDeleteClient(null)} disabled={deleting} className="text-white/60 hover:text-white">
+                Cancelar
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (deleteConfirm !== "EXCLUIR" || !deleteClient) return;
+                  setDeleting(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("delete-client", {
+                      body: { target_user_id: deleteClient.user_id },
+                    });
+                    if (error) throw new Error(error.message);
+                    if (data?.error) throw new Error(data.error);
+                    toast.success("Cliente excluído com sucesso.");
+                    setDeleteClient(null);
+                    setDeleteConfirm("");
+                    fetchClients();
+                  } catch (err: any) {
+                    toast.error(err.message || "Erro ao excluir cliente.");
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                disabled={deleting || deleteConfirm !== "EXCLUIR"}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Excluir Definitivamente
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
