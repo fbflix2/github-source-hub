@@ -202,10 +202,19 @@ export default function AdminScaleProPool() {
     onError: (e: any) => toast.error(e.message || "Falha ao desvincular"),
   });
 
-  const availableForLink = useMemo(
-    () => rows.filter((p: any) => !p.client),
-    [rows]
-  );
+  const { data: linkableProxies = [] } = useQuery({
+    queryKey: ["scale-pro-linkable-proxies"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("id, name, type, raw_data, status, user_id, created_at")
+        .in("type", ["proxyfbflix", "proxybr"])
+        .is("included_in_ct_client_id", null)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      return data || [];
+    },
+  });
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-6">
@@ -425,21 +434,23 @@ export default function AdminScaleProPool() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Proxy do pool ({availableForLink.length} disponíveis)
+                Proxy ({linkableProxies.length} disponíveis)
               </label>
               <Select value={selectedProxy} onValueChange={setSelectedProxy}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um proxy…" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  {availableForLink.map((p: any) => {
+                  {linkableProxies.map((p: any) => {
                     const rd = p.raw_data || {};
                     return (
                       <SelectItem key={p.id} value={p.id}>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">{rd.proxy_address}:{rd.port}</span>
+                          <span className="font-mono text-xs">
+                            {rd.proxy_address ? `${rd.proxy_address}:${rd.port}` : p.name}
+                          </span>
                           <span className="text-[10px] text-muted-foreground uppercase">
-                            · {p.type === "proxybr" ? "BR" : "FBFlix"}
+                            · {p.type === "proxybr" ? "BR" : "FBFlix"} · {p.status}
                           </span>
                         </div>
                       </SelectItem>
