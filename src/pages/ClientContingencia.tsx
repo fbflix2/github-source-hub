@@ -635,6 +635,9 @@ export default function ClientContingencia() {
               <p className="text-xs text-amber-400 mt-2">Limite de reposições atingido este mês</p>
             )}
           </div>
+
+          {/* Proxies inclusos no plano */}
+          <ClientScaleProProxies ctClientId={ctClient.id} />
         </TabsContent>
 
         {/* ===== MINHA ESTRUTURA ===== */}
