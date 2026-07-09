@@ -124,6 +124,7 @@ import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import AdminContingencia from "./pages/admin/AdminContingencia";
 import AdminScaleProPool from "./pages/admin/AdminScaleProPool";
+import AdminScaleProCombos from "./pages/admin/AdminScaleProCombos";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
