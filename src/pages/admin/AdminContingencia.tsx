@@ -647,6 +647,27 @@ export default function AdminContingencia() {
                         <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => loadClientStructure(client)}>
                           <Eye className="size-4" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          title="Excluir cliente"
+                          onClick={async () => {
+                            if (!confirm(`Excluir o cliente "${client.profile?.full_name || "sem nome"}"?\n\nIsso remove o vínculo com Scale Pro (perfis, proxies e itens associados serão liberados). Ação irreversível.`)) return;
+                            try {
+                              await supabase.from("ct_client_proxies").update({ released_at: new Date().toISOString() }).eq("ct_client_id", client.id).is("released_at", null);
+                              await supabase.from("ct_items").delete().eq("ct_client_id", client.id);
+                              const { error } = await supabase.from("ct_clients").delete().eq("id", client.id);
+                              if (error) throw error;
+                              toast({ title: "Cliente excluído" });
+                              loadClients();
+                            } catch (err: any) {
+                              toast({ title: err.message || "Erro ao excluir cliente", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
