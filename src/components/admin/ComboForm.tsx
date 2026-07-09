@@ -403,7 +403,146 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
         </div>
       </div>
 
+      {/* Tipo de itens do combo */}
+      <div className="glass-panel rounded-xl p-3 flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-zinc-400">Tipo de itens deste combo:</span>
+        <div className="flex gap-1 bg-black/30 rounded-lg p-1 border border-white/5">
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, childType: "perfil" })}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+              formData.childType === "perfil" ? "bg-primary text-white" : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <CircleUser className="inline h-3 w-3 mr-1" /> Perfis
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, childType: "bm" })}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+              formData.childType === "bm" ? "bg-primary text-white" : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Building2 className="inline h-3 w-3 mr-1" /> BMs
+          </button>
+        </div>
+        <span className="text-[11px] text-zinc-500">
+          {formData.childType === "bm"
+            ? "Cadastre múltiplos BMs — todos serão entregues juntos na mesma compra."
+            : "Cadastre perfis com credenciais completas."}
+        </span>
+      </div>
+
+      {/* BMs section */}
+      {formData.childType === "bm" && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold text-white">BMs do Combo</h2>
+              <Badge className="bg-primary/20 text-primary text-[10px]">{formData.bms.length}</Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-zinc-400 whitespace-nowrap">Qtd BMs:</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={formData.bms.length}
+                  onChange={e => {
+                    const n = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+                    setFormData(prev => {
+                      if (n > prev.bms.length) {
+                        return { ...prev, bms: [...prev.bms, ...Array.from({ length: n - prev.bms.length }, emptyBM)] };
+                      }
+                      return { ...prev, bms: prev.bms.slice(0, n) };
+                    });
+                  }}
+                  className="w-16 h-7 bg-black/30 border-white/5 text-white text-center text-xs"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setFormData(prev => ({ ...prev, bms: [...prev.bms, emptyBM()] }))}
+                className="gap-1.5 text-xs h-7 bg-primary/20 text-primary hover:bg-primary/30 border-0"
+              >
+                <Plus className="h-3 w-3" /> Adicionar BM
+              </Button>
+            </div>
+          </div>
+
+          {formData.bms.map((bm, index) => {
+            const hasData = !!(bm.nomeBM || bm.linkBM);
+            return (
+              <div key={index} className={`glass-panel rounded-xl p-3 md:p-4 space-y-2 ${hasData ? "border-primary/20" : ""}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${hasData ? "bg-primary/20 text-primary" : "bg-zinc-800 text-zinc-500"}`}>
+                      {index + 1}
+                    </div>
+                    <span className="text-sm font-medium text-white">
+                      {bm.nomeBM || `BM ${index + 1}`}
+                    </span>
+                    {hasData && <Badge className="bg-green-500/20 text-green-400 text-[10px]">Preenchido</Badge>}
+                  </div>
+                  {formData.bms.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, bms: prev.bms.filter((_, i) => i !== index) }))}
+                      className="w-7 h-7 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-medium text-zinc-400">Nome da BM</label>
+                    <Input
+                      value={bm.nomeBM}
+                      onChange={e => setFormData(prev => ({
+                        ...prev,
+                        bms: prev.bms.map((b, i) => i === index ? { ...b, nomeBM: e.target.value } : b),
+                      }))}
+                      placeholder="Ex: BM Cliente 01"
+                      className="bg-black/30 border-white/5 text-white placeholder:text-zinc-600 h-9 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-medium text-zinc-400">Link da BM</label>
+                    <Input
+                      value={bm.linkBM}
+                      onChange={e => setFormData(prev => ({
+                        ...prev,
+                        bms: prev.bms.map((b, i) => i === index ? { ...b, linkBM: e.target.value } : b),
+                      }))}
+                      placeholder="https://business.facebook.com/..."
+                      className="bg-black/30 border-white/5 text-white placeholder:text-zinc-600 h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-medium text-zinc-400">Descrição</label>
+                  <Textarea
+                    value={bm.descricao}
+                    onChange={e => setFormData(prev => ({
+                      ...prev,
+                      bms: prev.bms.map((b, i) => i === index ? { ...b, descricao: e.target.value } : b),
+                    }))}
+                    placeholder="Detalhes desta BM (limite, tipo, observações)..."
+                    className="h-16 bg-black/30 border-white/5 text-white resize-none text-sm"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Profiles */}
+      {formData.childType === "perfil" && (
       <div className="space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -442,13 +581,18 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
           />
         ))}
       </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-white/10">
         <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
         <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : formData.isPacote ? <Package className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {formData.isPacote ? "Salvar Pacote" : "Salvar Combo"} ({formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis)
+          {formData.isPacote ? "Salvar Pacote" : "Salvar Combo"} (
+          {formData.childType === "bm"
+            ? `${formData.bms.filter(b => b.linkBM || b.nomeBM).length} BMs`
+            : `${formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis`}
+          )
         </Button>
       </div>
     </div>
