@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       .eq("id", planId)
       .maybeSingle();
     if (planErr || !plan) return json({ error: "Plano não encontrado" }, 404);
-    if (!plan.active) return json({ error: "Plano indisponível" }, 400);
+    if (plan.active === false) return json({ error: "Plano indisponível" }, 400);
 
     // Block if already has an active/trial subscription
     const { data: existing } = await admin
