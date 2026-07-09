@@ -53,24 +53,31 @@ export default function AdminScaleProPool() {
   };
   const copyProxy = async (p: any) => {
     const text = formatFullProxy(p);
+    // Fallback com execCommand primeiro (funciona em iframe sem Permissions-Policy clipboard)
+    let ok = false;
     try {
-      if (navigator.clipboard && window.isSecureContext) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch {}
+    if (!ok) {
+      try {
         await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      toast.success("Proxy copiado", { description: text });
-    } catch {
-      toast.error("Falha ao copiar", { description: text });
+        ok = true;
+      } catch {}
     }
+    if (ok) toast.success("Proxy copiado", { description: text });
+    else toast.error("Copie manualmente", { description: text });
   };
 
   // Todos proxies do escopo Scale Pro: no pool (available/sem cliente) OU vinculados a um ct_client
