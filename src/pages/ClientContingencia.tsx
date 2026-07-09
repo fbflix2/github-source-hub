@@ -358,7 +358,7 @@ export default function ClientContingencia() {
   const activeItems = items.filter((i: any) => i.status === "ativo");
   const hasBlocks = blockedItems.length > 0;
   const groupedItems = useMemo(() => {
-    const groups: Record<string, any[]> = { perfil: [], perfil_matriz: [], proxy: [], bm: [], conta: [] };
+    const groups: Record<string, any[]> = { perfil: [], perfil_matriz: [], proxy: [], bm: [], conta: [], ad_account: [], pagina: [] };
     items.forEach((item: any) => {
       if (groups[item.type]) groups[item.type].push(item);
     });
