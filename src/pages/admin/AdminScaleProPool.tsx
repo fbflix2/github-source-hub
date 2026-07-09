@@ -52,11 +52,24 @@ export default function AdminScaleProPool() {
     return `${host}:${port}:${user}:${pass}`;
   };
   const copyProxy = async (p: any) => {
+    const text = formatFullProxy(p);
     try {
-      await navigator.clipboard.writeText(formatFullProxy(p));
-      toast.success("Proxy copiado");
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast.success("Proxy copiado", { description: text });
     } catch {
-      toast.error("Falha ao copiar");
+      toast.error("Falha ao copiar", { description: text });
     }
   };
 
