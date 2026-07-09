@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
         }).eq("id", ctClientId);
 
         const { data: prof } = await supabase
-          .from("profiles").select("full_name").eq("user_id", userId).single();
+          .from("profiles").select("full_name, phone").eq("user_id", userId).single();
 
         await supabase.from("notifications").insert({
           title: "Nova assinatura CT",
@@ -362,6 +362,25 @@ Deno.serve(async (req) => {
           type: "subscription",
           global: true,
         });
+
+        if (prof?.phone) {
+          const firstName = (prof.full_name || "").split(" ")[0] || "cliente";
+          const msg =
+            `✅ *Contingência Total ativada!*\n\n` +
+            `Olá ${firstName}, seu pagamento PIX foi confirmado e sua assinatura do plano *${planName}* já está ativa.\n\n` +
+            `💰 Valor: R$ ${amount.toFixed(2)}\n` +
+            `📅 Próxima renovação: ${nextBilling.toLocaleDateString("pt-BR")}\n\n` +
+            `Acesse seu painel: https://fbflix.com.br/contingencia`;
+          await supabase.functions.invoke("wapi-send", {
+            body: {
+              action: "send-text",
+              phone: prof.phone,
+              message: msg,
+              user_id: userId,
+              event_key: "ct_subscription_activated",
+            },
+          }).catch((e) => console.error("wapi-send failed:", e));
+        }
       }
     } else if (isWalletRecharge) {
       const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", userId).single();
