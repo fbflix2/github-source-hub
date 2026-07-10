@@ -86,7 +86,7 @@ export default function RevendaPortal() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "vendas" | "branding" | "link" | "ajuda"
+    "overview" | "loja" | "vendas" | "branding" | "link" | "ajuda"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
