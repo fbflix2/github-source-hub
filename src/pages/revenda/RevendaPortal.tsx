@@ -26,9 +26,11 @@ import {
   LogOut,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { ResellerLoja } from "@/components/revenda/ResellerLoja";
 
 interface Reseller {
   id: string;
