@@ -26,9 +26,11 @@ import {
   LogOut,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { ResellerLoja } from "@/components/revenda/ResellerLoja";
 
 interface Reseller {
   id: string;
@@ -84,7 +86,7 @@ export default function RevendaPortal() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "vendas" | "branding" | "link" | "ajuda"
+    "overview" | "loja" | "vendas" | "branding" | "link" | "ajuda"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -212,6 +214,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    { id: "loja", label: "Loja de Proxies", icon: Store },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
     { id: "branding", label: "Identidade Visual", icon: Palette },
     { id: "link", label: "Link de Revenda", icon: Globe },
@@ -224,11 +227,12 @@ export default function RevendaPortal() {
   };
 
   return (
-    <div className="flex h-screen w-full relative font-display overflow-hidden bg-[#0a0505] text-white selection:bg-primary selection:text-white">
+    <div className="fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {/* Background */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-primary/10 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[35%] h-[35%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] bg-white/[0.02] rounded-full blur-[100px]" />
       </div>
 
       {/* Mobile backdrop */}
@@ -242,36 +246,36 @@ export default function RevendaPortal() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-black/40 backdrop-blur-xl border-r border-white/5 transition-transform duration-300",
+          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl border-r border-border/40 transition-transform duration-300",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/5">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-border/40">
           <div className="flex items-center gap-3">
             {reseller.logo_url ? (
               <img
                 src={reseller.logo_url}
                 alt={reseller.company_name}
-                className="size-9 rounded-lg object-cover"
+                className="size-10 rounded-xl object-cover ring-1 ring-border/60"
               />
             ) : (
               <div
-                className="size-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
+                className="size-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-lg"
                 style={{ background: reseller.primary_color || "#22c55e" }}
               >
                 {reseller.company_name.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-sm font-bold text-white truncate">
+              <p className="text-sm font-bold text-foreground truncate">
                 {reseller.brand_name || reseller.company_name}
               </p>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">Revenda</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Reseller Panel</p>
             </div>
           </div>
           <button
-            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/60"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="size-4" />
@@ -291,24 +295,28 @@ export default function RevendaPortal() {
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group relative",
                   isActive
-                    ? "bg-gradient-to-r from-primary to-red-900 text-white shadow-lg shadow-primary/20"
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                    ? "bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground shadow-lg shadow-primary/25"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
-                <Icon className="size-4" />
+                <Icon className={cn("size-4 shrink-0", isActive && "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]")} />
                 <span>{item.label}</span>
+                {isActive && <span className="ml-auto size-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
               </button>
             );
           })}
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-white/5 space-y-2">
-          <div className="px-3 py-2 rounded-lg bg-white/5">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Modelo</p>
-            <p className="text-xs font-bold text-white">
+        <div className="p-3 border-t border-border/40 space-y-2">
+          <div className="px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Sparkles className="size-3 text-primary" />
+              <p className="text-[10px] text-primary/80 uppercase tracking-widest font-bold">Seu modelo</p>
+            </div>
+            <p className="text-xs font-bold text-foreground">
               {reseller.model === "percentage"
                 ? `${reseller.commission_rate}% comissão`
                 : `R$ ${reseller.proxy_unit_cost}/proxy`}
@@ -316,7 +324,7 @@ export default function RevendaPortal() {
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
           >
             <LogOut className="size-4" />
             <span>Sair</span>
@@ -327,19 +335,19 @@ export default function RevendaPortal() {
       {/* Main */}
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 border-b border-white/5 bg-black/20 backdrop-blur-xl shrink-0">
+        <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 border-b border-border/40 bg-background/60 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-2 rounded-lg hover:bg-white/10 text-white/60"
+              className="lg:hidden p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="size-5" />
             </button>
             <div>
-              <h1 className="text-base lg:text-lg font-bold text-white">
+              <h1 className="text-base lg:text-lg font-bold text-foreground tracking-tight">
                 {navItems.find((n) => n.id === activeSection)?.label}
               </h1>
-              <p className="text-[11px] text-white/50">Painel de Revenda White-Label</p>
+              <p className="text-[11px] text-muted-foreground">Painel de Revenda White-Label</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -347,22 +355,28 @@ export default function RevendaPortal() {
               variant="outline"
               className={
                 reseller.status === "active"
-                  ? "border-green-500/40 text-green-400 bg-green-500/10"
+                  ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10 gap-1.5"
                   : reseller.status === "warning"
-                  ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10"
-                  : "border-red-500/40 text-red-400 bg-red-500/10"
+                  ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10 gap-1.5"
+                  : "border-red-500/40 text-red-400 bg-red-500/10 gap-1.5"
               }
             >
-              {reseller.status}
+              <span className={cn(
+                "size-1.5 rounded-full animate-pulse",
+                reseller.status === "active" && "bg-emerald-400",
+                reseller.status === "warning" && "bg-yellow-400",
+                reseller.status !== "active" && reseller.status !== "warning" && "bg-red-400"
+              )} />
+              {reseller.status === "active" ? "Ativo" : reseller.status === "warning" ? "Atenção" : reseller.status}
             </Badge>
           </div>
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6">
-          <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto space-y-6">
             {suspended && (
-              <Card className="p-4 border-red-500/40 bg-red-500/10 flex items-start gap-3">
+              <Card className="p-4 border-red-500/40 bg-red-500/5 backdrop-blur flex items-start gap-3">
                 <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-red-300">Painel suspenso</p>
@@ -375,29 +389,16 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "overview" && (
-              <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          {reseller.logo_url ? (
-            <img
-              src={reseller.logo_url}
-              alt={reseller.company_name}
-              className="size-12 rounded-xl object-cover border border-border/40"
-            />
-          ) : (
-            <div
-              className="size-12 rounded-xl flex items-center justify-center font-bold text-white"
-              style={{ background: reseller.primary_color || "#22c55e" }}
-            >
-              {reseller.company_name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h1 className="text-xl font-bold">{reseller.brand_name || reseller.company_name}</h1>
-            <p className="text-xs text-muted-foreground">Painel de Revenda White-Label</p>
-          </div>
-        </div>
+              <div className="space-y-8 animate-fade-in">
+                {/* Greeting */}
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                    Bem-vindo, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{reseller.brand_name || reseller.company_name}</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">Visão geral do seu painel de revenda</p>
+                </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           icon={<TrendingUp className="size-4" />}
           label="GMV Total"
@@ -438,141 +439,114 @@ export default function RevendaPortal() {
             />
           </>
         )}
-      </div>
+                </div>
 
-          <Card className="p-5 bg-card/60 border-border/40 space-y-3">
-            <h3 className="font-bold">Como funciona</h3>
-            {reseller.model === "percentage" ? (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você recebe <strong className="text-foreground">{reseller.commission_rate}% líquidos</strong>{" "}
-                  de cada venda gerada pelo seu link, sem custos e sem recarga de painel.
-                </p>
-                <p>
-                  Comissões ficam <strong>pendentes por 7 dias</strong> (garantia) e depois são
-                  creditadas automaticamente.
-                </p>
-                <p>
-                  Para manter o painel ativo, mantenha pelo menos{" "}
-                  <strong className="text-foreground">
-                    {reseller.min_proxies_per_month} proxies ativos por mês
-                  </strong>
-                  .
-                </p>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você compra proxies por{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.proxy_unit_cost).toFixed(2)}
-                  </strong>{" "}
-                  cada, independente do modelo, e revende pelo preço que quiser.
-                </p>
-                <p>
-                  Recarga mínima mensal:{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.min_monthly_recharge).toFixed(2)}
-                  </strong>
-                  . Funciona como créditos: você recarrega conforme a demanda.
-                </p>
+                {/* Quick preview of store */}
+                <ResellerLoja
+                  resellerId={reseller.id}
+                  primaryColor={reseller.primary_color}
+                />
               </div>
             )}
-          </Card>
-              </div>
+
+            {activeSection === "loja" && (
+              <ResellerLoja
+                resellerId={reseller.id}
+                primaryColor={reseller.primary_color}
+              />
             )}
 
             {activeSection === "vendas" && (
-              <>
-          {reseller.model === "percentage" ? (
-            <Card className="bg-card/60 border-border/40 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
-                    <tr>
-                      <th className="text-left px-4 py-3">Data</th>
-                      <th className="text-right px-4 py-3">Valor pedido</th>
-                      <th className="text-right px-4 py-3">Comissão</th>
-                      <th className="text-center px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commissions.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-10 text-muted-foreground">
-                          Nenhuma comissão ainda.
-                        </td>
-                      </tr>
-                    ) : (
-                      commissions.map((c) => (
-                        <tr key={c.id} className="border-t border-border/30">
-                          <td className="px-4 py-3">
-                            {new Date(c.created_at).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="text-right px-4 py-3">
-                            R$ {Number(c.order_total).toFixed(2)}
-                          </td>
-                          <td className="text-right px-4 py-3 font-bold text-primary">
-                            R$ {Number(c.commission_amount).toFixed(2)}
-                          </td>
-                          <td className="text-center px-4 py-3">
-                            <StatusBadge status={c.status} />
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          ) : (
-            <Card className="bg-card/60 border-border/40 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
-                    <tr>
-                      <th className="text-left px-4 py-3">Data</th>
-                      <th className="text-left px-4 py-3">Tipo</th>
-                      <th className="text-left px-4 py-3">Descrição</th>
-                      <th className="text-right px-4 py-3">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledger.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-10 text-muted-foreground">
-                          Sem movimentações ainda.
-                        </td>
-                      </tr>
-                    ) : (
-                      ledger.map((l) => {
-                        const positive = ["recharge", "adjustment", "refund"].includes(l.type);
-                        return (
-                          <tr key={l.id} className="border-t border-border/30">
-                            <td className="px-4 py-3">
-                              {new Date(l.created_at).toLocaleString("pt-BR")}
-                            </td>
-                            <td className="px-4 py-3 capitalize">{l.type}</td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {l.description || "—"}
-                            </td>
-                            <td
-                              className={`text-right px-4 py-3 font-bold ${
-                                positive ? "text-green-400" : "text-red-400"
-                              }`}
-                            >
-                              {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
-                            </td>
+              <div className="animate-fade-in">
+                {reseller.model === "percentage" ? (
+                  <Card className="bg-card/60 border-border/40 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
+                          <tr>
+                            <th className="text-left px-4 py-3">Data</th>
+                            <th className="text-right px-4 py-3">Valor pedido</th>
+                            <th className="text-right px-4 py-3">Comissão</th>
+                            <th className="text-center px-4 py-3">Status</th>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                          {commissions.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-10 text-muted-foreground">
+                                Nenhuma comissão ainda.
+                              </td>
+                            </tr>
+                          ) : (
+                            commissions.map((c) => (
+                              <tr key={c.id} className="border-t border-border/30">
+                                <td className="px-4 py-3">
+                                  {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                                </td>
+                                <td className="text-right px-4 py-3">
+                                  R$ {Number(c.order_total).toFixed(2)}
+                                </td>
+                                <td className="text-right px-4 py-3 font-bold text-primary">
+                                  R$ {Number(c.commission_amount).toFixed(2)}
+                                </td>
+                                <td className="text-center px-4 py-3">
+                                  <StatusBadge status={c.status} />
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="bg-card/60 border-border/40 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
+                          <tr>
+                            <th className="text-left px-4 py-3">Data</th>
+                            <th className="text-left px-4 py-3">Tipo</th>
+                            <th className="text-left px-4 py-3">Descrição</th>
+                            <th className="text-right px-4 py-3">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledger.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-10 text-muted-foreground">
+                                Sem movimentações ainda.
+                              </td>
+                            </tr>
+                          ) : (
+                            ledger.map((l) => {
+                              const positive = ["recharge", "adjustment", "refund"].includes(l.type);
+                              return (
+                                <tr key={l.id} className="border-t border-border/30">
+                                  <td className="px-4 py-3">
+                                    {new Date(l.created_at).toLocaleString("pt-BR")}
+                                  </td>
+                                  <td className="px-4 py-3 capitalize">{l.type}</td>
+                                  <td className="px-4 py-3 text-muted-foreground">
+                                    {l.description || "—"}
+                                  </td>
+                                  <td
+                                    className={`text-right px-4 py-3 font-bold ${
+                                      positive ? "text-green-400" : "text-red-400"
+                                    }`}
+                                  >
+                                    {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
               </div>
-            </Card>
-          )}
-              </>
             )}
 
             {activeSection === "branding" && (
