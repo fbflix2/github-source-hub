@@ -246,12 +246,12 @@ export default function RevendaPortal() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl border-r border-border/40 transition-transform duration-300",
+          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl transition-transform duration-300",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-border/40">
+        <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
             {reseller.logo_url ? (
               <img
@@ -310,7 +310,7 @@ export default function RevendaPortal() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-3 border-t border-border/40 space-y-2">
+        <div className="p-3 space-y-2">
           <div className="px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20">
             <div className="flex items-center gap-1.5 mb-0.5">
               <Sparkles className="size-3 text-primary" />
@@ -335,7 +335,7 @@ export default function RevendaPortal() {
       {/* Main */}
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 border-b border-border/40 bg-background/60 backdrop-blur-xl shrink-0">
+        <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 bg-background/60 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <button
               className="lg:hidden p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
