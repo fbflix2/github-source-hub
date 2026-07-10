@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check } from "lucide-react";
+import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check, LogIn } from "lucide-react";
 
 interface Reseller {
   id: string;
@@ -63,6 +63,7 @@ export default function AdminRevendedores() {
   const [form, setForm] = useState<ResellerFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
 
   useEffect(() => {
     fetchResellers();
@@ -169,6 +170,35 @@ export default function AdminRevendedores() {
     setCopiedId(id);
     toast.success("Link copiado");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    setImpersonating(userId);
+    try {
+      const newWindow = window.open("about:blank", "_blank");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/impersonate-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ target_user_id: userId, admin_origin: window.location.origin }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erro ao acessar conta");
+      if (newWindow) newWindow.location.href = result.url;
+      else window.open(result.url, "_blank");
+      toast.success("Link de acesso aberto em nova aba");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao acessar conta");
+    } finally {
+      setImpersonating(null);
+    }
   };
 
   return (
@@ -293,6 +323,20 @@ export default function AdminRevendedores() {
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => openEdit(r)}>
                   <Pencil className="size-3" /> Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => handleImpersonate(r.user_id)}
+                  disabled={impersonating === r.user_id}
+                  title="Acessar conta do revendedor"
+                >
+                  {impersonating === r.user_id ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <LogIn className="size-3" />
+                  )}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => toggleStatus(r)}>
                   {r.status === "active" ? "Suspender" : "Reativar"}
