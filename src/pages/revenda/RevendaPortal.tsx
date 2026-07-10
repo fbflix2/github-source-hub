@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Store,
   Percent,
@@ -21,7 +20,15 @@ import {
   AlertTriangle,
   Wallet,
   ShoppingBag,
+  LayoutDashboard,
+  Receipt,
+  LifeBuoy,
+  LogOut,
+  Menu,
+  X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface Reseller {
   id: string;
@@ -76,6 +83,11 @@ export default function RevendaPortal() {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activeSection, setActiveSection] = useState<
+    "overview" | "vendas" | "branding" | "link" | "ajuda"
+  >("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
   const [brand, setBrand] = useState({
     brand_name: "",
     logo_url: "",
@@ -178,7 +190,7 @@ export default function RevendaPortal() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
         <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
@@ -198,10 +210,172 @@ export default function RevendaPortal() {
 
   const suspended = reseller.status === "suspended" || reseller.status === "inactive";
 
+  const navItems = [
+    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
+    { id: "branding", label: "Identidade Visual", icon: Palette },
+    { id: "link", label: "Link de Revenda", icon: Globe },
+    { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
+  ] as const;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="flex h-screen w-full relative font-display overflow-hidden bg-[#0a0505] text-white selection:bg-primary selection:text-white">
+      {/* Background */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
+      </div>
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-black/40 backdrop-blur-xl border-r border-white/5 transition-transform duration-300",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between px-5 py-5 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            {reseller.logo_url ? (
+              <img
+                src={reseller.logo_url}
+                alt={reseller.company_name}
+                className="size-9 rounded-lg object-cover"
+              />
+            ) : (
+              <div
+                className="size-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
+                style={{ background: reseller.primary_color || "#22c55e" }}
+              >
+                {reseller.company_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white truncate">
+                {reseller.brand_name || reseller.company_name}
+              </p>
+              <p className="text-[10px] text-white/50 uppercase tracking-wider">Revenda</p>
+            </div>
+          </div>
+          <button
+            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/60"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveSection(item.id as typeof activeSection);
+                  setSidebarOpen(false);
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  isActive
+                    ? "bg-gradient-to-r from-primary to-red-900 text-white shadow-lg shadow-primary/20"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                <Icon className="size-4" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-3 border-t border-white/5 space-y-2">
+          <div className="px-3 py-2 rounded-lg bg-white/5">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Modelo</p>
+            <p className="text-xs font-bold text-white">
+              {reseller.model === "percentage"
+                ? `${reseller.commission_rate}% comissão`
+                : `R$ ${reseller.proxy_unit_cost}/proxy`}
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <LogOut className="size-4" />
+            <span>Sair</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
+        {/* Top bar */}
+        <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 border-b border-white/5 bg-black/20 backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-white/10 text-white/60"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="size-5" />
+            </button>
+            <div>
+              <h1 className="text-base lg:text-lg font-bold text-white">
+                {navItems.find((n) => n.id === activeSection)?.label}
+              </h1>
+              <p className="text-[11px] text-white/50">Painel de Revenda White-Label</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={
+                reseller.status === "active"
+                  ? "border-green-500/40 text-green-400 bg-green-500/10"
+                  : reseller.status === "warning"
+                  ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10"
+                  : "border-red-500/40 text-red-400 bg-red-500/10"
+              }
+            >
+              {reseller.status}
+            </Badge>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6">
+          <div className="max-w-6xl mx-auto space-y-6">
+            {suspended && (
+              <Card className="p-4 border-red-500/40 bg-red-500/10 flex items-start gap-3">
+                <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-red-300">Painel suspenso</p>
+                  <p className="text-xs text-red-300/80">
+                    Seu painel está inativo. Regularize a recarga mínima ou entre em contato com o
+                    suporte para reativação.
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            {activeSection === "overview" && (
+              <div className="space-y-6">
         <div className="flex items-center gap-3">
           {reseller.logo_url ? (
             <img
@@ -222,54 +396,7 @@ export default function RevendaPortal() {
             <p className="text-xs text-muted-foreground">Painel de Revenda White-Label</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={
-              reseller.model === "percentage"
-                ? "gap-1 border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
-                : "gap-1 border-blue-500/40 text-blue-400 bg-blue-500/10"
-            }
-          >
-            {reseller.model === "percentage" ? (
-              <>
-                <Percent className="size-3" /> {reseller.commission_rate}% comissão
-              </>
-            ) : (
-              <>
-                <Coins className="size-3" /> R$ {reseller.proxy_unit_cost}/proxy
-              </>
-            )}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={
-              reseller.status === "active"
-                ? "border-green-500/40 text-green-400 bg-green-500/10"
-                : reseller.status === "warning"
-                ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10"
-                : "border-red-500/40 text-red-400 bg-red-500/10"
-            }
-          >
-            {reseller.status}
-          </Badge>
-        </div>
-      </div>
 
-      {suspended && (
-        <Card className="p-4 border-red-500/40 bg-red-500/10 flex items-start gap-3">
-          <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-red-300">Painel suspenso</p>
-            <p className="text-xs text-red-300/80">
-              Seu painel está inativo. Regularize a recarga mínima ou entre em contato com o suporte
-              para reativação.
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           icon={<TrendingUp className="size-4" />}
@@ -313,18 +440,6 @@ export default function RevendaPortal() {
         )}
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="vendas">
-            {reseller.model === "percentage" ? "Comissões" : "Extrato"}
-          </TabsTrigger>
-          <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="link">Link</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4 mt-4">
           <Card className="p-5 bg-card/60 border-border/40 space-y-3">
             <h3 className="font-bold">Como funciona</h3>
             {reseller.model === "percentage" ? (
@@ -364,9 +479,11 @@ export default function RevendaPortal() {
               </div>
             )}
           </Card>
-        </TabsContent>
+              </div>
+            )}
 
-        <TabsContent value="vendas" className="mt-4">
+            {activeSection === "vendas" && (
+              <>
           {reseller.model === "percentage" ? (
             <Card className="bg-card/60 border-border/40 overflow-hidden">
               <div className="overflow-x-auto">
@@ -455,9 +572,10 @@ export default function RevendaPortal() {
               </div>
             </Card>
           )}
-        </TabsContent>
+              </>
+            )}
 
-        <TabsContent value="branding" className="mt-4">
+            {activeSection === "branding" && (
           <Card className="p-5 bg-card/60 border-border/40 space-y-4">
             <div className="flex items-center gap-2">
               <Palette className="size-4 text-primary" />
@@ -558,9 +676,9 @@ export default function RevendaPortal() {
               </Button>
             </div>
           </Card>
-        </TabsContent>
+            )}
 
-        <TabsContent value="link" className="mt-4">
+            {activeSection === "link" && (
           <Card className="p-5 bg-card/60 border-border/40 space-y-3">
             <h3 className="font-bold flex items-center gap-2">
               <Users className="size-4 text-primary" /> Seu link de revenda
@@ -589,8 +707,41 @@ export default function RevendaPortal() {
               </div>
             )}
           </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+
+            {activeSection === "ajuda" && (
+              <Card className="p-5 bg-card/60 border-border/40 space-y-3">
+                <div className="flex items-center gap-2">
+                  <LifeBuoy className="size-4 text-primary" />
+                  <h3 className="font-bold">Como funciona o programa</h3>
+                </div>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Seu modelo atual é{" "}
+                    <strong className="text-foreground">
+                      {reseller.model === "percentage" ? "Comissão por %" : "Créditos pré-pagos"}
+                    </strong>
+                    .
+                  </p>
+                  {reseller.model === "percentage" ? (
+                    <>
+                      <p>• Comissões ficam pendentes por 7 dias antes de creditar.</p>
+                      <p>• Mantenha {reseller.min_proxies_per_month} proxies ativos/mês.</p>
+                      <p>• Sem recarga, sem custo fixo.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>• Compre proxies por R$ {Number(reseller.proxy_unit_cost).toFixed(2)}.</p>
+                      <p>• Recarga mínima: R$ {Number(reseller.min_monthly_recharge).toFixed(2)}/mês.</p>
+                      <p>• Revenda pelo preço que quiser.</p>
+                    </>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
