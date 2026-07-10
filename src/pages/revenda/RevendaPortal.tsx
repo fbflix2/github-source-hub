@@ -390,6 +390,13 @@ export default function RevendaPortal() {
 
             {activeSection === "overview" && (
               <div className="space-y-8 animate-fade-in">
+                {/* Banner acima */}
+                <ResellerLoja
+                  resellerId={reseller.id}
+                  primaryColor={reseller.primary_color}
+                  bannerOnly
+                />
+
                 {/* Greeting */}
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
@@ -441,10 +448,11 @@ export default function RevendaPortal() {
         )}
                 </div>
 
-                {/* Quick preview of store */}
+                {/* Catálogo abaixo */}
                 <ResellerLoja
                   resellerId={reseller.id}
                   primaryColor={reseller.primary_color}
+                  catalogOnly
                 />
               </div>
             )}
@@ -732,7 +740,7 @@ function StatCard({
   accent?: string;
 }) {
   return (
-    <Card className="p-4 bg-card/60 border-border/40">
+    <Card className="p-4 bg-white/[0.02] border-white/5 shadow-none backdrop-blur-sm">
       <div className="flex items-center gap-2 text-muted-foreground text-xs">
         {icon} {label}
       </div>

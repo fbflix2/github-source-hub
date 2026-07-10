@@ -40,11 +40,13 @@ interface Props {
   primaryColor?: string | null;
   proxyMultiplier?: number;
   proxyFixedPrice?: number | null;
+  bannerOnly?: boolean;
+  catalogOnly?: boolean;
 }
 
 const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
-export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPrice = null }: Props) {
+export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPrice = null, bannerOnly = false, catalogOnly = false }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Rotating banner */}
-      {processedBanners.length > 0 && (
+      {!catalogOnly && processedBanners.length > 0 && (
         <section
           className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500 h-[240px] md:h-[300px]"
           style={processedBanners[currentBanner]?.background_color ? { backgroundColor: processedBanners[currentBanner].background_color! } : undefined}
@@ -170,6 +172,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
       )}
 
       {/* Purpose filter */}
+      {!bannerOnly && (
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -300,6 +303,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
