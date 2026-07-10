@@ -458,141 +458,95 @@ export default function RevendaPortal() {
 
             {activeSection === "vendas" && (
               <div className="animate-fade-in">
-          {reseller.model === "percentage" ? (
-            <Card className="bg-card/60 border-border/40 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
-                    <tr>
-                      <th className="text-left px-4 py-3">Data</th>
-                      <th className="text-right px-4 py-3">Valor pedido</th>
-                      <th className="text-right px-4 py-3">Comissão</th>
-                      <th className="text-center px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commissions.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-10 text-muted-foreground">
-                          Nenhuma comissão ainda.
-                        </td>
-                      </tr>
-                    ) : (
-                      commissions.map((c) => (
-                        <tr key={c.id} className="border-t border-border/30">
-                          <td className="px-4 py-3">
-                            {new Date(c.created_at).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="text-right px-4 py-3">
-                            R$ {Number(c.order_total).toFixed(2)}
-                          </td>
-                          <td className="text-right px-4 py-3 font-bold text-primary">
-                            R$ {Number(c.commission_amount).toFixed(2)}
-                          </td>
-                          <td className="text-center px-4 py-3">
-                            <StatusBadge status={c.status} />
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          ) : null}
-              </div>
-            )}
-
-            {activeSection === "ajuda" && (
-          <Card className="p-6 bg-card/60 border-border/40 space-y-3 animate-fade-in">
-            <h3 className="font-bold text-lg">Como funciona</h3>
-            {reseller.model === "percentage" ? (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você recebe <strong className="text-foreground">{reseller.commission_rate}% líquidos</strong>{" "}
-                  de cada venda gerada pelo seu link, sem custos e sem recarga de painel.
-                </p>
-                <p>
-                  Comissões ficam <strong>pendentes por 7 dias</strong> (garantia) e depois são
-                  creditadas automaticamente.
-                </p>
-                <p>
-                  Para manter o painel ativo, mantenha pelo menos{" "}
-                  <strong className="text-foreground">
-                    {reseller.min_proxies_per_month} proxies ativos por mês
-                  </strong>
-                  .
-                </p>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você compra proxies por{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.proxy_unit_cost).toFixed(2)}
-                  </strong>{" "}
-                  cada, independente do modelo, e revende pelo preço que quiser.
-                </p>
-                <p>
-                  Recarga mínima mensal:{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.min_monthly_recharge).toFixed(2)}
-                  </strong>
-                  . Funciona como créditos: você recarrega conforme a demanda.
-                </p>
-              </div>
-            )}
-          </Card>
-            )}
-
-            {activeSection === "vendas" && reseller.model !== "percentage" && (
-            <Card className="bg-card/60 border-border/40 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
-                    <tr>
-                      <th className="text-left px-4 py-3">Data</th>
-                      <th className="text-left px-4 py-3">Tipo</th>
-                      <th className="text-left px-4 py-3">Descrição</th>
-                      <th className="text-right px-4 py-3">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledger.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-10 text-muted-foreground">
-                          Sem movimentações ainda.
-                        </td>
-                      </tr>
-                    ) : (
-                      ledger.map((l) => {
-                        const positive = ["recharge", "adjustment", "refund"].includes(l.type);
-                        return (
-                          <tr key={l.id} className="border-t border-border/30">
-                            <td className="px-4 py-3">
-                              {new Date(l.created_at).toLocaleString("pt-BR")}
-                            </td>
-                            <td className="px-4 py-3 capitalize">{l.type}</td>
-                            <td className="px-4 py-3 text-muted-foreground">
-                              {l.description || "—"}
-                            </td>
-                            <td
-                              className={`text-right px-4 py-3 font-bold ${
-                                positive ? "text-green-400" : "text-red-400"
-                              }`}
-                            >
-                              {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
-                            </td>
+                {reseller.model === "percentage" ? (
+                  <Card className="bg-card/60 border-border/40 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
+                          <tr>
+                            <th className="text-left px-4 py-3">Data</th>
+                            <th className="text-right px-4 py-3">Valor pedido</th>
+                            <th className="text-right px-4 py-3">Comissão</th>
+                            <th className="text-center px-4 py-3">Status</th>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                          {commissions.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-10 text-muted-foreground">
+                                Nenhuma comissão ainda.
+                              </td>
+                            </tr>
+                          ) : (
+                            commissions.map((c) => (
+                              <tr key={c.id} className="border-t border-border/30">
+                                <td className="px-4 py-3">
+                                  {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                                </td>
+                                <td className="text-right px-4 py-3">
+                                  R$ {Number(c.order_total).toFixed(2)}
+                                </td>
+                                <td className="text-right px-4 py-3 font-bold text-primary">
+                                  R$ {Number(c.commission_amount).toFixed(2)}
+                                </td>
+                                <td className="text-center px-4 py-3">
+                                  <StatusBadge status={c.status} />
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="bg-card/60 border-border/40 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30 text-muted-foreground text-xs uppercase">
+                          <tr>
+                            <th className="text-left px-4 py-3">Data</th>
+                            <th className="text-left px-4 py-3">Tipo</th>
+                            <th className="text-left px-4 py-3">Descrição</th>
+                            <th className="text-right px-4 py-3">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledger.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="text-center py-10 text-muted-foreground">
+                                Sem movimentações ainda.
+                              </td>
+                            </tr>
+                          ) : (
+                            ledger.map((l) => {
+                              const positive = ["recharge", "adjustment", "refund"].includes(l.type);
+                              return (
+                                <tr key={l.id} className="border-t border-border/30">
+                                  <td className="px-4 py-3">
+                                    {new Date(l.created_at).toLocaleString("pt-BR")}
+                                  </td>
+                                  <td className="px-4 py-3 capitalize">{l.type}</td>
+                                  <td className="px-4 py-3 text-muted-foreground">
+                                    {l.description || "—"}
+                                  </td>
+                                  <td
+                                    className={`text-right px-4 py-3 font-bold ${
+                                      positive ? "text-green-400" : "text-red-400"
+                                    }`}
+                                  >
+                                    {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
               </div>
-            </Card>
-          )}
-              </>
             )}
 
             {activeSection === "branding" && (
