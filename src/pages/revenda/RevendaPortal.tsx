@@ -214,6 +214,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+    { id: "loja", label: "Loja de Proxies", icon: Store },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
     { id: "branding", label: "Identidade Visual", icon: Palette },
     { id: "link", label: "Link de Revenda", icon: Globe },
