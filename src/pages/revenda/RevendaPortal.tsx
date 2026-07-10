@@ -439,52 +439,25 @@ export default function RevendaPortal() {
             />
           </>
         )}
-      </div>
+                </div>
 
-          <Card className="p-5 bg-card/60 border-border/40 space-y-3">
-            <h3 className="font-bold">Como funciona</h3>
-            {reseller.model === "percentage" ? (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você recebe <strong className="text-foreground">{reseller.commission_rate}% líquidos</strong>{" "}
-                  de cada venda gerada pelo seu link, sem custos e sem recarga de painel.
-                </p>
-                <p>
-                  Comissões ficam <strong>pendentes por 7 dias</strong> (garantia) e depois são
-                  creditadas automaticamente.
-                </p>
-                <p>
-                  Para manter o painel ativo, mantenha pelo menos{" "}
-                  <strong className="text-foreground">
-                    {reseller.min_proxies_per_month} proxies ativos por mês
-                  </strong>
-                  .
-                </p>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  Você compra proxies por{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.proxy_unit_cost).toFixed(2)}
-                  </strong>{" "}
-                  cada, independente do modelo, e revende pelo preço que quiser.
-                </p>
-                <p>
-                  Recarga mínima mensal:{" "}
-                  <strong className="text-foreground">
-                    R$ {Number(reseller.min_monthly_recharge).toFixed(2)}
-                  </strong>
-                  . Funciona como créditos: você recarrega conforme a demanda.
-                </p>
+                {/* Quick preview of store */}
+                <ResellerLoja
+                  resellerId={reseller.id}
+                  primaryColor={reseller.primary_color}
+                />
               </div>
             )}
-          </Card>
-              </div>
+
+            {activeSection === "loja" && (
+              <ResellerLoja
+                resellerId={reseller.id}
+                primaryColor={reseller.primary_color}
+              />
             )}
 
             {activeSection === "vendas" && (
-              <>
+              <div className="animate-fade-in">
           {reseller.model === "percentage" ? (
             <Card className="bg-card/60 border-border/40 overflow-hidden">
               <div className="overflow-x-auto">
@@ -526,7 +499,53 @@ export default function RevendaPortal() {
                 </table>
               </div>
             </Card>
-          ) : (
+          ) : null}
+              </div>
+            )}
+
+            {activeSection === "ajuda" && (
+          <Card className="p-6 bg-card/60 border-border/40 space-y-3 animate-fade-in">
+            <h3 className="font-bold text-lg">Como funciona</h3>
+            {reseller.model === "percentage" ? (
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  Você recebe <strong className="text-foreground">{reseller.commission_rate}% líquidos</strong>{" "}
+                  de cada venda gerada pelo seu link, sem custos e sem recarga de painel.
+                </p>
+                <p>
+                  Comissões ficam <strong>pendentes por 7 dias</strong> (garantia) e depois são
+                  creditadas automaticamente.
+                </p>
+                <p>
+                  Para manter o painel ativo, mantenha pelo menos{" "}
+                  <strong className="text-foreground">
+                    {reseller.min_proxies_per_month} proxies ativos por mês
+                  </strong>
+                  .
+                </p>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  Você compra proxies por{" "}
+                  <strong className="text-foreground">
+                    R$ {Number(reseller.proxy_unit_cost).toFixed(2)}
+                  </strong>{" "}
+                  cada, independente do modelo, e revende pelo preço que quiser.
+                </p>
+                <p>
+                  Recarga mínima mensal:{" "}
+                  <strong className="text-foreground">
+                    R$ {Number(reseller.min_monthly_recharge).toFixed(2)}
+                  </strong>
+                  . Funciona como créditos: você recarrega conforme a demanda.
+                </p>
+              </div>
+            )}
+          </Card>
+            )}
+
+            {activeSection === "vendas" && reseller.model !== "percentage" && (
             <Card className="bg-card/60 border-border/40 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
