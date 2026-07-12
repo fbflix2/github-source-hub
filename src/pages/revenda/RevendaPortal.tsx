@@ -216,7 +216,7 @@ export default function RevendaPortal() {
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "loja", label: "Loja de Proxies", icon: Store },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
-    { id: "branding", label: "Identidade Visual", icon: Palette },
+    { id: "branding", label: "Configurações", icon: Palette },
     { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
   ] as const;
