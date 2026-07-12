@@ -479,14 +479,7 @@ const App = () => {
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/op/:slug" element={<PublicAmizades />} />
-                <Route
-                  path="/revenda/cadastro"
-                  element={
-                    user && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") !== "1"
-                      ? <Navigate to="/revenda" replace />
-                      : <RevendaCadastro />
-                  }
-                />
+                <Route path="/revenda/cadastro" element={<RevendaCadastro />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
