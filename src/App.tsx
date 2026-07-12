@@ -481,7 +481,11 @@ const App = () => {
                 <Route path="/op/:slug" element={<PublicAmizades />} />
                 <Route
                   path="/revenda/cadastro"
-                  element={user ? <Navigate to="/revenda" replace /> : <RevendaCadastro />}
+                  element={
+                    user && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") !== "1"
+                      ? <Navigate to="/revenda" replace />
+                      : <RevendaCadastro />
+                  }
                 />
 
                 {/* Admin routes */}
