@@ -610,8 +610,8 @@ export default function ItemDetails() {
   const downloadBmBloco = () => {
     const content = bmLinks
       .map((link, i) => {
-        const id = bmNames[i];
-        return id ? `BM #${i + 1} | ID ${id}: ${link}` : `BM #${i + 1}: ${link}`;
+        const name = bmNames[i];
+        return name ? `BM #${i + 1} | ${name}: ${link}` : `BM #${i + 1}: ${link}`;
       })
       .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
@@ -930,7 +930,7 @@ export default function ItemDetails() {
                           <div key={i}>
                             <label className="text-[10px] text-text-secondary mb-0.5 block">
                               BM #{i + 1}
-                              {bmNames[i] ? <span className="text-text-secondary/70"> | ID {bmNames[i]}</span> : null}
+                              {bmNames[i] ? <span className="text-text-secondary/70"> | {bmNames[i]}</span> : null}
                             </label>
                             <div className="flex items-center gap-1">
                               <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-green-400 truncate">
