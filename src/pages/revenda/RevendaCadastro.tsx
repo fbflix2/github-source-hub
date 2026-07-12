@@ -223,7 +223,7 @@ export default function RevendaCadastro() {
 
         <div className="space-y-8 max-w-lg">
           <h1 className="text-5xl xl:text-[3.75rem] font-semibold tracking-[-0.03em] leading-[1.02] text-white">
-            Construa sua marca sobre a maior infraestrutura de proxies do Brasil.
+            Aumente em até 120% o faturamento da sua agência com sua própria infraestrutura de proxies.
           </h1>
           <p className="text-[15px] text-white/50 leading-relaxed max-w-md">
             Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
