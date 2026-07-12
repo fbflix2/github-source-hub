@@ -429,6 +429,65 @@ function Field({
   type?: string;
   autoComplete?: string;
 }) {
+  return null as any;
+}
+
+function _placeholder() {}
+
+function BrandMarquee() {
+  const items = [...BRAND_LOGOS, ...BRAND_LOGOS];
+  return (
+    <div className="mb-8 select-none">
+      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/35 mb-3">
+        Dedicados para
+      </p>
+      <div
+        className="relative overflow-hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+        }}
+      >
+        <div className="flex gap-10 w-max animate-[brand-marquee_28s_linear_infinite]">
+          {items.map((logo, i) => (
+            <img
+              key={`${logo.alt}-${i}`}
+              src={logo.src}
+              alt={logo.alt}
+              className="h-5 w-auto opacity-40 hover:opacity-80 transition-opacity shrink-0"
+              loading="lazy"
+              draggable={false}
+            />
+          ))}
+        </div>
+      </div>
+      <style>{`
+        @keyframes brand-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function FieldOriginal({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  autoComplete?: string;
+}) {
   return (
     <div className="space-y-2 group">
       <Label className="text-[11px] font-medium tracking-[0.02em] text-white/50 group-focus-within:text-white transition-colors">
