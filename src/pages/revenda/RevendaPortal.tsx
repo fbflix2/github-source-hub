@@ -27,6 +27,8 @@ import {
   Menu,
   X,
   Sparkles,
+  Settings,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -86,9 +88,10 @@ export default function RevendaPortal() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "loja" | "vendas" | "branding" | "link" | "ajuda"
+    "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const navigate = useNavigate();
   const [brand, setBrand] = useState({
     brand_name: "",
@@ -216,9 +219,17 @@ export default function RevendaPortal() {
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "loja", label: "Loja de Proxies", icon: Store },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
-    { id: "branding", label: "Configurações", icon: Palette },
     { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
+    {
+      id: "configuracoes",
+      label: "Configurações",
+      icon: Settings,
+      children: [
+        { id: "dominio", label: "Domínio Próprio", icon: Globe },
+        { id: "identidade", label: "Identidade Visual", icon: Palette },
+      ],
+    },
   ] as const;
 
   const handleLogout = async () => {
@@ -286,6 +297,57 @@ export default function RevendaPortal() {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const hasChildren = "children" in item && Array.isArray((item as any).children);
+            if (hasChildren) {
+              const children = (item as any).children as { id: string; label: string; icon: any }[];
+              const anyChildActive = children.some((c) => c.id === activeSection);
+              const expanded = configOpen || anyChildActive;
+              return (
+                <div key={item.id} className="space-y-1">
+                  <button
+                    onClick={() => setConfigOpen((v) => !v)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      anyChildActive
+                        ? "text-foreground bg-muted/40"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{item.label}</span>
+                    <ChevronDown
+                      className={cn("size-4 ml-auto transition-transform", expanded && "rotate-180")}
+                    />
+                  </button>
+                  {expanded && (
+                    <div className="ml-3 pl-3 border-l border-border/40 space-y-1">
+                      {children.map((c) => {
+                        const CIcon = c.icon;
+                        const isActive = activeSection === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              setActiveSection(c.id as typeof activeSection);
+                              setSidebarOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                              isActive
+                                ? "bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground shadow-lg shadow-primary/25"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                          >
+                            <CIcon className="size-3.5 shrink-0" />
+                            <span>{c.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
             const isActive = activeSection === item.id;
             return (
               <button
@@ -345,7 +407,17 @@ export default function RevendaPortal() {
             </button>
             <div>
               <h1 className="text-base lg:text-lg font-bold text-foreground tracking-tight">
-                {navItems.find((n) => n.id === activeSection)?.label}
+                {(() => {
+                  for (const n of navItems) {
+                    if (n.id === activeSection) return n.label;
+                    const children = (n as any).children as { id: string; label: string }[] | undefined;
+                    if (children) {
+                      const c = children.find((x) => x.id === activeSection);
+                      if (c) return `Configurações · ${c.label}`;
+                    }
+                  }
+                  return "";
+                })()}
               </h1>
               <p className="text-[11px] text-muted-foreground">Painel de Revenda White-Label</p>
             </div>
@@ -557,94 +629,112 @@ export default function RevendaPortal() {
               </div>
             )}
 
-            {activeSection === "branding" && (
-          <Card className="p-5 bg-card/60 border-border/40 space-y-4">
-            <div className="flex items-center gap-2">
-              <Palette className="size-4 text-primary" />
-              <h3 className="font-bold">Identidade visual</h3>
-            </div>
+            {activeSection === "identidade" && (
+              <Card className="p-5 bg-card/60 border-border/40 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="size-4 text-primary" />
+                  <h3 className="font-bold">Identidade visual</h3>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="md:col-span-2">
-                <Label>Nome de marca</Label>
-                <Input
-                  value={brand.brand_name}
-                  onChange={(e) => setBrand({ ...brand, brand_name: e.target.value })}
-                  placeholder={reseller.company_name}
-                />
-              </div>
-              <div>
-                <Label>Logo (URL)</Label>
-                <Input
-                  value={brand.logo_url}
-                  onChange={(e) => setBrand({ ...brand, logo_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <Label>Favicon (URL)</Label>
-                <Input
-                  value={brand.favicon_url}
-                  onChange={(e) => setBrand({ ...brand, favicon_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <Label>Cor primária</Label>
-                <div className="flex gap-2 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <Label>Nome de marca</Label>
+                    <Input
+                      value={brand.brand_name}
+                      onChange={(e) => setBrand({ ...brand, brand_name: e.target.value })}
+                      placeholder={reseller.company_name}
+                    />
+                  </div>
+                  <div>
+                    <Label>Logo (URL)</Label>
+                    <Input
+                      value={brand.logo_url}
+                      onChange={(e) => setBrand({ ...brand, logo_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label>Favicon (URL)</Label>
+                    <Input
+                      value={brand.favicon_url}
+                      onChange={(e) => setBrand({ ...brand, favicon_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label>Cor primária</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={brand.primary_color}
+                        onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                        className="w-16 p-1 h-10"
+                      />
+                      <Input
+                        value={brand.primary_color}
+                        onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Cor de destaque</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={brand.accent_color}
+                        onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
+                        className="w-16 p-1 h-10"
+                      />
+                      <Input
+                        value={brand.accent_color}
+                        onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>E-mail de suporte</Label>
+                    <Input
+                      type="email"
+                      value={brand.support_email}
+                      onChange={(e) => setBrand({ ...brand, support_email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>WhatsApp de suporte</Label>
+                    <Input
+                      value={brand.support_whatsapp}
+                      onChange={(e) => setBrand({ ...brand, support_whatsapp: e.target.value })}
+                      placeholder="5511999999999"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
+                    {savingBrand && <Loader2 className="size-4 animate-spin" />}
+                    Salvar alterações
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {activeSection === "dominio" && (
+              <Card className="p-5 bg-card/60 border-border/40 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Globe className="size-4 text-primary" />
+                  <h3 className="font-bold">Domínio próprio</h3>
+                </div>
+
+                <div>
+                  <Label>Seu domínio (CNAME)</Label>
                   <Input
-                    type="color"
-                    value={brand.primary_color}
-                    onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
-                    className="w-16 p-1 h-10"
-                  />
-                  <Input
-                    value={brand.primary_color}
-                    onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                    value={brand.custom_domain}
+                    onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
+                    placeholder="painel.suamarca.com.br"
                   />
                 </div>
-              </div>
-              <div>
-                <Label>Cor de destaque</Label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="color"
-                    value={brand.accent_color}
-                    onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
-                    className="w-16 p-1 h-10"
-                  />
-                  <Input
-                    value={brand.accent_color}
-                    onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>E-mail de suporte</Label>
-                <Input
-                  type="email"
-                  value={brand.support_email}
-                  onChange={(e) => setBrand({ ...brand, support_email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>WhatsApp de suporte</Label>
-                <Input
-                  value={brand.support_whatsapp}
-                  onChange={(e) => setBrand({ ...brand, support_whatsapp: e.target.value })}
-                  placeholder="5511999999999"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label className="flex items-center gap-1">
-                  <Globe className="size-3" /> Domínio próprio (CNAME)
-                </Label>
-                <Input
-                  value={brand.custom_domain}
-                  onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
-                  placeholder="painel.suamarca.com.br"
-                />
-                <div className="mt-3 rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
+
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
                   <p className="font-semibold text-foreground flex items-center gap-1">
                     <Globe className="size-3" /> Como configurar seu domínio
                   </p>
@@ -683,16 +773,14 @@ export default function RevendaPortal() {
                     </p>
                   )}
                 </div>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
-              <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
-                {savingBrand && <Loader2 className="size-4 animate-spin" />}
-                Salvar alterações
-              </Button>
-            </div>
-          </Card>
+                <div className="flex justify-end">
+                  <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
+                    {savingBrand && <Loader2 className="size-4 animate-spin" />}
+                    Salvar alterações
+                  </Button>
+                </div>
+              </Card>
             )}
 
             {activeSection === "link" && (
