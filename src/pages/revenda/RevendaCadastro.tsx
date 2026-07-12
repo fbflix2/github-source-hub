@@ -14,9 +14,14 @@ import {
   Loader2,
   ArrowRight,
   Check,
+  Shield,
+  Globe2,
+  Lock as LockIcon,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoFbflix from "@/assets/logo-fbflix.webp";
+import { GlobePulse } from "@/components/ui/cobe-globe-pulse";
 
 function slugify(input: string) {
   return input
@@ -196,6 +201,13 @@ export default function RevendaCadastro() {
 
       {/* Left — editorial black canvas */}
       <aside className="hidden lg:flex relative z-10 w-[46%] xl:w-[44%] flex-col justify-between p-12 xl:p-16 border-r border-white/[0.06]">
+        {/* Globe background */}
+        <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none overflow-hidden">
+          <div className="absolute w-[120%] aspect-square opacity-70">
+            <GlobePulse />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black" />
+        </div>
         <div>
           <Link to="/" className="inline-flex items-center gap-3 group">
             <img
@@ -217,15 +229,19 @@ export default function RevendaCadastro() {
             Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
           </p>
 
-          <div className="pt-4 space-y-4">
+          <div className="pt-4 grid grid-cols-2 gap-3 max-w-md">
             {[
-              "Painel white-label com seu domínio e identidade",
-              "Infraestrutura FBFlix · 99,94% de uptime",
-              "Precificação e margem livres por proxy",
-            ].map((t) => (
-              <div key={t} className="flex items-center gap-3 text-[13px] text-white/70">
-                <Check className="size-4 text-primary shrink-0" strokeWidth={2.5} />
-                <span>{t}</span>
+              { icon: Shield, label: "Proxy Residencial" },
+              { icon: Network, label: "Proxy Dedicado" },
+              { icon: Globe2, label: "Proxy Internacional" },
+              { icon: LockIcon, label: "Proxy Anti-Bloqueio" },
+            ].map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm px-3 py-2.5"
+              >
+                <Icon className="size-4 text-primary shrink-0" strokeWidth={2} />
+                <span className="text-[12px] text-white/80 font-medium">{label}</span>
               </div>
             ))}
           </div>
