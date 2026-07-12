@@ -22,6 +22,29 @@ import {
 import { cn } from "@/lib/utils";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { GlobePulse } from "@/components/ui/cobe-globe-pulse";
+import brandLinkedin from "@/assets/brands/linkedin.svg";
+import brandX from "@/assets/brands/x-twitter.svg";
+import brandYoutube from "@/assets/brands/youtube.svg";
+import brandTelegram from "@/assets/brands/telegram.svg";
+import brandMeta from "@/assets/brands/meta.svg";
+import brandKwai from "@/assets/brands/kwai.svg";
+import brandTiktok from "@/assets/brands/tiktok.svg";
+import brandGoogle from "@/assets/brands/google.svg";
+import brandInstagram from "@/assets/brands/instagram.svg";
+import brandWhatsapp from "@/assets/brands/whatsapp.svg";
+
+const BRAND_LOGOS = [
+  { src: brandMeta, alt: "Meta" },
+  { src: brandInstagram, alt: "Instagram" },
+  { src: brandTiktok, alt: "TikTok" },
+  { src: brandGoogle, alt: "Google" },
+  { src: brandYoutube, alt: "YouTube" },
+  { src: brandWhatsapp, alt: "WhatsApp" },
+  { src: brandX, alt: "X" },
+  { src: brandLinkedin, alt: "LinkedIn" },
+  { src: brandTelegram, alt: "Telegram" },
+  { src: brandKwai, alt: "Kwai" },
+];
 
 function slugify(input: string) {
   return input
@@ -268,6 +291,7 @@ export default function RevendaCadastro() {
             </span>
           </div>
 
+          <BrandMarquee />
           <div className="mb-10">
             <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
               Crie sua conta
@@ -386,6 +410,45 @@ export default function RevendaCadastro() {
           </form>
         </div>
       </main>
+    </div>
+  );
+}
+
+function BrandMarquee() {
+  const items = [...BRAND_LOGOS, ...BRAND_LOGOS];
+  return (
+    <div className="mb-8 select-none">
+      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/35 mb-3">
+        Dedicados para
+      </p>
+      <div
+        className="relative overflow-hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+        }}
+      >
+        <div className="flex gap-10 w-max animate-[brand-marquee_28s_linear_infinite]">
+          {items.map((logo, i) => (
+            <img
+              key={`${logo.alt}-${i}`}
+              src={logo.src}
+              alt={logo.alt}
+              className="h-5 w-auto opacity-40 hover:opacity-80 transition-opacity shrink-0"
+              loading="lazy"
+              draggable={false}
+            />
+          ))}
+        </div>
+      </div>
+      <style>{`
+        @keyframes brand-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }
