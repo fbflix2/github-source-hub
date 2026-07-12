@@ -550,6 +550,10 @@ export default function RevendaPortal() {
               />
             )}
 
+            {activeSection === "assinaturas" && (
+              <ResellerAssinaturas resellerId={reseller.id} />
+            )}
+
             {activeSection === "vendas" && (
               <div className="animate-fade-in">
                 {reseller.model === "percentage" ? (
