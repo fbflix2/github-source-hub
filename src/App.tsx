@@ -259,10 +259,22 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
     return (
       <Routes>
         <Route path="/revenda" element={<RevendaPortal />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/wallet" element={<Wallet />} />
-        <Route path="/tickets" element={<Tickets />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route
+          element={
+            <MainLayout
+              userName={userName}
+              userEmail={userEmail}
+              onLogout={onLogout}
+              unreadTickets={totalUnread}
+              forceResellerMode
+            />
+          }
+        >
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/tickets" element={<Tickets />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
         <Route path="*" element={<Navigate to="/revenda" replace />} />
       </Routes>
     );
