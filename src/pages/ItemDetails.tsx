@@ -43,6 +43,18 @@ const extractBmInviteLink = (value: string) => {
   return value.match(/https?:\/\/\S+/)?.[0] || value.trim();
 };
 
+const extractBmIdFromRaw = (value: string): string => {
+  if (!value) return "";
+  // Remove URL portion so we don't match digits inside the token
+  const withoutUrl = value.replace(/https?:\/\/\S+/g, " ");
+  // Prefer long numeric sequences (typical FB BM IDs have 13-17 digits)
+  const long = withoutUrl.match(/\b\d{13,20}\b/);
+  if (long) return long[0];
+  // Fallback: any 3+ digit sequence (short internal codes like "9692")
+  const short = withoutUrl.match(/\b\d{3,}\b/);
+  return short ? short[0] : "";
+};
+
 export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
@@ -71,6 +83,7 @@ export default function ItemDetails() {
   const [stockData, setStockData] = useState<StockData>({});
   const [product, setProduct] = useState<any>(null);
   const [bmLinks, setBmLinks] = useState<string[]>([]);
+  const [bmIds, setBmIds] = useState<string[]>([]);
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
@@ -298,6 +311,7 @@ export default function ItemDetails() {
           // If product is BM type, fetch all BM links for this order
           if (prod.icon_type === "bm") {
             const collectedLinks: string[] = [];
+            const collectedIds: string[] = [];
 
             // Fetch all items for the order to aggregate links
             const { data: allOrderItems } = await supabase
@@ -314,7 +328,10 @@ export default function ItemDetails() {
                 if (dd && typeof dd === "object" && Array.isArray(dd.bmLinks)) {
                   dd.bmLinks.forEach((link: string) => {
                     const trimmed = extractBmInviteLink(link);
-                    if (trimmed) collectedLinks.push(trimmed);
+                    if (trimmed) {
+                      collectedLinks.push(trimmed);
+                      collectedIds.push(extractBmIdFromRaw(link));
+                    }
                   });
                 }
               });
@@ -325,7 +342,10 @@ export default function ItemDetails() {
                 if (dd && typeof dd === "object" && dd.linkPerfil) {
                   dd.linkPerfil.split("\n").forEach((line: string) => {
                     const trimmed = extractBmInviteLink(line);
-                    if (trimmed) collectedLinks.push(trimmed);
+                    if (trimmed) {
+                      collectedLinks.push(trimmed);
+                      collectedIds.push(extractBmIdFromRaw(line));
+                    }
                   });
                 }
               });
@@ -342,15 +362,30 @@ export default function ItemDetails() {
                   if (s.identification_link) {
                     s.identification_link.split("\n").forEach((line: string) => {
                       const trimmed = extractBmInviteLink(line);
-                      if (trimmed) collectedLinks.push(trimmed);
+                      if (trimmed) {
+                        collectedLinks.push(trimmed);
+                        collectedIds.push(extractBmIdFromRaw(line));
+                      }
                     });
                   }
                 });
               }
             }
 
-            const unique = [...new Set(collectedLinks.map(l => l.trim()))];
-            if (unique.length > 0) setBmLinks(unique);
+            const seen = new Set<string>();
+            const uniqueLinks: string[] = [];
+            const uniqueIds: string[] = [];
+            collectedLinks.forEach((l, idx) => {
+              const t = l.trim();
+              if (!t || seen.has(t)) return;
+              seen.add(t);
+              uniqueLinks.push(t);
+              uniqueIds.push(collectedIds[idx] || "");
+            });
+            if (uniqueLinks.length > 0) {
+              setBmLinks(uniqueLinks);
+              setBmIds(uniqueIds);
+            }
           }
         }
       }
@@ -574,7 +609,12 @@ export default function ItemDetails() {
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
-    const content = bmLinks.map((link, i) => `BM #${i + 1}: ${link}`).join("\n");
+    const content = bmLinks
+      .map((link, i) => {
+        const id = bmIds[i];
+        return id ? `BM #${i + 1} | ID ${id}: ${link}` : `BM #${i + 1}: ${link}`;
+      })
+      .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -889,7 +929,10 @@ export default function ItemDetails() {
                       <div className="space-y-2">
                         {bmLinks.map((link, i) => (
                           <div key={i}>
-                            <label className="text-[10px] text-text-secondary mb-0.5 block">BM #{i + 1}</label>
+                            <label className="text-[10px] text-text-secondary mb-0.5 block">
+                              BM #{i + 1}
+                              {bmIds[i] ? <span className="text-text-secondary/70"> | ID {bmIds[i]}</span> : null}
+                            </label>
                             <div className="flex items-center gap-1">
                               <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-green-400 truncate">
                                 {link}
