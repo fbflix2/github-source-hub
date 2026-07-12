@@ -629,94 +629,112 @@ export default function RevendaPortal() {
               </div>
             )}
 
-            {activeSection === "branding" && (
-          <Card className="p-5 bg-card/60 border-border/40 space-y-4">
-            <div className="flex items-center gap-2">
-              <Palette className="size-4 text-primary" />
-              <h3 className="font-bold">Identidade visual</h3>
-            </div>
+            {activeSection === "identidade" && (
+              <Card className="p-5 bg-card/60 border-border/40 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="size-4 text-primary" />
+                  <h3 className="font-bold">Identidade visual</h3>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="md:col-span-2">
-                <Label>Nome de marca</Label>
-                <Input
-                  value={brand.brand_name}
-                  onChange={(e) => setBrand({ ...brand, brand_name: e.target.value })}
-                  placeholder={reseller.company_name}
-                />
-              </div>
-              <div>
-                <Label>Logo (URL)</Label>
-                <Input
-                  value={brand.logo_url}
-                  onChange={(e) => setBrand({ ...brand, logo_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <Label>Favicon (URL)</Label>
-                <Input
-                  value={brand.favicon_url}
-                  onChange={(e) => setBrand({ ...brand, favicon_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <Label>Cor primária</Label>
-                <div className="flex gap-2 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <Label>Nome de marca</Label>
+                    <Input
+                      value={brand.brand_name}
+                      onChange={(e) => setBrand({ ...brand, brand_name: e.target.value })}
+                      placeholder={reseller.company_name}
+                    />
+                  </div>
+                  <div>
+                    <Label>Logo (URL)</Label>
+                    <Input
+                      value={brand.logo_url}
+                      onChange={(e) => setBrand({ ...brand, logo_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label>Favicon (URL)</Label>
+                    <Input
+                      value={brand.favicon_url}
+                      onChange={(e) => setBrand({ ...brand, favicon_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label>Cor primária</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={brand.primary_color}
+                        onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                        className="w-16 p-1 h-10"
+                      />
+                      <Input
+                        value={brand.primary_color}
+                        onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Cor de destaque</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={brand.accent_color}
+                        onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
+                        className="w-16 p-1 h-10"
+                      />
+                      <Input
+                        value={brand.accent_color}
+                        onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>E-mail de suporte</Label>
+                    <Input
+                      type="email"
+                      value={brand.support_email}
+                      onChange={(e) => setBrand({ ...brand, support_email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>WhatsApp de suporte</Label>
+                    <Input
+                      value={brand.support_whatsapp}
+                      onChange={(e) => setBrand({ ...brand, support_whatsapp: e.target.value })}
+                      placeholder="5511999999999"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
+                    {savingBrand && <Loader2 className="size-4 animate-spin" />}
+                    Salvar alterações
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {activeSection === "dominio" && (
+              <Card className="p-5 bg-card/60 border-border/40 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Globe className="size-4 text-primary" />
+                  <h3 className="font-bold">Domínio próprio</h3>
+                </div>
+
+                <div>
+                  <Label>Seu domínio (CNAME)</Label>
                   <Input
-                    type="color"
-                    value={brand.primary_color}
-                    onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
-                    className="w-16 p-1 h-10"
-                  />
-                  <Input
-                    value={brand.primary_color}
-                    onChange={(e) => setBrand({ ...brand, primary_color: e.target.value })}
+                    value={brand.custom_domain}
+                    onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
+                    placeholder="painel.suamarca.com.br"
                   />
                 </div>
-              </div>
-              <div>
-                <Label>Cor de destaque</Label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="color"
-                    value={brand.accent_color}
-                    onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
-                    className="w-16 p-1 h-10"
-                  />
-                  <Input
-                    value={brand.accent_color}
-                    onChange={(e) => setBrand({ ...brand, accent_color: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>E-mail de suporte</Label>
-                <Input
-                  type="email"
-                  value={brand.support_email}
-                  onChange={(e) => setBrand({ ...brand, support_email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>WhatsApp de suporte</Label>
-                <Input
-                  value={brand.support_whatsapp}
-                  onChange={(e) => setBrand({ ...brand, support_whatsapp: e.target.value })}
-                  placeholder="5511999999999"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label className="flex items-center gap-1">
-                  <Globe className="size-3" /> Domínio próprio (CNAME)
-                </Label>
-                <Input
-                  value={brand.custom_domain}
-                  onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
-                  placeholder="painel.suamarca.com.br"
-                />
-                <div className="mt-3 rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
+
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
                   <p className="font-semibold text-foreground flex items-center gap-1">
                     <Globe className="size-3" /> Como configurar seu domínio
                   </p>
@@ -755,16 +773,14 @@ export default function RevendaPortal() {
                     </p>
                   )}
                 </div>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
-              <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
-                {savingBrand && <Loader2 className="size-4 animate-spin" />}
-                Salvar alterações
-              </Button>
-            </div>
-          </Card>
+                <div className="flex justify-end">
+                  <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
+                    {savingBrand && <Loader2 className="size-4 animate-spin" />}
+                    Salvar alterações
+                  </Button>
+                </div>
+              </Card>
             )}
 
             {activeSection === "link" && (
