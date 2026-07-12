@@ -414,26 +414,6 @@ export default function RevendaCadastro() {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  autoComplete,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  autoComplete?: string;
-}) {
-  return null as any;
-}
-
-function _placeholder() {}
-
 function BrandMarquee() {
   const items = [...BRAND_LOGOS, ...BRAND_LOGOS];
   return (
@@ -473,7 +453,7 @@ function BrandMarquee() {
   );
 }
 
-function FieldOriginal({
+function Field({
   label,
   value,
   onChange,
