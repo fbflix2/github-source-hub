@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
 import ExchangePaymentGate from "@/components/ExchangePaymentGate";
 import WarmingTrackerModal from "@/components/admin/WarmingTrackerModal";
+import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -39,12 +40,14 @@ interface StockData {
    perfilMatriz?: string;
 }
 
-const extractBmInviteLink = (value: string) => {
-  return value.match(/https?:\/\/\S+/)?.[0] || value.trim();
+const extractBmInviteLink = (value?: string | null) => {
+  return extractBmUrlFromInput(value);
 };
 
-const extractBmNameFromRaw = (value: string): string => {
+const extractBmNameFromRaw = (value?: string | null): string => {
   if (!value) return "";
+  const extracted = extractBmNameFromInput(value);
+  if (extracted) return extracted;
   // Take everything before the URL and clean separators (|, tab, colon, dash)
   const before = value.split(/https?:\/\//)[0] || "";
   const parts = before.split(/[|\t]/).map((p) => p.trim()).filter(Boolean);
@@ -52,6 +55,12 @@ const extractBmNameFromRaw = (value: string): string => {
   const named = parts.find((p) => !/^\d+$/.test(p));
   const chosen = named || parts[parts.length - 1] || "";
   return chosen.replace(/[\s:\-|]+$/, "").trim();
+};
+
+const isGenericBmName = (value?: string | null) => {
+  const name = value?.trim() || "";
+  if (!name) return true;
+  return /^bm$/i.test(name) || /^bm\s*#?\d+$/i.test(name) || /^bm\s+\d+\s+do\s+combo$/i.test(name);
 };
 
 export default function ItemDetails() {
@@ -275,16 +284,27 @@ export default function ItemDetails() {
             const bmChildren = children.filter((c: any) => c.type === "bm");
             if (bmChildren.length > 0 && bmChildren.length === children.length) {
               const links: string[] = [];
+              const namesByLink = new Map<string, string>();
               bmChildren.forEach((c: any) => {
-                if (c.identification_link) {
-                  c.identification_link.split("\n").forEach((line: string) => {
-                    const trimmed = extractBmInviteLink(line);
-                    if (trimmed) links.push(trimmed);
-                  });
-                }
+                const childData = (c.data && typeof c.data === "object") ? c.data : {};
+                const fallbackName =
+                  extractBmNameFromRaw(childData.rawBmInput || "") ||
+                  childData.nomeBM ||
+                  (!isGenericBmName(c.name) ? c.name : "");
+                const rawLines = childData.rawBmInput || c.identification_link || childData.linkBM || "";
+                String(rawLines).split("\n").forEach((line: string) => {
+                  const trimmed = extractBmInviteLink(line);
+                  if (!trimmed) return;
+                  links.push(trimmed);
+                  const lineName = extractBmNameFromRaw(line) || fallbackName;
+                  if (lineName && !namesByLink.get(trimmed)) namesByLink.set(trimmed, lineName);
+                });
               });
               const unique = [...new Set(links.map((l) => l.trim()).filter(Boolean))];
-              if (unique.length > 0) setBmLinks(unique);
+              if (unique.length > 0) {
+                setBmLinks(unique);
+                setBmNames(unique.map((link) => namesByLink.get(link) || ""));
+              }
 
               const firstChildData = (bmChildren[0]?.data && typeof bmChildren[0].data === "object")
                 ? bmChildren[0].data
@@ -312,11 +332,12 @@ export default function ItemDetails() {
             const collectedLinks: string[] = [];
             // Map url -> best name found across all sources
             const nameByUrl = new Map<string, string>();
-            const registerLine = (line: string) => {
+            const registerLine = (line: string, fallbackName?: string | null) => {
               const url = extractBmInviteLink(line);
               if (!url) return;
               collectedLinks.push(url);
-              const name = extractBmNameFromRaw(line);
+              const fallback = !isGenericBmName(fallbackName) ? (fallbackName?.trim() || "") : "";
+              const name = extractBmNameFromRaw(line) || fallback || "";
               if (name && !nameByUrl.get(url)) nameByUrl.set(url, name);
             };
 
@@ -333,34 +354,40 @@ export default function ItemDetails() {
               allOrderItems.forEach((oi: any) => {
                 const dd = oi.delivery_data;
                 if (!dd || typeof dd !== "object") return;
-                if (Array.isArray(dd.bmLinks)) dd.bmLinks.forEach((l: string) => registerLine(l));
-                if (typeof dd.linkPerfil === "string") dd.linkPerfil.split("\n").forEach(registerLine);
-                if (typeof dd.rawBmInput === "string") dd.rawBmInput.split("\n").forEach(registerLine);
-                if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach(registerLine);
+                if (Array.isArray(dd.bmLinks)) dd.bmLinks.forEach((l: string, idx: number) => registerLine(l, Array.isArray(dd.bmNames) ? dd.bmNames[idx] : dd.nomeBM));
+                if (typeof dd.linkPerfil === "string") dd.linkPerfil.split("\n").forEach((line: string) => registerLine(line));
+                if (typeof dd.rawBmInput === "string") dd.rawBmInput.split("\n").forEach((line: string) => registerLine(line));
+                if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach((line: string) => registerLine(line));
               });
 
-              // 2. stock_items identification_link + raw_data across all items
+              // 2. stock_items identification_link + saved data across all items
               const { data: bmStockItems } = await supabase
                 .from("stock_items")
-                .select("identification_link, raw_data, name")
+                .select("identification_link, data, name")
                 .in("order_item_id", itemIds)
                 .eq("type", "bm");
 
               if (bmStockItems?.length) {
                 bmStockItems.forEach((s: any) => {
+                  const itemData = s.data && typeof s.data === "object" ? s.data : {};
+                  const fallbackName =
+                    extractBmNameFromRaw(itemData.rawBmInput || "") ||
+                    itemData.nomeBM ||
+                    itemData.nomeProduto ||
+                    (!isGenericBmName(s.name) ? s.name : "");
                   if (typeof s.identification_link === "string") {
-                    s.identification_link.split("\n").forEach(registerLine);
+                    s.identification_link.split("\n").forEach((line: string) => registerLine(line, fallbackName));
                   }
-                  const rd = s.raw_data;
-                  if (rd && typeof rd === "object") {
-                    if (typeof rd.rawBmInput === "string") rd.rawBmInput.split("\n").forEach(registerLine);
-                    if (typeof rd.linkPerfil === "string") rd.linkPerfil.split("\n").forEach(registerLine);
-                    if (Array.isArray(rd.bmLinks)) rd.bmLinks.forEach((l: string) => registerLine(l));
+                  if (itemData && typeof itemData === "object") {
+                    if (typeof itemData.rawBmInput === "string") itemData.rawBmInput.split("\n").forEach((line: string) => registerLine(line, fallbackName));
+                    if (typeof itemData.linkPerfil === "string") itemData.linkPerfil.split("\n").forEach((line: string) => registerLine(line, fallbackName));
+                    if (typeof itemData.linkBM === "string") itemData.linkBM.split("\n").forEach((line: string) => registerLine(line, fallbackName));
+                    if (Array.isArray(itemData.bmLinks)) itemData.bmLinks.forEach((l: string, idx: number) => registerLine(l, Array.isArray(itemData.bmNames) ? itemData.bmNames[idx] : fallbackName));
                   }
                   // Fallback: pair stock_items.name with its URL (ignore generic "BM #N")
-                  if (s.name && typeof s.identification_link === "string" && !/^bm\s*#?\d+$/i.test(String(s.name).trim())) {
+                  if (fallbackName && typeof s.identification_link === "string") {
                     const u = extractBmInviteLink(s.identification_link);
-                    if (u && !nameByUrl.get(u)) nameByUrl.set(u, String(s.name));
+                    if (u && !nameByUrl.get(u)) nameByUrl.set(u, String(fallbackName));
                   }
                 });
               }
