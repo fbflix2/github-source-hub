@@ -464,6 +464,10 @@ const App = () => {
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/op/:slug" element={<PublicAmizades />} />
+                <Route
+                  path="/revenda/cadastro"
+                  element={user ? <Navigate to="/revenda" replace /> : <RevendaCadastro />}
+                />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
