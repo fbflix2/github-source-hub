@@ -219,9 +219,17 @@ export default function RevendaPortal() {
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "loja", label: "Loja de Proxies", icon: Store },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
-    { id: "branding", label: "Configurações", icon: Palette },
     { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
+    {
+      id: "configuracoes",
+      label: "Configurações",
+      icon: Settings,
+      children: [
+        { id: "dominio", label: "Domínio Próprio", icon: Globe },
+        { id: "identidade", label: "Identidade Visual", icon: Palette },
+      ],
+    },
   ] as const;
 
   const handleLogout = async () => {
