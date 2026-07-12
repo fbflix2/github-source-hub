@@ -437,22 +437,6 @@ export default function RevendaPortal() {
             >
               <Menu className="size-5" />
             </button>
-            <div>
-              <h1 className="text-base lg:text-lg font-bold text-foreground tracking-tight">
-                {(() => {
-                  for (const n of navItems) {
-                    if (n.id === activeSection) return n.label;
-                    const children = (n as any).children as { id: string; label: string }[] | undefined;
-                    if (children) {
-                      const c = children.find((x) => x.id === activeSection);
-                      if (c) return `Configurações · ${c.label}`;
-                    }
-                  }
-                  return "";
-                })()}
-              </h1>
-              <p className="text-[11px] text-muted-foreground">Painel de Revenda White-Label</p>
-            </div>
           </div>
           <div className="flex items-center gap-3">
             <Badge
