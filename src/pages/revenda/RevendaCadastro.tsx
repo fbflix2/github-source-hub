@@ -291,6 +291,7 @@ export default function RevendaCadastro() {
             </span>
           </div>
 
+          <BrandMarquee />
           <div className="mb-10">
             <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
               Crie sua conta
