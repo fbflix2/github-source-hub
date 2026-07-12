@@ -27,6 +27,8 @@ import {
   Menu,
   X,
   Sparkles,
+  Settings,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -86,9 +88,10 @@ export default function RevendaPortal() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "loja" | "vendas" | "branding" | "link" | "ajuda"
+    "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const navigate = useNavigate();
   const [brand, setBrand] = useState({
     brand_name: "",
