@@ -539,6 +539,15 @@ export default function RevendaPortal() {
               />
             )}
 
+            {activeSection === "central-proxy" && (
+              <ResellerCentralProxy
+                resellerId={reseller.id}
+                model={reseller.model}
+                proxyUnitCost={Number(reseller.proxy_unit_cost || 0)}
+                commissionRate={Number(reseller.commission_rate || 0)}
+              />
+            )}
+
             {activeSection === "vendas" && (
               <div className="animate-fade-in">
                 {reseller.model === "percentage" ? (
