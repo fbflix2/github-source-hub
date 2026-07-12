@@ -609,7 +609,12 @@ export default function ItemDetails() {
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
-    const content = bmLinks.map((link, i) => `BM #${i + 1}: ${link}`).join("\n");
+    const content = bmLinks
+      .map((link, i) => {
+        const id = bmIds[i];
+        return id ? `BM #${i + 1} | ID ${id}: ${link}` : `BM #${i + 1}: ${link}`;
+      })
+      .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
