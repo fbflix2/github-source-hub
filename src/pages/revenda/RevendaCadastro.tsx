@@ -254,7 +254,7 @@ export default function RevendaCadastro() {
             Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
           </p>
 
-          <div className="pt-20 xl:pt-28 max-w-md">
+          <div className="mt-auto pt-40 xl:pt-56 max-w-md">
             <BrandMarquee />
           </div>
         </div>
