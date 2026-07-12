@@ -407,7 +407,17 @@ export default function RevendaPortal() {
             </button>
             <div>
               <h1 className="text-base lg:text-lg font-bold text-foreground tracking-tight">
-                {navItems.find((n) => n.id === activeSection)?.label}
+                {(() => {
+                  for (const n of navItems) {
+                    if (n.id === activeSection) return n.label;
+                    const children = (n as any).children as { id: string; label: string }[] | undefined;
+                    if (children) {
+                      const c = children.find((x) => x.id === activeSection);
+                      if (c) return `Configurações · ${c.label}`;
+                    }
+                  }
+                  return "";
+                })()}
               </h1>
               <p className="text-[11px] text-muted-foreground">Painel de Revenda White-Label</p>
             </div>
