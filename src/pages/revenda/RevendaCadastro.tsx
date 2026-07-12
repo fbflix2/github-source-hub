@@ -223,7 +223,63 @@ export default function RevendaCadastro() {
         />
       </div>
 
-      {/* Left — editorial black canvas */}
+      {/* Mobile hero — presentation screen shown first on mobile */}
+      {!showFormMobile && (
+        <aside className="lg:hidden relative z-10 w-full min-h-screen flex flex-col justify-between px-6 py-8 overflow-hidden">
+          <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none overflow-hidden">
+            <div className="absolute w-[160%] aspect-square opacity-60">
+              <GlobePulse />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black" />
+          </div>
+
+          <Link to="/" className="inline-flex items-center gap-3">
+            <img
+              src={logoFbflix}
+              alt="FBFlix"
+              className="h-9 w-auto object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.35)]"
+            />
+            <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/40 border-l border-white/10 pl-3">
+              Programa de Revenda
+            </span>
+          </Link>
+
+          <div className="space-y-6 py-8">
+            <h1 className="text-[2rem] sm:text-[2.4rem] font-semibold tracking-[-0.03em] leading-[1.08] text-white">
+              Aumente em até 120% o faturamento da sua agência com sua própria infraestrutura de proxies.
+            </h1>
+            <p className="text-[14px] text-white/55 leading-relaxed">
+              Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
+            </p>
+
+            <Button
+              type="button"
+              onClick={() => setShowFormMobile(true)}
+              className={cn(
+                "group w-full h-12 gap-2 rounded-xl font-medium text-[14px]",
+                "bg-white text-black hover:bg-white/90",
+                "shadow-[0_10px_40px_-8px_rgba(255,255,255,0.15)] transition-all duration-300"
+              )}
+            >
+              Cadastre-se
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </Button>
+
+            <div className="pt-2">
+              <BrandMarquee />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-white/30">
+            <span>© {new Date().getFullYear()} FBFlix Proxies</span>
+            <Link to="/auth" className="text-white/50 hover:text-white transition-colors">
+              Já tem conta? <span className="text-primary">Entrar →</span>
+            </Link>
+          </div>
+        </aside>
+      )}
+
+      {/* Left — editorial black canvas (desktop only) */}
       <aside className="hidden lg:flex relative z-10 w-[46%] xl:w-[44%] flex-col justify-between p-12 xl:p-16 border-r border-white/[0.06]">
         {/* Globe background */}
         <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -269,7 +325,12 @@ export default function RevendaCadastro() {
       </aside>
 
       {/* Right — form */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:p-6 lg:p-10 overflow-y-auto">
+      <main
+        className={cn(
+          "relative z-10 flex-1 items-center justify-center px-4 py-8 sm:p-6 lg:p-10 overflow-y-auto",
+          showFormMobile ? "flex" : "hidden lg:flex"
+        )}
+      >
         <div className="w-full max-w-[460px]">
           {/* Mobile logo */}
           <div className="lg:hidden mb-6 sm:mb-8 flex items-center gap-3">
