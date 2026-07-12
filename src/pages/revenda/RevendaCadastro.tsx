@@ -22,6 +22,29 @@ import {
 import { cn } from "@/lib/utils";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { GlobePulse } from "@/components/ui/cobe-globe-pulse";
+import brandLinkedin from "@/assets/brands/linkedin.svg";
+import brandX from "@/assets/brands/x-twitter.svg";
+import brandYoutube from "@/assets/brands/youtube.svg";
+import brandTelegram from "@/assets/brands/telegram.svg";
+import brandMeta from "@/assets/brands/meta.svg";
+import brandKwai from "@/assets/brands/kwai.svg";
+import brandTiktok from "@/assets/brands/tiktok.svg";
+import brandGoogle from "@/assets/brands/google.svg";
+import brandInstagram from "@/assets/brands/instagram.svg";
+import brandWhatsapp from "@/assets/brands/whatsapp.svg";
+
+const BRAND_LOGOS = [
+  { src: brandMeta, alt: "Meta" },
+  { src: brandInstagram, alt: "Instagram" },
+  { src: brandTiktok, alt: "TikTok" },
+  { src: brandGoogle, alt: "Google" },
+  { src: brandYoutube, alt: "YouTube" },
+  { src: brandWhatsapp, alt: "WhatsApp" },
+  { src: brandX, alt: "X" },
+  { src: brandLinkedin, alt: "LinkedIn" },
+  { src: brandTelegram, alt: "Telegram" },
+  { src: brandKwai, alt: "Kwai" },
+];
 
 function slugify(input: string) {
   return input
