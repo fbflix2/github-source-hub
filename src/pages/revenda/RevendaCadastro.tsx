@@ -279,6 +279,14 @@ export default function RevendaCadastro() {
           </div>
 
           <div className="mb-10">
+            <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-3.5">
+              <p className="text-[13px] leading-relaxed text-white/75">
+                Agências que vendem perfis e BM têm um faturamento médio de{" "}
+                <span className="font-semibold text-white">R$ 6.527,00</span> a{" "}
+                <span className="font-semibold text-white">R$ 19.324,00</span>{" "}
+                a mais por mês revendendo nossos proxies.
+              </p>
+            </div>
             <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
               Crie sua conta
             </h2>
