@@ -87,6 +87,7 @@ export default function RevendaPortal() {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<
     "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade"
   >("overview");
