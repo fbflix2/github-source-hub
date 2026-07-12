@@ -454,7 +454,7 @@ export default function RevendaPortal() {
               <p className="text-[11px] text-muted-foreground">Painel de Revenda White-Label</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Badge
               variant="outline"
               className={
@@ -473,6 +473,87 @@ export default function RevendaPortal() {
               )} />
               {reseller.status === "active" ? "Ativo" : reseller.status === "warning" ? "Atenção" : reseller.status}
             </Badge>
+
+            {/* Tickets */}
+            <NavLink
+              to="/tickets"
+              className="relative flex items-center justify-center size-9 rounded-full bg-card border border-border/60 hover:border-primary/50 hover:bg-primary/10 transition-all group"
+              title="Tickets"
+            >
+              <Ticket className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              {unreadTickets > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold animate-pulse">
+                  {unreadTickets > 9 ? "9+" : unreadTickets}
+                </span>
+              )}
+            </NavLink>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Saldo */}
+            <NavLink
+              to="/wallet"
+              className={cn(
+                "hidden sm:flex items-center gap-2 border px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-colors group",
+                (profile?.balance ?? 0) > 0
+                  ? "bg-emerald-500/10 border-emerald-500/25 hover:bg-emerald-500/15"
+                  : "bg-destructive/10 border-destructive/25 hover:bg-destructive/15"
+              )}
+            >
+              <Wallet className={cn(
+                "size-4",
+                (profile?.balance ?? 0) > 0 ? "text-emerald-400" : "text-destructive"
+              )} />
+              <div className="flex flex-col leading-none">
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">
+                  Saldo
+                </span>
+                <span className={cn(
+                  "text-sm font-bold",
+                  (profile?.balance ?? 0) > 0 ? "text-emerald-400" : "text-destructive"
+                )}>
+                  R$ {(profile?.balance ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </NavLink>
+
+            {/* User */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-2.5 cursor-pointer pl-3 border-l border-border/50">
+                  <span className="text-sm font-semibold text-foreground hidden lg:block">
+                    {(profile?.full_name || reseller.company_name).split(" ")[0]}
+                  </span>
+                  <div className="relative size-9 rounded-full overflow-hidden border-2 border-primary/30 hover:ring-2 hover:ring-primary/40 transition-all">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                        {(profile?.full_name || reseller.company_name).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <ChevronDown className="size-4 text-muted-foreground hidden sm:block" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card border-border">
+                <DropdownMenuItem asChild>
+                  <NavLink to="/wallet" className="flex items-center gap-2 text-foreground cursor-pointer">
+                    <Wallet className="size-4" /> Minha Carteira
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <NavLink to="/tickets" className="flex items-center gap-2 text-foreground cursor-pointer">
+                    <Ticket className="size-4" /> Meus Tickets
+                  </NavLink>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+                  <LogOut className="size-4 mr-2" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
