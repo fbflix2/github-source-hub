@@ -53,6 +53,7 @@ import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 import Public2FA from "./pages/Public2FA";
 import RevendaPortal from "./pages/revenda/RevendaPortal";
+import RevendaCadastro from "./pages/revenda/RevendaCadastro";
 
 // SocialSafe Pages
 import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
@@ -463,6 +464,10 @@ const App = () => {
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/op/:slug" element={<PublicAmizades />} />
+                <Route
+                  path="/revenda/cadastro"
+                  element={user ? <Navigate to="/revenda" replace /> : <RevendaCadastro />}
+                />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
