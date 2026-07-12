@@ -336,7 +336,7 @@ export default function ItemDetails() {
               const url = extractBmInviteLink(line);
               if (!url) return;
               collectedLinks.push(url);
-              const fallback = !isGenericBmName(fallbackName) ? fallbackName?.trim() : "";
+              const fallback = !isGenericBmName(fallbackName) ? (fallbackName?.trim() || "") : "";
               const name = extractBmNameFromRaw(line) || fallback || "";
               if (name && !nameByUrl.get(url)) nameByUrl.set(url, name);
             };
@@ -360,7 +360,7 @@ export default function ItemDetails() {
                 if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach((line: string) => registerLine(line));
               });
 
-              // 2. stock_items identification_link + raw_data across all items
+              // 2. stock_items identification_link + saved data across all items
               const { data: bmStockItems } = await supabase
                 .from("stock_items")
                 .select("identification_link, data, name")
