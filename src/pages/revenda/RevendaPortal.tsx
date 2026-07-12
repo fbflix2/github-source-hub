@@ -644,10 +644,45 @@ export default function RevendaPortal() {
                   onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
                   placeholder="painel.suamarca.com.br"
                 />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Configure um CNAME apontando para <code>fbflix.com.br</code>. Após validação pelo
-                  admin, seu painel ficará disponível no seu domínio.
-                </p>
+                <div className="mt-3 rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
+                  <p className="font-semibold text-foreground flex items-center gap-1">
+                    <Globe className="size-3" /> Como configurar seu domínio
+                  </p>
+                  <p className="text-muted-foreground">
+                    Acesse o painel do seu registrador (Registro.br, GoDaddy, Cloudflare, Hostgator…)
+                    e crie os registros DNS abaixo para o domínio informado acima:
+                  </p>
+                  <div className="rounded-md bg-background/60 border border-border/40 p-2 font-mono text-[11px] leading-relaxed">
+                    <div><span className="text-muted-foreground">Tipo:</span> CNAME</div>
+                    <div><span className="text-muted-foreground">Nome/Host:</span> painel <span className="text-muted-foreground">(ou o subdomínio que quiser)</span></div>
+                    <div><span className="text-muted-foreground">Valor/Destino:</span> cname.fbflix.com.br</div>
+                    <div><span className="text-muted-foreground">TTL:</span> 3600</div>
+                  </div>
+                  <div className="rounded-md bg-background/60 border border-border/40 p-2 font-mono text-[11px] leading-relaxed">
+                    <div><span className="text-muted-foreground">Tipo:</span> TXT</div>
+                    <div><span className="text-muted-foreground">Nome/Host:</span> _fbflix-verify</div>
+                    <div><span className="text-muted-foreground">Valor:</span> fbflix-reseller={reseller.id.slice(0, 24)}</div>
+                    <div><span className="text-muted-foreground">TTL:</span> 3600</div>
+                  </div>
+                  <ol className="list-decimal list-inside text-muted-foreground space-y-1 pl-1">
+                    <li>Salve os registros no seu registrador.</li>
+                    <li>Aguarde a propagação DNS (pode levar de 5 min a 24h).</li>
+                    <li>Preencha o domínio no campo acima e clique em <strong>Salvar alterações</strong>.</li>
+                    <li>Nossa equipe valida e emite o certificado SSL automaticamente. Você verá o status mudar para <Badge variant="outline" className="ml-0.5 py-0 px-1 text-[10px]">verified</Badge>.</li>
+                  </ol>
+                  <p className="text-muted-foreground">
+                    Enquanto o domínio não é verificado, seu painel continua funcionando normalmente em{" "}
+                    <code className="text-foreground">{window.location.origin}/revenda/{reseller.slug}</code>.
+                  </p>
+                  {reseller.custom_domain && (
+                    <p className="pt-1 border-t border-border/40">
+                      Status atual:{" "}
+                      <Badge variant="outline" className="ml-1">
+                        {reseller.domain_status || "pending"}
+                      </Badge>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
