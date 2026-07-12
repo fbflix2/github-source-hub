@@ -94,14 +94,16 @@ export function GlobePulse({
         markerColor: [0.86, 0.15, 0.15],
         glowColor: [0.05, 0.05, 0.05],
         markers: markers.map((m) => ({ location: m.location, size: 0.03 })),
-        onRender: (state) => {
-          if (!isPausedRef.current) phi += speed;
-          state.phi = phi + phiOffsetRef.current + dragOffset.current.phi;
-          state.theta = 0.2 + thetaOffsetRef.current + dragOffset.current.theta;
-          state.width = width * 2;
-          state.height = width * 2;
-        },
       });
+      const animate = () => {
+        if (!isPausedRef.current) phi += speed;
+        globe!.update({
+          phi: phi + phiOffsetRef.current + dragOffset.current.phi,
+          theta: 0.2 + thetaOffsetRef.current + dragOffset.current.theta,
+        });
+        animationId = requestAnimationFrame(animate);
+      };
+      animate();
       requestAnimationFrame(() => {
         if (canvas) canvas.style.opacity = "1";
       });
