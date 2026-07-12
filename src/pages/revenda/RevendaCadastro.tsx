@@ -5,20 +5,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import {
-  Store,
   Building2,
   Mail,
   User,
   Phone,
   Lock,
   Loader2,
-  Sparkles,
-  ShieldCheck,
   ArrowRight,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 function slugify(input: string) {
   return input
@@ -181,100 +179,97 @@ export default function RevendaCadastro() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#0a0505] text-foreground font-display relative overflow-hidden">
-      {/* Ambient bg */}
+    <div className="min-h-screen w-full flex bg-black text-foreground font-display relative overflow-hidden antialiased">
+      {/* Ambient light — extremely subtle */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-primary/15 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[35%] h-[35%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[-30%] left-[-10%] w-[60%] h-[80%] bg-primary/[0.06] rounded-full blur-[180px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[50%] bg-primary/[0.03] rounded-full blur-[160px]" />
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }}
+        />
       </div>
 
-      {/* Left panel */}
-      <aside className="hidden lg:flex relative z-10 w-[42%] xl:w-[38%] flex-col justify-between p-10 xl:p-14 border-r border-border/30 bg-gradient-to-br from-card/40 to-transparent backdrop-blur-xl">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-primary">
-            <div className="size-10 rounded-xl bg-gradient-to-br from-primary to-red-900 flex items-center justify-center shadow-lg shadow-primary/30">
-              <Store className="size-5 text-white" />
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-widest">
+      {/* Left — editorial black canvas */}
+      <aside className="hidden lg:flex relative z-10 w-[46%] xl:w-[44%] flex-col justify-between p-12 xl:p-16 border-r border-white/[0.06]">
+        <div>
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <img
+              src={logoFbflix}
+              alt="FBFlix"
+              className="h-10 w-auto object-contain drop-shadow-[0_0_18px_rgba(220,38,38,0.35)] transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+            <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/40 border-l border-white/10 pl-3">
               Programa de Revenda
             </span>
-          </div>
-          <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-tight">
-            Construa sua marca no{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/50 bg-clip-text text-transparent">
-              maior ecossistema
-            </span>{" "}
-            de proxies do Brasil.
-          </h1>
-          <p className="text-sm text-muted-foreground mt-4 max-w-md leading-relaxed">
-            Painel white-label completo, precificação livre por proxy, comissão automática
-            e suporte técnico dedicado. Comece a revender em minutos.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {[
-            {
-              icon: <Sparkles className="size-4" />,
-              t: "Painel white-label",
-              d: "Sua marca, seu domínio, sua identidade visual.",
-            },
-            {
-              icon: <ShieldCheck className="size-4" />,
-              t: "Infraestrutura FBFlix",
-              d: "99.94% de uptime e suporte técnico em até 30min.",
-            },
-            {
-              icon: <Building2 className="size-4" />,
-              t: "Precificação flexível",
-              d: "Defina sua margem em cada proxy, sem intermediários.",
-            },
-          ].map((f) => (
-            <div key={f.t} className="flex items-start gap-3">
-              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                {f.icon}
-              </div>
-              <div>
-                <p className="text-sm font-bold">{f.t}</p>
-                <p className="text-xs text-muted-foreground">{f.d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-[11px] text-muted-foreground">
-          Já tem uma conta?{" "}
-          <Link to="/auth" className="text-primary hover:underline">
-            Fazer login
           </Link>
-        </p>
+        </div>
+
+        <div className="space-y-8 max-w-lg">
+          <h1 className="text-5xl xl:text-[3.75rem] font-semibold tracking-[-0.03em] leading-[1.02] text-white">
+            Construa sua marca sobre a maior infraestrutura de proxies do Brasil.
+          </h1>
+          <p className="text-[15px] text-white/50 leading-relaxed max-w-md">
+            Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
+          </p>
+
+          <div className="pt-4 space-y-4">
+            {[
+              "Painel white-label com seu domínio e identidade",
+              "Infraestrutura FBFlix · 99,94% de uptime",
+              "Precificação e margem livres por proxy",
+            ].map((t) => (
+              <div key={t} className="flex items-center gap-3 text-[13px] text-white/70">
+                <Check className="size-4 text-primary shrink-0" strokeWidth={2.5} />
+                <span>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-white/30">
+          <span>© {new Date().getFullYear()} FBFlix Proxies</span>
+          <Link to="/auth" className="text-white/50 hover:text-white transition-colors">
+            Já tem conta? <span className="text-primary">Entrar →</span>
+          </Link>
+        </div>
       </aside>
 
-      {/* Form */}
-      <main className="relative z-10 flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-        <Card className="w-full max-w-xl bg-card/60 border-border/40 backdrop-blur-xl p-6 md:p-8 shadow-2xl">
-          <div className="mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Cadastro de Revendedor
+      {/* Right — form */}
+      <main className="relative z-10 flex-1 flex items-center justify-center p-6 lg:p-10 overflow-y-auto">
+        <div className="w-full max-w-[460px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden mb-8 flex items-center gap-3">
+            <img src={logoFbflix} alt="FBFlix" className="h-9 w-auto" />
+            <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/40 border-l border-white/10 pl-3">
+              Revenda
+            </span>
+          </div>
+
+          <div className="mb-10">
+            <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
+              Crie sua conta
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Preencha os dados abaixo e acesse seu painel imediatamente.
+            <p className="text-[14px] text-white/45 mt-2">
+              Acesse seu painel de revenda em menos de 60 segundos.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Field
-              icon={<User className="size-4" />}
-              label="Seu nome completo"
+              label="Nome completo"
               value={form.full_name}
               onChange={(v) => update("full_name", v)}
               placeholder="Nome e sobrenome"
               autoComplete="name"
             />
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-5">
               <Field
-                icon={<Mail className="size-4" />}
                 label="E-mail"
                 type="email"
                 value={form.email}
@@ -283,7 +278,6 @@ export default function RevendaCadastro() {
                 autoComplete="email"
               />
               <Field
-                icon={<Phone className="size-4" />}
                 label="WhatsApp"
                 value={form.whatsapp}
                 onChange={(v) => update("whatsapp", maskPhone(v))}
@@ -293,7 +287,6 @@ export default function RevendaCadastro() {
             </div>
 
             <Field
-              icon={<Lock className="size-4" />}
               label="Senha"
               type="password"
               value={form.password}
@@ -302,20 +295,22 @@ export default function RevendaCadastro() {
               autoComplete="new-password"
             />
 
-            <div className="pt-3 border-t border-border/40 space-y-4">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Dados da empresa
-              </p>
-              <div className="grid md:grid-cols-2 gap-4">
+            <div className="pt-6 mt-2 border-t border-white/[0.06] space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/[0.06]" />
+                <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-white/35">
+                  Sua empresa
+                </p>
+                <div className="h-px flex-1 bg-white/[0.06]" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
                 <Field
-                  icon={<Building2 className="size-4" />}
                   label="Nome da empresa"
                   value={form.company_name}
                   onChange={(v) => update("company_name", v)}
                   placeholder="Ex: MinhaCloud Proxies"
                 />
                 <Field
-                  icon={<Building2 className="size-4" />}
                   label="CNPJ"
                   value={form.cnpj}
                   onChange={(v) => update("cnpj", maskCNPJ(v))}
@@ -323,13 +318,10 @@ export default function RevendaCadastro() {
                 />
               </div>
               {form.company_name.trim() && (
-                <div className="text-[11px] text-muted-foreground bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
-                  Seu painel será configurado como{" "}
-                  <span className="text-foreground font-bold">
-                    {form.company_name.trim()}
-                  </span>{" "}
-                  · slug sugerido:{" "}
-                  <span className="font-mono text-primary">
+                <div className="text-[12px] text-white/50 flex items-center gap-2 animate-fade-in">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  Seu painel:{" "}
+                  <span className="font-mono text-white/80">
                     /revenda/{slugify(form.company_name) || "revenda"}
                   </span>
                 </div>
@@ -340,39 +332,41 @@ export default function RevendaCadastro() {
               type="submit"
               disabled={loading}
               className={cn(
-                "w-full h-11 gap-2 font-bold shadow-lg shadow-primary/25",
-                "bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary"
+                "group relative w-full h-12 gap-2 mt-2 rounded-xl font-medium text-[14px]",
+                "bg-white text-black hover:bg-white/90",
+                "shadow-[0_10px_40px_-8px_rgba(255,255,255,0.15)] transition-all duration-300",
+                "hover:shadow-[0_12px_48px_-6px_rgba(255,255,255,0.25)]"
               )}
             >
               {loading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <>
-                  Criar meu painel de revenda
-                  <ArrowRight className="size-4" />
+                  Criar meu painel
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
             </Button>
 
-            <p className="text-[11px] text-muted-foreground text-center">
+            <p className="text-[11px] text-white/35 text-center leading-relaxed pt-1">
               Ao continuar você concorda com os{" "}
-              <Link to="/termos" className="underline hover:text-foreground">
+              <Link to="/termos" className="text-white/60 hover:text-white transition-colors">
                 Termos
               </Link>{" "}
               e{" "}
-              <Link to="/privacidade" className="underline hover:text-foreground">
+              <Link to="/privacidade" className="text-white/60 hover:text-white transition-colors">
                 Política de Privacidade
               </Link>
               .
             </p>
-            <p className="text-xs text-center text-muted-foreground lg:hidden">
+            <p className="text-[12px] text-center text-white/40 lg:hidden pt-2">
               Já tem conta?{" "}
               <Link to="/auth" className="text-primary hover:underline">
                 Fazer login
               </Link>
             </p>
           </form>
-        </Card>
+        </div>
       </main>
     </div>
   );
@@ -385,7 +379,6 @@ function Field({
   placeholder,
   type = "text",
   autoComplete,
-  icon,
 }: {
   label: string;
   value: string;
@@ -393,31 +386,26 @@ function Field({
   placeholder?: string;
   type?: string;
   autoComplete?: string;
-  icon?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+    <div className="space-y-2 group">
+      <Label className="text-[11px] font-medium tracking-[0.02em] text-white/50 group-focus-within:text-white transition-colors">
         {label}
       </Label>
-      <div className="relative">
-        {icon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            {icon}
-          </span>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        type={type}
+        autoComplete={autoComplete}
+        className={cn(
+          "h-11 bg-white/[0.02] border-white/[0.08] rounded-xl px-4 text-[14px]",
+          "text-white placeholder:text-white/25",
+          "hover:bg-white/[0.03] hover:border-white/[0.12]",
+          "focus-visible:bg-white/[0.04] focus-visible:border-white/25 focus-visible:ring-0 focus-visible:ring-offset-0",
+          "transition-all duration-200"
         )}
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          type={type}
-          autoComplete={autoComplete}
-          className={cn(
-            "bg-background/60 border-border/40 focus-visible:ring-primary/40",
-            icon && "pl-10"
-          )}
-        />
-      </div>
+      />
     </div>
   );
 }
