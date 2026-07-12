@@ -265,12 +265,13 @@ export default function RevendaCadastro() {
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Button>
 
-            <div className="pt-2">
-              <BrandMarquee />
-            </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-white/30">
+          <div className="mt-auto pt-8">
+            <BrandMarquee />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-white/30 pt-4">
             <span>© {new Date().getFullYear()} FBFlix Proxies</span>
             <Link to="/auth" className="text-white/50 hover:text-white transition-colors">
               Já tem conta? <span className="text-primary">Entrar →</span>
