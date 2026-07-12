@@ -254,21 +254,8 @@ export default function RevendaCadastro() {
             Painel white-label, precificação livre e comissão automática. Sem burocracia, sem intermediários.
           </p>
 
-          <div className="pt-4 grid grid-cols-2 gap-3 max-w-md">
-            {[
-              { icon: Shield, label: "Proxy Residencial" },
-              { icon: Network, label: "Proxy Dedicado" },
-              { icon: Globe2, label: "Proxy Internacional" },
-              { icon: LockIcon, label: "Proxy Anti-Bloqueio" },
-            ].map(({ icon: Icon, label }) => (
-              <div
-                key={label}
-                className="flex items-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm px-3 py-2.5"
-              >
-                <Icon className="size-4 text-primary shrink-0" strokeWidth={2} />
-                <span className="text-[12px] text-white/80 font-medium">{label}</span>
-              </div>
-            ))}
+          <div className="pt-4 max-w-md">
+            <BrandMarquee />
           </div>
         </div>
 
@@ -291,7 +278,6 @@ export default function RevendaCadastro() {
             </span>
           </div>
 
-          <BrandMarquee />
           <div className="mb-10">
             <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
               Crie sua conta
