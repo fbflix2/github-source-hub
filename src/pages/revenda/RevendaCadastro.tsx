@@ -268,34 +268,34 @@ export default function RevendaCadastro() {
       </aside>
 
       {/* Right — form */}
-      <main className="relative z-10 flex-1 flex items-center justify-center p-6 lg:p-10 overflow-y-auto">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:p-6 lg:p-10 overflow-y-auto">
         <div className="w-full max-w-[460px]">
           {/* Mobile logo */}
-          <div className="lg:hidden mb-8 flex items-center gap-3">
+          <div className="lg:hidden mb-6 sm:mb-8 flex items-center gap-3">
             <img src={logoFbflix} alt="FBFlix" className="h-9 w-auto" />
             <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/40 border-l border-white/10 pl-3">
               Revenda
             </span>
           </div>
 
-          <div className="mb-10">
+          <div className="mb-8 sm:mb-10">
             <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-3.5">
-              <p className="text-[13px] leading-relaxed text-white/75">
+              <p className="text-[12px] sm:text-[13px] leading-relaxed text-white/75">
                 Agências que vendem perfis e BM têm um faturamento médio de{" "}
                 <span className="font-semibold text-white">R$ 6.527,00</span> a{" "}
                 <span className="font-semibold text-white">R$ 19.324,00</span>{" "}
                 a mais por mês revendendo nossos proxies.
               </p>
             </div>
-            <h2 className="text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
+            <h2 className="text-[1.6rem] sm:text-[2rem] font-semibold tracking-[-0.02em] leading-tight text-white">
               Crie sua conta
             </h2>
-            <p className="text-[14px] text-white/45 mt-2">
+            <p className="text-[13px] sm:text-[14px] text-white/45 mt-2">
               Acesse seu painel de revenda em menos de 60 segundos.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <Field
               label="Nome completo"
               value={form.full_name}
@@ -304,7 +304,7 @@ export default function RevendaCadastro() {
               autoComplete="name"
             />
 
-            <div className="grid md:grid-cols-2 gap-5">
+            <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
               <Field
                 label="E-mail"
                 type="email"
@@ -331,7 +331,7 @@ export default function RevendaCadastro() {
               autoComplete="new-password"
             />
 
-            <div className="pt-6 mt-2 border-t border-white/[0.06] space-y-5">
+            <div className="pt-6 mt-2 border-t border-white/[0.06] space-y-4 sm:space-y-5">
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-white/[0.06]" />
                 <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-white/35">
@@ -339,7 +339,7 @@ export default function RevendaCadastro() {
                 </p>
                 <div className="h-px flex-1 bg-white/[0.06]" />
               </div>
-              <div className="grid md:grid-cols-2 gap-5">
+              <div className="grid md:grid-cols-2 gap-4 sm:gap-5">
                 <Field
                   label="Nome da empresa"
                   value={form.company_name}
@@ -354,8 +354,8 @@ export default function RevendaCadastro() {
                 />
               </div>
               {form.company_name.trim() && (
-                <div className="text-[12px] text-white/50 flex items-center gap-2 animate-fade-in">
-                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                <div className="text-[12px] text-white/50 flex items-center gap-2 animate-fade-in break-all">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse shrink-0" />
                   Seu painel:{" "}
                   <span className="font-mono text-white/80">
                     /revenda/{slugify(form.company_name) || "revenda"}
@@ -474,7 +474,7 @@ function Field({
         type={type}
         autoComplete={autoComplete}
         className={cn(
-          "h-11 bg-white/[0.02] border-white/[0.08] rounded-xl px-4 text-[14px]",
+          "h-11 bg-white/[0.02] border-white/[0.08] rounded-xl px-4 text-base sm:text-[14px]",
           "text-white placeholder:text-white/25",
           "hover:bg-white/[0.03] hover:border-white/[0.12]",
           "focus-visible:bg-white/[0.04] focus-visible:border-white/25 focus-visible:ring-0 focus-visible:ring-offset-0",
