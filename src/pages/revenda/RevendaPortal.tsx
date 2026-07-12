@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { ResellerLoja } from "@/components/revenda/ResellerLoja";
+import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 
 interface Reseller {
   id: string;
@@ -89,7 +90,7 @@ export default function RevendaPortal() {
   const [copied, setCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade"
+    "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -219,6 +220,7 @@ export default function RevendaPortal() {
   const navItems = [
     { id: "overview", label: "Dashboard", icon: LayoutDashboard },
     { id: "loja", label: "Loja de Proxies", icon: Store },
+    { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
     { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
