@@ -311,6 +311,7 @@ export default function ItemDetails() {
           // If product is BM type, fetch all BM links for this order
           if (prod.icon_type === "bm") {
             const collectedLinks: string[] = [];
+            const collectedIds: string[] = [];
 
             // Fetch all items for the order to aggregate links
             const { data: allOrderItems } = await supabase
@@ -327,7 +328,10 @@ export default function ItemDetails() {
                 if (dd && typeof dd === "object" && Array.isArray(dd.bmLinks)) {
                   dd.bmLinks.forEach((link: string) => {
                     const trimmed = extractBmInviteLink(link);
-                    if (trimmed) collectedLinks.push(trimmed);
+                    if (trimmed) {
+                      collectedLinks.push(trimmed);
+                      collectedIds.push(extractBmIdFromRaw(link));
+                    }
                   });
                 }
               });
@@ -338,7 +342,10 @@ export default function ItemDetails() {
                 if (dd && typeof dd === "object" && dd.linkPerfil) {
                   dd.linkPerfil.split("\n").forEach((line: string) => {
                     const trimmed = extractBmInviteLink(line);
-                    if (trimmed) collectedLinks.push(trimmed);
+                    if (trimmed) {
+                      collectedLinks.push(trimmed);
+                      collectedIds.push(extractBmIdFromRaw(line));
+                    }
                   });
                 }
               });
@@ -355,15 +362,30 @@ export default function ItemDetails() {
                   if (s.identification_link) {
                     s.identification_link.split("\n").forEach((line: string) => {
                       const trimmed = extractBmInviteLink(line);
-                      if (trimmed) collectedLinks.push(trimmed);
+                      if (trimmed) {
+                        collectedLinks.push(trimmed);
+                        collectedIds.push(extractBmIdFromRaw(line));
+                      }
                     });
                   }
                 });
               }
             }
 
-            const unique = [...new Set(collectedLinks.map(l => l.trim()))];
-            if (unique.length > 0) setBmLinks(unique);
+            const seen = new Set<string>();
+            const uniqueLinks: string[] = [];
+            const uniqueIds: string[] = [];
+            collectedLinks.forEach((l, idx) => {
+              const t = l.trim();
+              if (!t || seen.has(t)) return;
+              seen.add(t);
+              uniqueLinks.push(t);
+              uniqueIds.push(collectedIds[idx] || "");
+            });
+            if (uniqueLinks.length > 0) {
+              setBmLinks(uniqueLinks);
+              setBmIds(uniqueIds);
+            }
           }
         }
       }
