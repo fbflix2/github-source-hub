@@ -3973,6 +3973,7 @@ export type Database = {
           accent_color: string | null
           balance_credits: number
           brand_name: string | null
+          cnpj: string | null
           commission_rate: number
           company_name: string
           created_at: string
@@ -4004,6 +4005,7 @@ export type Database = {
           accent_color?: string | null
           balance_credits?: number
           brand_name?: string | null
+          cnpj?: string | null
           commission_rate?: number
           company_name: string
           created_at?: string
@@ -4035,6 +4037,7 @@ export type Database = {
           accent_color?: string | null
           balance_credits?: number
           brand_name?: string | null
+          cnpj?: string | null
           commission_rate?: number
           company_name?: string
           created_at?: string
