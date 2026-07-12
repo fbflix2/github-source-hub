@@ -77,6 +77,7 @@ function maskPhone(v: string) {
 export default function RevendaCadastro() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showFormMobile, setShowFormMobile] = useState(false);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
