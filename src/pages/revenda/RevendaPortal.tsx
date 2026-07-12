@@ -297,6 +297,57 @@ export default function RevendaPortal() {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const hasChildren = "children" in item && Array.isArray((item as any).children);
+            if (hasChildren) {
+              const children = (item as any).children as { id: string; label: string; icon: any }[];
+              const anyChildActive = children.some((c) => c.id === activeSection);
+              const expanded = configOpen || anyChildActive;
+              return (
+                <div key={item.id} className="space-y-1">
+                  <button
+                    onClick={() => setConfigOpen((v) => !v)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      anyChildActive
+                        ? "text-foreground bg-muted/40"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{item.label}</span>
+                    <ChevronDown
+                      className={cn("size-4 ml-auto transition-transform", expanded && "rotate-180")}
+                    />
+                  </button>
+                  {expanded && (
+                    <div className="ml-3 pl-3 border-l border-border/40 space-y-1">
+                      {children.map((c) => {
+                        const CIcon = c.icon;
+                        const isActive = activeSection === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              setActiveSection(c.id as typeof activeSection);
+                              setSidebarOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                              isActive
+                                ? "bg-gradient-to-r from-primary/90 to-primary/60 text-primary-foreground shadow-lg shadow-primary/25"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                          >
+                            <CIcon className="size-3.5 shrink-0" />
+                            <span>{c.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
             const isActive = activeSection === item.id;
             return (
               <button
