@@ -357,8 +357,8 @@ export default function ItemDetails() {
                     if (typeof rd.linkPerfil === "string") rd.linkPerfil.split("\n").forEach(registerLine);
                     if (Array.isArray(rd.bmLinks)) rd.bmLinks.forEach((l: string) => registerLine(l));
                   }
-                  // Fallback: pair stock_items.name with its single URL if any
-                  if (s.name && typeof s.identification_link === "string") {
+                  // Fallback: pair stock_items.name with its URL (ignore generic "BM #N")
+                  if (s.name && typeof s.identification_link === "string" && !/^bm\s*#?\d+$/i.test(String(s.name).trim())) {
                     const u = extractBmInviteLink(s.identification_link);
                     if (u && !nameByUrl.get(u)) nameByUrl.set(u, String(s.name));
                   }
