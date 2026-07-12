@@ -82,7 +82,7 @@ export default function ItemDetails() {
   const [stockData, setStockData] = useState<StockData>({});
   const [product, setProduct] = useState<any>(null);
   const [bmLinks, setBmLinks] = useState<string[]>([]);
-  const [bmIds, setBmIds] = useState<string[]>([]);
+  const [bmNames, setBmNames] = useState<string[]>([]);
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
@@ -310,7 +310,7 @@ export default function ItemDetails() {
           // If product is BM type, fetch all BM links for this order
           if (prod.icon_type === "bm") {
             const collectedLinks: string[] = [];
-            const collectedIds: string[] = [];
+            const collectedNames: string[] = [];
 
             // Fetch all items for the order to aggregate links
             const { data: allOrderItems } = await supabase
@@ -329,7 +329,7 @@ export default function ItemDetails() {
                     const trimmed = extractBmInviteLink(link);
                     if (trimmed) {
                       collectedLinks.push(trimmed);
-                      collectedIds.push(extractBmIdFromRaw(link));
+                      collectedNames.push(extractBmNameFromRaw(link));
                     }
                   });
                 }
@@ -343,7 +343,7 @@ export default function ItemDetails() {
                     const trimmed = extractBmInviteLink(line);
                     if (trimmed) {
                       collectedLinks.push(trimmed);
-                      collectedIds.push(extractBmIdFromRaw(line));
+                      collectedNames.push(extractBmNameFromRaw(line));
                     }
                   });
                 }
@@ -363,7 +363,7 @@ export default function ItemDetails() {
                       const trimmed = extractBmInviteLink(line);
                       if (trimmed) {
                         collectedLinks.push(trimmed);
-                        collectedIds.push(extractBmIdFromRaw(line));
+                        collectedNames.push(extractBmNameFromRaw(line));
                       }
                     });
                   }
@@ -373,17 +373,17 @@ export default function ItemDetails() {
 
             const seen = new Set<string>();
             const uniqueLinks: string[] = [];
-            const uniqueIds: string[] = [];
+            const uniqueNames: string[] = [];
             collectedLinks.forEach((l, idx) => {
               const t = l.trim();
               if (!t || seen.has(t)) return;
               seen.add(t);
               uniqueLinks.push(t);
-              uniqueIds.push(collectedIds[idx] || "");
+              uniqueNames.push(collectedNames[idx] || "");
             });
             if (uniqueLinks.length > 0) {
               setBmLinks(uniqueLinks);
-              setBmIds(uniqueIds);
+              setBmNames(uniqueNames);
             }
           }
         }
@@ -610,7 +610,7 @@ export default function ItemDetails() {
   const downloadBmBloco = () => {
     const content = bmLinks
       .map((link, i) => {
-        const id = bmIds[i];
+        const id = bmNames[i];
         return id ? `BM #${i + 1} | ID ${id}: ${link}` : `BM #${i + 1}: ${link}`;
       })
       .join("\n");
@@ -930,7 +930,7 @@ export default function ItemDetails() {
                           <div key={i}>
                             <label className="text-[10px] text-text-secondary mb-0.5 block">
                               BM #{i + 1}
-                              {bmIds[i] ? <span className="text-text-secondary/70"> | ID {bmIds[i]}</span> : null}
+                              {bmNames[i] ? <span className="text-text-secondary/70"> | ID {bmNames[i]}</span> : null}
                             </label>
                             <div className="flex items-center gap-1">
                               <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-green-400 truncate">
