@@ -219,8 +219,7 @@ export default function RevendaPortal() {
   const suspended = reseller.status === "suspended" || reseller.status === "inactive";
 
   const navItems = [
-    { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-    { id: "loja", label: "Loja de Proxies", icon: Store },
+    { id: "overview", label: "Loja", icon: Store },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
