@@ -310,7 +310,15 @@ export default function ItemDetails() {
           // If product is BM type, fetch all BM links for this order
           if (prod.icon_type === "bm") {
             const collectedLinks: string[] = [];
-            const collectedNames: string[] = [];
+            // Map url -> best name found across all sources
+            const nameByUrl = new Map<string, string>();
+            const registerLine = (line: string) => {
+              const url = extractBmInviteLink(line);
+              if (!url) return;
+              collectedLinks.push(url);
+              const name = extractBmNameFromRaw(line);
+              if (name && !nameByUrl.get(url)) nameByUrl.set(url, name);
+            };
 
             // Fetch all items for the order to aggregate links
             const { data: allOrderItems } = await supabase
@@ -321,51 +329,38 @@ export default function ItemDetails() {
             if (allOrderItems?.length) {
               const itemIds = allOrderItems.map((oi: any) => oi.id);
 
-              // 1. Check delivery_data.bmLinks array across all items
+              // 1. delivery_data.bmLinks, linkPerfil, rawBmInput across all items
               allOrderItems.forEach((oi: any) => {
                 const dd = oi.delivery_data;
-                if (dd && typeof dd === "object" && Array.isArray(dd.bmLinks)) {
-                  dd.bmLinks.forEach((link: string) => {
-                    const trimmed = extractBmInviteLink(link);
-                    if (trimmed) {
-                      collectedLinks.push(trimmed);
-                      collectedNames.push(extractBmNameFromRaw(link));
-                    }
-                  });
-                }
+                if (!dd || typeof dd !== "object") return;
+                if (Array.isArray(dd.bmLinks)) dd.bmLinks.forEach((l: string) => registerLine(l));
+                if (typeof dd.linkPerfil === "string") dd.linkPerfil.split("\n").forEach(registerLine);
+                if (typeof dd.rawBmInput === "string") dd.rawBmInput.split("\n").forEach(registerLine);
+                if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach(registerLine);
               });
 
-              // 2. Also check delivery_data.linkPerfil across all items
-              allOrderItems.forEach((oi: any) => {
-                const dd = oi.delivery_data;
-                if (dd && typeof dd === "object" && dd.linkPerfil) {
-                  dd.linkPerfil.split("\n").forEach((line: string) => {
-                    const trimmed = extractBmInviteLink(line);
-                    if (trimmed) {
-                      collectedLinks.push(trimmed);
-                      collectedNames.push(extractBmNameFromRaw(line));
-                    }
-                  });
-                }
-              });
-
-              // 3. Check stock_items identification_link across all items
+              // 2. stock_items identification_link + raw_data across all items
               const { data: bmStockItems } = await supabase
                 .from("stock_items")
-                .select("identification_link")
+                .select("identification_link, raw_data, name")
                 .in("order_item_id", itemIds)
                 .eq("type", "bm");
 
               if (bmStockItems?.length) {
                 bmStockItems.forEach((s: any) => {
-                  if (s.identification_link) {
-                    s.identification_link.split("\n").forEach((line: string) => {
-                      const trimmed = extractBmInviteLink(line);
-                      if (trimmed) {
-                        collectedLinks.push(trimmed);
-                        collectedNames.push(extractBmNameFromRaw(line));
-                      }
-                    });
+                  if (typeof s.identification_link === "string") {
+                    s.identification_link.split("\n").forEach(registerLine);
+                  }
+                  const rd = s.raw_data;
+                  if (rd && typeof rd === "object") {
+                    if (typeof rd.rawBmInput === "string") rd.rawBmInput.split("\n").forEach(registerLine);
+                    if (typeof rd.linkPerfil === "string") rd.linkPerfil.split("\n").forEach(registerLine);
+                    if (Array.isArray(rd.bmLinks)) rd.bmLinks.forEach((l: string) => registerLine(l));
+                  }
+                  // Fallback: pair stock_items.name with its URL (ignore generic "BM #N")
+                  if (s.name && typeof s.identification_link === "string" && !/^bm\s*#?\d+$/i.test(String(s.name).trim())) {
+                    const u = extractBmInviteLink(s.identification_link);
+                    if (u && !nameByUrl.get(u)) nameByUrl.set(u, String(s.name));
                   }
                 });
               }
@@ -374,12 +369,12 @@ export default function ItemDetails() {
             const seen = new Set<string>();
             const uniqueLinks: string[] = [];
             const uniqueNames: string[] = [];
-            collectedLinks.forEach((l, idx) => {
+            collectedLinks.forEach((l) => {
               const t = l.trim();
               if (!t || seen.has(t)) return;
               seen.add(t);
               uniqueLinks.push(t);
-              uniqueNames.push(collectedNames[idx] || "");
+              uniqueNames.push(nameByUrl.get(t) || "");
             });
             if (uniqueLinks.length > 0) {
               setBmLinks(uniqueLinks);
