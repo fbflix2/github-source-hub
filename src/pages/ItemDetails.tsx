@@ -929,7 +929,10 @@ export default function ItemDetails() {
                       <div className="space-y-2">
                         {bmLinks.map((link, i) => (
                           <div key={i}>
-                            <label className="text-[10px] text-text-secondary mb-0.5 block">BM #{i + 1}</label>
+                            <label className="text-[10px] text-text-secondary mb-0.5 block">
+                              BM #{i + 1}
+                              {bmIds[i] ? <span className="text-text-secondary/70"> | ID {bmIds[i]}</span> : null}
+                            </label>
                             <div className="flex items-center gap-1">
                               <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-green-400 truncate">
                                 {link}
