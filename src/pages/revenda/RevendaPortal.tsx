@@ -35,6 +35,16 @@ import { useNavigate } from "react-router-dom";
 import { ResellerLoja } from "@/components/revenda/ResellerLoja";
 import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { NavLink } from "react-router-dom";
+import { Ticket } from "lucide-react";
 
 interface Reseller {
   id: string;
@@ -90,6 +100,8 @@ export default function RevendaPortal() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
+  const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
     "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
   >("overview");
@@ -133,7 +145,7 @@ export default function RevendaPortal() {
           support_whatsapp: r.support_whatsapp || "",
           custom_domain: r.custom_domain || "",
         });
-        const [{ data: c }, { data: l }] = await Promise.all([
+        const [{ data: c }, { data: l }, { data: p }, { count: tkCount }] = await Promise.all([
           supabase
             .from("reseller_commissions")
             .select("*")
@@ -146,9 +158,25 @@ export default function RevendaPortal() {
             .eq("reseller_id", r.id)
             .order("created_at", { ascending: false })
             .limit(50),
+          supabase
+            .from("profiles")
+            .select("full_name,avatar_url,balance")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("tickets")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .in("status", ["open", "waiting_client"]),
         ]);
         setCommissions((c as Commission[]) || []);
         setLedger((l as LedgerEntry[]) || []);
+        setProfile({
+          full_name: (p as any)?.full_name ?? null,
+          avatar_url: (p as any)?.avatar_url ?? null,
+          balance: Number((p as any)?.balance ?? 0),
+        });
+        setUnreadTickets(tkCount || 0);
       }
       setLoading(false);
     })();
