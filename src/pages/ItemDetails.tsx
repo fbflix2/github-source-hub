@@ -355,9 +355,9 @@ export default function ItemDetails() {
                 const dd = oi.delivery_data;
                 if (!dd || typeof dd !== "object") return;
                 if (Array.isArray(dd.bmLinks)) dd.bmLinks.forEach((l: string, idx: number) => registerLine(l, Array.isArray(dd.bmNames) ? dd.bmNames[idx] : dd.nomeBM));
-                if (typeof dd.linkPerfil === "string") dd.linkPerfil.split("\n").forEach(registerLine);
-                if (typeof dd.rawBmInput === "string") dd.rawBmInput.split("\n").forEach(registerLine);
-                if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach(registerLine);
+                if (typeof dd.linkPerfil === "string") dd.linkPerfil.split("\n").forEach((line: string) => registerLine(line));
+                if (typeof dd.rawBmInput === "string") dd.rawBmInput.split("\n").forEach((line: string) => registerLine(line));
+                if (typeof dd.identification_link === "string") dd.identification_link.split("\n").forEach((line: string) => registerLine(line));
               });
 
               // 2. stock_items identification_link + raw_data across all items
