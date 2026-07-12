@@ -40,11 +40,11 @@ interface StockData {
    perfilMatriz?: string;
 }
 
-const extractBmInviteLink = (value: string) => {
+const extractBmInviteLink = (value?: string | null) => {
   return extractBmUrlFromInput(value);
 };
 
-const extractBmNameFromRaw = (value: string): string => {
+const extractBmNameFromRaw = (value?: string | null): string => {
   if (!value) return "";
   const extracted = extractBmNameFromInput(value);
   if (extracted) return extracted;
