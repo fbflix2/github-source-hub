@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
 import ExchangePaymentGate from "@/components/ExchangePaymentGate";
 import WarmingTrackerModal from "@/components/admin/WarmingTrackerModal";
+import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -40,11 +41,13 @@ interface StockData {
 }
 
 const extractBmInviteLink = (value: string) => {
-  return value.match(/https?:\/\/\S+/)?.[0] || value.trim();
+  return extractBmUrlFromInput(value);
 };
 
 const extractBmNameFromRaw = (value: string): string => {
   if (!value) return "";
+  const extracted = extractBmNameFromInput(value);
+  if (extracted) return extracted;
   // Take everything before the URL and clean separators (|, tab, colon, dash)
   const before = value.split(/https?:\/\//)[0] || "";
   const parts = before.split(/[|\t]/).map((p) => p.trim()).filter(Boolean);
@@ -52,6 +55,12 @@ const extractBmNameFromRaw = (value: string): string => {
   const named = parts.find((p) => !/^\d+$/.test(p));
   const chosen = named || parts[parts.length - 1] || "";
   return chosen.replace(/[\s:\-|]+$/, "").trim();
+};
+
+const isGenericBmName = (value?: string | null) => {
+  const name = value?.trim() || "";
+  if (!name) return true;
+  return /^bm$/i.test(name) || /^bm\s*#?\d+$/i.test(name) || /^bm\s+\d+\s+do\s+combo$/i.test(name);
 };
 
 export default function ItemDetails() {
