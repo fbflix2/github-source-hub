@@ -83,6 +83,7 @@ export default function ItemDetails() {
   const [stockData, setStockData] = useState<StockData>({});
   const [product, setProduct] = useState<any>(null);
   const [bmLinks, setBmLinks] = useState<string[]>([]);
+  const [bmIds, setBmIds] = useState<string[]>([]);
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
