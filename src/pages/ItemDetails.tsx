@@ -43,16 +43,15 @@ const extractBmInviteLink = (value: string) => {
   return value.match(/https?:\/\/\S+/)?.[0] || value.trim();
 };
 
-const extractBmIdFromRaw = (value: string): string => {
+const extractBmNameFromRaw = (value: string): string => {
   if (!value) return "";
-  // Remove URL portion so we don't match digits inside the token
-  const withoutUrl = value.replace(/https?:\/\/\S+/g, " ");
-  // Prefer long numeric sequences (typical FB BM IDs have 13-17 digits)
-  const long = withoutUrl.match(/\b\d{13,20}\b/);
-  if (long) return long[0];
-  // Fallback: any 3+ digit sequence (short internal codes like "9692")
-  const short = withoutUrl.match(/\b\d{3,}\b/);
-  return short ? short[0] : "";
+  // Take everything before the URL and clean separators (|, tab, colon, dash)
+  const before = value.split(/https?:\/\//)[0] || "";
+  const parts = before.split(/[|\t]/).map((p) => p.trim()).filter(Boolean);
+  // Prefer a non-numeric-only part (real name like "Bm Fbflix 9692")
+  const named = parts.find((p) => !/^\d+$/.test(p));
+  const chosen = named || parts[parts.length - 1] || "";
+  return chosen.replace(/[\s:\-|]+$/, "").trim();
 };
 
 export default function ItemDetails() {
