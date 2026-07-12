@@ -259,6 +259,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
     return (
       <Routes>
         <Route path="/revenda" element={<RevendaPortal />} />
+        <Route path="/revenda/cadastro" element={<RevendaCadastro />} />
         <Route
           element={
             <MainLayout
@@ -282,6 +283,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
 
   return (
     <Routes>
+      <Route path="/revenda/cadastro" element={<RevendaCadastro />} />
       <Route
         element={
           <MainLayout
