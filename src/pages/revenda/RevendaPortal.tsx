@@ -719,70 +719,246 @@ export default function RevendaPortal() {
               </Card>
             )}
 
-            {activeSection === "dominio" && (
-              <Card className="p-5 bg-card/60 border-border/40 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Globe className="size-4 text-primary" />
-                  <h3 className="font-bold">Domínio próprio</h3>
-                </div>
+            {activeSection === "dominio" && (() => {
+              const txtToken = `fbflix-reseller=${reseller.id}`;
+              const status = reseller.domain_status || "pending";
+              const isVerified = status === "verified";
+              const copy = (label: string, value: string) => {
+                navigator.clipboard.writeText(value);
+                setCopiedField(label);
+                setTimeout(() => setCopiedField((c) => (c === label ? null : c)), 1600);
+              };
+              const statusStyle = isVerified
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                : status === "failed"
+                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                : "bg-amber-500/10 border-amber-500/20 text-amber-400";
+              const statusDot = isVerified ? "bg-emerald-500" : status === "failed" ? "bg-red-500" : "bg-amber-500";
+              const statusLabel = isVerified
+                ? "Verificado"
+                : status === "failed"
+                ? "Falha na verificação"
+                : "Verificação pendente";
 
-                <div>
-                  <Label>Seu domínio (CNAME)</Label>
-                  <Input
-                    value={brand.custom_domain}
-                    onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
-                    placeholder="painel.suamarca.com.br"
-                  />
-                </div>
+              return (
+                <div className="relative w-full max-w-3xl mx-auto rounded-2xl border border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
 
-                <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2 text-[12px]">
-                  <p className="font-semibold text-foreground flex items-center gap-1">
-                    <Globe className="size-3" /> Como configurar seu domínio
-                  </p>
-                  <p className="text-muted-foreground">
-                    Acesse o painel do seu registrador (Registro.br, GoDaddy, Cloudflare, Hostgator…)
-                    e crie os registros DNS abaixo para o domínio informado acima:
-                  </p>
-                  <div className="rounded-md bg-background/60 border border-border/40 p-2 font-mono text-[11px] leading-relaxed">
-                    <div><span className="text-muted-foreground">Tipo:</span> CNAME</div>
-                    <div><span className="text-muted-foreground">Nome/Host:</span> painel <span className="text-muted-foreground">(ou o subdomínio que quiser)</span></div>
-                    <div><span className="text-muted-foreground">Valor/Destino:</span> cname.fbflix.com.br</div>
-                    <div><span className="text-muted-foreground">TTL:</span> 3600</div>
+                  {/* Header */}
+                  <div className="p-6 md:p-8 pb-5 flex items-center justify-between border-b border-border/40 bg-card/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                        <Globe className="w-5 h-5 text-primary" />
+                      </div>
+                      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground font-display">
+                        Domínio próprio
+                      </h1>
+                    </div>
+                    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border", statusStyle)}>
+                      <span className="relative flex h-2 w-2">
+                        {!isVerified && (
+                          <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", statusDot)} />
+                        )}
+                        <span className={cn("relative inline-flex rounded-full h-2 w-2", statusDot)} />
+                      </span>
+                      <span className="text-[11px] uppercase tracking-wider font-bold">{statusLabel}</span>
+                    </div>
                   </div>
-                  <div className="rounded-md bg-background/60 border border-border/40 p-2 font-mono text-[11px] leading-relaxed">
-                    <div><span className="text-muted-foreground">Tipo:</span> TXT</div>
-                    <div><span className="text-muted-foreground">Nome/Host:</span> _fbflix-verify</div>
-                    <div><span className="text-muted-foreground">Valor:</span> fbflix-reseller={reseller.id.slice(0, 24)}</div>
-                    <div><span className="text-muted-foreground">TTL:</span> 3600</div>
+
+                  <div className="p-6 md:p-8 space-y-8">
+                    {/* Input */}
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                        Seu subdomínio personalizado
+                      </label>
+                      <div className="relative group">
+                        <Input
+                          value={brand.custom_domain}
+                          onChange={(e) => setBrand({ ...brand, custom_domain: e.target.value })}
+                          placeholder="painel.suamarca.com.br"
+                          className="w-full bg-background/40 border-border/40 rounded-xl px-5 py-6 text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/50 transition-all font-medium text-base"
+                        />
+                      </div>
+                    </div>
+
+                    {/* DNS Records */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-foreground/80 flex items-center gap-2 font-display">
+                          Configurações DNS
+                          <span className="text-[10px] bg-muted/40 border border-border/40 px-2 py-0.5 rounded text-muted-foreground font-normal normal-case tracking-normal">
+                            {isVerified ? "Propagado" : "Aguardando propagação"}
+                          </span>
+                        </h2>
+                      </div>
+
+                      <div className="grid gap-4">
+                        {/* CNAME */}
+                        <div className="bg-card/30 border border-border/30 rounded-xl p-5 hover:border-border/50 transition-colors">
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold tracking-widest uppercase border border-primary/20">
+                              CNAME
+                            </span>
+                            <button
+                              onClick={() =>
+                                copy(
+                                  "cname-all",
+                                  `Tipo: CNAME\nHost: painel\nValor: cname.fbflix.com.br\nTTL: 3600`
+                                )
+                              }
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                            >
+                              {copiedField === "cname-all" ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" /> Copiado
+                                </>
+                              ) : (
+                                <>
+                                  <span>Copiar tudo</span>
+                                  <Copy className="w-3.5 h-3.5" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter">
+                                Host / Nome
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-sm text-primary">painel</p>
+                                <button
+                                  onClick={() => copy("cname-host", "painel")}
+                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {copiedField === "cname-host" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter">
+                                Valor / Destino
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-sm text-foreground/90 truncate">cname.fbflix.com.br</p>
+                                <button
+                                  onClick={() => copy("cname-value", "cname.fbflix.com.br")}
+                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                >
+                                  {copiedField === "cname-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* TXT */}
+                        <div className="bg-card/30 border border-border/30 rounded-xl p-5 hover:border-border/50 transition-colors">
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="px-2 py-1 rounded bg-sky-500/10 text-sky-400 text-[10px] font-bold tracking-widest uppercase border border-sky-500/20">
+                              TXT
+                            </span>
+                            <button
+                              onClick={() =>
+                                copy(
+                                  "txt-all",
+                                  `Tipo: TXT\nHost: _fbflix-verify\nValor: ${txtToken}\nTTL: 3600`
+                                )
+                              }
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                            >
+                              {copiedField === "txt-all" ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" /> Copiado
+                                </>
+                              ) : (
+                                <>
+                                  <span>Copiar tudo</span>
+                                  <Copy className="w-3.5 h-3.5" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter">
+                                Host / Nome
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-sm text-foreground/90">_fbflix-verify</p>
+                                <button
+                                  onClick={() => copy("txt-host", "_fbflix-verify")}
+                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {copiedField === "txt-host" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter">
+                                Valor
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-xs text-foreground/90 truncate">{txtToken}</p>
+                                <button
+                                  onClick={() => copy("txt-value", txtToken)}
+                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                >
+                                  {copiedField === "txt-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Checklist */}
+                    <div className="relative pt-2">
+                      <div className="absolute left-4 top-8 bottom-0 w-px bg-border/40" />
+                      <div className="space-y-6">
+                        {[
+                          "Acesse o painel do seu registrador (Cloudflare, GoDaddy, Registro.br, Hostgator) e crie os registros acima.",
+                          "Aguarde a propagação DNS, que costuma levar entre 5 minutos e 24 horas.",
+                          "Preencha o campo de domínio acima e salve as alterações para iniciar a validação.",
+                          "Nossa equipe validará e emitirá o certificado SSL automaticamente após a propagação.",
+                        ].map((text, i) => (
+                          <div key={i} className="flex gap-6 relative">
+                            <div className="w-8 h-8 rounded-full bg-card border border-border/50 flex items-center justify-center text-xs font-bold shrink-0 z-10 text-foreground/80">
+                              {i + 1}
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed pt-1">{text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <ol className="list-decimal list-inside text-muted-foreground space-y-1 pl-1">
-                    <li>Salve os registros no seu registrador.</li>
-                    <li>Aguarde a propagação DNS (pode levar de 5 min a 24h).</li>
-                    <li>Preencha o domínio no campo acima e clique em <strong>Salvar alterações</strong>.</li>
-                    <li>Nossa equipe valida e emite o certificado SSL automaticamente. Você verá o status mudar para <Badge variant="outline" className="ml-0.5 py-0 px-1 text-[10px]">verified</Badge>.</li>
-                  </ol>
-                  <p className="text-muted-foreground">
-                    Enquanto o domínio não é verificado, seu painel continua funcionando normalmente em{" "}
-                    <code className="text-foreground">{window.location.origin}/revenda/{reseller.slug}</code>.
-                  </p>
-                  {reseller.custom_domain && (
-                    <p className="pt-1 border-t border-border/40">
-                      Status atual:{" "}
-                      <Badge variant="outline" className="ml-1">
-                        {reseller.domain_status || "pending"}
-                      </Badge>
+
+                  {/* Footer */}
+                  <div className="px-6 md:px-8 py-6 bg-card/30 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-[11px] text-muted-foreground text-center sm:text-left">
+                      Link temporário:{" "}
+                      <a
+                        href={`${window.location.origin}/revenda/${reseller.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-foreground/70 hover:text-foreground underline underline-offset-4 decoration-border transition-colors font-mono"
+                      >
+                        {window.location.host}/revenda/{reseller.slug}
+                      </a>
                     </p>
-                  )}
+                    <Button
+                      onClick={saveBranding}
+                      disabled={savingBrand}
+                      className="px-8 py-3 font-bold rounded-xl shadow-lg shadow-primary/20 font-display gap-2"
+                    >
+                      {savingBrand && <Loader2 className="size-4 animate-spin" />}
+                      Salvar alterações
+                    </Button>
+                  </div>
                 </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={saveBranding} disabled={savingBrand} className="gap-2">
-                    {savingBrand && <Loader2 className="size-4 animate-spin" />}
-                    Salvar alterações
-                  </Button>
-                </div>
-              </Card>
-            )}
+              );
+            })()}
 
             {activeSection === "link" && (
           <Card className="p-5 bg-card/60 border-border/40 space-y-3">
