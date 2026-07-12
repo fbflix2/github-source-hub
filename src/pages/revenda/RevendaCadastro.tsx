@@ -244,7 +244,7 @@ export default function RevendaCadastro() {
             </span>
           </Link>
 
-          <div className="space-y-6 py-8">
+          <div className="space-y-6 mt-[18vh] mb-auto">
             <h1 className="text-[2rem] sm:text-[2.4rem] font-semibold tracking-[-0.03em] leading-[1.08] text-white">
               Aumente em até 120% o faturamento da sua agência com sua própria infraestrutura de proxies.
             </h1>
