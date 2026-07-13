@@ -574,49 +574,6 @@ export default function RevendaPortal() {
                   <p className="text-sm text-muted-foreground mt-1">Visão geral do seu painel de revenda</p>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          icon={<TrendingUp className="size-4" />}
-          label="GMV Total"
-          value={`R$ ${Number(reseller.total_gmv).toFixed(2)}`}
-        />
-        <StatCard
-          icon={<ShoppingBag className="size-4" />}
-          label="Vendas"
-          value={String(reseller.total_referrals)}
-        />
-        {reseller.model === "percentage" ? (
-          <>
-            <StatCard
-              icon={<Wallet className="size-4" />}
-              label="A liberar (7d)"
-              value={`R$ ${stats.pending.toFixed(2)}`}
-              accent="text-yellow-400"
-            />
-            <StatCard
-              icon={<Percent className="size-4" />}
-              label="Comissões creditadas"
-              value={`R$ ${Number(reseller.total_commissions_earned).toFixed(2)}`}
-              accent="text-primary"
-            />
-          </>
-        ) : (
-          <>
-            <StatCard
-              icon={<Coins className="size-4" />}
-              label="Saldo créditos"
-              value={`R$ ${Number(reseller.balance_credits).toFixed(2)}`}
-              accent="text-primary"
-            />
-            <StatCard
-              icon={<Wallet className="size-4" />}
-              label="Recarga mín/mês"
-              value={`R$ ${Number(reseller.min_monthly_recharge).toFixed(0)}`}
-            />
-          </>
-        )}
-                </div>
-
                 {/* Catálogo abaixo */}
                 <ResellerLoja
                   resellerId={reseller.id}
