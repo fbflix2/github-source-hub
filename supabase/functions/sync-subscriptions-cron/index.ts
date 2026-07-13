@@ -443,6 +443,62 @@ Deno.serve(async (req) => {
                   continue;
                 }
 
+                // === RESELLER GUARD ===
+                // If the client belongs to a reseller, ensure the reseller has balance
+                // to cover the FBFlix reseller_cost for this product; otherwise skip and
+                // notify the reseller via WhatsApp.
+                let resellerDebit = 0;
+                let resellerRow: any = null;
+                try {
+                  const { data: clientProfile } = await sb
+                    .from("profiles")
+                    .select("reseller_id")
+                    .eq("user_id", sub.user_id)
+                    .maybeSingle();
+                  if (clientProfile?.reseller_id && sub.product_id) {
+                    const { data: prodCost } = await sb
+                      .from("products")
+                      .select("reseller_cost, name")
+                      .eq("id", sub.product_id)
+                      .maybeSingle();
+                    const unitCost = Number(prodCost?.reseller_cost || 0);
+                    resellerDebit = unitCost * proxyCount;
+                    if (resellerDebit > 0) {
+                      const { data: r } = await sb
+                        .from("resellers")
+                        .select("id, balance_credits, support_whatsapp, user_id, brand_name, company_name")
+                        .eq("id", clientProfile.reseller_id)
+                        .maybeSingle();
+                      resellerRow = r;
+                      const rBal = Number(r?.balance_credits || 0);
+                      if (rBal < resellerDebit) {
+                        console.log(`Auto-renewal SKIP ${sub.name}: reseller ${r?.id} insufficient balance (need R$${resellerDebit}, have R$${rBal})`);
+                        // Notify reseller via WhatsApp (owner phone fallback)
+                        try {
+                          let waPhone = (r?.support_whatsapp || "").replace(/\D/g, "");
+                          if (!waPhone && r?.user_id) {
+                            const { data: rp } = await sb.from("profiles").select("phone").eq("user_id", r.user_id).maybeSingle();
+                            waPhone = (rp?.phone || "").replace(/\D/g, "");
+                          }
+                          if (waPhone) {
+                            const brand = r?.brand_name || r?.company_name || "seu painel";
+                            const msg = `⚠️ *Saldo insuficiente para renovação*\n\nA renovação automática do proxy *${sub.name}* (${prodCost?.name || "produto"}) foi *bloqueada*.\n\n💰 Custo FBFlix: *R$ ${resellerDebit.toFixed(2)}*\n💳 Seu saldo atual: *R$ ${rBal.toFixed(2)}*\n\nO cliente final ainda *não foi notificado*. Recarregue seu saldo em ${brand} para liberar a renovação.\n\n_FBFlix_`;
+                            await sb.functions.invoke("wapi-send", {
+                              body: { action: "send-text", phone: waPhone, message: msg, event_key: "reseller_low_balance" },
+                            });
+                          }
+                        } catch (waErr: any) {
+                          console.error(`Auto-renewal reseller WA notify error: ${waErr.message}`);
+                        }
+                        continue;
+                      }
+                    }
+                  }
+                } catch (rErr: any) {
+                  console.error(`Auto-renewal reseller check error for ${sub.name}: ${rErr.message}`);
+                }
+                // === /RESELLER GUARD ===
+
                 if (sub.type === "proxybr") {
                   // Migrate ProxyBR to Webshare on renewal
                   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
