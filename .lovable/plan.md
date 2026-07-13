@@ -1,83 +1,60 @@
-## Novo modelo de revenda
+Vou entregar a loja pública do revendedor em fases, para você validar cada etapa antes da próxima.
 
-Eliminar os dois modelos atuais (comissão % e crédito com R$10 fixo) e adotar **um único modelo**: revendedor recarrega saldo → cada venda/renovação **debita o custo do proxy** (definido por nós, FBFlix, por produto) do saldo. A margem do revendedor é a diferença entre o preço que ele cobra e o custo FBFlix.
+## Visão geral
 
----
+Rota pública `/r/:slug` — igual ao layout da /loja atual, porém:
+- **Somente proxies** (perfis, BMs, combos ficam ocultos)
+- **Preço de venda** definido pelo revendedor (não o custo dele)
+- **Banners** do revendedor (audience='reseller') com marca/cor/logo dele
+- **Cadastro/login** do cliente final vinculado automaticamente ao revendedor
+- **Checkout** completo (PIX/cartão) → pedido registrado com `reseller_id`, comissão/débito de crédito já funciona pelo trigger existente
 
-### 1. Banco de dados
+## Fase 1 — Modelo de preços (esta entrega)
 
-**Novo campo em `products`:**
-- `reseller_cost` (numeric, default 0) — custo FBFlix cobrado do revendedor quando o produto é vendido/renovado. Editável apenas por admin.
+**Banco:**
+- Adicionar em `resellers`: `proxy_price_mode` ('multiplier'|'fixed'), `proxy_price_multiplier` (default 1.5), `proxy_fixed_price` (nullable), `whatsapp_number` (contato público), `about_text`, `hero_title`, `hero_subtitle`.
+- Adicionar em `profiles`: `reseller_id` (uuid, nullable) — vincula cliente final ao revendedor no cadastro.
+- Adicionar em `orders`: garantir que `reseller_id` seja auto-preenchido a partir do `profiles.reseller_id` do comprador (trigger).
 
-**Trigger `process_reseller_commission` reescrito** (renomeado logicamente para "process_reseller_debit"):
-- Ao concluir uma order com `reseller_id`, para cada `order_item` que seja proxy:
-  - Somar `products.reseller_cost × quantity` = **débito total**.
-  - Se `resellers.balance_credits >= débito`: debita, registra em `reseller_credit_ledger` (type `debit`, description "Custo FBFlix - {produto}") e atualiza `total_gmv`.
-  - Se saldo insuficiente: **não bloqueia a venda** (o cliente já pagou o revendedor), mas gera saldo negativo e cria alerta.
-- Remove a lógica atual de comissão percentual e a criação de linha em `reseller_commissions`.
+**UI do revendedor (`/revenda`):**
+- Nova aba "Minha Loja" onde o revendedor configura: multiplicador ou preço fixo, WhatsApp público, textos do hero, cor/logo.
 
-**Coluna `resellers.model`** é ignorada (mantida por retrocompatibilidade, default passa a `'prepaid'`). Colunas `commission_rate` e `proxy_unit_cost` deixam de ser usadas para novos revendedores mas são preservadas pra histórico.
+## Fase 2 — Storefront público `/r/:slug`
 
----
+- Página pública sem auth exigido para navegar.
+- Header com logo/nome/cor do revendedor.
+- Banner rotativo com banners `audience='reseller'` (só dele, filtrado por `reseller_id` — vamos adicionar coluna `reseller_id` nullable em `banners`; null = todos revendedores).
+- Catálogo de proxies (categoria `proxy` apenas) com preço = base × multiplicador (ou preço fixo).
+- Cards idênticos ao `ProxyProductCard` da /loja atual.
+- Filtro por finalidade (Youtube, TikTok, Apostas, etc).
+- Sem chat, sem perfis/BM/combos.
 
-### 2. Renovação de proxy
+## Fase 3 — Auth + Checkout do cliente final
 
-No fluxo de renovação automática (edge function `proxy-auto-renew` / `proxy-renew`):
+- `/r/:slug/auth` — login/cadastro. No cadastro, gravar `profiles.reseller_id = <id do revendedor daquele slug>`.
+- Cart context já existe. Checkout usa fluxo /checkout atual, mas:
+  - Se `profiles.reseller_id` do usuário logado != null → pedido sai com `reseller_id` preenchido.
+  - Trigger existente `process_reseller_commission` já debita o custo do saldo do revendedor.
+- Após login o cliente vai para `/r/:slug` (não para /loja do FBFlix).
+- Meus Pedidos / Wallet do cliente final continuam funcionando, mas escopo visual permanece.
 
-```text
-antes de renovar o proxy do cliente final:
-  ├─ SELECT products.reseller_cost do plano
-  ├─ SELECT resellers.balance_credits
-  ├─ se saldo >= custo:
-  │     debita saldo, registra ledger, prossegue renovação
-  └─ se saldo < custo:
-        ├─ NÃO renova (proxy entra em D+5 grace normal)
-        ├─ NÃO avisa o cliente final
-        ├─ dispara WhatsApp ao revendedor:
-        │    "⚠️ Saldo insuficiente para renovar proxy do cliente X.
-        │     Custo: R$ Y • Saldo atual: R$ Z • Recarregue no painel."
-        └─ registra em admin_notifications para o revendedor
-```
+## Fase 4 — Isolamento visual e de rotas
 
-WhatsApp é enviado via edge function `wapi-send` usando o `support_whatsapp` do revendedor (ou telefone do dono no `profiles`).
+- Cliente com `reseller_id != null` nunca vê /loja FBFlix, nem produtos não-proxy. Redirect global.
+- Navbar/branding trocam para marca do revendedor quando o usuário está vinculado a um.
 
----
+## Detalhes técnicos
 
-### 3. Painel Admin — nova aba "Revenda / Proxy"
+- Rota `/r/:slug` adicionada no bloco público de `App.tsx`, antes das rotas autenticadas.
+- Novo componente `ResellerPublicStorefront.tsx` (baseado em `ResellerLoja.tsx` já existente).
+- Preços calculados no cliente a partir de `resellers.proxy_price_mode` — sem PII exposta.
+- RLS: `resellers` recebe policy pública `SELECT` somente das colunas de vitrine (slug, brand_name, logo_url, primary_color, hero_*, whatsapp_number, proxy_price_*). Colunas sensíveis (`balance_credits`, `proxy_unit_cost`, `commission_rate`, `total_gmv`, etc) continuam restritas a admin/owner.
+- `banners` ganha `reseller_id uuid null` + policy pública para banners com `audience='reseller' AND active=true`.
 
-Novo menu no admin dentro da seção Revenda:
-- Lista todos os produtos de proxy (filtro por `icon_type = 'proxy'`).
-- Para cada linha: nome do proxy, país, preço público, **campo editável "Custo revenda (R$)"** salvando em `products.reseller_cost`.
-- Botão inline "Salvar" por linha ou save global.
-- Busca por nome/país.
+## O que vou implementar agora
 
----
+Fase 1 completa (banco + UI de config no painel do revendedor) + Fase 2 completa (storefront público navegável em `/r/:slug` mostrando os proxies com o preço configurado).
 
-### 4. Painel do Revendedor
+Fases 3 e 4 (checkout/auth do cliente final e isolamento) entrego em seguida, após você validar as fases 1 e 2.
 
-- Card de saldo já existe — só precisa ficar em destaque.
-- Aba/página "Extrato" já lê `reseller_credit_ledger`; os débitos automáticos aparecem lá com descrição "Custo FBFlix – {produto}".
-- Remover qualquer UI restante que mostre "comissão %" ou "R$10 fixo" — trocar por "Custo por proxy: definido pela FBFlix" e mostrar o custo ao lado de cada assinatura do cliente.
-- Banner de alerta amarelo/vermelho quando `balance_credits < X` (X = maior `reseller_cost` × 3, para dar buffer).
-
----
-
-### 5. Detalhes técnicos
-
-- Migration:
-  - `ALTER TABLE products ADD COLUMN reseller_cost numeric NOT NULL DEFAULT 0;`
-  - `CREATE OR REPLACE FUNCTION process_reseller_commission()` — reescrever conforme item 1.
-  - `ALTER TABLE resellers ALTER COLUMN model SET DEFAULT 'prepaid';`
-- Edge function `proxy-auto-renew`: adicionar pré-check de saldo + chamada ao `wapi-send`.
-- Frontend admin: nova rota `/admin/revenda/proxy-costs` com tabela editável.
-- Frontend revendedor: ajustar `ResellerAssinaturas.tsx` e cards do `RevendaPortal.tsx` para não citar comissão.
-
----
-
-### Fora de escopo
-
-- Não vou mexer em revendedores antigos que ainda tenham `reseller_commissions` pendentes (ficam no histórico; a partir de agora não geram mais linhas novas).
-- Não vou criar recarga automática — o revendedor continua recarregando manualmente via PIX/painel como já é hoje.
-- Não vou mudar o preço público dos proxies — o revendedor decide quanto cobra do cliente final.
-
-Confirma que posso implementar assim?
+Confirma que posso seguir por esse caminho?
