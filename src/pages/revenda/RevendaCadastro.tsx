@@ -419,9 +419,9 @@ export default function RevendaCadastro() {
               {form.company_name.trim() && (
                 <div className="text-[12px] text-white/50 flex items-center gap-2 animate-fade-in break-all">
                   <span className="size-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-                  Seu painel:{" "}
+                  Sua loja:{" "}
                   <span className="font-mono text-white/80">
-                    /revenda/{slugify(form.company_name) || "revenda"}
+                    /r/{slugify(form.company_name) || "revenda"}
                   </span>
                 </div>
               )}

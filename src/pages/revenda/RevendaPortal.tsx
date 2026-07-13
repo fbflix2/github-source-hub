@@ -37,6 +37,7 @@ import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
 import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import ResellerDashboard from "@/components/revenda/ResellerDashboard";
+import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -74,6 +75,12 @@ interface Reseller {
   total_gmv: number;
   total_commissions_earned: number;
   total_referrals: number;
+  proxy_price_mode?: string | null;
+  proxy_price_multiplier?: number | null;
+  proxy_fixed_price?: number | null;
+  hero_title?: string | null;
+  hero_subtitle?: string | null;
+  about_text?: string | null;
 }
 
 interface Commission {
@@ -105,7 +112,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -256,6 +263,7 @@ export default function RevendaPortal() {
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
     { id: "link", label: "Link de Revenda", icon: Globe },
+    { id: "minha-loja", label: "Minha Loja", icon: ShoppingBag },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
     {
       id: "configuracoes",
@@ -600,6 +608,10 @@ export default function RevendaPortal() {
 
             {activeSection === "assinaturas" && (
               <ResellerAssinaturas resellerId={reseller.id} />
+            )}
+
+            {activeSection === "minha-loja" && (
+              <ResellerStoreConfig resellerId={reseller.id} slug={reseller.slug} />
             )}
 
             {activeSection === "manutencao" && (
