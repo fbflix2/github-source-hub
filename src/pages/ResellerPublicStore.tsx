@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Helmet } from "react-helmet-async";
 import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
@@ -178,14 +177,26 @@ export default function ResellerPublicStore() {
     window.open(`https://wa.me/${num}`, "_blank");
   };
 
+  // Update <title> and favicon
+  useEffect(() => {
+    if (!reseller) return;
+    const prevTitle = document.title;
+    document.title = `${reseller.brand_name || reseller.company_name} — Proxies Premium`;
+    let favEl: HTMLLinkElement | null = null;
+    if (reseller.favicon_url) {
+      favEl = document.createElement("link");
+      favEl.rel = "icon";
+      favEl.href = reseller.favicon_url;
+      document.head.appendChild(favEl);
+    }
+    return () => {
+      document.title = prevTitle;
+      if (favEl) document.head.removeChild(favEl);
+    };
+  }, [reseller]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Helmet>
-        <title>{brandName} — Proxies Premium</title>
-        <meta name="description" content={heroSubtitle} />
-        {reseller.favicon_url && <link rel="icon" href={reseller.favicon_url} />}
-      </Helmet>
-
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
