@@ -541,6 +541,21 @@ export default function RevendaPortal() {
               </Card>
             )}
 
+            {activeSection === "dashboard" && (
+              <ResellerDashboard
+                resellerId={reseller.id}
+                primaryColor={reseller.primary_color}
+                totalGmv={Number(reseller.total_gmv || 0)}
+                totalCommissionsEarned={Number(reseller.total_commissions_earned || 0)}
+                totalReferrals={Number(reseller.total_referrals || 0)}
+                balanceCredits={Number(reseller.balance_credits || 0)}
+                pendingCommissions={stats.pending}
+                creditedCommissions={stats.credited}
+                brandName={reseller.brand_name || reseller.company_name}
+                onNavigate={(s) => setActiveSection(s as any)}
+              />
+            )}
+
             {activeSection === "overview" && (
               <div className="space-y-8 animate-fade-in">
                 {/* Banner acima */}
