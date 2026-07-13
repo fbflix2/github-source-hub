@@ -156,6 +156,27 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-2">
           <div>
+            <Label>Onde este banner aparece? *</Label>
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setAudience("store")}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 transition-all text-left ${audience === "store" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <span className="text-sm font-bold text-foreground">Loja FBFlix</span>
+                <span className="text-xs text-muted-foreground">Clientes finais</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudience("reseller")}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 transition-all text-left ${audience === "reseller" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <span className="text-sm font-bold text-foreground">Painel Revendedores</span>
+                <span className="text-xs text-muted-foreground">Portal /revenda</span>
+              </button>
+            </div>
+          </div>
+          <div>
             <Label>Título *</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título do banner" />
           </div>
