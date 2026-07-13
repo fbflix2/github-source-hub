@@ -242,6 +242,7 @@ export type Database = {
       banners: {
         Row: {
           active: boolean
+          audience: string
           background_color: string | null
           category: string | null
           created_at: string
@@ -256,6 +257,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          audience?: string
           background_color?: string | null
           category?: string | null
           created_at?: string
@@ -270,6 +272,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          audience?: string
           background_color?: string | null
           category?: string | null
           created_at?: string
