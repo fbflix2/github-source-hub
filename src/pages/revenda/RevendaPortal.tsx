@@ -35,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { ResellerLoja } from "@/components/revenda/ResellerLoja";
 import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
+import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -44,7 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
-import { Ticket } from "lucide-react";
+import { Ticket, Wrench } from "lucide-react";
 
 interface Reseller {
   id: string;
