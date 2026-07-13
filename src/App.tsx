@@ -75,6 +75,7 @@ import AdminBalanco from "./pages/admin/AdminBalanco";
 import AdminClientes from "./pages/admin/AdminClientes";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
 import AdminRevendedores from "./pages/admin/AdminRevendedores";
+import AdminRevendaProxyCusto from "./pages/admin/AdminRevendaProxyCusto";
 import AdminCupons from "./pages/admin/AdminCupons";
 import AdminTutoriais from "./pages/admin/AdminTutoriais";
 import AdminBanners from "./pages/admin/AdminBanners";
@@ -528,6 +529,7 @@ const App = () => {
                   <Route path="gestao-perfis" element={<AdminGestaoPerfis />} />
                   <Route path="parceiros" element={<AdminAfiliados />} />
                   <Route path="revendedores" element={<AdminRevendedores />} />
+                  <Route path="revendedores/custo-proxy" element={<AdminRevendaProxyCusto />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
