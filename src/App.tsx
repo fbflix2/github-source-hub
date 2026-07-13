@@ -484,6 +484,7 @@ const App = () => {
                 <Route path="/status" element={<Status />} />
                 <Route path="/op/:slug" element={<PublicAmizades />} />
                 <Route path="/revenda/cadastro" element={<RevendaCadastro />} />
+                <Route path="/r/:slug" element={<ResellerPublicStore />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
