@@ -3371,6 +3371,7 @@ export type Database = {
           name: string
           price: number
           price_label: string | null
+          reseller_cost: number
           slug: string | null
           status: string
           stock: number
@@ -3393,6 +3394,7 @@ export type Database = {
           name: string
           price?: number
           price_label?: string | null
+          reseller_cost?: number
           slug?: string | null
           status?: string
           stock?: number
@@ -3415,6 +3417,7 @@ export type Database = {
           name?: string
           price?: number
           price_label?: string | null
+          reseller_cost?: number
           slug?: string | null
           status?: string
           stock?: number
