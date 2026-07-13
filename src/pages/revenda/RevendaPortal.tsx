@@ -604,6 +604,18 @@ export default function RevendaPortal() {
               <ResellerAssinaturas resellerId={reseller.id} />
             )}
 
+            {activeSection === "manutencao" && (
+              <ResellerMaintenance
+                resellerId={reseller.id}
+                balance={Number(reseller.balance_credits || 0)}
+                swapPrice={Number((reseller as any).maintenance_swap_price ?? 2)}
+                dayPrice={Number((reseller as any).maintenance_day_price ?? 0.5)}
+                onBalanceChange={(nb) =>
+                  setReseller((prev) => (prev ? { ...prev, balance_credits: nb } : prev))
+                }
+              />
+            )}
+
             {activeSection === "vendas" && (
               <div className="animate-fade-in">
                 {reseller.model === "percentage" ? (
