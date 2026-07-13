@@ -554,6 +554,24 @@ Deno.serve(async (req) => {
                   end_date: newEnd.toISOString(),
                 }).eq("id", sub.id);
 
+                // Debit reseller balance (if this sub belongs to a reseller client)
+                if (resellerDebit > 0 && resellerRow) {
+                  try {
+                    const newBal = Number(resellerRow.balance_credits || 0) - resellerDebit;
+                    await sb.from("resellers").update({ balance_credits: newBal, updated_at: new Date().toISOString() }).eq("id", resellerRow.id);
+                    await sb.from("reseller_credit_ledger").insert({
+                      reseller_id: resellerRow.id,
+                      type: "debit",
+                      amount: resellerDebit,
+                      balance_after: newBal,
+                      reference_id: sub.id,
+                      description: `Custo FBFlix - Renovação automática ${sub.name}`,
+                    });
+                  } catch (dErr: any) {
+                    console.error(`Auto-renewal reseller debit error: ${dErr.message}`);
+                  }
+                }
+
                  console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
  
                  // 10. WhatsApp confirmation to client
