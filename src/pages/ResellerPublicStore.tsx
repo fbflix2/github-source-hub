@@ -145,6 +145,24 @@ export default function ResellerPublicStore() {
       return { ...prev, [id]: max ? Math.min(v, max) : v };
     });
 
+  // Update <title> and favicon based on reseller
+  useEffect(() => {
+    if (!reseller) return;
+    const prevTitle = document.title;
+    document.title = `${reseller.brand_name || reseller.company_name} — Proxies Premium`;
+    let favEl: HTMLLinkElement | null = null;
+    if (reseller.favicon_url) {
+      favEl = document.createElement("link");
+      favEl.rel = "icon";
+      favEl.href = reseller.favicon_url;
+      document.head.appendChild(favEl);
+    }
+    return () => {
+      document.title = prevTitle;
+      if (favEl) document.head.removeChild(favEl);
+    };
+  }, [reseller]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -176,24 +194,6 @@ export default function ResellerPublicStore() {
     const num = reseller.support_whatsapp.replace(/\D/g, "");
     window.open(`https://wa.me/${num}`, "_blank");
   };
-
-  // Update <title> and favicon
-  useEffect(() => {
-    if (!reseller) return;
-    const prevTitle = document.title;
-    document.title = `${reseller.brand_name || reseller.company_name} — Proxies Premium`;
-    let favEl: HTMLLinkElement | null = null;
-    if (reseller.favicon_url) {
-      favEl = document.createElement("link");
-      favEl.rel = "icon";
-      favEl.href = reseller.favicon_url;
-      document.head.appendChild(favEl);
-    }
-    return () => {
-      document.title = prevTitle;
-      if (favEl) document.head.removeChild(favEl);
-    };
-  }, [reseller]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
