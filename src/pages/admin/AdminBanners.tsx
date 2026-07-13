@@ -139,6 +139,22 @@ export default function AdminBanners() {
         </div>
 
         <div className="bg-card/60 backdrop-blur-xl border border-border p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex gap-2 bg-background/40 border border-border rounded-xl p-1 w-full md:w-auto">
+            <button
+              onClick={() => setAudienceFilter("store")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${audienceFilter === "store" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Store className="w-4 h-4" /> Loja FBFlix
+              <span className="text-[10px] opacity-70">({banners.filter(b => (b.audience || "store") === "store").length})</span>
+            </button>
+            <button
+              onClick={() => setAudienceFilter("reseller")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${audienceFilter === "reseller" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Users className="w-4 h-4" /> Revendedores
+              <span className="text-[10px] opacity-70">({banners.filter(b => b.audience === "reseller").length})</span>
+            </button>
+          </div>
           <div className="relative w-full md:max-w-md">
             <div className="bg-background/40 border border-border rounded-xl flex items-center h-12 w-full transition-colors focus-within:border-primary">
               <div className="pl-4 text-muted-foreground flex items-center justify-center"><Search className="w-5 h-5" /></div>
