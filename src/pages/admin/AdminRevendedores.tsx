@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check, LogIn } from "lucide-react";
+import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check, LogIn, Wallet } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Reseller {
   id: string;
@@ -214,17 +215,27 @@ export default function AdminRevendedores() {
             <p className="text-xs text-muted-foreground">Painéis white-label de revenda de proxies</p>
           </div>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="size-4" /> Novo revendedor
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/admin/revendedores/custo-proxy">
+              <Wallet className="size-4" /> Custo de revenda por proxy
+            </Link>
+          </Button>
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="size-4" /> Novo revendedor
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Total" value={resellers.length} />
         <StatCard label="Ativos" value={resellers.filter((r) => r.status === "active").length} />
-        <StatCard label="Modelo %" value={resellers.filter((r) => r.model === "percentage").length} />
-        <StatCard label="Modelo Crédito" value={resellers.filter((r) => r.model === "credit").length} />
+        <StatCard
+          label="Saldo total (R$)"
+          value={resellers.reduce((sum, r) => sum + Number(r.balance_credits || 0), 0).toFixed(2)}
+        />
+        <StatCard label="GMV total (R$)" value={resellers.reduce((sum, r) => sum + Number(r.total_gmv || 0), 0).toFixed(2)} />
       </div>
 
       {/* Lista */}
