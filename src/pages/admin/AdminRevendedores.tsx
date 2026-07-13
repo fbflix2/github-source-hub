@@ -593,7 +593,7 @@ export default function AdminRevendedores() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <Card className="p-4 bg-card/60 border-border/40">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
