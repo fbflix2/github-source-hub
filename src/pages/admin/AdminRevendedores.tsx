@@ -166,7 +166,7 @@ export default function AdminRevendedores() {
   };
 
   const copySlug = (slug: string, id: string) => {
-    const url = `${window.location.origin}/revenda/${slug}`;
+    const url = `${window.location.origin}/r/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     toast.success("Link copiado");
