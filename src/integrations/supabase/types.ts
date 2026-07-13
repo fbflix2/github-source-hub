@@ -252,6 +252,7 @@ export type Database = {
           image_url: string | null
           link_url: string | null
           position: number
+          reseller_id: string | null
           subtitle: string | null
           title: string
         }
@@ -267,6 +268,7 @@ export type Database = {
           image_url?: string | null
           link_url?: string | null
           position?: number
+          reseller_id?: string | null
           subtitle?: string | null
           title: string
         }
@@ -282,10 +284,19 @@ export type Database = {
           image_url?: string | null
           link_url?: string | null
           position?: number
+          reseller_id?: string | null
           subtitle?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "banners_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       block_templates: {
         Row: {
@@ -3976,6 +3987,7 @@ export type Database = {
       }
       resellers: {
         Row: {
+          about_text: string | null
           accent_color: string | null
           balance_credits: number
           brand_name: string | null
@@ -3988,6 +4000,8 @@ export type Database = {
           domain_verification_token: string | null
           domain_verified_at: string | null
           favicon_url: string | null
+          hero_subtitle: string | null
+          hero_title: string | null
           id: string
           logo_url: string | null
           maintenance_day_price: number
@@ -3998,6 +4012,9 @@ export type Database = {
           openpix_pix_key: string | null
           openpix_pix_key_type: string | null
           primary_color: string | null
+          proxy_fixed_price: number | null
+          proxy_price_mode: string
+          proxy_price_multiplier: number
           proxy_unit_cost: number
           slug: string
           status: string
@@ -4010,6 +4027,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          about_text?: string | null
           accent_color?: string | null
           balance_credits?: number
           brand_name?: string | null
@@ -4022,6 +4040,8 @@ export type Database = {
           domain_verification_token?: string | null
           domain_verified_at?: string | null
           favicon_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
           id?: string
           logo_url?: string | null
           maintenance_day_price?: number
@@ -4032,6 +4052,9 @@ export type Database = {
           openpix_pix_key?: string | null
           openpix_pix_key_type?: string | null
           primary_color?: string | null
+          proxy_fixed_price?: number | null
+          proxy_price_mode?: string
+          proxy_price_multiplier?: number
           proxy_unit_cost?: number
           slug: string
           status?: string
@@ -4044,6 +4067,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          about_text?: string | null
           accent_color?: string | null
           balance_credits?: number
           brand_name?: string | null
@@ -4056,6 +4080,8 @@ export type Database = {
           domain_verification_token?: string | null
           domain_verified_at?: string | null
           favicon_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
           id?: string
           logo_url?: string | null
           maintenance_day_price?: number
@@ -4066,6 +4092,9 @@ export type Database = {
           openpix_pix_key?: string | null
           openpix_pix_key_type?: string | null
           primary_color?: string | null
+          proxy_fixed_price?: number | null
+          proxy_price_mode?: string
+          proxy_price_multiplier?: number
           proxy_unit_cost?: number
           slug?: string
           status?: string
@@ -5958,6 +5987,28 @@ export type Database = {
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_reseller_public_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          about_text: string
+          accent_color: string
+          brand_name: string
+          company_name: string
+          favicon_url: string
+          hero_subtitle: string
+          hero_title: string
+          id: string
+          logo_url: string
+          primary_color: string
+          proxy_fixed_price: number
+          proxy_price_mode: string
+          proxy_price_multiplier: number
+          slug: string
+          status: string
+          support_email: string
+          support_whatsapp: string
+        }[]
+      }
       get_ss_transaction_credentials: {
         Args: { _transaction_id: string }
         Returns: Json
