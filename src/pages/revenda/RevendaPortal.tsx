@@ -610,6 +610,10 @@ export default function RevendaPortal() {
               <ResellerAssinaturas resellerId={reseller.id} />
             )}
 
+            {activeSection === "minha-loja" && (
+              <ResellerStoreConfig resellerId={reseller.id} slug={reseller.slug} />
+            )}
+
             {activeSection === "manutencao" && (
               <ResellerMaintenance
                 resellerId={reseller.id}
