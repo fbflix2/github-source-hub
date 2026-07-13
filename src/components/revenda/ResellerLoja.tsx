@@ -71,7 +71,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
       supabase.from("products").select("*, product_categories!inner(slug)").eq("status", "active").eq("product_categories.slug", "proxy"),
       supabase.from("product_categories").select("id, slug"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
-      supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
+      supabase.from("banners").select("*").eq("active", true).eq("audience", "reseller").order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
       supabase.from("profiles").select("id", { count: "exact", head: true }),
     ]);
