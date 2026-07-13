@@ -29,6 +29,7 @@ interface Banner {
   category: string | null;
   background_color: string | null;
   image_style: string | null;
+  audience?: string | null;
 }
 
 interface Props {
@@ -57,6 +58,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
   const [category, setCategory] = useState("promo");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [imageStyle, setImageStyle] = useState("contained");
+  const [audience, setAudience] = useState<"store" | "reseller">("store");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -72,6 +74,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setCategory(banner.category || "promo");
       setBackgroundColor(banner.background_color || "");
       setImageStyle(banner.image_style || "contained");
+      setAudience((banner.audience as any) || "store");
     } else {
       setTitle("");
       setSubtitle("");
@@ -83,6 +86,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setCategory("promo");
       setBackgroundColor("");
       setImageStyle("contained");
+      setAudience("store");
     }
   }, [banner, open]);
 
@@ -123,14 +127,15 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         category,
         background_color: backgroundColor.trim() || null,
         image_style: imageStyle,
+        audience,
       };
 
       if (banner) {
-        const { error } = await supabase.from("banners").update(payload).eq("id", banner.id);
+        const { error } = await supabase.from("banners").update(payload as any).eq("id", banner.id);
         if (error) throw error;
         toast.success("Banner atualizado");
       } else {
-        const { error } = await supabase.from("banners").insert(payload);
+        const { error } = await supabase.from("banners").insert(payload as any);
         if (error) throw error;
         toast.success("Banner criado");
       }
@@ -150,6 +155,27 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
           <DialogTitle>{banner ? "Editar Banner" : "Novo Banner"}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-2">
+          <div>
+            <Label>Onde este banner aparece? *</Label>
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setAudience("store")}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 transition-all text-left ${audience === "store" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <span className="text-sm font-bold text-foreground">Loja FBFlix</span>
+                <span className="text-xs text-muted-foreground">Clientes finais</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudience("reseller")}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border-2 transition-all text-left ${audience === "reseller" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <span className="text-sm font-bold text-foreground">Painel Revendedores</span>
+                <span className="text-xs text-muted-foreground">Portal /revenda</span>
+              </button>
+            </div>
+          </div>
           <div>
             <Label>Título *</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título do banner" />
