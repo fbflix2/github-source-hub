@@ -3984,6 +3984,8 @@ export type Database = {
           favicon_url: string | null
           id: string
           logo_url: string | null
+          maintenance_day_price: number
+          maintenance_swap_price: number
           min_monthly_recharge: number
           min_proxies_per_month: number
           model: string
@@ -4016,6 +4018,8 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           logo_url?: string | null
+          maintenance_day_price?: number
+          maintenance_swap_price?: number
           min_monthly_recharge?: number
           min_proxies_per_month?: number
           model?: string
@@ -4048,6 +4052,8 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           logo_url?: string | null
+          maintenance_day_price?: number
+          maintenance_swap_price?: number
           min_monthly_recharge?: number
           min_proxies_per_month?: number
           model?: string

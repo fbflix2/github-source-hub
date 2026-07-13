@@ -120,3 +120,6 @@ verify_jwt = false
 
 [functions.send-partner-push]
 verify_jwt = false
+
+[functions.reseller-maintenance]
+verify_jwt = false
