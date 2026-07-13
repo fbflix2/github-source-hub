@@ -54,6 +54,7 @@ import PagarInvoice from "./pages/PagarInvoice";
 import Public2FA from "./pages/Public2FA";
 import RevendaPortal from "./pages/revenda/RevendaPortal";
 import RevendaCadastro from "./pages/revenda/RevendaCadastro";
+import ResellerPublicStore from "./pages/ResellerPublicStore";
 
 // SocialSafe Pages
 import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
