@@ -36,6 +36,7 @@ import { ResellerLoja } from "@/components/revenda/ResellerLoja";
 import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
 import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
+import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -104,8 +105,8 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
-  >("overview");
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
+  >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const navigate = useNavigate();
@@ -248,7 +249,9 @@ export default function RevendaPortal() {
   const suspended = reseller.status === "suspended" || reseller.status === "inactive";
 
   const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "overview", label: "Loja", icon: Store },
+    { id: "vendas", label: "Vendas", icon: Receipt },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
@@ -536,6 +539,21 @@ export default function RevendaPortal() {
                   </p>
                 </div>
               </Card>
+            )}
+
+            {activeSection === "dashboard" && (
+              <ResellerDashboard
+                resellerId={reseller.id}
+                primaryColor={reseller.primary_color}
+                totalGmv={Number(reseller.total_gmv || 0)}
+                totalCommissionsEarned={Number(reseller.total_commissions_earned || 0)}
+                totalReferrals={Number(reseller.total_referrals || 0)}
+                balanceCredits={Number(reseller.balance_credits || 0)}
+                pendingCommissions={stats.pending}
+                creditedCommissions={stats.credited}
+                brandName={reseller.brand_name || reseller.company_name}
+                onNavigate={(s) => setActiveSection(s as any)}
+              />
             )}
 
             {activeSection === "overview" && (
