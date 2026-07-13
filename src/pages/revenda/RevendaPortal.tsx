@@ -37,6 +37,7 @@ import ResellerCentralProxy from "@/components/revenda/ResellerCentralProxy";
 import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
 import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import ResellerDashboard from "@/components/revenda/ResellerDashboard";
+import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -74,6 +75,12 @@ interface Reseller {
   total_gmv: number;
   total_commissions_earned: number;
   total_referrals: number;
+  proxy_price_mode?: string | null;
+  proxy_price_multiplier?: number | null;
+  proxy_fixed_price?: number | null;
+  hero_title?: string | null;
+  hero_subtitle?: string | null;
+  about_text?: string | null;
 }
 
 interface Commission {
