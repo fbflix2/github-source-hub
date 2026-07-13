@@ -440,25 +440,6 @@ export default function RevendaPortal() {
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <Badge
-              variant="outline"
-              className={
-                reseller.status === "active"
-                  ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10 gap-1.5"
-                  : reseller.status === "warning"
-                  ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10 gap-1.5"
-                  : "border-red-500/40 text-red-400 bg-red-500/10 gap-1.5"
-              }
-            >
-              <span className={cn(
-                "size-1.5 rounded-full animate-pulse",
-                reseller.status === "active" && "bg-emerald-400",
-                reseller.status === "warning" && "bg-yellow-400",
-                reseller.status !== "active" && reseller.status !== "warning" && "bg-red-400"
-              )} />
-              {reseller.status === "active" ? "Ativo" : reseller.status === "warning" ? "Atenção" : reseller.status}
-            </Badge>
-
             {/* Tickets */}
             <NavLink
               to="/tickets"
