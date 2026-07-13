@@ -29,6 +29,7 @@ interface Banner {
   category: string | null;
   background_color: string | null;
   image_style: string | null;
+  audience?: string | null;
 }
 
 interface Props {
@@ -57,6 +58,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
   const [category, setCategory] = useState("promo");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [imageStyle, setImageStyle] = useState("contained");
+  const [audience, setAudience] = useState<"store" | "reseller">("store");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -72,6 +74,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setCategory(banner.category || "promo");
       setBackgroundColor(banner.background_color || "");
       setImageStyle(banner.image_style || "contained");
+      setAudience((banner.audience as any) || "store");
     } else {
       setTitle("");
       setSubtitle("");
@@ -83,6 +86,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setCategory("promo");
       setBackgroundColor("");
       setImageStyle("contained");
+      setAudience("store");
     }
   }, [banner, open]);
 
@@ -123,14 +127,15 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         category,
         background_color: backgroundColor.trim() || null,
         image_style: imageStyle,
+        audience,
       };
 
       if (banner) {
-        const { error } = await supabase.from("banners").update(payload).eq("id", banner.id);
+        const { error } = await supabase.from("banners").update(payload as any).eq("id", banner.id);
         if (error) throw error;
         toast.success("Banner atualizado");
       } else {
-        const { error } = await supabase.from("banners").insert(payload);
+        const { error } = await supabase.from("banners").insert(payload as any);
         if (error) throw error;
         toast.success("Banner criado");
       }
