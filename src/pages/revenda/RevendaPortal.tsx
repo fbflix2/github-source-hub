@@ -890,6 +890,24 @@ export default function RevendaPortal() {
                       </div>
                     </div>
 
+                    {/* Aviso de segurança */}
+                    <div className="flex gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <div className="shrink-0 mt-0.5">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 text-sm font-bold">i</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-sm font-semibold text-emerald-300">
+                          Seu site principal não será afetado
+                        </p>
+                        <p className="text-xs leading-relaxed text-emerald-200/70">
+                          Use sempre um <strong className="text-emerald-200">subdomínio</strong> (ex: <span className="font-mono">painel.suamarca.com.br</span>, <span className="font-mono">app.suamarca.com.br</span>). Os registros CNAME e TXT abaixo são <strong className="text-emerald-200">novos e independentes</strong> — seu domínio raiz (<span className="font-mono">suamarca.com.br</span>) e o <span className="font-mono">www</span> continuam funcionando normalmente, sem qualquer interrupção.
+                        </p>
+                        <p className="text-xs leading-relaxed text-amber-300/80 pt-1">
+                          ⚠️ <strong>Nunca</strong> aponte seu domínio raiz diretamente para o nosso painel — isso tiraria seu site atual do ar.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* DNS Records */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
