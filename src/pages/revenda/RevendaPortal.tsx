@@ -104,7 +104,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "loja" | "vendas" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
+    "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas"
   >("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -251,7 +251,7 @@ export default function RevendaPortal() {
     { id: "overview", label: "Loja", icon: Store },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
-    { id: "vendas", label: reseller.model === "percentage" ? "Comissões" : "Extrato", icon: Receipt },
+    { id: "manutencao", label: "Manutenção", icon: Wrench },
     { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
     {
