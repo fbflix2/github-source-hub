@@ -409,13 +409,12 @@ export default function RevendaPortal() {
           <div className="px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20">
             <div className="flex items-center gap-1.5 mb-0.5">
               <Sparkles className="size-3 text-primary" />
-              <p className="text-[10px] text-primary/80 uppercase tracking-widest font-bold">Seu modelo</p>
+              <p className="text-[10px] text-primary/80 uppercase tracking-widest font-bold">Seu saldo</p>
             </div>
             <p className="text-xs font-bold text-foreground">
-              {reseller.model === "percentage"
-                ? `${reseller.commission_rate}% comissão`
-                : `R$ ${reseller.proxy_unit_cost}/proxy`}
+              R$ {Number(reseller.balance_credits || 0).toFixed(2)}
             </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Modelo pré-pago</p>
           </div>
           <button
             onClick={handleLogout}
