@@ -340,6 +340,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
      if (originalStockId) {
        await supabase.from("stock_items").update({
          status: "bloqueado",
+         order_item_id: null,
          updated_at: now,
        }).eq("id", originalStockId);
      }
