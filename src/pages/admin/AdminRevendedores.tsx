@@ -419,7 +419,7 @@ export default function AdminRevendedores() {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <Label>Token de verificação Lovable (TXT)</Label>
               <Input
                 value={form.lovable_verify_token || ""}
