@@ -97,7 +97,7 @@ export default function Dashboard() {
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
-      supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
+      supabase.from("banners").select("*").eq("active", true).or("audience.eq.store,audience.is.null").order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
       // Fetch inactive proxy products to hide them from API results
       supabase.from("products").select("external_id").neq("status", "active").not("external_id", "is", null),
