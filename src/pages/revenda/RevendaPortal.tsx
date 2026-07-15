@@ -1086,6 +1086,15 @@ export default function RevendaPortal() {
                       {savingBrand && <Loader2 className="size-4 animate-spin" />}
                       Salvar alterações
                     </Button>
+                    <Button
+                      onClick={verifyDomain}
+                      disabled={verifyingDomain || !reseller.custom_domain}
+                      variant="outline"
+                      className="px-6 py-3 font-bold rounded-xl gap-2"
+                    >
+                      {verifyingDomain ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      Verificar DNS agora
+                    </Button>
                   </div>
                 </div>
               );
