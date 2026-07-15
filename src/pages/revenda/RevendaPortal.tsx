@@ -824,7 +824,15 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "dominio" && (() => {
-              const txtToken = `fbflix-reseller=${reseller.id}`;
+              // Extrai o subdomínio (parte antes do domínio raiz) — ex: "painel" em "painel.suamarca.com.br"
+              const domain = (brand.custom_domain || reseller.custom_domain || "").trim().toLowerCase();
+              const domainParts = domain.split(".").filter(Boolean);
+              const subHost = domainParts.length >= 3 ? domainParts.slice(0, domainParts.length - 2).join(".") : "";
+              const aHost = subHost || "painel";
+              const txtHost = subHost ? `_lovable.${subHost}` : "_lovable.painel";
+              const aValue = "185.158.133.1";
+              const verifyToken = reseller.lovable_verify_token || "";
+              const txtValue = verifyToken ? `lovable_verify=${verifyToken}` : "";
               const status = reseller.domain_status || "pending";
               const isVerified = status === "verified";
               const copy = (label: string, value: string) => {
