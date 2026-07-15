@@ -70,6 +70,7 @@ interface Reseller {
   support_whatsapp: string | null;
   custom_domain: string | null;
   domain_status: string | null;
+  lovable_verify_token: string | null;
   openpix_pix_key: string | null;
   openpix_pix_key_type: string | null;
   total_gmv: number;
@@ -823,7 +824,15 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "dominio" && (() => {
-              const txtToken = `fbflix-reseller=${reseller.id}`;
+              // Extrai o subdomínio (parte antes do domínio raiz) — ex: "painel" em "painel.suamarca.com.br"
+              const domain = (brand.custom_domain || reseller.custom_domain || "").trim().toLowerCase();
+              const domainParts = domain.split(".").filter(Boolean);
+              const subHost = domainParts.length >= 3 ? domainParts.slice(0, domainParts.length - 2).join(".") : "";
+              const aHost = subHost || "painel";
+              const txtHost = subHost ? `_lovable.${subHost}` : "_lovable.painel";
+              const aValue = "185.158.133.1";
+              const verifyToken = reseller.lovable_verify_token || "";
+              const txtValue = verifyToken ? `lovable_verify=${verifyToken}` : "";
               const status = reseller.domain_status || "pending";
               const isVerified = status === "verified";
               const copy = (label: string, value: string) => {
@@ -894,7 +903,7 @@ export default function RevendaPortal() {
                           Seu site principal não será afetado
                         </p>
                         <p className="text-xs leading-relaxed text-emerald-200/70">
-                          Use sempre um <strong className="text-emerald-200">subdomínio</strong> (ex: <span className="font-mono">painel.suamarca.com.br</span>, <span className="font-mono">app.suamarca.com.br</span>). Os registros CNAME e TXT abaixo são <strong className="text-emerald-200">novos e independentes</strong> — seu domínio raiz (<span className="font-mono">suamarca.com.br</span>) e o <span className="font-mono">www</span> continuam funcionando normalmente, sem qualquer interrupção.
+                          Use sempre um <strong className="text-emerald-200">subdomínio</strong> (ex: <span className="font-mono">painel.suamarca.com.br</span>, <span className="font-mono">app.suamarca.com.br</span>). Os registros A e TXT abaixo são <strong className="text-emerald-200">novos e independentes</strong> — seu domínio raiz (<span className="font-mono">suamarca.com.br</span>) e o <span className="font-mono">www</span> continuam funcionando normalmente, sem qualquer interrupção.
                         </p>
                         <p className="text-xs leading-relaxed text-amber-300/80 pt-1">
                           ⚠️ <strong>Nunca</strong> aponte seu domínio raiz diretamente para o nosso painel — isso tiraria seu site atual do ar.
@@ -914,22 +923,22 @@ export default function RevendaPortal() {
                       </div>
 
                       <div className="grid gap-4">
-                        {/* CNAME */}
+                        {/* A RECORD */}
                         <div className="bg-card/30 border border-border/30 rounded-xl p-5 hover:border-border/50 transition-colors">
                           <div className="flex items-center justify-between mb-4">
                             <span className="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-bold tracking-widest uppercase border border-primary/20">
-                              CNAME
+                              A
                             </span>
                             <button
                               onClick={() =>
                                 copy(
-                                  "cname-all",
-                                  `Tipo: CNAME\nHost: painel\nValor: cname.fbflix.com.br\nTTL: 3600`
+                                  "a-all",
+                                  `Tipo: A\nHost: ${aHost}\nValor: ${aValue}\nTTL: 3600`
                                 )
                               }
                               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
                             >
-                              {copiedField === "cname-all" ? (
+                              {copiedField === "a-all" ? (
                                 <>
                                   <Check className="w-3.5 h-3.5" /> Copiado
                                 </>
@@ -947,12 +956,12 @@ export default function RevendaPortal() {
                                 Host / Nome
                               </p>
                               <div className="flex items-center gap-2">
-                                <p className="font-mono text-sm text-primary">painel</p>
+                                <p className="font-mono text-sm text-primary">{aHost}</p>
                                 <button
-                                  onClick={() => copy("cname-host", "painel")}
+                                  onClick={() => copy("a-host", aHost)}
                                   className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                  {copiedField === "cname-host" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  {copiedField === "a-host" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                 </button>
                               </div>
                             </div>
@@ -961,12 +970,12 @@ export default function RevendaPortal() {
                                 Valor / Destino
                               </p>
                               <div className="flex items-center gap-2">
-                                <p className="font-mono text-sm text-foreground/90 truncate">cname.fbflix.com.br</p>
+                                <p className="font-mono text-sm text-foreground/90 truncate">{aValue}</p>
                                 <button
-                                  onClick={() => copy("cname-value", "cname.fbflix.com.br")}
+                                  onClick={() => copy("a-value", aValue)}
                                   className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0"
                                 >
-                                  {copiedField === "cname-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  {copiedField === "a-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                 </button>
                               </div>
                             </div>
@@ -983,9 +992,10 @@ export default function RevendaPortal() {
                               onClick={() =>
                                 copy(
                                   "txt-all",
-                                  `Tipo: TXT\nHost: _fbflix-verify\nValor: ${txtToken}\nTTL: 3600`
+                                  `Tipo: TXT\nHost: ${txtHost}\nValor: ${txtValue}\nTTL: 3600`
                                 )
                               }
+                              disabled={!txtValue}
                               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
                             >
                               {copiedField === "txt-all" ? (
@@ -1006,9 +1016,9 @@ export default function RevendaPortal() {
                                 Host / Nome
                               </p>
                               <div className="flex items-center gap-2">
-                                <p className="font-mono text-sm text-foreground/90">_fbflix-verify</p>
+                                <p className="font-mono text-sm text-foreground/90">{txtHost}</p>
                                 <button
-                                  onClick={() => copy("txt-host", "_fbflix-verify")}
+                                  onClick={() => copy("txt-host", txtHost)}
                                   className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                   {copiedField === "txt-host" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -1019,15 +1029,21 @@ export default function RevendaPortal() {
                               <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter">
                                 Valor
                               </p>
-                              <div className="flex items-center gap-2">
-                                <p className="font-mono text-xs text-foreground/90 truncate">{txtToken}</p>
-                                <button
-                                  onClick={() => copy("txt-value", txtToken)}
-                                  className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                                >
-                                  {copiedField === "txt-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                </button>
-                              </div>
+                              {txtValue ? (
+                                <div className="flex items-center gap-2">
+                                  <p className="font-mono text-xs text-foreground/90 truncate">{txtValue}</p>
+                                  <button
+                                    onClick={() => copy("txt-value", txtValue)}
+                                    className="p-1 rounded hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  >
+                                    {copiedField === "txt-value" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-amber-300/80 leading-relaxed">
+                                  ⏳ Aguardando token de verificação da nossa equipe. Assim que você preencher o campo de domínio acima e salvar, o suporte FBFlix vai iniciar a conexão e liberar o valor deste TXT em até 24h.
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>

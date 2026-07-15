@@ -31,6 +31,7 @@ interface Reseller {
   support_whatsapp: string | null;
   custom_domain: string | null;
   domain_status: string | null;
+  lovable_verify_token?: string | null;
   openpix_pix_key: string | null;
   openpix_pix_key_type: string | null;
   total_gmv: number;
@@ -410,12 +411,25 @@ export default function AdminRevendedores() {
               />
             </div>
             <div>
-              <Label>Domínio próprio (CNAME)</Label>
+              <Label>Domínio próprio (subdomínio)</Label>
               <Input
                 value={form.custom_domain || ""}
                 onChange={(e) => setForm({ ...form, custom_domain: e.target.value })}
                 placeholder="painel.dominio.com.br"
               />
+            </div>
+
+            <div>
+              <Label>Token de verificação Lovable (TXT)</Label>
+              <Input
+                value={form.lovable_verify_token || ""}
+                onChange={(e) => setForm({ ...form, lovable_verify_token: e.target.value })}
+                placeholder="601ed5a38ec5abc73199ea0376b027980d23a5b7027c8ff26561009eb7e7d2c1"
+                className="font-mono text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                Cole aqui o valor <span className="font-mono">lovable_verify=...</span> mostrado nas configurações de domínio da Lovable ao conectar o subdomínio do revendedor. Só o hash — sem o prefixo <span className="font-mono">lovable_verify=</span>. O revendedor vê esse valor no painel dele para criar o registro TXT.
+              </p>
             </div>
 
             <div>

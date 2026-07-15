@@ -4004,6 +4004,7 @@ export type Database = {
           hero_title: string | null
           id: string
           logo_url: string | null
+          lovable_verify_token: string | null
           maintenance_day_price: number
           maintenance_swap_price: number
           min_monthly_recharge: number
@@ -4044,6 +4045,7 @@ export type Database = {
           hero_title?: string | null
           id?: string
           logo_url?: string | null
+          lovable_verify_token?: string | null
           maintenance_day_price?: number
           maintenance_swap_price?: number
           min_monthly_recharge?: number
@@ -4084,6 +4086,7 @@ export type Database = {
           hero_title?: string | null
           id?: string
           logo_url?: string | null
+          lovable_verify_token?: string | null
           maintenance_day_price?: number
           maintenance_swap_price?: number
           min_monthly_recharge?: number
