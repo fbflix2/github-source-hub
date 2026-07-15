@@ -233,6 +233,30 @@ export default function RevendaPortal() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [verifyingDomain, setVerifyingDomain] = useState(false);
+  const verifyDomain = async () => {
+    if (!reseller) return;
+    setVerifyingDomain(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-reseller-domain", {
+        body: { reseller_id: reseller.id },
+      });
+      if (error) throw error;
+      if (data?.status === "verified") {
+        toast.success(data.message || "Domínio verificado!");
+      } else {
+        toast.error(data?.message || "Não foi possível verificar. Aguarde a propagação DNS.");
+      }
+      if (data?.status) {
+        setReseller({ ...reseller, domain_status: data.status } as Reseller);
+      }
+    } catch (e: any) {
+      toast.error("Erro ao verificar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setVerifyingDomain(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
