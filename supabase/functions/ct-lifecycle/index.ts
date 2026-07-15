@@ -15,7 +15,26 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const summary = { expired_trials: 0, renewed: 0, suspended: 0, proxies_released: 0 };
+  const summary = { expired_trials: 0, renewed: 0, suspended: 0, proxies_released: 0, wa_alerts: 0 };
+
+  async function invokeWapi(action: string, payload: Record<string, any> = {}) {
+    try {
+      const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/wapi-send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ action, ...payload }),
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log(`[ct-lifecycle] wapi ${action}:`, data);
+      return data;
+    } catch (e) {
+      console.error(`[ct-lifecycle] wapi ${action} failed:`, e);
+      return null;
+    }
+  }
 
   async function releaseProxies(ctClientIds: string[]) {
     if (!ctClientIds.length) return 0;
@@ -54,7 +73,13 @@ Deno.serve(async (req) => {
       summary.proxies_released += await releaseProxies(ids);
     }
 
-    // 2) Renew subscriptions where next_billing <= today
+    // 2) Send WhatsApp reminders BEFORE renewal (D-3, D-1, D0)
+    for (const days of [3, 1, 0]) {
+      const r = await invokeWapi("send-ct-expiring-alerts", { days_ahead: days });
+      if (r?.queued) summary.wa_alerts += r.queued;
+    }
+
+    // 3) Renew subscriptions where next_billing <= today
     const { data: dueList } = await admin
       .from("ct_clients")
       .select("id, user_id, plan_id, monthly_value, next_billing")
@@ -96,6 +121,8 @@ Deno.serve(async (req) => {
           type: "subscription",
           global: true,
         });
+        // Notifica o cliente via WhatsApp
+        await invokeWapi("send-ct-suspended-alert", { ct_client_id: sub.id });
         summary.suspended++;
       }
     }

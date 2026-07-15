@@ -962,6 +962,170 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========= ACTION: send-ct-expiring-alerts (Scale Pro) =========
+    if (action === "send-ct-expiring-alerts") {
+      const { days_ahead = 0, dry_run = false } = body;
+
+      // BRT (UTC-3) target date
+      const now = new Date();
+      const brtNow = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      brtNow.setDate(brtNow.getDate() + days_ahead);
+      const targetDate = brtNow.toISOString().slice(0, 10);
+
+      const { data: clients, error: cErr } = await admin
+        .from("ct_clients")
+        .select("id, user_id, monthly_value, next_billing, plan_id, ct_plans(name)")
+        .eq("status", "ativo")
+        .eq("next_billing", targetDate);
+
+      if (cErr) return err("Erro ao buscar assinaturas Scale Pro: " + cErr.message);
+      if (!clients?.length) {
+        return ok({ success: true, message: `Nenhum Scale Pro vencendo em ${targetDate}`, sent: 0 });
+      }
+
+      const userIds = [...new Set(clients.map((c: any) => c.user_id))];
+      const { data: profiles } = await admin
+        .from("profiles").select("user_id, full_name, phone, balance")
+        .in("user_id", userIds);
+      const profileMap: Record<string, any> = {};
+      for (const p of profiles || []) profileMap[p.user_id] = p;
+
+      // Dedup: check if we already sent this alert (same ct_client_id + days_ahead) in the last 20h
+      const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+      const clientIds = clients.map((c: any) => c.id);
+      const { data: existing } = await admin
+        .from("whatsapp_logs")
+        .select("metadata, created_at")
+        .eq("event_key", "ct_expiring")
+        .gte("created_at", cutoff)
+        .neq("status", "failed");
+      const alreadySent = new Set<string>();
+      for (const l of existing || []) {
+        const m: any = l.metadata || {};
+        if (m.ct_client_id && m.days_ahead === days_ahead) {
+          alreadySent.add(`${m.ct_client_id}:${days_ahead}`);
+        }
+      }
+
+      const SITE_URL = "https://fbflix.com.br";
+      const toInsert: any[] = [];
+      const noPhone: any[] = [];
+      const dryResults: any[] = [];
+
+      for (const c of clients) {
+        if (alreadySent.has(`${c.id}:${days_ahead}`)) continue;
+        const profile = profileMap[c.user_id];
+        if (!profile?.phone) {
+          noPhone.push({ ct_client_id: c.id, user_id: c.user_id });
+          continue;
+        }
+
+        const nome = (profile.full_name || "Cliente").split(" ")[0];
+        const valor = `R$ ${Number(c.monthly_value || 0).toFixed(2).replace(".", ",")}`;
+        const planName = (c as any).ct_plans?.name || "Scale Pro";
+        const dataVenc = new Date(c.next_billing + "T12:00:00Z").toLocaleDateString("pt-BR");
+        const saldo = Number(profile.balance || 0);
+        const temSaldo = saldo >= Number(c.monthly_value || 0);
+
+        let msg: string;
+        if (days_ahead >= 2) {
+          msg = `Olá ${nome} 👋\n\nPassando pra lembrar que sua assinatura *${planName}* vence em *${dataVenc}* (${days_ahead} dias).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Você já tem saldo suficiente na carteira, a renovação será automática." : "⚠️ Sua carteira está sem saldo suficiente. Recarregue para renovar automaticamente."}\n\n${SITE_URL}/contingencia`;
+        } else if (days_ahead === 1) {
+          msg = `Olá ${nome} 👋\n\n⏰ Sua assinatura *${planName}* vence *amanhã* (${dataVenc}).\n\n💰 Valor da renovação: *${valor}*\n${temSaldo ? "✅ Saldo em carteira ok — renovação automática amanhã." : "⚠️ *Atenção:* saldo insuficiente na carteira. Recarregue hoje para evitar a suspensão da estrutura."}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
+        } else {
+          msg = `Olá ${nome} 👋\n\n🔔 Sua assinatura *${planName}* vence *hoje* (${dataVenc}).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Sua carteira tem saldo — vamos renovar automaticamente ainda hoje." : "🚨 *Saldo insuficiente!* Recarregue agora para não perder acesso à sua estrutura Scale Pro.\n\nRecarregar: " + SITE_URL + "/wallet"}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
+        }
+
+        if (dry_run) {
+          dryResults.push({ ct_client_id: c.id, name: profile.full_name, phone: profile.phone, preview: msg, tem_saldo: temSaldo });
+          continue;
+        }
+
+        const normalizedPhone = normalizePhone(profile.phone);
+        if (normalizedPhone.length < 10) continue;
+
+        // Envia em horário comercial: se agora < 09:00 BRT, agenda para 09:00 BRT.
+        // Se já passou, envia imediatamente com jitter.
+        const nowUtc = new Date();
+        const brtHour = (nowUtc.getUTCHours() + 21) % 24; // UTC-3
+        const scheduledAt = new Date(nowUtc);
+        if (brtHour < 9) {
+          const hoursToAdd = 9 - brtHour;
+          scheduledAt.setUTCHours(scheduledAt.getUTCHours() + hoursToAdd, 0, 0, 0);
+        }
+        scheduledAt.setSeconds(scheduledAt.getSeconds() + toInsert.length * (30 + Math.random() * 45));
+
+        toInsert.push({
+          user_id: c.user_id,
+          phone: normalizedPhone,
+          message_sent: msg,
+          status: "queued",
+          event_key: "ct_expiring",
+          message_type: "text",
+          scheduled_at: scheduledAt.toISOString(),
+          metadata: {
+            ct_client_id: c.id,
+            days_ahead,
+            plan_name: planName,
+            monthly_value: c.monthly_value,
+            has_balance: temSaldo,
+          },
+        });
+      }
+
+      if (dry_run) {
+        return ok({ success: true, dry_run: true, date: targetDate, days_ahead, total: clients.length, results: dryResults, no_phone: noPhone });
+      }
+
+      if (toInsert.length > 0) {
+        const { error: insErr } = await admin.from("whatsapp_logs").insert(toInsert);
+        if (insErr) return err(`Falha ao enfileirar alertas: ${insErr.message}`, 500);
+      }
+
+      return ok({
+        success: true, date: targetDate, days_ahead,
+        queued: toInsert.length, no_phone: noPhone.length,
+        total_clients: clients.length,
+        message: `${toInsert.length} alertas Scale Pro enfileirados (D${days_ahead === 0 ? "0" : days_ahead > 0 ? "-" + days_ahead : "+" + Math.abs(days_ahead)}).`,
+      });
+    }
+
+    // ========= ACTION: send-ct-suspended-alert =========
+    if (action === "send-ct-suspended-alert") {
+      const { ct_client_id } = body;
+      if (!ct_client_id) return err("ct_client_id is required");
+
+      const { data: c } = await admin
+        .from("ct_clients")
+        .select("id, user_id, monthly_value, ct_plans(name)")
+        .eq("id", ct_client_id)
+        .maybeSingle();
+      if (!c) return err("Assinatura não encontrada");
+
+      const { data: profile } = await admin
+        .from("profiles").select("full_name, phone").eq("user_id", c.user_id).maybeSingle();
+      if (!profile?.phone) return ok({ success: false, reason: "sem telefone" });
+
+      const SITE_URL = "https://fbflix.com.br";
+      const nome = (profile.full_name || "Cliente").split(" ")[0];
+      const planName = (c as any).ct_plans?.name || "Scale Pro";
+      const valor = `R$ ${Number(c.monthly_value || 0).toFixed(2).replace(".", ",")}`;
+
+      const msg = `Olá ${nome} 👋\n\n🚨 Sua assinatura *${planName}* foi *suspensa* por saldo insuficiente na carteira (${valor}).\n\nSua estrutura ficará indisponível até a regularização. Recarregue e sua assinatura volta ao ar automaticamente.\n\nRecarregar: ${SITE_URL}/wallet\nMinha assinatura: ${SITE_URL}/contingencia`;
+
+      const normalizedPhone = normalizePhone(profile.phone);
+      const scheduledAt = new Date();
+
+      const { error: insErr } = await admin.from("whatsapp_logs").insert({
+        user_id: c.user_id, phone: normalizedPhone, message_sent: msg,
+        status: "queued", event_key: "ct_suspended", message_type: "text",
+        scheduled_at: scheduledAt.toISOString(),
+        metadata: { ct_client_id: c.id, plan_name: planName },
+      });
+      if (insErr) return err(insErr.message, 500);
+      return ok({ success: true, queued: 1 });
+    }
+
     return err("Unknown action: " + action);
   } catch (e) {
     console.error("wapi-send error:", e);
