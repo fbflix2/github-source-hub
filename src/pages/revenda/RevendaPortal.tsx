@@ -38,6 +38,7 @@ import ResellerAssinaturas from "@/components/revenda/ResellerAssinaturas";
 import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
+import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -47,7 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
-import { Ticket, Wrench } from "lucide-react";
+import { Ticket, Wrench, CreditCard } from "lucide-react";
 
 interface Reseller {
   id: string;
@@ -113,7 +114,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -297,6 +298,7 @@ export default function RevendaPortal() {
       children: [
         { id: "dominio", label: "Domínio Próprio", icon: Globe },
         { id: "identidade", label: "Identidade Visual", icon: Palette },
+        { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
       ],
     },
   ] as const;
@@ -627,6 +629,10 @@ export default function RevendaPortal() {
 
             {activeSection === "minha-loja" && (
               <ResellerStoreConfig resellerId={reseller.id} slug={reseller.slug} />
+            )}
+
+            {activeSection === "pagamentos" && (
+              <ResellerGatewayConfig resellerId={reseller.id} />
             )}
 
             {activeSection === "manutencao" && (

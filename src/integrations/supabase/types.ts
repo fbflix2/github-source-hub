@@ -4000,6 +4000,10 @@ export type Database = {
           domain_verification_token: string | null
           domain_verified_at: string | null
           favicon_url: string | null
+          gateway_mp_access_token: string | null
+          gateway_mp_public_key: string | null
+          gateway_openpix_app_id: string | null
+          gateway_provider: string | null
           hero_subtitle: string | null
           hero_title: string | null
           id: string
@@ -4041,6 +4045,10 @@ export type Database = {
           domain_verification_token?: string | null
           domain_verified_at?: string | null
           favicon_url?: string | null
+          gateway_mp_access_token?: string | null
+          gateway_mp_public_key?: string | null
+          gateway_openpix_app_id?: string | null
+          gateway_provider?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
@@ -4082,6 +4090,10 @@ export type Database = {
           domain_verification_token?: string | null
           domain_verified_at?: string | null
           favicon_url?: string | null
+          gateway_mp_access_token?: string | null
+          gateway_mp_public_key?: string | null
+          gateway_openpix_app_id?: string | null
+          gateway_provider?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
