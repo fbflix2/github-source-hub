@@ -104,7 +104,7 @@ export default function AdminContingencia() {
   const [newItemIdentifier, setNewItemIdentifier] = useState<string>("");
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
 
-  const handleUpdateItem = async (id: string, patch: { identifier?: string; status?: string }) => {
+  const handleUpdateItem = async (id: string, patch: { identifier?: string; status?: string; metadata?: any }) => {
     setSavingItemId(id);
     const { error } = await supabase.from("ct_items").update(patch as any).eq("id", id);
     setSavingItemId(null);
