@@ -3,10 +3,12 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useResellerBranding } from "@/hooks/useResellerBranding";
 
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { branding } = useResellerBranding();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -244,8 +246,29 @@ export default function Auth() {
           {/* Header & Logo */}
            <div className="flex flex-col items-center gap-3">
              <div className="flex flex-col items-center justify-center">
-               <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
-               <span className="text-xs font-black tracking-[0.4em] text-foreground mt-2 -mr-[0.4em]">F B F L I X</span>
+               {branding ? (
+                 <>
+                   {branding.logo_url ? (
+                     <img
+                       src={branding.logo_url}
+                       alt={branding.brand_name || branding.company_name || "Logo"}
+                       className="w-20 h-20 object-contain rounded-xl"
+                     />
+                   ) : (
+                     <div className="w-20 h-20 rounded-xl bg-primary/10 flex items-center justify-center text-2xl font-black text-foreground">
+                       {(branding.brand_name || branding.company_name || "?").charAt(0).toUpperCase()}
+                     </div>
+                   )}
+                   <span className="text-sm font-black tracking-[0.2em] text-foreground mt-2 uppercase text-center">
+                     {branding.brand_name || branding.company_name}
+                   </span>
+                 </>
+               ) : (
+                 <>
+                   <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
+                   <span className="text-xs font-black tracking-[0.4em] text-foreground mt-2 -mr-[0.4em]">F B F L I X</span>
+                 </>
+               )}
              </div>
              <p className="text-muted-foreground text-sm font-medium">Bem-vindo de volta</p>
            </div>
