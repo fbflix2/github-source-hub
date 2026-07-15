@@ -497,8 +497,10 @@ export default function AdminNovaVenda() {
 
       if (itemsError) throw itemsError;
 
-      // Auto-fulfill from stock when delivery method is automatic
-      if (deliveryMethod === "automatica" && insertedItems) {
+      // Link manual stock items whenever admin picked one (regardless of delivery method).
+      // Also run automatic fulfill (RPC) only when delivery method is "automatica".
+      const hasManualLinks = items.some(i => i.manualStockItemId);
+      if ((deliveryMethod === "automatica" || hasManualLinks) && insertedItems) {
         let fulfillFailed = false;
         for (const oi of insertedItems) {
           if (!oi.product_id) continue;
@@ -542,7 +544,7 @@ export default function AdminNovaVenda() {
                  }
                }
             }
-          } else {
+          } else if (deliveryMethod === "automatica") {
             // Standard automatic fulfillment
             const { data: result, error: fulfillErr } = await supabase.rpc("fulfill_order_item", {
               p_order_item_id: oi.id,
