@@ -31,6 +31,7 @@ interface Reseller {
   support_whatsapp: string | null;
   custom_domain: string | null;
   domain_status: string | null;
+  lovable_verify_token?: string | null;
   openpix_pix_key: string | null;
   openpix_pix_key_type: string | null;
   total_gmv: number;
