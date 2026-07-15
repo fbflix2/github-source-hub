@@ -1009,22 +1009,25 @@ export default function AdminContingencia() {
                           </div>
                           {type === "conta" && (
                             <div className="flex items-center gap-2 pl-1">
-                              <Select
-                                value={item.metadata?.bm_ref || "__none__"}
-                                onValueChange={(v) => handleUpdateItem(item.id, {
-                                  metadata: { ...(item.metadata || {}), bm_ref: v === "__none__" ? null : v },
-                                })}
-                              >
-                                <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 flex-1 text-xs">
-                                  <SelectValue placeholder="BM pertencente" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">— Sem BM —</SelectItem>
-                                  {bmItems.map(b => (
-                                    <SelectItem key={b.id} value={b.id}>{b.identifier || b.id.slice(0, 8)}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Input
+                                defaultValue={item.metadata?.bm_name || ""}
+                                placeholder="Nome da BM"
+                                list={`bm-names-${item.id}`}
+                                className="bg-white/5 border-white/10 text-white h-8 flex-1 text-xs"
+                                onBlur={(e) => {
+                                  const v = e.target.value.trim();
+                                  if (v !== (item.metadata?.bm_name || "")) {
+                                    handleUpdateItem(item.id, {
+                                      metadata: { ...(item.metadata || {}), bm_name: v || null },
+                                    });
+                                  }
+                                }}
+                              />
+                              <datalist id={`bm-names-${item.id}`}>
+                                {bmItems.map(b => (
+                                  <option key={b.id} value={b.identifier || ""} />
+                                ))}
+                              </datalist>
                               <Input
                                 defaultValue={item.metadata?.matrix_profile || ""}
                                 placeholder="Nome do perfil matriz"
