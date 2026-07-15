@@ -364,20 +364,32 @@ export default function AdminAquecimento() {
     if (!hasLoadedProfilesRef.current) {
       setLoading(true);
     }
-    let query = supabase
-      .from("warming_profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!admin) {
-      query = query.eq("created_by", uid);
+    // Pagina para não bater no limite padrão de 1000 linhas do Supabase —
+    // sem isso, perfis mais antigos somem da busca na aba Revisão.
+    const pageSize = 1000;
+    const allProfiles: any[] = [];
+    let from = 0;
+    let fetchError: any = null;
+    while (true) {
+      let query = supabase
+        .from("warming_profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (!admin) query = query.eq("created_by", uid);
+      const { data: batch, error } = await query;
+      if (error) { fetchError = error; break; }
+      if (!batch || batch.length === 0) break;
+      allProfiles.push(...batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
     }
-
-    const { data, error } = await query;
+    const data = allProfiles;
+    const error = fetchError;
     if (error) {
       toast.error("Erro ao carregar perfis");
     } else {
-      setProfiles(data || []);
+      setProfiles(data);
       // Fetch tasks for ALL profiles (needed for avg time calculation and quality evidence)
       if (data && data.length > 0) {
         // Paginate tasks in profile chunks to avoid URL length limits and the 1000 row cap
