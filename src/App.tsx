@@ -453,6 +453,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <CustomDomainRouter />
               <Routes>
                 <Route
                   path="/auth"
