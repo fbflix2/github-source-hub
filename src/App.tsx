@@ -453,7 +453,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <CustomDomainRouter />
+              <CustomDomainRouter>
               <Routes>
                 <Route
                   path="/auth"
@@ -574,6 +574,7 @@ const App = () => {
                   <Route path="*" element={<Navigate to="/auth" replace />} />
                 )}
               </Routes>
+              </CustomDomainRouter>
               <FloatingCart />
               <CookieConsent />
             </BrowserRouter>

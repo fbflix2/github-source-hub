@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -34,10 +34,25 @@ const PASSTHROUGH_PREFIXES = [
  * se sim, redireciona a rota raiz para a loja pública desse revendedor.
  * Só faz o redirect uma vez por sessão de página.
  */
-export default function CustomDomainRouter() {
+export default function CustomDomainRouter({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [checked, setChecked] = useState(false);
+  // Para hosts principais podemos renderizar imediatamente.
+  // Para hosts customizados, bloqueamos a renderização até resolver o redirect
+  // — evita o "flash" da FBFlix antes da loja do revendedor aparecer.
+  const initialHost =
+    typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  const isMainHostInitial =
+    MAIN_HOSTS.includes(initialHost) ||
+    initialHost.endsWith(".lovableproject.com") ||
+    initialHost.endsWith(".lovable.app");
+  const isPassthroughInitial =
+    typeof window !== "undefined" &&
+    PASSTHROUGH_PREFIXES.some(
+      (p) =>
+        window.location.pathname === p || window.location.pathname.startsWith(p),
+    );
+  const [checked, setChecked] = useState(isMainHostInitial || isPassthroughInitial);
 
   useEffect(() => {
     if (checked) return;
@@ -61,14 +76,22 @@ export default function CustomDomainRouter() {
         const { data, error } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
         if (!error && data) {
           navigate(`/r/${data}${location.search}`, { replace: true });
+          // Mantém o gate para o navigate acontecer no próximo tick,
+          // e evita render intermediário da FBFlix.
+          setTimeout(() => setChecked(true), 0);
+          return;
         }
       } catch {
         // silencioso
-      } finally {
-        setChecked(true);
       }
+      setChecked(true);
     })();
   }, [checked, location.pathname, location.search, navigate]);
 
-  return null;
+  if (!checked) {
+    // Tela neutra (sem branding FBFlix) enquanto resolvemos o domínio customizado
+    return <div style={{ minHeight: "100vh", background: "#000" }} />;
+  }
+
+  return <>{children}</>;
 }
