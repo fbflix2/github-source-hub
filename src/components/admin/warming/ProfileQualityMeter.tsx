@@ -79,16 +79,20 @@ export default function ProfileQualityMeter({ profileId, profileCode, initialQua
         if (row?.value) {
           try {
             const saved = JSON.parse(row.value);
+            // Última edição do operador prevalece — não sobrescrever com initialQuality
             const merged = {
               ...DEFAULT_DATA,
               ...saved,
-              has2FA: Boolean(saved.has2FA || initialQuality?.has2FA),
-              hasBM: Boolean(saved.hasBM || initialQuality?.hasBM),
-              hasPage: Boolean(saved.hasPage || initialQuality?.hasPage),
-              friendRange: saved.friendRange || initialQuality?.friendRange || DEFAULT_DATA.friendRange,
+              has2FA: Boolean(saved.has2FA),
+              hasBM: Boolean(saved.hasBM),
+              hasPage: Boolean(saved.hasPage),
+              friendRange: saved.friendRange || DEFAULT_DATA.friendRange,
             };
             setData(merged);
           } catch {}
+        } else if (initialQuality) {
+          // Sem registro salvo: usa o valor inicial apenas na primeira vez
+          setData({ ...DEFAULT_DATA, ...initialQuality });
         }
         setLoaded(true);
       });
