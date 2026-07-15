@@ -965,6 +965,8 @@ export default function AdminContingencia() {
               {(["perfil", "perfil_matriz", "bm", "conta", "proxy"] as const).map(type => {
                 const items = clientItems.filter(i => i.type === type);
                 if (!items.length) return null;
+                const bmItems = clientItems.filter(i => i.type === "bm");
+                const matrixItems = clientItems.filter(i => i.type === "perfil_matriz");
                 return (
                   <div key={type}>
                     <h4 className="text-sm font-semibold text-white/80 mb-2 uppercase">
@@ -972,7 +974,8 @@ export default function AdminContingencia() {
                     </h4>
                     <div className="space-y-2">
                       {items.map(item => (
-                        <div key={item.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-2 text-sm">
+                        <div key={item.id} className={`bg-white/5 rounded-lg px-2 py-2 text-sm ${type === "conta" ? "space-y-2" : ""}`}>
+                          <div className="flex items-center gap-2">
                           <Input
                             defaultValue={item.identifier || ""}
                             placeholder={`ID / link do ${typeLabels[type]}`}
@@ -1003,6 +1006,46 @@ export default function AdminContingencia() {
                           >
                             <Trash2 className="size-4" />
                           </Button>
+                          </div>
+                          {type === "conta" && (
+                            <div className="flex items-center gap-2 pl-1">
+                              <Select
+                                value={item.metadata?.bm_ref || "__none__"}
+                                onValueChange={(v) => handleUpdateItem(item.id, {
+                                  metadata: { ...(item.metadata || {}), bm_ref: v === "__none__" ? null : v },
+                                })}
+                              >
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 flex-1 text-xs">
+                                  <SelectValue placeholder="BM pertencente" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">— Sem BM —</SelectItem>
+                                  {bmItems.map(b => (
+                                    <SelectItem key={b.id} value={b.id}>{b.identifier || b.id.slice(0, 8)}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                defaultValue={item.metadata?.matrix_profile || ""}
+                                placeholder="Nome do perfil matriz"
+                                list={`matrix-profiles-${item.id}`}
+                                className="bg-white/5 border-white/10 text-white h-8 flex-1 text-xs"
+                                onBlur={(e) => {
+                                  const v = e.target.value.trim();
+                                  if (v !== (item.metadata?.matrix_profile || "")) {
+                                    handleUpdateItem(item.id, {
+                                      metadata: { ...(item.metadata || {}), matrix_profile: v || null },
+                                    });
+                                  }
+                                }}
+                              />
+                              <datalist id={`matrix-profiles-${item.id}`}>
+                                {matrixItems.map(m => (
+                                  <option key={m.id} value={m.identifier || ""} />
+                                ))}
+                              </datalist>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
