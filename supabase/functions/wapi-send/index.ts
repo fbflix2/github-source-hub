@@ -1114,7 +1114,9 @@ Deno.serve(async (req) => {
       const planName = (c as any).ct_plans?.name || "Scale Pro";
       const valor = `R$ ${Number(c.monthly_value || 0).toFixed(2).replace(".", ",")}`;
 
-      const msg = `Olá ${nome} 👋\n\n🚨 Sua assinatura *${planName}* foi *suspensa* por saldo insuficiente na carteira (${valor}).\n\nSua estrutura ficará indisponível até a regularização. Recarregue e sua assinatura volta ao ar automaticamente.\n\nRecarregar: ${SITE_URL}/wallet\nMinha assinatura: ${SITE_URL}/contingencia`;
+      const valorNum = Number(c.monthly_value || 0).toFixed(2);
+      const linkPagamento = `${SITE_URL}/wallet?amount=${valorNum}`;
+      const msg = `Olá ${nome} 👋\n\n🚨 Sua assinatura *${planName}* foi *suspensa* por saldo insuficiente na carteira (${valor}).\n\nSua estrutura ficará indisponível até a regularização. Recarregue e sua assinatura volta ao ar automaticamente.\n\n💳 Link para pagamento (PIX): ${linkPagamento}\nMinha assinatura: ${SITE_URL}/contingencia`;
 
       const normalizedPhone = normalizePhone(profile.phone);
       const scheduledAt = new Date();
