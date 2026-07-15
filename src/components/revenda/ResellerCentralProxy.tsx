@@ -40,6 +40,7 @@ interface ProxyProduct {
   status: string;
   available: boolean;
   image_url: string | null;
+  reseller_cost: number | null;
 }
 
 interface Override {
@@ -81,7 +82,7 @@ export function ResellerCentralProxy({
         await Promise.all([
           supabase
             .from("products")
-            .select("id, name, price, icon_type, status, available, image_url")
+            .select("id, name, price, icon_type, status, available, image_url, reseller_cost")
             .eq("icon_type", "proxy")
             .order("name", { ascending: true }),
           supabase
@@ -325,8 +326,15 @@ export function ResellerCentralProxy({
                     </tr>
                   )}
                   {products.map((p) => {
+                    // Prioriza custo definido por proxy (admin → Custo por proxy).
+                    // Fallback: modelo crédito usa custo global; modelo % usa preço - comissão.
+                    const perProductCost = Number(p.reseller_cost ?? 0);
                     const cost =
-                      model === "credit" ? proxyUnitCost : p.price * (1 - commissionRate / 100);
+                      perProductCost > 0
+                        ? perProductCost
+                        : model === "credit"
+                          ? proxyUnitCost
+                          : p.price * (1 - commissionRate / 100);
                     const current =
                       overrides[p.id]?.custom_price ?? p.price;
                     const draft = Number(
