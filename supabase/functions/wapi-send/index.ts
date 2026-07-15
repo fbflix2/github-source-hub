@@ -1044,8 +1044,15 @@ Deno.serve(async (req) => {
         const normalizedPhone = normalizePhone(profile.phone);
         if (normalizedPhone.length < 10) continue;
 
-        // Spread over ~5 minutes
-        const scheduledAt = new Date();
+        // Envia em horário comercial: se agora < 09:00 BRT, agenda para 09:00 BRT.
+        // Se já passou, envia imediatamente com jitter.
+        const nowUtc = new Date();
+        const brtHour = (nowUtc.getUTCHours() + 21) % 24; // UTC-3
+        const scheduledAt = new Date(nowUtc);
+        if (brtHour < 9) {
+          const hoursToAdd = 9 - brtHour;
+          scheduledAt.setUTCHours(scheduledAt.getUTCHours() + hoursToAdd, 0, 0, 0);
+        }
         scheduledAt.setSeconds(scheduledAt.getSeconds() + toInsert.length * (30 + Math.random() * 45));
 
         toInsert.push({
