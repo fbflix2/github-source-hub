@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { data: reseller, error } = await supabase
       .from("resellers")
-      .select("id, custom_domain")
+      .select("id, custom_domain, lovable_verify_token")
       .eq("id", reseller_id)
       .maybeSingle();
 
@@ -55,34 +55,40 @@ Deno.serve(async (req) => {
         error: "Use um subdomínio (ex: painel.suamarca.com.br). O domínio raiz não é permitido.",
       }, 400);
     }
-    const rootDomain = parts.slice(-2).join(".");
-    const expectedToken = `fbflix-reseller=${reseller.id}`;
+    const subHost = parts[0];
+    const expectedA = "185.158.133.1";
+    const verifyToken = (reseller.lovable_verify_token || "").trim();
+    const expectedTxt = verifyToken ? `lovable_verify=${verifyToken}` : "";
 
-    // 1) TXT em _fbflix-verify.<root>
-    const txtRecords = await resolveDns(`_fbflix-verify.${rootDomain}`, "TXT");
-    const txtOk = txtRecords.some((r) => r.replace(/\s+/g, "") === expectedToken);
+    // 1) A record no subdomínio deve apontar para 185.158.133.1
+    const aRecords = await resolveDns(domain, "A");
+    const aOk = aRecords.includes(expectedA);
 
-    // 2) CNAME apontando para cname.fbflix.com.br
-    const cnameRecords = await resolveDns(domain, "CNAME");
-    const cnameOk = cnameRecords.some((r) =>
-      r.replace(/\.$/, "").toLowerCase() === "cname.fbflix.com.br",
+    // 2) TXT em _lovable.<subHost>.<root> = lovable_verify=<token>
+    const txtHost = `_lovable.${domain}`;
+    const txtRecords = await resolveDns(txtHost, "TXT");
+    const txtOk = !!expectedTxt && txtRecords.some(
+      (r) => r.replace(/\s+/g, "").toLowerCase() === expectedTxt.toLowerCase(),
     );
 
     let newStatus: "verified" | "failed" | "pending" = "pending";
     let message = "";
 
-    if (txtOk && cnameOk) {
+    if (!expectedTxt) {
+      newStatus = "pending";
+      message = "Aguardando token de verificação do suporte FBFlix. Assim que o token for liberado, clique em Verificar novamente.";
+    } else if (aOk && txtOk) {
       newStatus = "verified";
       message = "Domínio verificado com sucesso!";
-    } else if (!txtOk && !cnameOk) {
+    } else if (!aOk && !txtOk) {
       newStatus = "failed";
-      message = "Nenhum dos registros foi encontrado. Verifique CNAME e TXT no seu registrador.";
-    } else if (!txtOk) {
+      message = "Nenhum dos registros foi encontrado. Verifique o A e o TXT no seu registrador.";
+    } else if (!aOk) {
       newStatus = "failed";
-      message = `Registro TXT não encontrado em _fbflix-verify.${rootDomain}. Verifique o valor: ${expectedToken}`;
+      message = `Registro A de ${domain} deve apontar para ${expectedA}.`;
     } else {
       newStatus = "failed";
-      message = `CNAME de ${domain} deve apontar para cname.fbflix.com.br`;
+      message = `Registro TXT em ${txtHost} não encontrado. Valor esperado: ${expectedTxt}`;
     }
 
     await supabase
@@ -95,8 +101,8 @@ Deno.serve(async (req) => {
       status: newStatus,
       message,
       checks: {
-        txt: { host: `_fbflix-verify.${rootDomain}`, expected: expectedToken, found: txtRecords, ok: txtOk },
-        cname: { host: domain, expected: "cname.fbflix.com.br", found: cnameRecords, ok: cnameOk },
+        a: { host: domain, expected: expectedA, found: aRecords, ok: aOk },
+        txt: { host: txtHost, expected: expectedTxt, found: txtRecords, ok: txtOk },
       },
     });
   } catch (e) {
