@@ -109,16 +109,22 @@ function LauthActivation({ ctClient }: { ctClient: { id: string; lauth_email?: s
     queryClient.invalidateQueries({ queryKey: ["ct-client-self"] });
   };
 
-  // Se já enviou o e-mail, oculta o passo a passo e mostra badge compacto
-  if (alreadySaved) {
+  // Se já ativou a estrutura ou já enviou o e-mail, oculta o passo a passo
+  if (activated || alreadySaved) {
     return (
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4 flex items-center gap-3">
         <div className="h-9 w-9 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center shrink-0">
           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-emerald-300">Estrutura ativada no Lauth</p>
-          <p className="text-xs text-muted-foreground truncate">Vinculada a <span className="text-foreground">{ctClient.lauth_email}</span></p>
+          <p className="text-sm font-semibold text-emerald-300">
+            {activated ? "Estrutura ativa no Lauth" : "E-mail recebido, aguardando ativação"}
+          </p>
+          {ctClient.lauth_email && (
+            <p className="text-xs text-muted-foreground truncate">
+              Vinculada a <span className="text-foreground">{ctClient.lauth_email}</span>
+            </p>
+          )}
         </div>
       </div>
     );
