@@ -6024,6 +6024,10 @@ export type Database = {
           support_whatsapp: string
         }[]
       }
+      get_reseller_slug_by_domain: {
+        Args: { _domain: string }
+        Returns: string
+      }
       get_ss_transaction_credentials: {
         Args: { _transaction_id: string }
         Returns: Json
