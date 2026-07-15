@@ -903,7 +903,7 @@ export default function RevendaPortal() {
                           Seu site principal não será afetado
                         </p>
                         <p className="text-xs leading-relaxed text-emerald-200/70">
-                          Use sempre um <strong className="text-emerald-200">subdomínio</strong> (ex: <span className="font-mono">painel.suamarca.com.br</span>, <span className="font-mono">app.suamarca.com.br</span>). Os registros CNAME e TXT abaixo são <strong className="text-emerald-200">novos e independentes</strong> — seu domínio raiz (<span className="font-mono">suamarca.com.br</span>) e o <span className="font-mono">www</span> continuam funcionando normalmente, sem qualquer interrupção.
+                          Use sempre um <strong className="text-emerald-200">subdomínio</strong> (ex: <span className="font-mono">painel.suamarca.com.br</span>, <span className="font-mono">app.suamarca.com.br</span>). Os registros A e TXT abaixo são <strong className="text-emerald-200">novos e independentes</strong> — seu domínio raiz (<span className="font-mono">suamarca.com.br</span>) e o <span className="font-mono">www</span> continuam funcionando normalmente, sem qualquer interrupção.
                         </p>
                         <p className="text-xs leading-relaxed text-amber-300/80 pt-1">
                           ⚠️ <strong>Nunca</strong> aponte seu domínio raiz diretamente para o nosso painel — isso tiraria seu site atual do ar.
