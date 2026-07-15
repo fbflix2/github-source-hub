@@ -233,6 +233,30 @@ export default function RevendaPortal() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [verifyingDomain, setVerifyingDomain] = useState(false);
+  const verifyDomain = async () => {
+    if (!reseller) return;
+    setVerifyingDomain(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-reseller-domain", {
+        body: { reseller_id: reseller.id },
+      });
+      if (error) throw error;
+      if (data?.status === "verified") {
+        toast.success(data.message || "Domínio verificado!");
+      } else {
+        toast.error(data?.message || "Não foi possível verificar. Aguarde a propagação DNS.");
+      }
+      if (data?.status) {
+        setReseller({ ...reseller, domain_status: data.status } as Reseller);
+      }
+    } catch (e: any) {
+      toast.error("Erro ao verificar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setVerifyingDomain(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
@@ -1061,6 +1085,15 @@ export default function RevendaPortal() {
                     >
                       {savingBrand && <Loader2 className="size-4 animate-spin" />}
                       Salvar alterações
+                    </Button>
+                    <Button
+                      onClick={verifyDomain}
+                      disabled={verifyingDomain || !reseller.custom_domain}
+                      variant="outline"
+                      className="px-6 py-3 font-bold rounded-xl gap-2"
+                    >
+                      {verifyingDomain ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      Verificar DNS agora
                     </Button>
                   </div>
                 </div>
