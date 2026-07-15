@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useFbxBalance } from "@/hooks/useFbx";
 import { Loader2, Copy, Check } from "lucide-react";
@@ -48,7 +48,13 @@ const getIcon = (type: string) => {
 export default function Wallet() {
   const { data: fbxData } = useFbxBalance();
   const fbxBalance = fbxData?.fbx_balance || 0;
-  const [rechargeValue, setRechargeValue] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const [rechargeValue, setRechargeValue] = useState<string>(() => {
+    const v = searchParams.get("amount") || searchParams.get("valor");
+    if (!v) return "";
+    const n = parseFloat(v.replace(",", "."));
+    return isNaN(n) ? "" : String(n);
+  });
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);

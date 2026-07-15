@@ -1026,14 +1026,17 @@ Deno.serve(async (req) => {
         const dataVenc = new Date(c.next_billing + "T12:00:00Z").toLocaleDateString("pt-BR");
         const saldo = Number(profile.balance || 0);
         const temSaldo = saldo >= Number(c.monthly_value || 0);
+        const faltante = Math.max(0, Number(c.monthly_value || 0) - saldo);
+        const valorRecarga = faltante > 0 ? faltante.toFixed(2) : Number(c.monthly_value || 0).toFixed(2);
+        const linkPagamento = `${SITE_URL}/wallet?amount=${valorRecarga}`;
 
         let msg: string;
         if (days_ahead >= 2) {
-          msg = `Olá ${nome} 👋\n\nPassando pra lembrar que sua assinatura *${planName}* vence em *${dataVenc}* (${days_ahead} dias).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Você já tem saldo suficiente na carteira, a renovação será automática." : "⚠️ Sua carteira está sem saldo suficiente. Recarregue para renovar automaticamente."}\n\n${SITE_URL}/contingencia`;
+          msg = `Olá ${nome} 👋\n\nPassando pra lembrar que sua assinatura *${planName}* vence em *${dataVenc}* (${days_ahead} dias).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Você já tem saldo suficiente na carteira, a renovação será automática." : `⚠️ Sua carteira está sem saldo suficiente. Recarregue para renovar automaticamente.\n\n💳 Link para pagamento (PIX): ${linkPagamento}`}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
         } else if (days_ahead === 1) {
-          msg = `Olá ${nome} 👋\n\n⏰ Sua assinatura *${planName}* vence *amanhã* (${dataVenc}).\n\n💰 Valor da renovação: *${valor}*\n${temSaldo ? "✅ Saldo em carteira ok — renovação automática amanhã." : "⚠️ *Atenção:* saldo insuficiente na carteira. Recarregue hoje para evitar a suspensão da estrutura."}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
+          msg = `Olá ${nome} 👋\n\n⏰ Sua assinatura *${planName}* vence *amanhã* (${dataVenc}).\n\n💰 Valor da renovação: *${valor}*\n${temSaldo ? "✅ Saldo em carteira ok — renovação automática amanhã." : `⚠️ *Atenção:* saldo insuficiente na carteira. Recarregue hoje para evitar a suspensão da estrutura.\n\n💳 Link para pagamento (PIX): ${linkPagamento}`}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
         } else {
-          msg = `Olá ${nome} 👋\n\n🔔 Sua assinatura *${planName}* vence *hoje* (${dataVenc}).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Sua carteira tem saldo — vamos renovar automaticamente ainda hoje." : "🚨 *Saldo insuficiente!* Recarregue agora para não perder acesso à sua estrutura Scale Pro.\n\nRecarregar: " + SITE_URL + "/wallet"}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
+          msg = `Olá ${nome} 👋\n\n🔔 Sua assinatura *${planName}* vence *hoje* (${dataVenc}).\n\n💰 Valor: *${valor}*\n${temSaldo ? "✅ Sua carteira tem saldo — vamos renovar automaticamente ainda hoje." : `🚨 *Saldo insuficiente!* Recarregue agora para não perder acesso à sua estrutura Scale Pro.\n\n💳 Link para pagamento (PIX): ${linkPagamento}`}\n\nMinha assinatura: ${SITE_URL}/contingencia`;
         }
 
         if (dry_run) {
@@ -1111,7 +1114,9 @@ Deno.serve(async (req) => {
       const planName = (c as any).ct_plans?.name || "Scale Pro";
       const valor = `R$ ${Number(c.monthly_value || 0).toFixed(2).replace(".", ",")}`;
 
-      const msg = `Olá ${nome} 👋\n\n🚨 Sua assinatura *${planName}* foi *suspensa* por saldo insuficiente na carteira (${valor}).\n\nSua estrutura ficará indisponível até a regularização. Recarregue e sua assinatura volta ao ar automaticamente.\n\nRecarregar: ${SITE_URL}/wallet\nMinha assinatura: ${SITE_URL}/contingencia`;
+      const valorNum = Number(c.monthly_value || 0).toFixed(2);
+      const linkPagamento = `${SITE_URL}/wallet?amount=${valorNum}`;
+      const msg = `Olá ${nome} 👋\n\n🚨 Sua assinatura *${planName}* foi *suspensa* por saldo insuficiente na carteira (${valor}).\n\nSua estrutura ficará indisponível até a regularização. Recarregue e sua assinatura volta ao ar automaticamente.\n\n💳 Link para pagamento (PIX): ${linkPagamento}\nMinha assinatura: ${SITE_URL}/contingencia`;
 
       const normalizedPhone = normalizePhone(profile.phone);
       const scheduledAt = new Date();
