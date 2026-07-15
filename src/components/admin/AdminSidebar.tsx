@@ -122,7 +122,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Parceiros", icon: Users, path: "/admin/parceiros" },
   { title: "Revendedores", icon: Store, path: "/admin/revendedores", subItems: [
     { title: "Revendedores", icon: Store, path: "/admin/revendedores" },
-    { title: "Custo por proxy", icon: Coins, path: "/admin/revenda-proxy-custo" },
+    { title: "Custo por proxy", icon: Coins, path: "/admin/revendedores/custo-proxy" },
   ]},
   { title: "Cupons", icon: Ticket, path: "/admin/cupons" },
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
