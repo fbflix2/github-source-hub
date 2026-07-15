@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check staff role (admin or moderator)
+    // Allow staff (admin/moderator) OR resellers acting on their own clients
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -45,14 +45,38 @@ Deno.serve(async (req) => {
       .in("role", ["admin", "moderator"])
       .maybeSingle();
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Acesso negado: apenas staff" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const isStaff = !!roleData;
 
     const { target_user_id, admin_origin } = await req.json();
+
+    if (!isStaff) {
+      // Check reseller-owned client
+      const { data: reseller } = await adminClient
+        .from("resellers")
+        .select("id, status")
+        .eq("user_id", caller.id)
+        .maybeSingle();
+      if (!reseller || reseller.status === "suspended" || reseller.status === "inactive") {
+        return new Response(JSON.stringify({ error: "Acesso negado" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const resellerId = reseller.id as string;
+      const [{ data: o }, { data: s }, { data: p }] = await Promise.all([
+        adminClient.from("orders").select("id").eq("reseller_id", resellerId).eq("user_id", target_user_id).limit(1),
+        adminClient.from("subscriptions").select("id").eq("reseller_id", resellerId).eq("user_id", target_user_id).limit(1),
+        adminClient.from("profiles").select("user_id").eq("reseller_id", resellerId).eq("user_id", target_user_id).maybeSingle(),
+      ]);
+      const owns = (o && o.length > 0) || (s && s.length > 0) || !!p;
+      if (!owns) {
+        return new Response(JSON.stringify({ error: "Este cliente não pertence à sua carteira" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!target_user_id) {
       return new Response(JSON.stringify({ error: "target_user_id é obrigatório" }), {
         status: 400,

@@ -39,6 +39,7 @@ import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
+import ResellerClientes from "@/components/revenda/ResellerClientes";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
@@ -114,7 +115,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -284,6 +285,7 @@ export default function RevendaPortal() {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "overview", label: "Loja", icon: Store },
+    { id: "clientes", label: "Clientes", icon: Users },
     { id: "vendas", label: "Vendas", icon: Receipt },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
@@ -634,6 +636,8 @@ export default function RevendaPortal() {
             {activeSection === "pagamentos" && (
               <ResellerGatewayConfig resellerId={reseller.id} />
             )}
+
+            {activeSection === "clientes" && <ResellerClientes />}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
