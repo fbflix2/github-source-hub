@@ -631,6 +631,10 @@ export default function RevendaPortal() {
               <ResellerStoreConfig resellerId={reseller.id} slug={reseller.slug} />
             )}
 
+            {activeSection === "pagamentos" && (
+              <ResellerGatewayConfig resellerId={reseller.id} />
+            )}
+
             {activeSection === "manutencao" && (
               <ResellerMaintenance
                 resellerId={reseller.id}
