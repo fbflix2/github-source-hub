@@ -81,6 +81,28 @@ export default function AdminOpenPix() {
   const [refundComment, setRefundComment] = useState("");
   const [refundUpdateOrder, setRefundUpdateOrder] = useState(true);
   const [refundLoading, setRefundLoading] = useState(false);
+  const [refundedIds, setRefundedIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("openpix_refunded_ids");
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const markRefunded = (c: { identifier?: string; correlationID?: string }) => {
+    setRefundedIds((prev) => {
+      const next = new Set(prev);
+      if (c.identifier) next.add(c.identifier);
+      if (c.correlationID) next.add(c.correlationID);
+      try {
+        localStorage.setItem("openpix_refunded_ids", JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  };
+  const isRefunded = (c: { identifier?: string; correlationID?: string }) =>
+    (!!c.identifier && refundedIds.has(c.identifier)) ||
+    (!!c.correlationID && refundedIds.has(c.correlationID));
 
   // Histórico
   const today = new Date();
@@ -289,6 +311,7 @@ export default function AdminOpenPix() {
       });
       if (err) throw err;
       if (res?.error) throw new Error(res.error);
+      markRefunded({ identifier: refundCharge.identifier, correlationID: refundCharge.correlationID });
       toast.success(
         res?.orderUpdated
           ? "Estorno enviado e pedido marcado como reembolsado"
@@ -436,15 +459,21 @@ export default function AdminOpenPix() {
                         <p className="text-xs text-muted-foreground">taxa {formatBRL(c.fee)}</p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-3"
-                      onClick={() => openRefund(c)}
-                      disabled={!c.identifier && !c.correlationID}
-                    >
-                      <Undo2 className="h-3 w-3 mr-1" /> Estornar
-                    </Button>
+                    {isRefunded(c) ? (
+                      <span className="ml-3 inline-flex items-center gap-1 rounded-md border border-green-500/40 bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
+                        ✓ Reembolsado
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-3"
+                        onClick={() => openRefund(c)}
+                        disabled={!c.identifier && !c.correlationID}
+                      >
+                        <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -570,16 +599,22 @@ export default function AdminOpenPix() {
                     <p className="text-xs text-muted-foreground">taxa {formatBRL(c.fee)}</p>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                  onClick={() => openRefund(c)}
-                  disabled={!c.identifier && !c.correlationID}
-                  title={!c.identifier && !c.correlationID ? "Sem ID de cobrança" : "Estornar"}
-                >
-                  <Undo2 className="h-3 w-3 mr-1" /> Estornar
-                </Button>
+                {isRefunded(c) ? (
+                  <span className="shrink-0 inline-flex items-center gap-1 rounded-md border border-green-500/40 bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
+                    ✓ Reembolsado
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                    onClick={() => openRefund(c)}
+                    disabled={!c.identifier && !c.correlationID}
+                    title={!c.identifier && !c.correlationID ? "Sem ID de cobrança" : "Estornar"}
+                  >
+                    <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                  </Button>
+                )}
               </div>
             ))}
           </div>
