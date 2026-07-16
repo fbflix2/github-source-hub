@@ -23,6 +23,109 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
+function PayNowButton({
+  ctClientId,
+  monthlyValue,
+  label = "Pagar agora",
+}: {
+  ctClientId: string;
+  monthlyValue: number;
+  label?: string;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { data: balance } = useQuery({
+    queryKey: ["wallet-balance-for-ct"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { data } = await supabase.from("profiles").select("balance").eq("user_id", user.id).single();
+      return Number(data?.balance || 0);
+    },
+    enabled: open,
+  });
+
+  const insufficient = (balance ?? 0) < monthlyValue;
+
+  const pay = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ct-pay-now", {
+        body: { ct_client_id: ctClientId },
+      });
+      if (error || (data as any)?.error) {
+        const msg = (data as any)?.error || error?.message || "Falha no pagamento";
+        toast({ title: "Não foi possível pagar", description: msg, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: (data as any)?.reactivated ? "Assinatura reativada! 🎉" : "Pagamento confirmado ✅",
+        description: `R$ ${monthlyValue.toFixed(2).replace(".", ",")} debitados. Próxima cobrança: ${(data as any)?.next_billing}`,
+      });
+      setOpen(false);
+      await qc.invalidateQueries();
+    } catch (e: any) {
+      toast({ title: "Erro", description: String(e?.message || e), variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        className="bg-red-500 hover:bg-red-600 text-white shrink-0"
+        onClick={() => setOpen(true)}
+      >
+        {label}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pagar mensalidade com saldo</DialogTitle>
+            <DialogDescription>
+              O valor será debitado da sua carteira FBFlix.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-4 py-3">
+              <span className="text-sm text-muted-foreground">Mensalidade</span>
+              <span className="text-sm font-semibold">R$ {monthlyValue.toFixed(2).replace(".", ",")}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-4 py-3">
+              <span className="text-sm text-muted-foreground">Saldo atual</span>
+              <span className={`text-sm font-semibold ${insufficient ? "text-red-400" : "text-emerald-400"}`}>
+                R$ {(balance ?? 0).toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+            {insufficient && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-300">
+                Saldo insuficiente. Adicione R$ {(monthlyValue - (balance ?? 0)).toFixed(2).replace(".", ",")} na carteira.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+            {insufficient ? (
+              <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                <a href="/wallet">Adicionar saldo</a>
+              </Button>
+            ) : (
+              <Button onClick={pay} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+                {loading ? "Processando…" : "Confirmar pagamento"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function getOverdueDays(nextBilling: string | null | undefined): number {
   if (!nextBilling) return 0;
   const due = new Date(nextBilling).getTime();
@@ -506,7 +609,8 @@ export default function ClientContingencia() {
           {/* Overdue billing alert */}
           {(() => {
             const overdueDays = getOverdueDays(ctClient.next_billing);
-            if (overdueDays <= 0) return null;
+            const isSuspenso = (ctClient as any).status === "suspenso";
+            if (overdueDays <= 0 && !isSuspenso) return null;
             return (
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-center gap-4">
                 <div className="h-9 w-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
@@ -514,22 +618,21 @@ export default function ClientContingencia() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-red-300">
-                    Assinatura atrasada há {overdueDays} dia{overdueDays > 1 ? "s" : ""}
+                    {isSuspenso
+                      ? "Assinatura suspensa"
+                      : `Assinatura atrasada há ${overdueDays} dia${overdueDays > 1 ? "s" : ""}`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    Renove agora para evitar a suspensão da sua estrutura.
+                    {isSuspenso
+                      ? "Pague a mensalidade para reativar sua estrutura imediatamente."
+                      : "Renove agora para evitar a suspensão da sua estrutura."}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  className="bg-red-500 hover:bg-red-600 text-white shrink-0"
-                  onClick={() => {
-                    const trigger = document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]');
-                    trigger?.click();
-                  }}
-                >
-                  Renovar agora
-                </Button>
+                <PayNowButton
+                  ctClientId={ctClient.id}
+                  monthlyValue={Number(ctClient.monthly_value || 0)}
+                  label={isSuspenso ? "Reativar agora" : "Pagar agora"}
+                />
               </div>
             );
           })()}
