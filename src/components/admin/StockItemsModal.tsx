@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Loader2, Package, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
 import JSZip from "jszip";
@@ -39,6 +40,8 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [replacementItem, setReplacementItem] = useState<StockItem | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "available" | "sold" | "blocked">("all");
 
   const fetchItems = () => {
     setLoading(true);
@@ -179,6 +182,19 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const blocked = items.filter(i => i.status === "bloqueado");
   const other = items.filter(i => !["revisado", "vendido", "bloqueado"].includes(i.status) && !i.order_item_id);
 
+  const filteredByStatus = filter === "available" ? available
+    : filter === "sold" ? sold
+    : filter === "blocked" ? blocked
+    : items;
+  const q = search.trim().toLowerCase();
+  const visibleItems = q
+    ? filteredByStatus.filter(i =>
+        (i.name?.toLowerCase().includes(q)) ||
+        (i.identification?.toLowerCase().includes(q)) ||
+        (i.identification_link?.toLowerCase().includes(q))
+      )
+    : filteredByStatus;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-white">
@@ -197,12 +213,28 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
           <p className="text-zinc-500 text-center py-8">Nenhum item de estoque encontrado.</p>
         ) : (
           <div className="space-y-3">
-            {/* Summary */}
-            <div className="flex gap-3 flex-wrap">
-              <Badge className="bg-green-500/20 text-green-400">{available.length} disponível</Badge>
-              <Badge className="bg-blue-500/20 text-blue-400">{sold.length} vendido(s)</Badge>
-              {blocked.length > 0 && <Badge className="bg-red-500/20 text-red-400">{blocked.length} bloqueado(s)</Badge>}
-              {other.length > 0 && <Badge className="bg-yellow-500/20 text-yellow-400">{other.length} aguardando</Badge>}
+            {/* Filters */}
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => setFilter("all")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "all" ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-white/5 text-zinc-400 hover:text-white"}`}>Todos ({items.length})</button>
+              <button onClick={() => setFilter("available")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "available" ? "bg-green-500/25 border-green-500/40 text-green-300" : "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/15"}`}>Na loja ({available.length})</button>
+              <button onClick={() => setFilter("sold")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "sold" ? "bg-blue-500/25 border-blue-500/40 text-blue-300" : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/15"}`}>Vendidos ({sold.length})</button>
+              {blocked.length > 0 && (
+                <button onClick={() => setFilter("blocked")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "blocked" ? "bg-red-500/25 border-red-500/40 text-red-300" : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/15"}`}>Bloqueados ({blocked.length})</button>
+              )}
+              {other.length > 0 && (
+                <Badge className="bg-yellow-500/20 text-yellow-400">{other.length} aguardando</Badge>
+              )}
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, ID ou link..."
+                className="pl-9 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
+              />
             </div>
 
             <div className="overflow-x-auto">
@@ -216,7 +248,14 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {visibleItems.length === 0 && (
+                    <TableRow className="border-zinc-800">
+                      <TableCell colSpan={4} className="text-center text-zinc-500 text-sm py-6">
+                        Nenhum item encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {visibleItems.map((item) => {
                     const st = statusLabels[item.status] || { label: item.status, color: "bg-zinc-600 text-zinc-400" };
                     const hasData = item.data && Object.keys(item.data).length > 0;
                     const isExpanded = expandedId === item.id;
