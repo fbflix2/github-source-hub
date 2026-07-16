@@ -1,60 +1,41 @@
-Vou entregar a loja pública do revendedor em fases, para você validar cada etapa antes da próxima.
+# Estorno com devolução ao estoque (todos os tipos, opção A)
 
-## Visão geral
+## Objetivo
 
-Rota pública `/r/:slug` — igual ao layout da /loja atual, porém:
-- **Somente proxies** (perfis, BMs, combos ficam ocultos)
-- **Preço de venda** definido pelo revendedor (não o custo dele)
-- **Banners** do revendedor (audience='reseller') com marca/cor/logo dele
-- **Cadastro/login** do cliente final vinculado automaticamente ao revendedor
-- **Checkout** completo (PIX/cartão) → pedido registrado com `reseller_id`, comissão/débito de crédito já funciona pelo trigger existente
+Permitir que um admin, ao aprovar o estorno de um pedido, devolva automaticamente ao estoque os itens vendidos (BM, perfil, proxy, combos, páginas, etc.) e faça com que esse pedido **suma das telas de gestão** (BMs, Perfis, Central Proxy), sem apagar o histórico financeiro.
 
-## Fase 1 — Modelo de preços (esta entrega)
+## Fluxo
 
-**Banco:**
-- Adicionar em `resellers`: `proxy_price_mode` ('multiplier'|'fixed'), `proxy_price_multiplier` (default 1.5), `proxy_fixed_price` (nullable), `whatsapp_number` (contato público), `about_text`, `hero_title`, `hero_subtitle`.
-- Adicionar em `profiles`: `reseller_id` (uuid, nullable) — vincula cliente final ao revendedor no cadastro.
-- Adicionar em `orders`: garantir que `reseller_id` seja auto-preenchido a partir do `profiles.reseller_id` do comprador (trigger).
+1. Admin abre um pedido em **Pedidos** e clica em **"Estornar e devolver ao estoque"**.
+2. Modal de confirmação lista os itens que voltarão ao estoque.
+3. Ao confirmar, a operação faz tudo em uma transação:
+   - Solta cada `stock_item` do pedido: `order_item_id = NULL`, `status = 'revisado'` (pai + filhos de combo).
+   - Reseta `bm_tracking` correspondente para `em_estoque`, limpando `client_user_id`, `order_id`, `order_item_id`, `sold_at`, `sale_price`, `expires_at` distante.
+   - Libera `subscriptions` de proxy vinculadas àquele pedido (volta ao pool).
+   - Libera `ct_pool_items` (combos ScalePro) que estavam atribuídos.
+   - Marca `orders.status = 'refunded'` — os triggers já existentes cuidam de comissões de parceiros/revendedores.
+   - Credita o valor do pedido na **carteira** do cliente (`profiles.balance` + `wallet_transactions`), conforme conversado. Se preferir estorno externo (PIX), o admin cancela sem creditar via checkbox.
+4. `sync_product_stock` recalcula `products.stock` automaticamente → itens reaparecem na loja.
 
-**UI do revendedor (`/revenda`):**
-- Nova aba "Minha Loja" onde o revendedor configura: multiplicador ou preço fixo, WhatsApp público, textos do hero, cor/logo.
+## Telas de gestão — filtro por status
 
-## Fase 2 — Storefront público `/r/:slug`
+Adiciono filtro `orders.status NOT IN ('refunded','cancelled')` (ou pela flag do pedido) nas consultas de:
 
-- Página pública sem auth exigido para navegar.
-- Header com logo/nome/cor do revendedor.
-- Banner rotativo com banners `audience='reseller'` (só dele, filtrado por `reseller_id` — vamos adicionar coluna `reseller_id` nullable em `banners`; null = todos revendedores).
-- Catálogo de proxies (categoria `proxy` apenas) com preço = base × multiplicador (ou preço fixo).
-- Cards idênticos ao `ProxyProductCard` da /loja atual.
-- Filtro por finalidade (Youtube, TikTok, Apostas, etc).
-- Sem chat, sem perfis/BM/combos.
+- Gestão de BMs (`AdminGestaoBMs`)
+- Gestão de Perfis / rastreamento
+- Central Proxy (`AdminCentralProxy`) — itens de pedidos estornados somem da lista de "vendidos"
 
-## Fase 3 — Auth + Checkout do cliente final
-
-- `/r/:slug/auth` — login/cadastro. No cadastro, gravar `profiles.reseller_id = <id do revendedor daquele slug>`.
-- Cart context já existe. Checkout usa fluxo /checkout atual, mas:
-  - Se `profiles.reseller_id` do usuário logado != null → pedido sai com `reseller_id` preenchido.
-  - Trigger existente `process_reseller_commission` já debita o custo do saldo do revendedor.
-- Após login o cliente vai para `/r/:slug` (não para /loja do FBFlix).
-- Meus Pedidos / Wallet do cliente final continuam funcionando, mas escopo visual permanece.
-
-## Fase 4 — Isolamento visual e de rotas
-
-- Cliente com `reseller_id != null` nunca vê /loja FBFlix, nem produtos não-proxy. Redirect global.
-- Navbar/branding trocam para marca do revendedor quando o usuário está vinculado a um.
+Isso não apaga registros: o histórico continua acessível em Pedidos com o status `refunded`.
 
 ## Detalhes técnicos
 
-- Rota `/r/:slug` adicionada no bloco público de `App.tsx`, antes das rotas autenticadas.
-- Novo componente `ResellerPublicStorefront.tsx` (baseado em `ResellerLoja.tsx` já existente).
-- Preços calculados no cliente a partir de `resellers.proxy_price_mode` — sem PII exposta.
-- RLS: `resellers` recebe policy pública `SELECT` somente das colunas de vitrine (slug, brand_name, logo_url, primary_color, hero_*, whatsapp_number, proxy_price_*). Colunas sensíveis (`balance_credits`, `proxy_unit_cost`, `commission_rate`, `total_gmv`, etc) continuam restritas a admin/owner.
-- `banners` ganha `reseller_id uuid null` + policy pública para banners com `audience='reseller' AND active=true`.
+- **Migration**: função `public.admin_refund_and_restock_order(_order_id uuid, _credit_wallet boolean)` `SECURITY DEFINER`, restrita a `has_role(auth.uid(), 'admin')`. Percorre `order_items`, chama a lógica descrita, retorna JSON com contagem por tipo.
+- **RPC**: chamada do frontend via `supabase.rpc('admin_refund_and_restock_order', ...)`.
+- **UI**: novo botão em `AdminPedidos.tsx` (linha de ação do pedido) + modal de confirmação com preview dos itens e checkbox "Creditar na carteira do cliente" (default: marcado).
+- **Guardas**: se o pedido já estiver `refunded`, botão fica desabilitado. Se algum `stock_item` já estiver reciclado/deletado, ignora com aviso não-fatal.
+- **Telas de gestão**: ajuste no `.select(...)` para trazer `orders.status` e filtrar em SQL/cliente.
 
-## O que vou implementar agora
+## Fora do escopo
 
-Fase 1 completa (banco + UI de config no painel do revendedor) + Fase 2 completa (storefront público navegável em `/r/:slug` mostrando os proxies com o preço configurado).
-
-Fases 3 e 4 (checkout/auth do cliente final e isolamento) entrego em seguida, após você validar as fases 1 e 2.
-
-Confirma que posso seguir por esse caminho?
+- Retorno de dinheiro real via PIX/MercadoPago (fica manual — o crédito na carteira cobre o caso comum).
+- Reversão de aquecimento/tarefas do operador (permanecem no histórico).
