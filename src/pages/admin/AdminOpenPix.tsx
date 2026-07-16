@@ -556,7 +556,7 @@ export default function AdminOpenPix() {
         ) : (
           <div className="space-y-1 max-h-[500px] overflow-y-auto">
             {filteredCharges.map((c, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 text-sm hover:bg-secondary/30">
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 text-sm hover:bg-secondary/30 gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{c.comment || "Sem descrição"}</p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -570,6 +570,16 @@ export default function AdminOpenPix() {
                     <p className="text-xs text-muted-foreground">taxa {formatBRL(c.fee)}</p>
                   )}
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  onClick={() => openRefund(c)}
+                  disabled={!c.identifier && !c.correlationID}
+                  title={!c.identifier && !c.correlationID ? "Sem ID de cobrança" : "Estornar"}
+                >
+                  <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                </Button>
               </div>
             ))}
           </div>
