@@ -311,6 +311,7 @@ export default function AdminOpenPix() {
       });
       if (err) throw err;
       if (res?.error) throw new Error(res.error);
+      markRefunded({ identifier: refundCharge.identifier, correlationID: refundCharge.correlationID });
       toast.success(
         res?.orderUpdated
           ? "Estorno enviado e pedido marcado como reembolsado"
