@@ -156,7 +156,7 @@ export default function ResellerClientes() {
   const StatusBadge = ({ c }: { c: Client }) => {
     if (c.status === "blocked") {
       return (
-        <div className="flex items-center gap-1 text-xs text-red-400 font-medium bg-red-500/10 w-fit px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-1 text-xs text-primary font-medium bg-primary/10 w-fit px-2 py-0.5 rounded-full">
           <Ban className="w-3 h-3" /> Bloqueado
         </div>
       );

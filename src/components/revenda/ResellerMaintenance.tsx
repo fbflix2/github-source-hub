@@ -297,7 +297,7 @@ export default function ResellerMaintenance({
                                 <div>{endDate.toLocaleDateString("pt-BR")}</div>
                                 <div className={cn(
                                   "text-xs",
-                                  daysLeft !== null && daysLeft <= 3 ? "text-red-400" :
+                                  daysLeft !== null && daysLeft <= 3 ? "text-primary" :
                                   daysLeft !== null && daysLeft <= 7 ? "text-yellow-400" :
                                   "text-muted-foreground"
                                 )}>
@@ -371,7 +371,7 @@ export default function ResellerMaintenance({
                           </td>
                           <td className="px-4 py-3 capitalize">{l.type}</td>
                           <td className="px-4 py-3 text-muted-foreground">{l.description || "—"}</td>
-                          <td className={`text-right px-4 py-3 font-bold ${positive ? "text-green-400" : "text-red-400"}`}>
+                          <td className={`text-right px-4 py-3 font-bold ${positive ? "text-green-400" : "text-primary"}`}>
                             {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
                           </td>
                           <td className="text-right px-4 py-3 text-muted-foreground">

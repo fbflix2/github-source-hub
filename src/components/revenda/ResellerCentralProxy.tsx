@@ -217,7 +217,7 @@ export function ResellerCentralProxy({
               <span
                 className={cn(
                   "font-bold",
-                  kpis.profit >= 0 ? "text-emerald-400" : "text-red-400"
+                  kpis.profit >= 0 ? "text-emerald-400" : "text-primary"
                 )}
               >
                 {BRL(kpis.profit)}
@@ -394,7 +394,7 @@ export function ResellerCentralProxy({
                             <span
                               className={cn(
                                 "font-bold font-mono",
-                                profit >= 0 ? "text-emerald-400" : "text-red-400"
+                                profit >= 0 ? "text-emerald-400" : "text-primary"
                               )}
                             >
                               {profit >= 0 ? (
@@ -411,7 +411,7 @@ export function ResellerCentralProxy({
                                   ? "text-emerald-400/70"
                                   : margin >= 10
                                     ? "text-amber-400/70"
-                                    : "text-red-400/70"
+                                    : "text-primary"
                               )}
                             >
                               {margin.toFixed(1)}% margem
@@ -492,7 +492,7 @@ export function ResellerCentralProxy({
                               c.status === "pending" &&
                                 "border-amber-500/40 bg-amber-500/10 text-amber-400",
                               (c.status === "cancelled" || c.status === "refunded") &&
-                                "border-red-500/40 bg-red-500/10 text-red-400"
+                                "border-primary/40 bg-primary/10 text-primary"
                             )}
                           >
                             {c.status}
@@ -582,7 +582,7 @@ function KpiTile({
     sky: "from-sky-500/10 text-sky-400",
     amber: "from-amber-500/10 text-amber-400",
     violet: "from-violet-500/10 text-violet-400",
-    red: "from-red-500/10 text-red-400",
+    red: "from-primary/10 text-primary",
   };
   return (
     <Card

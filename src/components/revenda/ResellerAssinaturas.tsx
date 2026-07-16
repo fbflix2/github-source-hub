@@ -36,7 +36,7 @@ const statusColor = (s: string, endDate: string | null) => {
   const now = Date.now();
   const end = endDate ? new Date(endDate).getTime() : 0;
   const active = s === "active" || s === "ativo" || (end && end > now);
-  if (s === "cancelled" || s === "cancelado") return "bg-red-500/15 text-red-300 border-red-500/30";
+  if (s === "cancelled" || s === "cancelado") return "bg-primary/15 text-primary border-primary/30";
   if (s === "expired" || s === "expirado" || (end && end < now)) return "bg-orange-500/15 text-orange-300 border-orange-500/30";
   if (active) return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
   return "bg-muted text-muted-foreground border-border/40";

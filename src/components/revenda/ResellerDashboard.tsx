@@ -161,7 +161,7 @@ export default function ResellerDashboard({
   };
   const statusColor = (s: string) => {
     if (s === "completed") return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-    if (s === "cancelled" || s === "refunded") return "bg-red-500/10 text-red-400 border-red-500/20";
+    if (s === "cancelled" || s === "refunded") return "bg-primary/10 text-primary border-primary/20";
     if (s === "pending" || s === "processing") return "bg-amber-500/10 text-amber-400 border-amber-500/20";
     return "bg-muted/40 text-muted-foreground border-border/40";
   };

@@ -163,7 +163,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="flex items-center justify-center size-11 rounded-xl bg-gradient-to-br from-primary to-red-900 shadow-lg shadow-primary/20">
+        <div className="flex items-center justify-center size-11 rounded-xl bg-gradient-to-br from-primary to-primary shadow-lg shadow-primary/20">
           <CreditCard className="text-primary-foreground size-5" />
         </div>
         <div className="flex-1">
@@ -180,7 +180,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
             {activeProvider === "openpix" ? "OpenPix ativo" : "Mercado Pago ativo"}
           </Badge>
         ) : (
-          <Badge className="bg-red-500/15 text-red-400 border border-red-500/30 gap-1.5">
+          <Badge className="bg-primary/15 text-primary border border-primary/30 gap-1.5">
             <AlertTriangle className="size-3" /> Nenhum gateway
           </Badge>
         )}
@@ -188,11 +188,11 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
 
       {/* Warning if none */}
       {!activeProvider && (
-        <Card className="p-4 border-red-500/40 bg-red-500/5 flex items-start gap-3">
-          <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
+        <Card className="p-4 border-primary/40 bg-primary/5 flex items-start gap-3">
+          <AlertTriangle className="size-5 text-primary shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-bold text-red-300">Sua loja está bloqueada</p>
-            <p className="text-xs text-red-300/80 mt-0.5">
+            <p className="font-bold text-primary">Sua loja está bloqueada</p>
+            <p className="text-xs text-primary mt-0.5">
               O checkout da sua loja de revenda não funciona enquanto nenhum
               gateway estiver configurado. Escolha OpenPix ou Mercado Pago abaixo.
             </p>
@@ -260,7 +260,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
           </div>
           <div>
             <Label htmlFor="openpix_app_id" className="text-xs">
-              AppID <span className="text-red-400">*</span>
+              AppID <span className="text-primary">*</span>
             </Label>
             <div className="relative mt-1">
               <Input
@@ -306,7 +306,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
           </div>
           <div>
             <Label htmlFor="mp_access_token" className="text-xs">
-              Access Token <span className="text-red-400">*</span>
+              Access Token <span className="text-primary">*</span>
             </Label>
             <div className="relative mt-1">
               <Input
@@ -334,7 +334,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
           </div>
           <div>
             <Label htmlFor="mp_public_key" className="text-xs">
-              Public Key <span className="text-red-400">*</span>
+              Public Key <span className="text-primary">*</span>
             </Label>
             <Input
               id="mp_public_key"
@@ -372,7 +372,7 @@ export default function ResellerGatewayConfig({ resellerId }: Props) {
               variant="outline"
               onClick={disconnect}
               disabled={saving}
-              className="text-red-400 hover:text-red-300 border-red-500/40"
+              className="text-primary hover:text-primary border-primary/40"
             >
               Desconectar
             </Button>
