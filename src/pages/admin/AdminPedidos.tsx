@@ -109,6 +109,30 @@ export default function AdminPedidos() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  async function handleRefundOrder() {
+    if (!selectedOrder) return;
+    setRefundLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_refund_and_restock_order" as any, {
+        _order_id: selectedOrder.id,
+        _credit_wallet: refundCreditWallet,
+      });
+      if (error) throw error;
+      const r = (data ?? {}) as any;
+      toast.success(
+        `Estornado. ${r.stock_items_restocked || 0} itens devolvidos ao estoque` +
+          (r.wallet_credited ? " · carteira creditada" : ""),
+      );
+      setRefundOpen(false);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao estornar pedido");
+    } finally {
+      setRefundLoading(false);
+    }
+  }
+
   async function fetchOrders() {
     setLoading(true);
     // (function body continues below)
