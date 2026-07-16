@@ -81,6 +81,28 @@ export default function AdminOpenPix() {
   const [refundComment, setRefundComment] = useState("");
   const [refundUpdateOrder, setRefundUpdateOrder] = useState(true);
   const [refundLoading, setRefundLoading] = useState(false);
+  const [refundedIds, setRefundedIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("openpix_refunded_ids");
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const markRefunded = (c: { identifier?: string; correlationID?: string }) => {
+    setRefundedIds((prev) => {
+      const next = new Set(prev);
+      if (c.identifier) next.add(c.identifier);
+      if (c.correlationID) next.add(c.correlationID);
+      try {
+        localStorage.setItem("openpix_refunded_ids", JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  };
+  const isRefunded = (c: { identifier?: string; correlationID?: string }) =>
+    (!!c.identifier && refundedIds.has(c.identifier)) ||
+    (!!c.correlationID && refundedIds.has(c.correlationID));
 
   // Histórico
   const today = new Date();
