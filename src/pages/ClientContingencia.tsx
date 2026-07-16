@@ -506,7 +506,8 @@ export default function ClientContingencia() {
           {/* Overdue billing alert */}
           {(() => {
             const overdueDays = getOverdueDays(ctClient.next_billing);
-            if (overdueDays <= 0) return null;
+            const isSuspenso = (ctClient as any).status === "suspenso";
+            if (overdueDays <= 0 && !isSuspenso) return null;
             return (
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-center gap-4">
                 <div className="h-9 w-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
@@ -514,22 +515,21 @@ export default function ClientContingencia() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-red-300">
-                    Assinatura atrasada há {overdueDays} dia{overdueDays > 1 ? "s" : ""}
+                    {isSuspenso
+                      ? "Assinatura suspensa"
+                      : `Assinatura atrasada há ${overdueDays} dia${overdueDays > 1 ? "s" : ""}`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    Renove agora para evitar a suspensão da sua estrutura.
+                    {isSuspenso
+                      ? "Pague a mensalidade para reativar sua estrutura imediatamente."
+                      : "Renove agora para evitar a suspensão da sua estrutura."}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  className="bg-red-500 hover:bg-red-600 text-white shrink-0"
-                  onClick={() => {
-                    const trigger = document.querySelector<HTMLButtonElement>('[data-state][value="assinatura"]');
-                    trigger?.click();
-                  }}
-                >
-                  Renovar agora
-                </Button>
+                <PayNowButton
+                  ctClientId={ctClient.id}
+                  monthlyValue={Number(ctClient.monthly_value || 0)}
+                  label={isSuspenso ? "Reativar agora" : "Pagar agora"}
+                />
               </div>
             );
           })()}
