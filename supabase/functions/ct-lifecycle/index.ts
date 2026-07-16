@@ -80,10 +80,11 @@ Deno.serve(async (req) => {
     }
 
     // 3) Renew subscriptions where next_billing <= today
+    // Inclui 'suspenso' para auto-reativar quando o cliente recarregar a carteira
     const { data: dueList } = await admin
       .from("ct_clients")
-      .select("id, user_id, plan_id, monthly_value, next_billing")
-      .eq("status", "ativo")
+      .select("id, user_id, plan_id, monthly_value, next_billing, status")
+      .in("status", ["ativo", "suspenso"])
       .lte("next_billing", today);
 
     for (const sub of (dueList ?? [])) {
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
         const nextBilling = new Date();
         nextBilling.setDate(nextBilling.getDate() + 30);
         await admin.from("ct_clients").update({
+          status: "ativo",
           next_billing: nextBilling.toISOString().slice(0, 10),
           last_payment_at: now.toISOString(),
         }).eq("id", sub.id);
@@ -106,13 +108,15 @@ Deno.serve(async (req) => {
         await admin.from("wallet_transactions").insert({
           user_id: sub.user_id,
           type: "debit",
-          title: "Renovação Scale Pro",
+          title: sub.status === "suspenso" ? "Reativação Scale Pro" : "Renovação Scale Pro",
           amount: price,
           balance_after: newBal,
           reference_id: sub.id,
         });
         summary.renewed++;
       } else {
+        // Se já está suspenso, não repete a suspensão nem o alerta
+        if (sub.status === "suspenso") continue;
         await admin.from("ct_clients").update({ status: "suspenso" }).eq("id", sub.id);
         summary.proxies_released += await releaseProxies([sub.id]);
         await admin.from("notifications").insert({
