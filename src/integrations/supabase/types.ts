@@ -341,7 +341,7 @@ export type Database = {
           product_name: string
           removed_at: string | null
           sale_price: number
-          sold_at: string
+          sold_at: string | null
           status: string
           stock_item_id: string | null
           updated_at: string
@@ -361,7 +361,7 @@ export type Database = {
           product_name: string
           removed_at?: string | null
           sale_price?: number
-          sold_at?: string
+          sold_at?: string | null
           status?: string
           stock_item_id?: string | null
           updated_at?: string
@@ -381,7 +381,7 @@ export type Database = {
           product_name?: string
           removed_at?: string | null
           sale_price?: number
-          sold_at?: string
+          sold_at?: string | null
           status?: string
           stock_item_id?: string | null
           updated_at?: string
