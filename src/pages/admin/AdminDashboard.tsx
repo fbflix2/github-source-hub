@@ -569,7 +569,7 @@ export default function AdminDashboard() {
 
     const safeBmInvoices = filteredRevenue.filter(o => isSafeBmName(o.product_name));
     const ctInvoices = filteredRevenue.filter(o => 
-      isContingenciaServiceName(o.product_name)
+      isContingenciaServiceName(o.product_name) && o.source !== "wallet_ct"
     );
 
     // Also check allCategoryItems for regular orders that might have these products (if not categorized)
