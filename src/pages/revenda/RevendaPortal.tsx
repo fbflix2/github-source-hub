@@ -335,7 +335,20 @@ export default function RevendaPortal() {
   };
 
   return (
-    <div className="fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div
+      className="reseller-portal-root fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground"
+      style={(() => {
+        const hsl = hexToHslTriplet(reseller.primary_color || "");
+        return hsl
+          ? ({
+              ["--primary" as any]: hsl,
+              ["--ring" as any]: hsl,
+              ["--sidebar-primary" as any]: hsl,
+              ["--sidebar-ring" as any]: hsl,
+            } as React.CSSProperties)
+          : undefined;
+      })()}
+    >
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-primary/10 rounded-full blur-[140px]" />
