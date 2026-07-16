@@ -459,15 +459,21 @@ export default function AdminOpenPix() {
                         <p className="text-xs text-muted-foreground">taxa {formatBRL(c.fee)}</p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-3"
-                      onClick={() => openRefund(c)}
-                      disabled={!c.identifier && !c.correlationID}
-                    >
-                      <Undo2 className="h-3 w-3 mr-1" /> Estornar
-                    </Button>
+                    {isRefunded(c) ? (
+                      <span className="ml-3 inline-flex items-center gap-1 rounded-md border border-green-500/40 bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">
+                        ✓ Reembolsado
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-3"
+                        onClick={() => openRefund(c)}
+                        disabled={!c.identifier && !c.correlationID}
+                      >
+                        <Undo2 className="h-3 w-3 mr-1" /> Estornar
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
