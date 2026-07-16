@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
     const appId = Deno.env.get('OPENPIX_APP_ID');
     if (!appId) throw new Error('OPENPIX_APP_ID não configurado');
 
-    const { chargeId, correlationID, value, comment, updateOrder } = await req.json();
+    const { chargeId, correlationID, value, comment, updateOrder, customerPhone, customerName } = await req.json();
     if (!chargeId) throw new Error('chargeId é obrigatório');
     if (!value || value <= 0) throw new Error('value (centavos) é obrigatório');
 
@@ -50,6 +50,10 @@ Deno.serve(async (req) => {
 
     // Atualiza pedido se solicitado
     let orderUpdated = false;
+    let orderTotalCents = 0;
+    let waPhone: string | null = customerPhone || null;
+    let waName: string | null = customerName || null;
+    let orderCode: string | null = null;
     if (updateOrder && correlationID) {
       const { data: pay } = await supa
         .from('payments')
@@ -57,6 +61,22 @@ Deno.serve(async (req) => {
         .eq('id', correlationID)
         .maybeSingle();
       if (pay?.order_id) {
+        const { data: ord } = await supa
+          .from('orders')
+          .select('id, code, total, user_id')
+          .eq('id', pay.order_id)
+          .maybeSingle();
+        orderCode = ord?.code || null;
+        orderTotalCents = Math.round(Number(ord?.total || 0) * 100);
+        if (!waPhone && ord?.user_id) {
+          const { data: prof } = await supa
+            .from('profiles')
+            .select('phone, full_name')
+            .eq('user_id', ord.user_id)
+            .maybeSingle();
+          waPhone = prof?.phone || null;
+          waName = waName || prof?.full_name || null;
+        }
         await supa
           .from('orders')
           .update({ status: 'refunded', updated_at: new Date().toISOString() })
@@ -69,8 +89,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Envia WhatsApp para o cliente
+    let whatsappSent = false;
+    if (waPhone) {
+      try {
+        const reais = (value / 100).toFixed(2).replace('.', ',');
+        const isPartial = orderTotalCents > 0 && value < orderTotalCents;
+        const firstName = (waName || '').split(' ')[0] || 'Olá';
+        const refText = orderCode ? ` do pedido *${orderCode}*` : '';
+        const partialLine = isPartial
+          ? `Efetuamos um estorno *parcial* no valor de *R$ ${reais}*${refText}.`
+          : `Efetuamos o *estorno total* no valor de *R$ ${reais}*${refText}.`;
+        const message =
+          `Olá, ${firstName}! 👋\n\n` +
+          `${partialLine}\n\n` +
+          `O valor será devolvido em sua chave PIX de origem em até *1 hora útil*. ` +
+          `Caso não receba, entre em contato com nosso suporte.\n\n` +
+          `Obrigado!`;
+        const waRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/wapi-send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          },
+          body: JSON.stringify({ action: 'send-text', phone: waPhone, message }),
+        });
+        whatsappSent = waRes.ok;
+      } catch (e) {
+        console.error('wapi-send failed:', e);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, refund: refundData?.refund || refundData, orderUpdated }),
+      JSON.stringify({ success: true, refund: refundData?.refund || refundData, orderUpdated, whatsappSent }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (e) {
