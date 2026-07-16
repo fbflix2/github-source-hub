@@ -51,6 +51,30 @@ import {
 import { NavLink } from "react-router-dom";
 import { Ticket, Wrench, CreditCard } from "lucide-react";
 
+// Converte #RRGGBB para o formato "H S% L%" usado pelas variáveis CSS do design system
+function hexToHslTriplet(hex: string): string | null {
+  const m = /^#?([a-f\d]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const int = parseInt(m[1], 16);
+  const r = ((int >> 16) & 255) / 255;
+  const g = ((int >> 8) & 255) / 255;
+  const b = (int & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  const l = (max + min) / 2;
+  const s = max === min ? 0 : l > 0.5 ? (max - min) / (2 - max - min) : (max - min) / (max + min);
+  if (max !== min) {
+    switch (max) {
+      case r: h = (g - b) / (max - min) + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / (max - min) + 2; break;
+      case b: h = (r - g) / (max - min) + 4; break;
+    }
+    h *= 60;
+  }
+  return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
 interface Reseller {
   id: string;
   user_id: string;
@@ -311,7 +335,20 @@ export default function RevendaPortal() {
   };
 
   return (
-    <div className="fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div
+      className="reseller-portal-root fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground"
+      style={(() => {
+        const hsl = hexToHslTriplet(reseller.primary_color || "");
+        return hsl
+          ? ({
+              ["--primary" as any]: hsl,
+              ["--ring" as any]: hsl,
+              ["--sidebar-primary" as any]: hsl,
+              ["--sidebar-ring" as any]: hsl,
+            } as React.CSSProperties)
+          : undefined;
+      })()}
+    >
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
         <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-primary/10 rounded-full blur-[140px]" />
