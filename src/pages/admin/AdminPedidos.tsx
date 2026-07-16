@@ -111,6 +111,7 @@ export default function AdminPedidos() {
 
   async function fetchOrders() {
     setLoading(true);
+    // (function body continues below)
 
     // Paginate orders fetch to avoid the 1000 row default limit
     const PAGE_SIZE = 1000;
