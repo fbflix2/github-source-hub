@@ -236,14 +236,14 @@ export default function RevendaPortal() {
     const accentHsl = hexToHslTriplet(reseller.accent_color || "");
     const applied: string[] = [];
     if (primaryHsl) {
-      root.style.setProperty("--primary", primaryHsl);
-      root.style.setProperty("--ring", primaryHsl);
-      root.style.setProperty("--sidebar-primary", primaryHsl);
-      root.style.setProperty("--sidebar-ring", primaryHsl);
+      root.style.setProperty("--primary", primaryHsl, "important");
+      root.style.setProperty("--ring", primaryHsl, "important");
+      root.style.setProperty("--sidebar-primary", primaryHsl, "important");
+      root.style.setProperty("--sidebar-ring", primaryHsl, "important");
       applied.push("--primary", "--ring", "--sidebar-primary", "--sidebar-ring");
     }
     if (accentHsl) {
-      root.style.setProperty("--accent", accentHsl);
+      root.style.setProperty("--accent", accentHsl, "important");
       applied.push("--accent");
     }
     return () => {
