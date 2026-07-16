@@ -25,6 +25,16 @@ export default function AdminLogin() {
       // Save remember me preference
       localStorage.setItem("admin_remember_me", rememberMe ? "true" : "false");
 
+      // Clear stale auth lock (outra aba/sessão travada no LockManager)
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {}
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") && k.endsWith("-auth-token"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
