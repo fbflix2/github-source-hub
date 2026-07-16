@@ -73,6 +73,7 @@ const statusConfig: Record<string, { label: string; dot: string; badge: string }
   completed: { label: "Concluído", dot: "bg-green-400", badge: "bg-green-500/10 text-green-400 ring-green-500/20" },
   processing: { label: "Processando", dot: "bg-yellow-400 animate-pulse", badge: "bg-yellow-500/10 text-yellow-400 ring-yellow-500/20" },
   cancelled: { label: "Cancelado", dot: "bg-red-400", badge: "bg-red-500/10 text-red-400 ring-red-500/20" },
+  refunded: { label: "Estornado", dot: "bg-purple-400", badge: "bg-purple-500/10 text-purple-300 ring-purple-500/20" },
   abandoned: { label: "Expirado", dot: "bg-orange-400", badge: "bg-orange-500/10 text-orange-400 ring-orange-500/20" },
 };
 
