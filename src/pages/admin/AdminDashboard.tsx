@@ -171,9 +171,9 @@ export default function AdminDashboard() {
         const PAGE_SIZE = 1000;
         while (true) {
           const { data } = await supabase.from("wallet_transactions")
-            .select("id, amount, created_at, reference_id")
+            .select("id, amount, created_at, reference_id, title")
             .in("type", ["purchase", "debit"])
-            .lt("amount", 0)
+            .gt("amount", 0)
             .order("created_at", { ascending: false })
             .range(from, from + PAGE_SIZE - 1);
           if (!data || data.length === 0) break;
@@ -242,18 +242,30 @@ export default function AdminDashboard() {
 
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
 
-      // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
+      // Wallet debits (proxy renewals + Scale Pro renewals via wallet debit)
+      // Exclude those linked to completed orders to avoid double counting
       const walletPurchases = fetchedWalletPurchases
         .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
-        .map((wt: any) => ({
-          total: Math.abs(Number(wt.amount)) || 0,
-          created_at: wt.created_at as string,
-        }));
+        .map((wt: any) => {
+          const title = String(wt.title || "").toLowerCase();
+          const isScalePro =
+            title.includes("scale pro") ||
+            title.includes("contingência") ||
+            title.includes("contingencia") ||
+            title.includes("reativação scale") ||
+            title.includes("renovação scale");
+          return {
+            total: Math.abs(Number(wt.amount)) || 0,
+            created_at: wt.created_at as string,
+            product_name: wt.title || null,
+            source: isScalePro ? "wallet_ct" : "wallet_proxy",
+          };
+        });
 
        const allRevenue = [
          ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null, source: "order" })),
          ...paidInvoices.map(p => ({ ...p, source: "invoice" })),
-         ...walletPurchases.map(w => ({ ...w, product_name: null, source: "wallet_proxy" })),
+         ...walletPurchases,
        ];
 
       // Calculate today's revenue
@@ -578,8 +590,8 @@ export default function AdminDashboard() {
     });
     result.push({ 
       name: "Scale Pro", 
-      sales: ctInvoices.length + ctOrderItems.reduce((s, i) => s + i.qty, 0), 
-      revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) 
+      sales: ctInvoices.length + ctOrderItems.reduce((s, i) => s + i.qty, 0) + filteredRevenue.filter(o => o.source === "wallet_ct").length, 
+      revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) + filteredRevenue.filter(o => o.source === "wallet_ct").reduce((s, o) => s + o.total, 0)
     });
 
     // Proxy: order items in proxy category + wallet proxy renewals (period-filtered)
