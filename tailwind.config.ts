@@ -26,9 +26,12 @@ export default {
     },
     extend: {
       colors: {
-        // FBFLIX colors - Black, Red, White
-        "primary": "#DC2626",
-        "danger": "#DC2626",
+        // Brand colors must come from CSS variables so reseller white-label themes can override them
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        danger: "hsl(var(--destructive))",
         "background-dark": "#0D0D0D",
         "surface-glass": "rgba(255,255,255,0.06)",
         "text-secondary": "#9AA4B2",
@@ -92,8 +95,8 @@ export default {
         'glass-gradient': 'linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%)',
       },
       boxShadow: {
-        'glow': '0 0 15px rgba(220, 38, 38, 0.3)',
-        'glow-lg': '0 0 25px rgba(220, 38, 38, 0.4)',
+        'glow': '0 0 15px hsl(var(--primary) / 0.3)',
+        'glow-lg': '0 0 25px hsl(var(--primary) / 0.4)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       },
       borderRadius: {
