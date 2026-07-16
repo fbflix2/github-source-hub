@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft, Undo2 } from "lucide-react";
 import ProductExchangeModal from "@/components/admin/ProductExchangeModal";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesBalanceTab from "@/components/admin/SalesBalanceTab";
