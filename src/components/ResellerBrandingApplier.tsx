@@ -60,7 +60,11 @@ export default function ResellerBrandingApplier() {
       }
     };
     load();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => {
+        load();
+      }, 0);
+    });
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
