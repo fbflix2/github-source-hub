@@ -228,6 +228,29 @@ export default function RevendaPortal() {
     return { pending, credited };
   }, [commissions]);
 
+  // Aplica a identidade visual do revendedor globalmente (cobre portais/modais/toasts)
+  useEffect(() => {
+    if (!reseller) return;
+    const root = document.documentElement;
+    const primaryHsl = hexToHslTriplet(reseller.primary_color || "");
+    const accentHsl = hexToHslTriplet(reseller.accent_color || "");
+    const applied: string[] = [];
+    if (primaryHsl) {
+      root.style.setProperty("--primary", primaryHsl);
+      root.style.setProperty("--ring", primaryHsl);
+      root.style.setProperty("--sidebar-primary", primaryHsl);
+      root.style.setProperty("--sidebar-ring", primaryHsl);
+      applied.push("--primary", "--ring", "--sidebar-primary", "--sidebar-ring");
+    }
+    if (accentHsl) {
+      root.style.setProperty("--accent", accentHsl);
+      applied.push("--accent");
+    }
+    return () => {
+      applied.forEach((v) => root.style.removeProperty(v));
+    };
+  }, [reseller?.primary_color, reseller?.accent_color, reseller?.id]);
+
   const saveBranding = async () => {
     if (!reseller) return;
     setSavingBrand(true);
