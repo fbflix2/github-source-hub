@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search } from "lucide-react";
+import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search, Link2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
@@ -33,6 +33,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   vendido: { label: "Vendido", color: "bg-blue-500/20 text-blue-400" },
   aguardando: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400" },
   bloqueado: { label: "Bloqueado", color: "bg-red-500/20 text-red-400" },
+  link_expirado: { label: "Link Expirado", color: "bg-orange-500/20 text-orange-400" },
 };
 
 export function StockItemsModal({ open, onOpenChange, productId, productName }: StockItemsModalProps) {
@@ -41,7 +42,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [replacementItem, setReplacementItem] = useState<StockItem | null>(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "available" | "sold" | "blocked">("all");
+  const [filter, setFilter] = useState<"all" | "available" | "sold" | "blocked" | "expired">("all");
 
   const fetchItems = () => {
     setLoading(true);
@@ -69,6 +70,39 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
     await supabase.from("replacements").update({ new_stock_item_id: null }).eq("new_stock_item_id", item.id);
     await supabase.from("stock_items").update({ deleted_at: new Date().toISOString() }).eq("id", item.id);
     setItems(prev => prev.filter(i => i.id !== item.id));
+  };
+
+  const handleUpdateStatus = async (item: StockItem, newStatus: string) => {
+    const { error } = await supabase
+      .from("stock_items")
+      .update({ status: newStatus })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Erro ao atualizar status");
+      return;
+    }
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+    toast.success(`Status atualizado para ${statusLabels[newStatus]?.label || newStatus}`);
+  };
+
+  const handleEditLink = async (item: StockItem) => {
+    const current = item.identification_link || "";
+    const next = window.prompt("Novo link da BM:", current);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (trimmed === current) return;
+    const { error } = await supabase
+      .from("stock_items")
+      .update({ identification_link: trimmed || null })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Erro ao atualizar link");
+      return;
+    }
+    // Sync bm_tracking if linked
+    await supabase.from("bm_tracking").update({ bm_link: trimmed || null }).eq("stock_item_id", item.id);
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, identification_link: trimmed || null } : i));
+    toast.success("Link atualizado");
   };
 
   const generateTxtFromTemplate = (template: string | null, stockItem: StockItem) => {
@@ -180,11 +214,13 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const available = items.filter(i => i.status === "revisado" && !i.order_item_id);
   const sold = items.filter(i => i.status === "vendido" || i.order_item_id);
   const blocked = items.filter(i => i.status === "bloqueado");
-  const other = items.filter(i => !["revisado", "vendido", "bloqueado"].includes(i.status) && !i.order_item_id);
+  const expired = items.filter(i => i.status === "link_expirado");
+  const other = items.filter(i => !["revisado", "vendido", "bloqueado", "link_expirado"].includes(i.status) && !i.order_item_id);
 
   const filteredByStatus = filter === "available" ? available
     : filter === "sold" ? sold
     : filter === "blocked" ? blocked
+    : filter === "expired" ? expired
     : items;
   const q = search.trim().toLowerCase();
   const visibleItems = q
@@ -220,6 +256,9 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
               <button onClick={() => setFilter("sold")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "sold" ? "bg-blue-500/25 border-blue-500/40 text-blue-300" : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/15"}`}>Vendidos ({sold.length})</button>
               {blocked.length > 0 && (
                 <button onClick={() => setFilter("blocked")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "blocked" ? "bg-red-500/25 border-red-500/40 text-red-300" : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/15"}`}>Bloqueados ({blocked.length})</button>
+              )}
+              {expired.length > 0 && (
+                <button onClick={() => setFilter("expired")} className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${filter === "expired" ? "bg-orange-500/25 border-orange-500/40 text-orange-300" : "bg-orange-500/10 border-orange-500/20 text-orange-400 hover:bg-orange-500/15"}`}>Link Expirado ({expired.length})</button>
               )}
               {other.length > 0 && (
                 <Badge className="bg-yellow-500/20 text-yellow-400">{other.length} aguardando</Badge>
@@ -272,6 +311,37 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Editar link da BM"
+                                className="h-7 px-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 gap-1 text-xs"
+                                onClick={() => handleEditLink(item)}
+                              >
+                                <Link2 className="h-3.5 w-3.5" />
+                              </Button>
+                              {item.status !== "revisado" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Marcar como revisado"
+                                  className="h-7 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/10 gap-1 text-xs"
+                                  onClick={() => handleUpdateStatus(item, "revisado")}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {item.status !== "link_expirado" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Marcar link como expirado"
+                                  className="h-7 px-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 gap-1 text-xs"
+                                  onClick={() => handleUpdateStatus(item, "link_expirado")}
+                                >
+                                  <AlertTriangle className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               {hasData && (
                                 <>
                                   <Button
