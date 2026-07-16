@@ -610,8 +610,82 @@ export default function AdminPedidos() {
                   <span className="font-bold text-xl text-primary">R$ {selectedOrder.total.toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
+
+              {!["refunded", "cancelled"].includes(selectedOrder.status) && (
+                <div className="border-t border-border pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                    onClick={() => {
+                      setRefundCreditWallet(true);
+                      setRefundOpen(true);
+                    }}
+                  >
+                    <Undo2 className="w-4 h-4 mr-2" />
+                    Estornar e devolver ao estoque
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Confirmation Modal */}
+      <Dialog open={refundOpen} onOpenChange={(o) => !refundLoading && setRefundOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Estornar pedido {selectedOrder?.code}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Todos os itens deste pedido voltarão automaticamente ao estoque e ficarão disponíveis
+              para nova venda (perfis, BMs, proxies e combos). O pedido será marcado como
+              <span className="font-semibold text-purple-300"> Estornado</span> e sumirá das telas de
+              gestão de BMs, perfis e proxies.
+            </p>
+            <div className="rounded-lg border border-border/60 bg-card/40 p-3 space-y-2">
+              <div className="text-xs text-muted-foreground">Itens do pedido</div>
+              {selectedOrder?.items.map((it) => (
+                <div key={it.id} className="text-foreground">
+                  {it.quantity}× {it.name}
+                </div>
+              ))}
+            </div>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <Checkbox
+                checked={refundCreditWallet}
+                onCheckedChange={(v) => setRefundCreditWallet(v === true)}
+                disabled={refundLoading}
+              />
+              <span>
+                Creditar R$ {selectedOrder?.total.toFixed(2).replace(".", ",")} na carteira do cliente
+                <span className="block text-xs text-muted-foreground">
+                  Desmarque se for pagar o estorno por fora (PIX/cartão).
+                </span>
+              </span>
+            </label>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="ghost" onClick={() => setRefundOpen(false)} disabled={refundLoading}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleRefundOrder}
+                disabled={refundLoading}
+                className="bg-purple-600 hover:bg-purple-500 text-white"
+              >
+                {refundLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Estornando…
+                  </>
+                ) : (
+                  <>
+                    <Undo2 className="w-4 h-4 mr-2" /> Confirmar estorno
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
