@@ -34,12 +34,37 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!roleRow) throw new Error('Acesso negado');
 
+    // Busca a transação PIX paga vinculada à charge para obter o transactionEndToEndId
+    const txRes = await fetch(
+      `https://api.openpix.com.br/api/v1/transaction?charge=${encodeURIComponent(chargeId)}`,
+      { headers: { Authorization: appId } }
+    );
+    const txData = await txRes.json();
+    if (!txRes.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Falha ao buscar transação da cobrança', details: txData }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const transactions = txData?.transactions || txData?.data || [];
+    const paidTx = transactions.find((t: any) => t?.endToEndId) || transactions[0];
+    const endToEndId = paidTx?.endToEndId || paidTx?.transactionEndToEndId;
+    if (!endToEndId) {
+      return new Response(
+        JSON.stringify({
+          error: 'Não foi possível localizar a transação PIX paga desta cobrança (endToEndId).',
+          details: txData,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const refundCorrelationID = `refund-${chargeId.slice(-12)}-${Date.now()}`;
     const refundRes = await fetch('https://api.openpix.com.br/api/v1/refund', {
       method: 'POST',
       headers: { Authorization: appId, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chargeId,
+        transactionEndToEndId: endToEndId,
         correlationID: refundCorrelationID,
         value, // em centavos
         comment: (comment || 'Estorno').slice(0, 140),
