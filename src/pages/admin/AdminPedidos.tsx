@@ -90,6 +90,9 @@ export default function AdminPedidos() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [exchangeOpen, setExchangeOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundCreditWallet, setRefundCreditWallet] = useState(true);
+  const [refundLoading, setRefundLoading] = useState(false);
   const [exchangeItem, setExchangeItem] = useState<{ order_item_id: string; product_id: string | null; product_name: string; price: number; stock_item_id: string | null } | null>(null);
 
   useEffect(() => {
