@@ -47,8 +47,9 @@ export default function AdminLogin() {
 
       toast.success("Login realizado com sucesso!");
       navigate("/admin");
-    } catch (error) {
-      toast.error("Erro ao fazer login");
+    } catch (error: any) {
+      console.error("[AdminLogin] erro inesperado:", error);
+      toast.error(`Erro ao fazer login: ${error?.message || error}`);
     } finally {
       setLoading(false);
     }
