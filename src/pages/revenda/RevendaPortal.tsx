@@ -231,23 +231,27 @@ export default function RevendaPortal() {
   // Aplica a identidade visual do revendedor globalmente (cobre portais/modais/toasts)
   useEffect(() => {
     if (!reseller) return;
-    const root = document.documentElement;
     const primaryHsl = hexToHslTriplet(reseller.primary_color || "");
     const accentHsl = hexToHslTriplet(reseller.accent_color || "");
-    const applied: string[] = [];
+    if (!primaryHsl && !accentHsl) return;
+    const styleEl = document.createElement("style");
+    styleEl.id = "reseller-branding-vars";
+    const rules: string[] = [];
     if (primaryHsl) {
-      root.style.setProperty("--primary", primaryHsl);
-      root.style.setProperty("--ring", primaryHsl);
-      root.style.setProperty("--sidebar-primary", primaryHsl);
-      root.style.setProperty("--sidebar-ring", primaryHsl);
-      applied.push("--primary", "--ring", "--sidebar-primary", "--sidebar-ring");
+      rules.push(`--primary: ${primaryHsl} !important;`);
+      rules.push(`--ring: ${primaryHsl} !important;`);
+      rules.push(`--sidebar-primary: ${primaryHsl} !important;`);
+      rules.push(`--sidebar-ring: ${primaryHsl} !important;`);
     }
     if (accentHsl) {
-      root.style.setProperty("--accent", accentHsl);
-      applied.push("--accent");
+      rules.push(`--accent: ${accentHsl} !important;`);
     }
+    styleEl.textContent = `:root, .dark, html, body { ${rules.join(" ")} }`;
+    // Remove qualquer instância anterior
+    document.getElementById("reseller-branding-vars")?.remove();
+    document.head.appendChild(styleEl);
     return () => {
-      applied.forEach((v) => root.style.removeProperty(v));
+      styleEl.remove();
     };
   }, [reseller?.primary_color, reseller?.accent_color, reseller?.id]);
 
