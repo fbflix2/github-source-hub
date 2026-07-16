@@ -455,6 +455,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <CustomDomainRouter>
+              <ResellerBrandingApplier />
               <Routes>
                 <Route
                   path="/auth"
