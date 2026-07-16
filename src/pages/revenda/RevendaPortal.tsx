@@ -593,11 +593,11 @@ export default function RevendaPortal() {
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6 lg:py-8">
           <div className="max-w-7xl mx-auto space-y-6">
             {suspended && (
-              <Card className="p-4 border-red-500/40 bg-red-500/5 backdrop-blur flex items-start gap-3">
-                <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
+              <Card className="p-4 border-primary/40 bg-primary/5 backdrop-blur flex items-start gap-3">
+                <AlertTriangle className="size-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-red-300">Painel suspenso</p>
-                  <p className="text-xs text-red-300/80">
+                  <p className="font-bold text-primary">Painel suspenso</p>
+                  <p className="text-xs text-primary">
                     Seu painel está inativo. Regularize a recarga mínima ou entre em contato com o
                     suporte para reativação.
                   </p>
@@ -764,7 +764,7 @@ export default function RevendaPortal() {
                                   </td>
                                   <td
                                     className={`text-right px-4 py-3 font-bold ${
-                                      positive ? "text-green-400" : "text-red-400"
+                                      positive ? "text-green-400" : "text-primary"
                                     }`}
                                   >
                                     {positive ? "+" : "-"} R$ {Math.abs(Number(l.amount)).toFixed(2)}
@@ -890,9 +890,9 @@ export default function RevendaPortal() {
               const statusStyle = isVerified
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                 : status === "failed"
-                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                ? "bg-primary/10 border-primary/20 text-primary"
                 : "bg-amber-500/10 border-amber-500/20 text-amber-400";
-              const statusDot = isVerified ? "bg-emerald-500" : status === "failed" ? "bg-red-500" : "bg-amber-500";
+              const statusDot = isVerified ? "bg-emerald-500" : status === "failed" ? "bg-primary" : "bg-amber-500";
               const statusLabel = isVerified
                 ? "Verificado"
                 : status === "failed"
@@ -1246,8 +1246,8 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pending: "border-yellow-500/40 text-yellow-400 bg-yellow-500/10",
     credited: "border-green-500/40 text-green-400 bg-green-500/10",
-    cancelled: "border-red-500/40 text-red-400 bg-red-500/10",
-    refunded: "border-red-500/40 text-red-400 bg-red-500/10",
+    cancelled: "border-primary/40 text-primary bg-primary/10",
+    refunded: "border-primary/40 text-primary bg-primary/10",
   };
   return (
     <Badge variant="outline" className={map[status] || ""}>

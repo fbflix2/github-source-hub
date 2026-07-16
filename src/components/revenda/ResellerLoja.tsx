@@ -212,10 +212,10 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
               const stockPercent = product.stock > 0 ? Math.min(100, Math.max(5, (product.stock / (product.stock + 50)) * 100)) : 0;
               const isPromo = (product.tags || []).some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc"));
               return (
-                <article key={product.id} className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${isPromo ? "ring-1 ring-red-500/30" : ""}`}>
+                <article key={product.id} className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${isPromo ? "ring-1 ring-primary/30" : ""}`}>
                   {isPromo && (
                     <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
-                      <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
+                      <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-primary to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-primary/30">
                         Promoção
                       </div>
                     </div>
