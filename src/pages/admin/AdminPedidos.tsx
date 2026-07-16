@@ -359,6 +359,7 @@ export default function AdminPedidos() {
               <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="processing">Processando</SelectItem>
               <SelectItem value="cancelled">Cancelado</SelectItem>
+              <SelectItem value="refunded">Estornado</SelectItem>
               <SelectItem value="abandoned">Expirado</SelectItem>
             </SelectContent>
           </Select>
