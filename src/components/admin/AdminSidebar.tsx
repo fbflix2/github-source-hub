@@ -79,6 +79,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Gestão Itens", icon: Briefcase, path: "/admin/gestao-bms", subItems: [
     { title: "Gestão BMs", icon: Briefcase, path: "/admin/gestao-bms" },
     { title: "Gestão Perfis", icon: CircleUser, path: "/admin/gestao-perfis" },
+    { title: "BMs Rodadas", icon: Store, path: "/admin/bms-rodadas" },
     { title: "Safe BM", icon: ShieldCheck, path: "/admin/safe-bm" },
     { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
     { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },
