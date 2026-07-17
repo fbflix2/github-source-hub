@@ -597,7 +597,7 @@ const styles = `
 
 .mkt-nav{position:relative; z-index:5; display:flex; align-items:center; justify-content:space-between; padding:28px clamp(20px,4vw,56px)}
 .mkt-brand{display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none}
-.mkt-brand-mark{display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,#131822,#0b0e14); border:1px solid var(--line); color:var(--gold); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.mkt-brand-mark{display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:10px; background:linear-gradient(135deg,#131822,#0b0e14); border:1px solid var(--line); color:var(--gold); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 .mkt-brand-text{display:flex; flex-direction:column; line-height:1.05}
 .mkt-brand-text b{font-size:15px; letter-spacing:.14em}
 .mkt-brand-text em{font-style:normal; font-size:10px; letter-spacing:.28em; color:var(--gold); text-transform:uppercase}
@@ -752,8 +752,8 @@ const styles = `
   .mkt-grid{grid-template-columns:1fr}
 }
 
-.mkt-brand-mark-img{background:transparent !important; border:1px solid rgba(212,166,79,.35); padding:6px; overflow:hidden}
-.mkt-brand-mark-img img{width:100%; height:100%; object-fit:contain; display:block}
+.mkt-brand-mark-img{background:transparent !important; border:0 !important; padding:0; overflow:visible; box-shadow:none !important; width:64px; height:64px}
+.mkt-brand-mark-img img{width:100%; height:100%; object-fit:contain; display:block; filter:drop-shadow(0 4px 12px rgba(212,166,79,.25))}
 
 .mkt-modal-backdrop{position:fixed; inset:0; background:rgba(3,4,7,.75); backdrop-filter:blur(10px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease}
 .mkt-modal{position:relative; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; background:linear-gradient(180deg, #0F131A, #0B0E14); border:1px solid rgba(212,166,79,.25); border-radius:24px; padding:32px; box-shadow:0 40px 100px -20px rgba(0,0,0,.8); animation:fadeUp .35s cubic-bezier(.2,.7,.2,1)}
