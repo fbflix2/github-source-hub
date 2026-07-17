@@ -329,6 +329,12 @@ export default function MarketplacePremium() {
 
                 <footer className="mkt-card-foot">
                   <div className="mkt-price">{fmtBRL(bm.price)}</div>
+                  {bm.details && bm.details.length > 0 && (
+                    <button className="mkt-more-btn" type="button" onClick={() => setDetailsBm(bm)} title="Ver mais detalhes">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg>
+                      Ver mais
+                    </button>
+                  )}
                   <button className="mkt-buy">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 10V8a6 6 0 1 1 12 0v2"/><rect x="4" y="10" width="16" height="10" rx="2"/></svg>
                     Comprar agora
