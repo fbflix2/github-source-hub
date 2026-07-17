@@ -1028,7 +1028,7 @@ export default function Checkout() {
         }
 
       if (paymentMethod === "saldo") {
-        const { data: profile } = await supabase.from("profiles").select("balance, proxy_fixed_price").eq("user_id", user.id).maybeSingle();
+        const { data: profile } = await supabase.from("profiles").select("balance, proxy_fixed_price, full_name").eq("user_id", user.id).maybeSingle();
         
         if (!profile || profile.balance < chargeTotal) {
           toast.error(`Saldo insuficiente (R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")}). Redirecionando para PIX...`);
