@@ -1187,6 +1187,36 @@ export default function Checkout() {
             const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
             if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
 
+            // ========== SAFE BM AUTO-ACTIVATION (saldo) ==========
+            if (oi.product_id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b") {
+              try {
+                const { data: itemFull } = await supabase.from("order_items").select("quantity, price").eq("id", oi.id).single();
+                const itemQty = itemFull?.quantity || 1;
+                const itemPrice = itemFull?.price || 9.99;
+                for (let i = 0; i < itemQty; i++) {
+                  const { count: existingCount } = await supabase
+                    .from("safe_bm_vaults").select("id", { count: "exact", head: true })
+                    .eq("user_id", user.id).eq("status", "active");
+                  await supabase.from("safe_bm_vaults" as any).insert({
+                    user_id: user.id,
+                    client_name: profile.full_name || "Cliente",
+                    bm_name: `BM ${(existingCount || 0) + 1}`,
+                    bm_link: "https://business.facebook.com",
+                    status: "active",
+                    subscription_price: itemPrice,
+                    protection_start: new Date().toISOString(),
+                  });
+                }
+                await supabase.from("order_items").update({
+                  delivery_data: { type: "safe_bm", fulfilled: true, count: itemQty } as any,
+                }).eq("id", oi.id);
+              } catch (e) {
+                console.error("[Checkout] SafeBM saldo error:", e);
+                fulfillmentFailed = true;
+              }
+              continue;
+            }
+
             const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
               p_order_item_id: oi.id,
               p_product_id: oi.product_id,
