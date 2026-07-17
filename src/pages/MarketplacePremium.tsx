@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.webp";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
  * FBFLIX Marketplace Premium — standalone landing page.
@@ -30,7 +33,7 @@ const genBmId = () => {
   return s;
 };
 
-const BMS: BM[] = [
+const BMS_FALLBACK: BM[] = [
   { id: "1",  name: "Dentista O Sane",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 2.241 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 16853.61, price: 2000 },
   { id: "2",  name: "Dra. Ingrid",         country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.309 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 14276.59, price: 1800 },
   { id: "3",  name: "Refrigera Max 1",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.310 / dia", accounts: 5,  createdAt: "2025", risk: "BAIXO",         method: "Cartão",           gastoTotal: 12883.26, price: 1600 },
@@ -56,6 +59,37 @@ export default function MarketplacePremium() {
   const [country, setCountry] = useState("");
   const [method, setMethod] = useState("");
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const [bms, setBms] = useState<BM[]>(BMS_FALLBACK);
+  const [sellOpen, setSellOpen] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("marketplace_bms")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (error || !data || data.length === 0) return;
+      setBms(
+        data.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          country: r.country || "Brasil",
+          code: r.code || "BR",
+          flag: "🇧🇷",
+          bmId: r.bm_id || genBmId(),
+          verification: r.verification || "Rodada",
+          limit: r.limit_daily || "",
+          accounts: r.accounts ?? 5,
+          createdAt: r.created_year || "2024",
+          risk: r.risk || "BAIXO",
+          method: r.method || "Cartão",
+          gastoTotal: Number(r.gasto_total || 0),
+          price: Number(r.price || 0),
+        }))
+      );
+    })();
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -73,13 +107,13 @@ export default function MarketplacePremium() {
   }, []);
 
   const list = useMemo(() => {
-    return BMS.filter(b => {
+    return bms.filter(b => {
       if (country && b.code !== country) return false;
       if (method && b.method !== method) return false;
       if (search && !`${b.name} ${b.country} ${b.bmId} ${b.code}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [country, method, search]);
+  }, [country, method, search, bms]);
 
   const copyId = async (id: string) => {
     try { await navigator.clipboard.writeText(id); } catch {}
@@ -115,23 +149,19 @@ export default function MarketplacePremium() {
       {/* Top bar */}
       <header className="mkt-nav">
         <Link to="/" className="mkt-brand" aria-label="FBFLIX Marketplace">
-          <span className="mkt-brand-mark">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z" />
-              <path d="M12 12v8M4 8.5 12 12l8-3.5" />
-            </svg>
+          <span className="mkt-brand-mark mkt-brand-mark-img">
+            <img src={logoFbflix} alt="FBFLIX" />
           </span>
           <span className="mkt-brand-text">
             <b>FBFLIX</b>
-            <em>Marketplace</em>
+            <em>BMs Selecionadas</em>
           </span>
         </Link>
-        <button className="mkt-nav-cta" type="button">
+        <button className="mkt-nav-cta" type="button" onClick={() => setSellOpen(true)}>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M12 3l7 4v5c0 4.5-3 8.5-7 9-4-.5-7-4.5-7-9V7l7-4Z" />
-            <path d="m9 12 2 2 4-4" />
+            <path d="M12 5v14M5 12h14"/>
           </svg>
-          Verificador de BM
+          Vender BM
         </button>
       </header>
 
@@ -206,7 +236,7 @@ export default function MarketplacePremium() {
 
             <select className="mkt-select" value={country} onChange={e => setCountry(e.target.value)}>
               <option value="">País</option>
-              {[...new Set(BMS.map(b => b.code))].map(c => (
+              {[...new Set(bms.map(b => b.code))].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
