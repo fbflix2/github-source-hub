@@ -354,7 +354,16 @@ export default function MarketplacePremium() {
                 <footer className="mkt-card-foot">
                   <div className="mkt-price">{fmtBRL(bm.price)}</div>
                   {bm.details && bm.details.length > 0 && (
-                    <button className="mkt-more-btn" type="button" onClick={() => setDetailsBm(bm)} title="Ver mais detalhes">
+                    <button
+                      className="mkt-more-btn"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDetailsBm(bm);
+                      }}
+                      title="Ver mais detalhes"
+                    >
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg>
                       Ver mais
                     </button>
@@ -688,8 +697,9 @@ const styles = `
 .mkt-card::before{
   content:""; position:absolute; inset:0; border-radius:inherit;
   background:radial-gradient(600px circle at var(--mx,50%) var(--my,0%), rgba(212,166,79,.06), transparent 40%);
-  opacity:0; transition:opacity .3s;
+  opacity:0; transition:opacity .3s; pointer-events:none;
 }
+.mkt-card > *{position:relative; z-index:1}
 .mkt-card:hover{transform:translateY(-4px) scale(1.005); border-color:rgba(212,166,79,.22); box-shadow:0 30px 60px -30px rgba(0,0,0,.7), 0 0 0 1px rgba(212,166,79,.05)}
 .mkt-card:hover::before{opacity:1}
 
