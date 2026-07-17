@@ -1,0 +1,1 @@
+ALTER TABLE public.marketplace_bms ADD COLUMN IF NOT EXISTS details jsonb DEFAULT '[]'::jsonb;

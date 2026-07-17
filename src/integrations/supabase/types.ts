@@ -1995,6 +1995,7 @@ export type Database = {
           country: string
           created_at: string
           created_year: string
+          details: Json | null
           gasto_total: number
           id: string
           is_active: boolean
@@ -2014,6 +2015,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_year?: string
+          details?: Json | null
           gasto_total?: number
           id?: string
           is_active?: boolean
@@ -2033,6 +2035,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_year?: string
+          details?: Json | null
           gasto_total?: number
           id?: string
           is_active?: boolean
