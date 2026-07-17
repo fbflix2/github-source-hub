@@ -45,6 +45,7 @@ interface UnconfiguredVault {
   id: string;
   bm_name: string;
   bm_link: string;
+  safe_email?: string | null;
 }
 
 interface Props {
