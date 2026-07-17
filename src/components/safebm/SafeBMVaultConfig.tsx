@@ -157,6 +157,12 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
     const map = new Map<string, string>();
     const usedIndices = new Set<number>();
     unconfigured.forEach((v, i) => {
+      if (v.safe_email) {
+        map.set(v.id, v.safe_email);
+        const idx = SAFE_EMAILS.indexOf(v.safe_email);
+        if (idx >= 0) usedIndices.add(idx);
+        return;
+      }
       const { email, emailIndex } = pickEmail(v.id, i, usedIndices);
       usedIndices.add(emailIndex);
       map.set(v.id, email);
