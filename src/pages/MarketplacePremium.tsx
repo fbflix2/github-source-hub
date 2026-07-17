@@ -59,6 +59,9 @@ export default function MarketplacePremium() {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
   const [method, setMethod] = useState("");
+  const [verification, setVerification] = useState("");
+  const [limitBucket, setLimitBucket] = useState("");
+  const [priceSort, setPriceSort] = useState("");
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const [bms, setBms] = useState<BM[]>(BMS_FALLBACK);
   const [sellOpen, setSellOpen] = useState(false);
@@ -110,13 +113,34 @@ export default function MarketplacePremium() {
   }, []);
 
   const list = useMemo(() => {
-    return bms.filter(b => {
+    const parseLimit = (s: string): number | null => {
+      if (!s) return null;
+      if (/no\s*limit|ilimitad/i.test(s)) return Infinity;
+      const m = s.replace(/\./g, "").match(/([0-9]+(?:,[0-9]+)?)/);
+      return m ? parseFloat(m[1].replace(",", ".")) : null;
+    };
+    const filtered = bms.filter(b => {
       if (country && b.code !== country) return false;
       if (method && b.method !== method) return false;
+      if (verification) {
+        const v = b.verification.toLowerCase();
+        if (verification === "verificada" && !v.includes("verificada")) return false;
+        if (verification === "rodada" && v.includes("verificada")) return false;
+      }
+      if (limitBucket) {
+        const n = parseLimit(b.limit);
+        if (n === null) return false;
+        if (limitBucket === "low" && !(n < 1500)) return false;
+        if (limitBucket === "mid" && !(n >= 1500 && n < 3000)) return false;
+        if (limitBucket === "high" && !(n >= 3000)) return false;
+      }
       if (search && !`${b.name} ${b.country} ${b.bmId} ${b.code}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [country, method, search, bms]);
+    if (priceSort === "asc") filtered.sort((a, b) => a.price - b.price);
+    else if (priceSort === "desc") filtered.sort((a, b) => b.price - a.price);
+    return filtered;
+  }, [country, method, verification, limitBucket, priceSort, search, bms]);
 
   const copyId = async (id: string) => {
     try { await navigator.clipboard.writeText(id); } catch {}
@@ -244,23 +268,23 @@ export default function MarketplacePremium() {
               ))}
             </select>
 
-            <select className="mkt-select">
-              <option>Tipo de Verificação</option>
-              <option>Verificada</option>
-              <option>Alta Confiança</option>
+            <select className="mkt-select" value={verification} onChange={e => setVerification(e.target.value)}>
+              <option value="">Tipo de Verificação</option>
+              <option value="verificada">Verificada</option>
+              <option value="rodada">Rodada</option>
             </select>
 
-            <select className="mkt-select">
-              <option>Limite de Gasto</option>
-              <option>Até $10K</option>
-              <option>$10K–$30K</option>
-              <option>$30K+</option>
+            <select className="mkt-select" value={limitBucket} onChange={e => setLimitBucket(e.target.value)}>
+              <option value="">Limite de Gasto</option>
+              <option value="low">Até R$ 1.500 / dia</option>
+              <option value="mid">R$ 1.500 – R$ 3.000 / dia</option>
+              <option value="high">R$ 3.000+ / dia</option>
             </select>
 
-            <select className="mkt-select">
-              <option>Preço</option>
-              <option>Menor</option>
-              <option>Maior</option>
+            <select className="mkt-select" value={priceSort} onChange={e => setPriceSort(e.target.value)}>
+              <option value="">Preço</option>
+              <option value="asc">Menor</option>
+              <option value="desc">Maior</option>
             </select>
 
             <input
