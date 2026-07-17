@@ -367,10 +367,10 @@ export default function MarketplacePremium() {
                         `Olá! Tenho interesse na BM do marketplace FBFlix:\n\n` +
                         `*${bm.name}*\n` +
                         `País: ${bm.country}\n` +
-                        (bm.bm_id ? `ID: ${bm.bm_id}\n` : "") +
+                        (bm.bmId ? `ID: ${bm.bmId}\n` : "") +
                         (bm.code ? `Código: ${bm.code}\n` : "") +
                         `Verificação: ${bm.verification}\n` +
-                        `Limite: ${bm.limit_daily}\n` +
+                        `Limite: ${bm.limit}\n` +
                         `Método: ${bm.method}\n` +
                         `Preço: ${fmtBRL(bm.price)}\n\n` +
                         `Podem me passar mais informações?`;
