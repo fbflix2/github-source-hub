@@ -243,7 +243,12 @@ export default function MarketplacePremium() {
                 <header className="mkt-card-head">
                   <div className="mkt-card-title">
                     <span className="mkt-flag" aria-label={bm.country} title={bm.country}>
-                      <span className="mkt-flag-emoji">{bm.flag}</span>
+                      <img
+                        src={`https://flagcdn.com/w160/${bm.code.toLowerCase() === "uk" ? "gb" : bm.code.toLowerCase()}.png`}
+                        srcSet={`https://flagcdn.com/w320/${bm.code.toLowerCase() === "uk" ? "gb" : bm.code.toLowerCase()}.png 2x`}
+                        alt={bm.country}
+                        loading="lazy"
+                      />
                     </span>
                     <div>
                       <div className="mkt-card-country">{bm.country}</div>
@@ -458,10 +463,7 @@ const styles = `
   box-shadow:0 6px 18px -6px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.03);
   flex-shrink:0;
 }
-.mkt-flag-emoji{
-  font-size:44px; line-height:1; transform:translateY(1px);
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
-}
+.mkt-flag img{width:100%; height:100%; object-fit:cover; display:block}
 .mkt-card-country{font-size:15px; font-weight:600; letter-spacing:-.01em}
 .mkt-card-bmid{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--mute); margin-top:3px}
 .mkt-card-bmid span{color:#c9cdd4; font-variant-numeric:tabular-nums}
