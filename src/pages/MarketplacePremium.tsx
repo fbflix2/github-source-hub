@@ -683,7 +683,14 @@ const styles = `
 .mkt-badge-green{background:rgba(46,204,113,.1); color:#4ADE80; border:1px solid rgba(46,204,113,.25)}
 
 .mkt-card-foot{display:flex; justify-content:space-between; align-items:center}
+.mkt-card-foot{gap:8px; flex-wrap:wrap}
 .mkt-price{font-size:22px; font-weight:600; letter-spacing:-.02em; color:var(--gold)}
+.mkt-more-btn{
+  display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:9px;
+  background:transparent; border:1px solid rgba(255,255,255,.12); color:#B8B4AA;
+  font-size:11.5px; font-weight:500; letter-spacing:.02em; transition:all .2s ease; cursor:pointer;
+}
+.mkt-more-btn:hover{border-color:rgba(212,166,79,.4); color:#F5E7C6; background:rgba(212,166,79,.06)}
 .mkt-buy{
   display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:10px;
   background:linear-gradient(180deg, rgba(212,166,79,.22), rgba(212,166,79,.08));
