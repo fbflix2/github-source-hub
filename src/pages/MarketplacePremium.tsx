@@ -374,6 +374,28 @@ export default function MarketplacePremium() {
       </footer>
 
       {sellOpen && <SellBmModal onClose={() => setSellOpen(false)} />}
+      {detailsBm && (
+        <div className="mkt-modal-overlay" onClick={() => setDetailsBm(null)}>
+          <div className="mkt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="mkt-modal-head">
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: 2, color: "#D4A64F", textTransform: "uppercase" }}>Detalhes adicionais</div>
+                <h3 style={{ margin: "4px 0 0", fontSize: 20 }}>{detailsBm.name}</h3>
+                <div style={{ fontSize: 12, opacity: 0.6 }}>{detailsBm.country}</div>
+              </div>
+              <button className="mkt-modal-close" onClick={() => setDetailsBm(null)} aria-label="Fechar">×</button>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "18px 0 0", display: "grid", gap: 10 }}>
+              {(detailsBm.details || []).map((d, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(212,166,79,0.06)", border: "1px solid rgba(212,166,79,0.18)", borderRadius: 10, fontSize: 13, color: "#E9E6DF" }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#D4A64F" strokeWidth="2"><path d="m5 12 5 5 9-11"/></svg>
+                  {d}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
