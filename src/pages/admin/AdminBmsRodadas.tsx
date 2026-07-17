@@ -44,6 +44,7 @@ type MktBm = {
   sort_order: number;
   cost?: number;
   tax_percent?: number;
+  details?: string[];
 };
 
 const fmtBRL = (n: number) =>
@@ -68,6 +69,7 @@ export default function AdminBmsRodadas() {
       ...bm,
       cost: finMap.get(bm.id)?.cost ?? 0,
       tax_percent: finMap.get(bm.id)?.tax_percent ?? 0,
+      details: Array.isArray((bm as any).details) ? (bm as any).details : [],
     })));
     setLoading(false);
   };
@@ -90,6 +92,7 @@ export default function AdminBmsRodadas() {
       gasto_total: Number(bm.gasto_total) || 0,
       is_active: bm.is_active,
       sort_order: Number(bm.sort_order) || 0,
+      details: (bm.details || []).map(s => s.trim()).filter(Boolean),
     }).eq("id", bm.id);
     if (error) toast.error("Erro ao salvar: " + error.message);
     else {
@@ -267,6 +270,15 @@ export default function AdminBmsRodadas() {
                       <input type="checkbox" checked={bm.is_active} onChange={e => updateBmField(bm.id, "is_active", e.target.checked)} />
                       Ativa
                     </label>
+                  </div>
+                  <div className="col-span-2 md:col-span-6">
+                    <label className="text-xs text-muted-foreground">Observações / Detalhes extras (1 por linha — aparecem no botão "Ver mais" do marketplace)</label>
+                    <textarea
+                      className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[90px]"
+                      placeholder={"Ex:\nCAs abertas\nBM isenta de imposto\nFuso: America/New_York"}
+                      value={(bm.details || []).join("\n")}
+                      onChange={e => updateBmField(bm.id, "details" as any, e.target.value.split("\n"))}
+                    />
                   </div>
                   <div className="col-span-2 md:col-span-6 mt-2 pt-3 border-t border-border/50">
                     <div className="text-[10px] uppercase tracking-wider text-amber-500 mb-2 font-semibold">🔒 Financeiro (somente admin)</div>
