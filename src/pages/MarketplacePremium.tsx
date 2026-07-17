@@ -479,6 +479,7 @@ const styles = `
 }
 .mkt-flag img{width:100%; height:100%; object-fit:cover; display:block}
 .mkt-card-country{font-size:15px; font-weight:600; letter-spacing:-.01em}
+.mkt-card-sub{font-size:11px; color:var(--mute); letter-spacing:.04em; margin-top:2px}
 .mkt-card-bmid{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--mute); margin-top:3px}
 .mkt-card-bmid span{color:#c9cdd4; font-variant-numeric:tabular-nums}
 .mkt-icon-btn{background:transparent; border:none; padding:2px; color:var(--mute); display:inline-flex; align-items:center; border-radius:4px; transition:color .2s}
