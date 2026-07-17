@@ -6,7 +6,6 @@ import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
-import SafeBmCombosSection from "@/components/safebm/CombosSection";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
  import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
  import { BMReportModal } from "@/components/safebm/BMReportModal";
@@ -428,10 +427,6 @@ export default function SafeBMClient() {
 
 
     </div>
-    <SafeBmCombosSection
-      title="Aumente sua proteção com nossos combos"
-      subtitle="Economize até 30% protegendo várias BMs em um único plano."
-    />
     </>
   );
 }
