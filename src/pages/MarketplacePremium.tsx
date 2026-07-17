@@ -363,6 +363,129 @@ export default function MarketplacePremium() {
         <div>© {new Date().getFullYear()} FBFLIX Marketplace. Todos os direitos reservados.</div>
         <div className="mkt-foot-mute">Este site não é afiliado ao Facebook ou Meta.</div>
       </footer>
+
+      {sellOpen && <SellBmModal onClose={() => setSellOpen(false)} />}
+    </div>
+  );
+}
+
+function SellBmModal({ onClose }: { onClose: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({
+    seller_name: "",
+    seller_whatsapp: "",
+    bm_name: "",
+    country: "Brasil",
+    verification: "Rodada",
+    limit_daily: "",
+    accounts: "5",
+    created_year: "2024",
+    risk: "BAIXO",
+    method: "Cartão",
+    gasto_total: "",
+    asking_price: "",
+    notes: "",
+  });
+  const up = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!f.seller_name.trim() || !f.seller_whatsapp.trim() || !f.bm_name.trim() || !f.asking_price) {
+      toast.error("Preencha nome, WhatsApp, nome da BM e preço.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("marketplace_bm_leads").insert({
+      seller_name: f.seller_name.trim(),
+      seller_whatsapp: f.seller_whatsapp.trim(),
+      bm_name: f.bm_name.trim(),
+      country: f.country,
+      verification: f.verification,
+      limit_daily: f.limit_daily,
+      accounts: Number(f.accounts) || null,
+      created_year: f.created_year,
+      risk: f.risk,
+      method: f.method,
+      gasto_total: f.gasto_total ? Number(f.gasto_total) : null,
+      asking_price: Number(f.asking_price),
+      notes: f.notes || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao enviar. Tente novamente.");
+      return;
+    }
+    toast.success("BM enviada! Entraremos em contato pelo WhatsApp.");
+    onClose();
+  };
+
+  return (
+    <div className="mkt-modal-backdrop" onClick={onClose}>
+      <div className="mkt-modal" onClick={e => e.stopPropagation()}>
+        <button className="mkt-modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        <div className="mkt-modal-head">
+          <span className="mkt-eyebrow" style={{ marginBottom: 8 }}>VENDA SUA BM</span>
+          <h3>Envie os dados da sua BM</h3>
+          <p>Nossa equipe analisa e retorna via WhatsApp com a proposta.</p>
+        </div>
+        <form className="mkt-form" onSubmit={submit}>
+          <div className="mkt-form-grid">
+            <label>Seu nome
+              <input value={f.seller_name} onChange={e => up("seller_name", e.target.value)} required />
+            </label>
+            <label>WhatsApp
+              <input value={f.seller_whatsapp} onChange={e => up("seller_whatsapp", e.target.value)} placeholder="(11) 99999-9999" required />
+            </label>
+            <label>Nome da BM
+              <input value={f.bm_name} onChange={e => up("bm_name", e.target.value)} required />
+            </label>
+            <label>País
+              <input value={f.country} onChange={e => up("country", e.target.value)} />
+            </label>
+            <label>Tipo de Verificação
+              <select value={f.verification} onChange={e => up("verification", e.target.value)}>
+                <option>Rodada</option>
+                <option>Rodada Verificada</option>
+                <option>Verificada</option>
+                <option>Alta Confiança</option>
+              </select>
+            </label>
+            <label>Limite de Gasto (diário)
+              <input value={f.limit_daily} onChange={e => up("limit_daily", e.target.value)} placeholder="R$ 1.300 / dia" />
+            </label>
+            <label>Contas de Anúncio
+              <input type="number" min="0" value={f.accounts} onChange={e => up("accounts", e.target.value)} />
+            </label>
+            <label>Conta Criada em
+              <input value={f.created_year} onChange={e => up("created_year", e.target.value)} placeholder="2024" />
+            </label>
+            <label>Perfil de Risco
+              <select value={f.risk} onChange={e => up("risk", e.target.value)}>
+                <option>BAIXO</option>
+                <option>VERIFICADA</option>
+                <option>ALTO HISTÓRICO</option>
+                <option>PREMIUM</option>
+              </select>
+            </label>
+            <label>Método de Pagamento
+              <input value={f.method} onChange={e => up("method", e.target.value)} />
+            </label>
+            <label>Gasto Total (R$)
+              <input type="number" step="0.01" value={f.gasto_total} onChange={e => up("gasto_total", e.target.value)} placeholder="10000.00" />
+            </label>
+            <label>Quanto pede pela BM (R$) *
+              <input type="number" step="0.01" value={f.asking_price} onChange={e => up("asking_price", e.target.value)} placeholder="1500.00" required />
+            </label>
+            <label className="mkt-form-full">Observações
+              <textarea value={f.notes} onChange={e => up("notes", e.target.value)} rows={3} />
+            </label>
+          </div>
+          <div className="mkt-form-foot">
+            <button type="button" className="mkt-btn-ghost" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="mkt-cta" disabled={saving}>{saving ? "Enviando..." : "Enviar BM"}</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
