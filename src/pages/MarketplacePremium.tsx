@@ -25,6 +25,7 @@ type BM = {
   method: string;
   gastoTotal: number;
   price: number;
+  details?: string[];
 };
 
 const genBmId = () => {
@@ -61,6 +62,7 @@ export default function MarketplacePremium() {
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const [bms, setBms] = useState<BM[]>(BMS_FALLBACK);
   const [sellOpen, setSellOpen] = useState(false);
+  const [detailsBm, setDetailsBm] = useState<BM | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +88,7 @@ export default function MarketplacePremium() {
           method: r.method || "Cartão",
           gastoTotal: Number(r.gasto_total || 0),
           price: Number(r.price || 0),
+          details: Array.isArray(r.details) ? r.details : [],
         }))
       );
     })();
