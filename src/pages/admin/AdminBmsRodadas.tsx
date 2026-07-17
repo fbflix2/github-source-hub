@@ -268,6 +268,35 @@ export default function AdminBmsRodadas() {
                       Ativa
                     </label>
                   </div>
+                  <div className="col-span-2 md:col-span-6 mt-2 pt-3 border-t border-border/50">
+                    <div className="text-[10px] uppercase tracking-wider text-amber-500 mb-2 font-semibold">🔒 Financeiro (somente admin)</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Custo (R$)</label>
+                        <Input type="number" step="0.01" value={bm.cost ?? 0} onChange={e => updateBmField(bm.id, "cost" as any, Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Imposto (%)</label>
+                        <Input type="number" step="0.01" value={bm.tax_percent ?? 0} onChange={e => updateBmField(bm.id, "tax_percent" as any, Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Imposto (R$)</label>
+                        <Input readOnly value={fmtBRL((Number(bm.price) || 0) * ((Number(bm.tax_percent) || 0) / 100))} className="bg-muted/40" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Lucro líquido</label>
+                        {(() => {
+                          const price = Number(bm.price) || 0;
+                          const cost = Number(bm.cost) || 0;
+                          const tax = price * ((Number(bm.tax_percent) || 0) / 100);
+                          const profit = price - cost - tax;
+                          return (
+                            <Input readOnly value={fmtBRL(profit)} className={`bg-muted/40 font-semibold ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`} />
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex gap-2 col-span-2 md:col-span-1 justify-end">
                     <Button size="sm" onClick={() => saveBm(bm)}><Save className="h-3 w-3 mr-1" />Salvar</Button>
                     <Button size="sm" variant="ghost" onClick={() => deleteBm(bm.id)}><Trash2 className="h-3 w-3" /></Button>
