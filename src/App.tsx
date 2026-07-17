@@ -105,6 +105,7 @@ import AdminMigrados from "./pages/admin/AdminMigrados";
 import AdminReposicoes from "./pages/admin/AdminReposicoes";
 import AdminTrocas from "./pages/admin/AdminTrocas";
 import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
+import AdminBmsRodadas from "./pages/admin/AdminBmsRodadas";
 import AdminGestaoPerfis from "./pages/admin/AdminGestaoPerfis";
 
 import PartnerRedirect from "./pages/PartnerRedirect";
