@@ -25,6 +25,7 @@ type BM = {
   method: string;
   gastoTotal: number;
   price: number;
+  details?: string[];
 };
 
 const genBmId = () => {
@@ -61,6 +62,7 @@ export default function MarketplacePremium() {
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const [bms, setBms] = useState<BM[]>(BMS_FALLBACK);
   const [sellOpen, setSellOpen] = useState(false);
+  const [detailsBm, setDetailsBm] = useState<BM | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +88,7 @@ export default function MarketplacePremium() {
           method: r.method || "Cartão",
           gastoTotal: Number(r.gasto_total || 0),
           price: Number(r.price || 0),
+          details: Array.isArray(r.details) ? r.details : [],
         }))
       );
     })();
@@ -326,6 +329,12 @@ export default function MarketplacePremium() {
 
                 <footer className="mkt-card-foot">
                   <div className="mkt-price">{fmtBRL(bm.price)}</div>
+                  {bm.details && bm.details.length > 0 && (
+                    <button className="mkt-more-btn" type="button" onClick={() => setDetailsBm(bm)} title="Ver mais detalhes">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg>
+                      Ver mais
+                    </button>
+                  )}
                   <button className="mkt-buy">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 10V8a6 6 0 1 1 12 0v2"/><rect x="4" y="10" width="16" height="10" rx="2"/></svg>
                     Comprar agora
@@ -365,6 +374,28 @@ export default function MarketplacePremium() {
       </footer>
 
       {sellOpen && <SellBmModal onClose={() => setSellOpen(false)} />}
+      {detailsBm && (
+        <div className="mkt-modal-overlay" onClick={() => setDetailsBm(null)}>
+          <div className="mkt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="mkt-modal-head">
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: 2, color: "#D4A64F", textTransform: "uppercase" }}>Detalhes adicionais</div>
+                <h3 style={{ margin: "4px 0 0", fontSize: 20 }}>{detailsBm.name}</h3>
+                <div style={{ fontSize: 12, opacity: 0.6 }}>{detailsBm.country}</div>
+              </div>
+              <button className="mkt-modal-close" onClick={() => setDetailsBm(null)} aria-label="Fechar">×</button>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "18px 0 0", display: "grid", gap: 10 }}>
+              {(detailsBm.details || []).map((d, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(212,166,79,0.06)", border: "1px solid rgba(212,166,79,0.18)", borderRadius: 10, fontSize: 13, color: "#E9E6DF" }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#D4A64F" strokeWidth="2"><path d="m5 12 5 5 9-11"/></svg>
+                  {d}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -652,7 +683,14 @@ const styles = `
 .mkt-badge-green{background:rgba(46,204,113,.1); color:#4ADE80; border:1px solid rgba(46,204,113,.25)}
 
 .mkt-card-foot{display:flex; justify-content:space-between; align-items:center}
+.mkt-card-foot{gap:8px; flex-wrap:wrap}
 .mkt-price{font-size:22px; font-weight:600; letter-spacing:-.02em; color:var(--gold)}
+.mkt-more-btn{
+  display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:9px;
+  background:transparent; border:1px solid rgba(255,255,255,.12); color:#B8B4AA;
+  font-size:11.5px; font-weight:500; letter-spacing:.02em; transition:all .2s ease; cursor:pointer;
+}
+.mkt-more-btn:hover{border-color:rgba(212,166,79,.4); color:#F5E7C6; background:rgba(212,166,79,.06)}
 .mkt-buy{
   display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:10px;
   background:linear-gradient(180deg, rgba(212,166,79,.22), rgba(212,166,79,.08));
