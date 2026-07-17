@@ -86,6 +86,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Reciclagem", icon: Recycle, path: "/admin/reciclagem" },
   ]},
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
+  { title: "BMs Rodadas", icon: Store, path: "/admin/bms-rodadas" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
   { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
