@@ -242,9 +242,11 @@ export default function MarketplacePremium() {
               >
                 <header className="mkt-card-head">
                   <div className="mkt-card-title">
-                    <span className="mkt-flag">{bm.flag}</span>
+                    <span className="mkt-flag" aria-label={bm.country} title={bm.country}>
+                      <span className="mkt-flag-emoji">{bm.flag}</span>
+                    </span>
                     <div>
-                      <div className="mkt-card-country">{bm.code} – {bm.country}</div>
+                      <div className="mkt-card-country">{bm.country}</div>
                       <div className="mkt-card-bmid">
                         BM ID: <span>{bm.bmId}</span>
                         <button className="mkt-icon-btn" onClick={() => copyId(bm.bmId)} title="Copiar ID">
@@ -449,7 +451,17 @@ const styles = `
 
 .mkt-card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:18px}
 .mkt-card-title{display:flex; gap:12px; align-items:flex-start}
-.mkt-flag{font-size:26px; line-height:1; filter:drop-shadow(0 4px 8px rgba(0,0,0,.4))}
+.mkt-flag{
+  width:40px; height:40px; border-radius:50%; overflow:hidden;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#0b0e14; border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 6px 18px -6px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.03);
+  flex-shrink:0;
+}
+.mkt-flag-emoji{
+  font-size:44px; line-height:1; transform:translateY(1px);
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
+}
 .mkt-card-country{font-size:15px; font-weight:600; letter-spacing:-.01em}
 .mkt-card-bmid{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--mute); margin-top:3px}
 .mkt-card-bmid span{color:#c9cdd4; font-variant-numeric:tabular-nums}
