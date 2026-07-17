@@ -44,6 +44,7 @@ type MktBm = {
   sort_order: number;
   cost?: number;
   tax_percent?: number;
+  details?: string[];
 };
 
 const fmtBRL = (n: number) =>
@@ -68,6 +69,7 @@ export default function AdminBmsRodadas() {
       ...bm,
       cost: finMap.get(bm.id)?.cost ?? 0,
       tax_percent: finMap.get(bm.id)?.tax_percent ?? 0,
+      details: Array.isArray((bm as any).details) ? (bm as any).details : [],
     })));
     setLoading(false);
   };
@@ -90,6 +92,7 @@ export default function AdminBmsRodadas() {
       gasto_total: Number(bm.gasto_total) || 0,
       is_active: bm.is_active,
       sort_order: Number(bm.sort_order) || 0,
+      details: (bm.details || []).map(s => s.trim()).filter(Boolean),
     }).eq("id", bm.id);
     if (error) toast.error("Erro ao salvar: " + error.message);
     else {
