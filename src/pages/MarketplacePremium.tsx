@@ -399,7 +399,7 @@ export default function MarketplacePremium() {
 
       {sellOpen && <SellBmModal onClose={() => setSellOpen(false)} />}
       {detailsBm && (
-        <div className="mkt-modal-overlay" onClick={() => setDetailsBm(null)}>
+        <div className="mkt-modal-backdrop" onClick={() => setDetailsBm(null)}>
           <div className="mkt-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div className="mkt-modal-head">
               <div>
