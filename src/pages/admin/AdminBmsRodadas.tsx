@@ -42,6 +42,8 @@ type MktBm = {
   price: number;
   is_active: boolean;
   sort_order: number;
+  cost?: number;
+  tax_percent?: number;
 };
 
 const fmtBRL = (n: number) =>
@@ -54,12 +56,19 @@ export default function AdminBmsRodadas() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: l }, { data: b }] = await Promise.all([
+    const [{ data: l }, { data: b }, { data: f }] = await Promise.all([
       supabase.from("marketplace_bm_leads").select("*").order("created_at", { ascending: false }),
       supabase.from("marketplace_bms").select("*").order("sort_order", { ascending: true }),
+      supabase.from("marketplace_bm_finance").select("*"),
     ]);
+    const finMap = new Map<string, { cost: number; tax_percent: number }>();
+    (f || []).forEach((row: any) => finMap.set(row.bm_id, { cost: Number(row.cost) || 0, tax_percent: Number(row.tax_percent) || 0 }));
     setLeads((l as Lead[]) || []);
-    setBms((b as MktBm[]) || []);
+    setBms(((b as MktBm[]) || []).map(bm => ({
+      ...bm,
+      cost: finMap.get(bm.id)?.cost ?? 0,
+      tax_percent: finMap.get(bm.id)?.tax_percent ?? 0,
+    })));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -83,7 +92,15 @@ export default function AdminBmsRodadas() {
       sort_order: Number(bm.sort_order) || 0,
     }).eq("id", bm.id);
     if (error) toast.error("Erro ao salvar: " + error.message);
-    else toast.success("BM atualizada");
+    else {
+      const { error: fErr } = await supabase.from("marketplace_bm_finance").upsert({
+        bm_id: bm.id,
+        cost: Number(bm.cost) || 0,
+        tax_percent: Number(bm.tax_percent) || 0,
+      });
+      if (fErr) toast.error("Erro ao salvar financeiro: " + fErr.message);
+      else toast.success("BM atualizada");
+    }
   };
 
   const deleteBm = async (id: string) => {
@@ -250,6 +267,35 @@ export default function AdminBmsRodadas() {
                       <input type="checkbox" checked={bm.is_active} onChange={e => updateBmField(bm.id, "is_active", e.target.checked)} />
                       Ativa
                     </label>
+                  </div>
+                  <div className="col-span-2 md:col-span-6 mt-2 pt-3 border-t border-border/50">
+                    <div className="text-[10px] uppercase tracking-wider text-amber-500 mb-2 font-semibold">🔒 Financeiro (somente admin)</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Custo (R$)</label>
+                        <Input type="number" step="0.01" value={bm.cost ?? 0} onChange={e => updateBmField(bm.id, "cost" as any, Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Imposto (%)</label>
+                        <Input type="number" step="0.01" value={bm.tax_percent ?? 0} onChange={e => updateBmField(bm.id, "tax_percent" as any, Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Imposto (R$)</label>
+                        <Input readOnly value={fmtBRL((Number(bm.price) || 0) * ((Number(bm.tax_percent) || 0) / 100))} className="bg-muted/40" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Lucro líquido</label>
+                        {(() => {
+                          const price = Number(bm.price) || 0;
+                          const cost = Number(bm.cost) || 0;
+                          const tax = price * ((Number(bm.tax_percent) || 0) / 100);
+                          const profit = price - cost - tax;
+                          return (
+                            <Input readOnly value={fmtBRL(profit)} className={`bg-muted/40 font-semibold ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`} />
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-2 col-span-2 md:col-span-1 justify-end">
                     <Button size="sm" onClick={() => saveBm(bm)}><Save className="h-3 w-3 mr-1" />Salvar</Button>
