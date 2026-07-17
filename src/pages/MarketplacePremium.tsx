@@ -9,29 +9,41 @@ import { Link } from "react-router-dom";
 
 type BM = {
   id: string;
+  name: string;
   country: string;
   flag: string;
   code: string;
   bmId: string;
-  verification: "Verificada" | "Alta Confiança";
+  verification: string;
   limit: string;
   accounts: number;
   createdAt: string;
-  risk: "BAIXO" | "MÉDIO";
-  method: "VISA" | "MASTER" | "AMEX";
+  risk: string;
+  method: string;
+  gastoTotal: number;
   price: number;
 };
 
+const genBmId = () => {
+  let s = "";
+  for (let i = 0; i < 15; i++) s += Math.floor(Math.random() * 10);
+  return s;
+};
+
 const BMS: BM[] = [
-  { id: "1", country: "United States", code: "US", flag: "🇺🇸", bmId: "178392741892374", verification: "Verificada", limit: "$50K / dia", accounts: 15, createdAt: "12/03/2023", risk: "BAIXO", method: "VISA", price: 1890 },
-  { id: "2", country: "United Kingdom", code: "UK", flag: "🇬🇧", bmId: "284736284736284", verification: "Verificada", limit: "£30K / dia", accounts: 10, createdAt: "18/07/2023", risk: "BAIXO", method: "MASTER", price: 2250 },
-  { id: "3", country: "Canada", code: "CA", flag: "🇨🇦", bmId: "938475938475938", verification: "Verificada", limit: "$40K / dia", accounts: 12, createdAt: "22/05/2023", risk: "BAIXO", method: "VISA", price: 1750 },
-  { id: "4", country: "Australia", code: "AU", flag: "🇦🇺", bmId: "736485736485736", verification: "Verificada", limit: "$35K / dia", accounts: 8, createdAt: "10/02/2023", risk: "BAIXO", method: "MASTER", price: 1650 },
-  { id: "5", country: "Germany", code: "DE", flag: "🇩🇪", bmId: "837465837465837", verification: "Verificada", limit: "€25K / dia", accounts: 9, createdAt: "30/06/2023", risk: "BAIXO", method: "VISA", price: 2100 },
-  { id: "6", country: "France", code: "FR", flag: "🇫🇷", bmId: "562938562938562", verification: "Verificada", limit: "€20K / dia", accounts: 7, createdAt: "05/04/2023", risk: "BAIXO", method: "MASTER", price: 1550 },
-  { id: "7", country: "Spain", code: "ES", flag: "🇪🇸", bmId: "482037482037482", verification: "Alta Confiança", limit: "€18K / dia", accounts: 6, createdAt: "14/08/2023", risk: "BAIXO", method: "VISA", price: 1490 },
-  { id: "8", country: "Netherlands", code: "NL", flag: "🇳🇱", bmId: "918273918273918", verification: "Verificada", limit: "€22K / dia", accounts: 8, createdAt: "02/09/2023", risk: "BAIXO", method: "AMEX", price: 1980 },
-  { id: "9", country: "Brazil", code: "BR", flag: "🇧🇷", bmId: "374829374829374", verification: "Verificada", limit: "R$ 80K / dia", accounts: 11, createdAt: "20/01/2023", risk: "BAIXO", method: "VISA", price: 1390 },
+  { id: "1",  name: "Dentista O Sane",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 2.241 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 16853.61, price: 2000 },
+  { id: "2",  name: "Dra. Ingrid",         country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.309 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 14276.59, price: 1800 },
+  { id: "3",  name: "Refrigera Max 1",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.310 / dia", accounts: 5,  createdAt: "2025", risk: "BAIXO",         method: "Cartão",           gastoTotal: 12883.26, price: 1600 },
+  { id: "4",  name: "BM 2022",             country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada Verificada", limit: "R$ 4.973 / dia", accounts: 19, createdAt: "2022", risk: "ALTO HISTÓRICO", method: "Cartão",           gastoTotal: 80099.94, price: 3000 },
+  { id: "5",  name: "Debo M",              country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.264 / dia", accounts: 5,  createdAt: "2025", risk: "BAIXO",         method: "Cartão",           gastoTotal: 18222.93, price: 2000 },
+  { id: "6",  name: "Agência Karina",      country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.264 / dia", accounts: 5,  createdAt: "2023", risk: "BAIXO",         method: "Cartão",           gastoTotal: 13385.93, price: 1800 },
+  { id: "7",  name: "DC Estratégico",      country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.307 / dia", accounts: 5,  createdAt: "2020", risk: "BAIXO",         method: "Cartão",           gastoTotal: 2298.74,  price: 1200 },
+  { id: "8",  name: "BM Live",             country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.307 / dia", accounts: 5,  createdAt: "2023", risk: "BAIXO",         method: "Cartão",           gastoTotal: 7746.70,  price: 1800 },
+  { id: "9",  name: "Alpha Anúncios",      country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.294 / dia", accounts: 5,  createdAt: "2021", risk: "BAIXO",         method: "Cartão",           gastoTotal: 30.01,    price: 600  },
+  { id: "10", name: "BM Mariana",          country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada Verificada", limit: "R$ 2.109 / dia", accounts: 5,  createdAt: "2024", risk: "VERIFICADA",    method: "Cartão",           gastoTotal: 18645.87, price: 2000 },
+  { id: "11", name: "JOAB Vieira Feitosa", country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada Verificada", limit: "R$ 2.287 / dia", accounts: 5,  createdAt: "2026", risk: "VERIFICADA",    method: "Cartão",           gastoTotal: 4185.12,  price: 1200 },
+  { id: "12", name: "RUMA",                country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.289 / dia", accounts: 5,  createdAt: "2020", risk: "BAIXO",         method: "Cartão",           gastoTotal: 3161.49,  price: 1200 },
+  { id: "13", name: "BALLI",               country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "No Limit",       accounts: 5,  createdAt: "2021", risk: "PREMIUM",       method: "Cartão / Pré-paga", gastoTotal: 25424.29, price: 600  },
 ];
 
 const fmtBRL = (n: number) =>
@@ -64,7 +76,7 @@ export default function MarketplacePremium() {
     return BMS.filter(b => {
       if (country && b.code !== country) return false;
       if (method && b.method !== method) return false;
-      if (search && !`${b.country} ${b.bmId} ${b.code}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !`${b.name} ${b.country} ${b.bmId} ${b.code}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [country, method, search]);
@@ -251,7 +263,8 @@ export default function MarketplacePremium() {
                       />
                     </span>
                     <div>
-                      <div className="mkt-card-country">{bm.country}</div>
+                      <div className="mkt-card-country">{bm.name}</div>
+                      <div className="mkt-card-sub">{bm.country}</div>
                       <div className="mkt-card-bmid">
                         BM ID: <span>{bm.bmId}</span>
                         <button className="mkt-icon-btn" onClick={() => copyId(bm.bmId)} title="Copiar ID">
@@ -278,6 +291,7 @@ export default function MarketplacePremium() {
                   <Row label="Conta Criada em" value={bm.createdAt} icon="calendar" />
                   <Row label="Perfil de Risco" value={<BadgeGreen>{bm.risk}</BadgeGreen>} icon="chart" />
                   <Row label="Método de Pagamento" value={<span className="mkt-method">{bm.method}</span>} icon="card" />
+                  <Row label="Gasto Total" value={<span className="mkt-method">{fmtBRL(bm.gastoTotal)}</span>} icon="bolt" />
                 </div>
 
                 <footer className="mkt-card-foot">
