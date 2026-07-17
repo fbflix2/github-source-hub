@@ -42,6 +42,8 @@ type MktBm = {
   price: number;
   is_active: boolean;
   sort_order: number;
+  cost?: number;
+  tax_percent?: number;
 };
 
 const fmtBRL = (n: number) =>
@@ -54,12 +56,19 @@ export default function AdminBmsRodadas() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: l }, { data: b }] = await Promise.all([
+    const [{ data: l }, { data: b }, { data: f }] = await Promise.all([
       supabase.from("marketplace_bm_leads").select("*").order("created_at", { ascending: false }),
       supabase.from("marketplace_bms").select("*").order("sort_order", { ascending: true }),
+      supabase.from("marketplace_bm_finance").select("*"),
     ]);
+    const finMap = new Map<string, { cost: number; tax_percent: number }>();
+    (f || []).forEach((row: any) => finMap.set(row.bm_id, { cost: Number(row.cost) || 0, tax_percent: Number(row.tax_percent) || 0 }));
     setLeads((l as Lead[]) || []);
-    setBms((b as MktBm[]) || []);
+    setBms(((b as MktBm[]) || []).map(bm => ({
+      ...bm,
+      cost: finMap.get(bm.id)?.cost ?? 0,
+      tax_percent: finMap.get(bm.id)?.tax_percent ?? 0,
+    })));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -83,7 +92,15 @@ export default function AdminBmsRodadas() {
       sort_order: Number(bm.sort_order) || 0,
     }).eq("id", bm.id);
     if (error) toast.error("Erro ao salvar: " + error.message);
-    else toast.success("BM atualizada");
+    else {
+      const { error: fErr } = await supabase.from("marketplace_bm_finance").upsert({
+        bm_id: bm.id,
+        cost: Number(bm.cost) || 0,
+        tax_percent: Number(bm.tax_percent) || 0,
+      });
+      if (fErr) toast.error("Erro ao salvar financeiro: " + fErr.message);
+      else toast.success("BM atualizada");
+    }
   };
 
   const deleteBm = async (id: string) => {

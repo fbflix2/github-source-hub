@@ -1930,6 +1930,38 @@ export type Database = {
           },
         ]
       }
+      marketplace_bm_finance: {
+        Row: {
+          bm_id: string
+          cost: number
+          created_at: string
+          tax_percent: number
+          updated_at: string
+        }
+        Insert: {
+          bm_id: string
+          cost?: number
+          created_at?: string
+          tax_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          bm_id?: string
+          cost?: number
+          created_at?: string
+          tax_percent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_bm_finance_bm_id_fkey"
+            columns: ["bm_id"]
+            isOneToOne: true
+            referencedRelation: "marketplace_bms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_bm_leads: {
         Row: {
           accounts: number | null
