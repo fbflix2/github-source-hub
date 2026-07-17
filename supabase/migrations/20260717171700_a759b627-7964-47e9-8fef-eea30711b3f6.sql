@@ -1,0 +1,1 @@
+ALTER TABLE public.safe_bm_vaults ADD COLUMN IF NOT EXISTS safe_email text;

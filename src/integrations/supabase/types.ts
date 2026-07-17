@@ -4205,6 +4205,7 @@ export type Database = {
           perfil_backup: string | null
           protection_start: string
           purchase_date: string | null
+          safe_email: string | null
           status: string
           subscription_price: number
           updated_at: string
@@ -4231,6 +4232,7 @@ export type Database = {
           perfil_backup?: string | null
           protection_start?: string
           purchase_date?: string | null
+          safe_email?: string | null
           status?: string
           subscription_price?: number
           updated_at?: string
@@ -4257,6 +4259,7 @@ export type Database = {
           perfil_backup?: string | null
           protection_start?: string
           purchase_date?: string | null
+          safe_email?: string | null
           status?: string
           subscription_price?: number
           updated_at?: string
