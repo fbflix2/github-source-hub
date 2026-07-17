@@ -359,7 +359,24 @@ export default function MarketplacePremium() {
                       Ver mais
                     </button>
                   )}
-                  <button className="mkt-buy">
+                  <button
+                    className="mkt-buy"
+                    type="button"
+                    onClick={() => {
+                      const msg =
+                        `Olá! Tenho interesse na BM do marketplace FBFlix:\n\n` +
+                        `*${bm.name}*\n` +
+                        `País: ${bm.country}\n` +
+                        (bm.bmId ? `ID: ${bm.bmId}\n` : "") +
+                        (bm.code ? `Código: ${bm.code}\n` : "") +
+                        `Verificação: ${bm.verification}\n` +
+                        `Limite: ${bm.limit}\n` +
+                        `Método: ${bm.method}\n` +
+                        `Preço: ${fmtBRL(bm.price)}\n\n` +
+                        `Podem me passar mais informações?`;
+                      window.open(`https://wa.me/5519989411105?text=${encodeURIComponent(msg)}`, "_blank");
+                    }}
+                  >
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 10V8a6 6 0 1 1 12 0v2"/><rect x="4" y="10" width="16" height="10" rx="2"/></svg>
                     Comprar agora
                   </button>
