@@ -379,7 +379,7 @@ const styles = `
 .mkt-hero-left{animation:fadeUp .9s cubic-bezier(.2,.7,.2,1) both}
 .mkt-eyebrow{display:inline-block; font-size:11px; letter-spacing:.32em; color:var(--gold); margin-bottom:22px}
 .mkt-headline{font-size:clamp(48px, 6vw, 84px); line-height:1.02; font-weight:600; letter-spacing:-0.035em; margin:0}
-.mkt-headline-alt{font-style:italic; font-weight:400; background:linear-gradient(180deg,#fff 0%, #b8bcc4 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+.mkt-headline-alt{font-style:italic; font-weight:400; background:linear-gradient(180deg,#fff 0%, #b8bcc4 100%); -webkit-background-clip:text; background-clip:text; color:transparent; display:inline-block; padding-left:0.12em; padding-right:0.08em; margin-left:-0.04em}
 .mkt-sub{color:var(--mute); font-size:16px; line-height:1.6; margin:20px 0 36px; max-width:520px}
 .mkt-hero-features{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:36px; max-width:560px}
 .mkt-feat{display:flex; gap:12px; align-items:flex-start; padding:14px; border-left:1px solid rgba(212,166,79,.25)}
