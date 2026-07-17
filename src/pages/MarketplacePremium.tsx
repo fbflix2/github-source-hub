@@ -689,4 +689,24 @@ const styles = `
   .mkt-trust{grid-template-columns:1fr}
   .mkt-grid{grid-template-columns:1fr}
 }
+
+.mkt-brand-mark-img{background:transparent !important; border:1px solid rgba(212,166,79,.35); padding:6px; overflow:hidden}
+.mkt-brand-mark-img img{width:100%; height:100%; object-fit:contain; display:block}
+
+.mkt-modal-backdrop{position:fixed; inset:0; background:rgba(3,4,7,.75); backdrop-filter:blur(10px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease}
+.mkt-modal{position:relative; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; background:linear-gradient(180deg, #0F131A, #0B0E14); border:1px solid rgba(212,166,79,.25); border-radius:24px; padding:32px; box-shadow:0 40px 100px -20px rgba(0,0,0,.8); animation:fadeUp .35s cubic-bezier(.2,.7,.2,1)}
+.mkt-modal-close{position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.05); border:1px solid var(--line); color:#fff; font-size:20px; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:all .2s}
+.mkt-modal-close:hover{background:rgba(212,166,79,.15); border-color:var(--gold); color:var(--gold)}
+.mkt-modal-head h3{font-size:26px; font-weight:600; letter-spacing:-.02em; margin:6px 0 8px}
+.mkt-modal-head p{color:var(--mute); font-size:13px; margin:0 0 20px}
+.mkt-form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.mkt-form label{display:flex; flex-direction:column; gap:6px; font-size:11px; letter-spacing:.14em; color:var(--mute); text-transform:uppercase; font-weight:600}
+.mkt-form-full{grid-column:1/-1}
+.mkt-form input, .mkt-form select, .mkt-form textarea{background:rgba(255,255,255,.03); border:1px solid var(--line); color:#fff; border-radius:10px; padding:11px 14px; font-size:13.5px; outline:none; transition:all .25s ease; font-family:inherit; letter-spacing:normal; text-transform:none; font-weight:400}
+.mkt-form input:focus, .mkt-form select:focus, .mkt-form textarea:focus{border-color:rgba(212,166,79,.5); background:rgba(212,166,79,.04)}
+.mkt-form textarea{resize:vertical; min-height:70px}
+.mkt-form-foot{display:flex; gap:12px; justify-content:flex-end; margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
+.mkt-btn-ghost{padding:12px 22px; border-radius:12px; background:transparent; border:1px solid var(--line); color:var(--mute); font-size:13px; cursor:pointer; transition:all .2s}
+.mkt-btn-ghost:hover{color:#fff; border-color:rgba(255,255,255,.2)}
+@media (max-width:560px){ .mkt-form-grid{grid-template-columns:1fr} .mkt-modal{padding:22px} }
 `;
