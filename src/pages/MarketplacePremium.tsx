@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.webp";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
  * FBFLIX Marketplace Premium — standalone landing page.
@@ -30,7 +33,7 @@ const genBmId = () => {
   return s;
 };
 
-const BMS: BM[] = [
+const BMS_FALLBACK: BM[] = [
   { id: "1",  name: "Dentista O Sane",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 2.241 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 16853.61, price: 2000 },
   { id: "2",  name: "Dra. Ingrid",         country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.309 / dia", accounts: 5,  createdAt: "2024", risk: "BAIXO",         method: "Cartão",           gastoTotal: 14276.59, price: 1800 },
   { id: "3",  name: "Refrigera Max 1",     country: "Brasil", code: "BR", flag: "🇧🇷", bmId: genBmId(), verification: "Rodada",            limit: "R$ 1.310 / dia", accounts: 5,  createdAt: "2025", risk: "BAIXO",         method: "Cartão",           gastoTotal: 12883.26, price: 1600 },
@@ -56,6 +59,37 @@ export default function MarketplacePremium() {
   const [country, setCountry] = useState("");
   const [method, setMethod] = useState("");
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const [bms, setBms] = useState<BM[]>(BMS_FALLBACK);
+  const [sellOpen, setSellOpen] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("marketplace_bms")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (error || !data || data.length === 0) return;
+      setBms(
+        data.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          country: r.country || "Brasil",
+          code: r.code || "BR",
+          flag: "🇧🇷",
+          bmId: r.bm_id || genBmId(),
+          verification: r.verification || "Rodada",
+          limit: r.limit_daily || "",
+          accounts: r.accounts ?? 5,
+          createdAt: r.created_year || "2024",
+          risk: r.risk || "BAIXO",
+          method: r.method || "Cartão",
+          gastoTotal: Number(r.gasto_total || 0),
+          price: Number(r.price || 0),
+        }))
+      );
+    })();
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -73,13 +107,13 @@ export default function MarketplacePremium() {
   }, []);
 
   const list = useMemo(() => {
-    return BMS.filter(b => {
+    return bms.filter(b => {
       if (country && b.code !== country) return false;
       if (method && b.method !== method) return false;
       if (search && !`${b.name} ${b.country} ${b.bmId} ${b.code}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [country, method, search]);
+  }, [country, method, search, bms]);
 
   const copyId = async (id: string) => {
     try { await navigator.clipboard.writeText(id); } catch {}
@@ -115,23 +149,19 @@ export default function MarketplacePremium() {
       {/* Top bar */}
       <header className="mkt-nav">
         <Link to="/" className="mkt-brand" aria-label="FBFLIX Marketplace">
-          <span className="mkt-brand-mark">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z" />
-              <path d="M12 12v8M4 8.5 12 12l8-3.5" />
-            </svg>
+          <span className="mkt-brand-mark mkt-brand-mark-img">
+            <img src={logoFbflix} alt="FBFLIX" />
           </span>
           <span className="mkt-brand-text">
             <b>FBFLIX</b>
-            <em>Marketplace</em>
+            <em>BMs Selecionadas</em>
           </span>
         </Link>
-        <button className="mkt-nav-cta" type="button">
+        <button className="mkt-nav-cta" type="button" onClick={() => setSellOpen(true)}>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M12 3l7 4v5c0 4.5-3 8.5-7 9-4-.5-7-4.5-7-9V7l7-4Z" />
-            <path d="m9 12 2 2 4-4" />
+            <path d="M12 5v14M5 12h14"/>
           </svg>
-          Verificador de BM
+          Vender BM
         </button>
       </header>
 
@@ -206,7 +236,7 @@ export default function MarketplacePremium() {
 
             <select className="mkt-select" value={country} onChange={e => setCountry(e.target.value)}>
               <option value="">País</option>
-              {[...new Set(BMS.map(b => b.code))].map(c => (
+              {[...new Set(bms.map(b => b.code))].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
@@ -333,6 +363,129 @@ export default function MarketplacePremium() {
         <div>© {new Date().getFullYear()} FBFLIX Marketplace. Todos os direitos reservados.</div>
         <div className="mkt-foot-mute">Este site não é afiliado ao Facebook ou Meta.</div>
       </footer>
+
+      {sellOpen && <SellBmModal onClose={() => setSellOpen(false)} />}
+    </div>
+  );
+}
+
+function SellBmModal({ onClose }: { onClose: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({
+    seller_name: "",
+    seller_whatsapp: "",
+    bm_name: "",
+    country: "Brasil",
+    verification: "Rodada",
+    limit_daily: "",
+    accounts: "5",
+    created_year: "2024",
+    risk: "BAIXO",
+    method: "Cartão",
+    gasto_total: "",
+    asking_price: "",
+    notes: "",
+  });
+  const up = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!f.seller_name.trim() || !f.seller_whatsapp.trim() || !f.bm_name.trim() || !f.asking_price) {
+      toast.error("Preencha nome, WhatsApp, nome da BM e preço.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("marketplace_bm_leads").insert({
+      seller_name: f.seller_name.trim(),
+      seller_whatsapp: f.seller_whatsapp.trim(),
+      bm_name: f.bm_name.trim(),
+      country: f.country,
+      verification: f.verification,
+      limit_daily: f.limit_daily,
+      accounts: Number(f.accounts) || null,
+      created_year: f.created_year,
+      risk: f.risk,
+      method: f.method,
+      gasto_total: f.gasto_total ? Number(f.gasto_total) : null,
+      asking_price: Number(f.asking_price),
+      notes: f.notes || null,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao enviar. Tente novamente.");
+      return;
+    }
+    toast.success("BM enviada! Entraremos em contato pelo WhatsApp.");
+    onClose();
+  };
+
+  return (
+    <div className="mkt-modal-backdrop" onClick={onClose}>
+      <div className="mkt-modal" onClick={e => e.stopPropagation()}>
+        <button className="mkt-modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        <div className="mkt-modal-head">
+          <span className="mkt-eyebrow" style={{ marginBottom: 8 }}>VENDA SUA BM</span>
+          <h3>Envie os dados da sua BM</h3>
+          <p>Nossa equipe analisa e retorna via WhatsApp com a proposta.</p>
+        </div>
+        <form className="mkt-form" onSubmit={submit}>
+          <div className="mkt-form-grid">
+            <label>Seu nome
+              <input value={f.seller_name} onChange={e => up("seller_name", e.target.value)} required />
+            </label>
+            <label>WhatsApp
+              <input value={f.seller_whatsapp} onChange={e => up("seller_whatsapp", e.target.value)} placeholder="(11) 99999-9999" required />
+            </label>
+            <label>Nome da BM
+              <input value={f.bm_name} onChange={e => up("bm_name", e.target.value)} required />
+            </label>
+            <label>País
+              <input value={f.country} onChange={e => up("country", e.target.value)} />
+            </label>
+            <label>Tipo de Verificação
+              <select value={f.verification} onChange={e => up("verification", e.target.value)}>
+                <option>Rodada</option>
+                <option>Rodada Verificada</option>
+                <option>Verificada</option>
+                <option>Alta Confiança</option>
+              </select>
+            </label>
+            <label>Limite de Gasto (diário)
+              <input value={f.limit_daily} onChange={e => up("limit_daily", e.target.value)} placeholder="R$ 1.300 / dia" />
+            </label>
+            <label>Contas de Anúncio
+              <input type="number" min="0" value={f.accounts} onChange={e => up("accounts", e.target.value)} />
+            </label>
+            <label>Conta Criada em
+              <input value={f.created_year} onChange={e => up("created_year", e.target.value)} placeholder="2024" />
+            </label>
+            <label>Perfil de Risco
+              <select value={f.risk} onChange={e => up("risk", e.target.value)}>
+                <option>BAIXO</option>
+                <option>VERIFICADA</option>
+                <option>ALTO HISTÓRICO</option>
+                <option>PREMIUM</option>
+              </select>
+            </label>
+            <label>Método de Pagamento
+              <input value={f.method} onChange={e => up("method", e.target.value)} />
+            </label>
+            <label>Gasto Total (R$)
+              <input type="number" step="0.01" value={f.gasto_total} onChange={e => up("gasto_total", e.target.value)} placeholder="10000.00" />
+            </label>
+            <label>Quanto pede pela BM (R$) *
+              <input type="number" step="0.01" value={f.asking_price} onChange={e => up("asking_price", e.target.value)} placeholder="1500.00" required />
+            </label>
+            <label className="mkt-form-full">Observações
+              <textarea value={f.notes} onChange={e => up("notes", e.target.value)} rows={3} />
+            </label>
+          </div>
+          <div className="mkt-form-foot">
+            <button type="button" className="mkt-btn-ghost" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="mkt-cta" disabled={saving}>{saving ? "Enviando..." : "Enviar BM"}</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -536,4 +689,24 @@ const styles = `
   .mkt-trust{grid-template-columns:1fr}
   .mkt-grid{grid-template-columns:1fr}
 }
+
+.mkt-brand-mark-img{background:transparent !important; border:1px solid rgba(212,166,79,.35); padding:6px; overflow:hidden}
+.mkt-brand-mark-img img{width:100%; height:100%; object-fit:contain; display:block}
+
+.mkt-modal-backdrop{position:fixed; inset:0; background:rgba(3,4,7,.75); backdrop-filter:blur(10px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease}
+.mkt-modal{position:relative; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; background:linear-gradient(180deg, #0F131A, #0B0E14); border:1px solid rgba(212,166,79,.25); border-radius:24px; padding:32px; box-shadow:0 40px 100px -20px rgba(0,0,0,.8); animation:fadeUp .35s cubic-bezier(.2,.7,.2,1)}
+.mkt-modal-close{position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.05); border:1px solid var(--line); color:#fff; font-size:20px; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:all .2s}
+.mkt-modal-close:hover{background:rgba(212,166,79,.15); border-color:var(--gold); color:var(--gold)}
+.mkt-modal-head h3{font-size:26px; font-weight:600; letter-spacing:-.02em; margin:6px 0 8px}
+.mkt-modal-head p{color:var(--mute); font-size:13px; margin:0 0 20px}
+.mkt-form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.mkt-form label{display:flex; flex-direction:column; gap:6px; font-size:11px; letter-spacing:.14em; color:var(--mute); text-transform:uppercase; font-weight:600}
+.mkt-form-full{grid-column:1/-1}
+.mkt-form input, .mkt-form select, .mkt-form textarea{background:rgba(255,255,255,.03); border:1px solid var(--line); color:#fff; border-radius:10px; padding:11px 14px; font-size:13.5px; outline:none; transition:all .25s ease; font-family:inherit; letter-spacing:normal; text-transform:none; font-weight:400}
+.mkt-form input:focus, .mkt-form select:focus, .mkt-form textarea:focus{border-color:rgba(212,166,79,.5); background:rgba(212,166,79,.04)}
+.mkt-form textarea{resize:vertical; min-height:70px}
+.mkt-form-foot{display:flex; gap:12px; justify-content:flex-end; margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
+.mkt-btn-ghost{padding:12px 22px; border-radius:12px; background:transparent; border:1px solid var(--line); color:var(--mute); font-size:13px; cursor:pointer; transition:all .2s}
+.mkt-btn-ghost:hover{color:#fff; border-color:rgba(255,255,255,.2)}
+@media (max-width:560px){ .mkt-form-grid{grid-template-columns:1fr} .mkt-modal{padding:22px} }
 `;

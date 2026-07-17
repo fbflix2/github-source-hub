@@ -1930,6 +1930,123 @@ export type Database = {
           },
         ]
       }
+      marketplace_bm_leads: {
+        Row: {
+          accounts: number | null
+          asking_price: number
+          bm_name: string
+          country: string
+          created_at: string
+          created_year: string | null
+          gasto_total: number | null
+          id: string
+          limit_daily: string | null
+          method: string | null
+          notes: string | null
+          risk: string | null
+          seller_name: string
+          seller_whatsapp: string
+          status: string
+          verification: string | null
+        }
+        Insert: {
+          accounts?: number | null
+          asking_price: number
+          bm_name: string
+          country?: string
+          created_at?: string
+          created_year?: string | null
+          gasto_total?: number | null
+          id?: string
+          limit_daily?: string | null
+          method?: string | null
+          notes?: string | null
+          risk?: string | null
+          seller_name: string
+          seller_whatsapp: string
+          status?: string
+          verification?: string | null
+        }
+        Update: {
+          accounts?: number | null
+          asking_price?: number
+          bm_name?: string
+          country?: string
+          created_at?: string
+          created_year?: string | null
+          gasto_total?: number | null
+          id?: string
+          limit_daily?: string | null
+          method?: string | null
+          notes?: string | null
+          risk?: string | null
+          seller_name?: string
+          seller_whatsapp?: string
+          status?: string
+          verification?: string | null
+        }
+        Relationships: []
+      }
+      marketplace_bms: {
+        Row: {
+          accounts: number
+          bm_id: string | null
+          code: string
+          country: string
+          created_at: string
+          created_year: string
+          gasto_total: number
+          id: string
+          is_active: boolean
+          limit_daily: string
+          method: string
+          name: string
+          price: number
+          risk: string
+          sort_order: number
+          updated_at: string
+          verification: string
+        }
+        Insert: {
+          accounts?: number
+          bm_id?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          created_year?: string
+          gasto_total?: number
+          id?: string
+          is_active?: boolean
+          limit_daily?: string
+          method?: string
+          name: string
+          price?: number
+          risk?: string
+          sort_order?: number
+          updated_at?: string
+          verification?: string
+        }
+        Update: {
+          accounts?: number
+          bm_id?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          created_year?: string
+          gasto_total?: number
+          id?: string
+          is_active?: boolean
+          limit_daily?: string
+          method?: string
+          name?: string
+          price?: number
+          risk?: string
+          sort_order?: number
+          updated_at?: string
+          verification?: string
+        }
+        Relationships: []
+      }
       migration_tracking: {
         Row: {
           added_by: string | null
