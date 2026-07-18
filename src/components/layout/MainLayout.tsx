@@ -94,12 +94,21 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
     <div className="min-h-screen bg-background text-foreground font-display selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       {/* Admin impersonation banner */}
       {isImpersonating && (
-        <div className="fixed top-4 right-4 z-[200] flex items-center gap-2 bg-amber-500/90 backdrop-blur-sm text-black px-3 py-1.5 rounded-full text-xs font-bold shadow-lg cursor-pointer hover:bg-amber-500 transition-colors"
-          onClick={() => { window.close(); }}
+        <div
+          className="fixed top-4 right-4 z-[200] flex items-center gap-2 bg-amber-500/90 backdrop-blur-sm text-black px-3 py-1.5 rounded-full text-xs font-bold shadow-lg"
           title={`Visualizando: ${userName} (${userEmail})`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"/><path d="M12 17h.01"/></svg>
           ADMIN
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); window.close(); }}
+            className="ml-1 rounded-full hover:bg-black/10 px-1.5 py-0.5"
+            aria-label="Fechar aba"
+            title="Fechar esta aba"
+          >
+            ✕
+          </button>
         </div>
       )}
 
