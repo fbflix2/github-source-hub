@@ -24,11 +24,21 @@ const fallbackStorage = {
   removeItem: (_key: string) => {},
 };
 
+const isImpersonationTab =
+  isBrowser && sessionStorage.getItem(IMPERSONATION_TAB_KEY) === "1";
+
 const authStorage = !isBrowser
   ? fallbackStorage
-  : sessionStorage.getItem(IMPERSONATION_TAB_KEY) === "1"
+  : isImpersonationTab
     ? sessionStorage
     : localStorage;
+
+// Isolate impersonation tab from admin tab: unique storageKey prevents
+// BroadcastChannel/LockManager from syncing the client session into the
+// admin tab (which was logging the admin out).
+const storageKey = isImpersonationTab
+  ? "sb-mxnlerkeygfvdnznoxld-auth-token-impersonate"
+  : "sb-mxnlerkeygfvdnznoxld-auth-token";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +46,7 @@ const authStorage = !isBrowser
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: authStorage,
+    storageKey,
     persistSession: true,
     autoRefreshToken: true,
   }
