@@ -285,7 +285,9 @@ export default function ToolsTab({ partnerId, partnerSlug }: { partnerId: string
             {creatives.map(cr => (
               <div key={cr.id} className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
                 {cr.media_url && cr.type === "image" && (
-                  <img src={cr.media_url} alt={cr.title} className="w-full aspect-video object-cover" />
+                  <div className="w-full bg-[#0A0A0A] flex items-center justify-center">
+                    <img src={cr.media_url} alt={cr.title} className="w-full h-auto object-contain" />
+                  </div>
                 )}
                 <div className="p-4">
                   <p className="font-bold text-white text-sm">{cr.title}</p>
