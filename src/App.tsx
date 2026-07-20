@@ -533,6 +533,7 @@ const App = () => {
                   <Route path="configuracoes/bloco-padrao" element={<AdminBlocoPadrao />} />
                   <Route path="configuracoes/feedbacks" element={<AdminFeedbacks />} />
                   <Route path="configuracoes/migrados" element={<AdminMigrados />} />
+                  <Route path="configuracoes/criativos" element={<AdminCriativos />} />
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
