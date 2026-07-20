@@ -140,6 +140,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
     { title: "Bloco Padrão", icon: FileText, path: "/admin/configuracoes/bloco-padrao" },
     { title: "Feedbacks", icon: Star, path: "/admin/configuracoes/feedbacks" },
+    { title: "Criativos Afiliados", icon: Image, path: "/admin/configuracoes/criativos" },
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
     { title: "Departamentos", icon: Building2, path: "/admin/configuracoes/departamentos" },
     { title: "API | Token", icon: Key, path: "/admin/api" },

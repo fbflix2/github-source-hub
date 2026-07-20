@@ -86,6 +86,7 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminNotificacoes from "./pages/admin/AdminNotificacoes";
 import AdminTermos from "./pages/admin/AdminTermos";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminCriativos from "./pages/admin/AdminCriativos";
 import AdminPlataforma from "./pages/admin/AdminPlataforma";
 import AdminApi from "./pages/admin/AdminApi";
 import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
@@ -532,6 +533,7 @@ const App = () => {
                   <Route path="configuracoes/bloco-padrao" element={<AdminBlocoPadrao />} />
                   <Route path="configuracoes/feedbacks" element={<AdminFeedbacks />} />
                   <Route path="configuracoes/migrados" element={<AdminMigrados />} />
+                  <Route path="configuracoes/criativos" element={<AdminCriativos />} />
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
