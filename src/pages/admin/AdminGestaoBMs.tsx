@@ -463,6 +463,32 @@ export default function AdminGestaoBMs() {
         _hasSafeBm: protectedStockIds.has(m.id),
       }));
 
+      // Enrich with matrix profile (parent) info for BM-type items
+      const parentIds = [
+        ...new Set(
+          enriched
+            .filter((e: any) => e.parent_id)
+            .map((e: any) => e.parent_id as string),
+        ),
+      ];
+      const parentMap: Record<string, { id: string; name: string | null; identification: string | null }> = {};
+      if (parentIds.length > 0) {
+        const { data: parents } = await supabase
+          .from("stock_items")
+          .select("id, name, identification")
+          .in("id", parentIds);
+        (parents || []).forEach((p: any) => {
+          parentMap[p.id] = { id: p.id, name: p.name, identification: p.identification };
+        });
+      }
+      enriched.forEach((e: any) => {
+        if (e.parent_id && parentMap[e.parent_id]) {
+          e._matrix = parentMap[e.parent_id];
+        } else if (e.type === "perfil") {
+          e._matrix = { id: e.id, name: e.name, identification: e.identification };
+        }
+      });
+
       // Verifica quais itens já foram notificados (safe_bm_offer enviado)
       try {
         const stockIds = enriched.map((e: any) => e.id);
