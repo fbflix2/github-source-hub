@@ -463,29 +463,17 @@ export default function AdminGestaoBMs() {
         _hasSafeBm: protectedStockIds.has(m.id),
       }));
 
-      // Enrich with matrix profile (parent) info for BM-type items
-      const parentIds = [
-        ...new Set(
-          enriched
-            .filter((e: any) => e.parent_id)
-            .map((e: any) => e.parent_id as string),
-        ),
-      ];
-      const parentMap: Record<string, { id: string; name: string | null; identification: string | null }> = {};
-      if (parentIds.length > 0) {
-        const { data: parents } = await supabase
-          .from("stock_items")
-          .select("id, name, identification")
-          .in("id", parentIds);
-        (parents || []).forEach((p: any) => {
-          parentMap[p.id] = { id: p.id, name: p.name, identification: p.identification };
-        });
-      }
+      // Enrich with matrix profile info — comes from data.perfilMatriz / perfilBackup
+      // (informed at blocking time). This is the "perfil matriz" — NOT the parent profile
+      // hosting the BM.
       enriched.forEach((e: any) => {
-        if (e.parent_id && parentMap[e.parent_id]) {
-          e._matrix = parentMap[e.parent_id];
-        } else if (e.type === "perfil") {
-          e._matrix = { id: e.id, name: e.name, identification: e.identification };
+        const raw = (e.data?.perfilMatriz || e.data?.perfilBackup || "").toString().trim();
+        if (raw) {
+          // Could be a name, ID, or "Name — ID". Try to split.
+          const idMatch = raw.match(/(\d{6,})/);
+          const id = idMatch ? idMatch[1] : null;
+          const name = raw.replace(/[\s—\-|]*\d{6,}[\s—\-|]*/g, "").trim() || null;
+          e._matrix = { name, identification: id, raw };
         }
       });
 
