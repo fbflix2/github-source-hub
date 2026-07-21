@@ -1267,6 +1267,36 @@ export default function Checkout() {
           // Still debit balance since payment was made - admin will resolve fulfillment
         }
 
+        // ========== SAFE BM RENEWAL AUTO-ACTIVATION (saldo) ==========
+        try {
+          const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
+          if (pendingRenewalsStr) {
+            const renewalIds = JSON.parse(pendingRenewalsStr);
+            if (Array.isArray(renewalIds) && renewalIds.length > 0) {
+              const { data: renewals } = await supabase
+                .from("safe_bm_renewals")
+                .select("id, vault_id")
+                .in("id", renewalIds);
+              const vaultIds = Array.from(new Set((renewals || []).map((r: any) => r.vault_id).filter(Boolean)));
+              await supabase
+                .from("safe_bm_renewals")
+                .update({ status: "verified", paid_at: new Date().toISOString(), verified_at: new Date().toISOString(), order_id: orderId })
+                .in("id", renewalIds);
+              if (vaultIds.length > 0) {
+                const nowIso = new Date().toISOString();
+                const nextIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                await supabase
+                  .from("safe_bm_vaults" as any)
+                  .update({ last_billing_at: nowIso, next_billing_at: nextIso, status: "active", billing_status: "paid" })
+                  .in("id", vaultIds);
+              }
+              sessionStorage.removeItem("pending_safe_bm_renewals");
+            }
+          }
+        } catch (e) {
+          console.error("[Checkout] SafeBM renewal activation error:", e);
+        }
+
         const newBalance = profile.balance - chargeTotal;
         await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
 
