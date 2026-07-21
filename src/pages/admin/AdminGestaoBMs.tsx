@@ -952,6 +952,25 @@ export default function AdminGestaoBMs() {
                       {item.data?.bmNames && (
                         <span><strong>BMs no item:</strong> {Array.isArray(item.data.bmNames) ? item.data.bmNames.join(", ") : item.data.bmNames}</span>
                       )}
+                      {item._matrix && (
+                        <span className="text-purple-400">
+                          <strong>Perfil matriz:</strong>{" "}
+                          {item._matrix.name || "Sem nome"}
+                          {item._matrix.identification && (
+                            <>
+                              {" — "}
+                              <a
+                                href={`https://facebook.com/profile.php?id=${item._matrix.identification}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline hover:text-purple-300"
+                              >
+                                {item._matrix.identification}
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      )}
                       <span><strong>Status:</strong> {item.status}</span>
                       {item.status === "vendido" && item._buyer && (
                         <span className="text-amber-400">
