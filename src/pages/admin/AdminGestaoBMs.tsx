@@ -943,7 +943,7 @@ export default function AdminGestaoBMs() {
                       {item._matrix && (
                         <span className="text-purple-400">
                           <strong>Perfil matriz:</strong>{" "}
-                          {item._matrix.name || "Sem nome"}
+                          {item._matrix.name || (!item._matrix.identification ? item._matrix.raw : "Sem nome")}
                           {item._matrix.identification && (
                             <>
                               {" — "}
