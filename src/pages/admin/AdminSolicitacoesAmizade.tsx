@@ -168,8 +168,11 @@ export default function AdminSolicitacoesAmizade() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return targets.filter((t) => {
-      if (filterStatus === "pending" && (t.added || t.is_blocked)) return false;
-      if (filterStatus === "added" && (!t.added || t.is_blocked)) return false;
+      const goal = t.friends_goal ?? batchMap[t.batch_id]?.friends_goal ?? null;
+      const count = t.friends_count ?? 0;
+      const reached = goal != null && goal > 0 && count >= goal;
+      if (filterStatus === "pending" && (reached || t.is_blocked)) return false;
+      if (filterStatus === "added" && (!reached || t.is_blocked)) return false;
       if (filterBatch !== "all" && t.batch_id !== filterBatch) return false;
       if (q) {
         const text = `${t.profile_name || ""} ${t.profile_url}`.toLowerCase();
@@ -177,14 +180,19 @@ export default function AdminSolicitacoesAmizade() {
       }
       return true;
     });
-  }, [targets, filterStatus, filterBatch, search]);
+  }, [targets, filterStatus, filterBatch, search, batchMap]);
 
   const stats = useMemo(() => {
     const total = targets.length;
     const blocked = targets.filter((t) => t.is_blocked).length;
-    const added = targets.filter((t) => t.added && !t.is_blocked).length;
-    return { total, added, blocked, pending: total - added - blocked };
-  }, [targets]);
+    const reachedCount = targets.filter((t) => {
+      if (t.is_blocked) return false;
+      const goal = t.friends_goal ?? batchMap[t.batch_id]?.friends_goal ?? null;
+      const count = t.friends_count ?? 0;
+      return goal != null && goal > 0 && count >= goal;
+    }).length;
+    return { total, added: reachedCount, blocked, pending: total - reachedCount - blocked };
+  }, [targets, batchMap]);
 
   // Bookmarklet: rodando no facebook.com, lê "X amigos" da página e envia para o edge function
   const bookmarkletCode = useMemo(() => {
