@@ -351,7 +351,7 @@ export default function PublicAmizades() {
               const pct = Math.min(100, Math.round((count / goal) * 100));
               const hit = count >= goal;
               return (
-                <Card key={t.id} className={`bg-white/5 border ${t.is_blocked ? "border-red-500/40 opacity-80" : t.added ? "border-emerald-500/30" : "border-white/10"}`}>
+                <Card key={t.id} className={`bg-white/5 border ${t.is_blocked ? "border-red-500/40 opacity-80" : hit ? "border-emerald-500/30" : "border-white/10"}`}>
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className={`size-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0 border ${t.is_blocked ? "border-red-500/40 grayscale" : "border-white/10"}`}>
@@ -367,8 +367,10 @@ export default function PublicAmizades() {
                       </div>
                       {t.is_blocked ? (
                         <Badge className="bg-red-500/15 text-red-400 border-red-500/40 gap-1"><Ban className="size-3" /> Bloqueado</Badge>
+                      ) : hit ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Meta atingida</Badge>
                       ) : t.added ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Solicitado</Badge>
+                        <Badge className="bg-sky-500/15 text-sky-400 border-sky-500/30">Solicitado</Badge>
                       ) : (
                         <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30">Pendente</Badge>
                       )}
