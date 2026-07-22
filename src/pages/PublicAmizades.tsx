@@ -173,7 +173,8 @@ export default function PublicAmizades() {
       const count = t.friends_count ?? 0;
       return count >= goal;
     }).length;
-    return { total, added: completed, blocked, pending: total - completed - blocked };
+    const requested = targets.filter((t) => t.added && !t.is_blocked).length;
+    return { total, added: requested, blocked, pending: total - completed - blocked };
   }, [targets]);
 
   const bookmarkletCode = useMemo(() => {
@@ -426,18 +427,19 @@ export default function PublicAmizades() {
                         <Button variant="outline" size="sm" className="w-full gap-1.5 border-red-500/40 text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, false)}>
                           <RotateCcw className="size-4" /> Desmarcar bloqueio
                         </Button>
-                      ) : t.added ? (
-                        <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setAdded(t, false)}>
-                          <RotateCcw className="size-4" /> Refazer (desmarcar)
-                        </Button>
                       ) : (
                         <>
                           <Button size="sm" className="w-full gap-1.5 bg-primary hover:bg-primary/90" onClick={() => openProfile(t)}>
-                            <ExternalLink className="size-4" /> {opened[t.id] ? "Abrir novamente" : "Abrir perfil no Facebook"}
+                            <ExternalLink className="size-4" /> {t.added || opened[t.id] ? "Abrir novamente" : "Abrir perfil no Facebook"}
                           </Button>
-                          {opened[t.id] && (
+                          {opened[t.id] && !t.added && (
                             <Button size="sm" variant="outline" className="w-full gap-1.5 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10" onClick={() => setAdded(t, true)}>
                               <CheckCircle2 className="size-4" /> Marcar como solicitado
+                            </Button>
+                          )}
+                          {t.added && (
+                            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setAdded(t, false)}>
+                              <RotateCcw className="size-4" /> Refazer (desmarcar)
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" className="w-full gap-1.5 text-red-400/80 hover:text-red-300 hover:bg-red-500/10" onClick={() => setBlocked(t, true)}>
