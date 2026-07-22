@@ -148,8 +148,11 @@ export default function PublicAmizades() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return targets.filter((t) => {
-      if (filterStatus === "pending" && (t.added || t.is_blocked)) return false;
-      if (filterStatus === "added" && !t.added) return false;
+      const goal = t.friends_goal || 100;
+      const count = t.friends_count ?? 0;
+      const goalHit = count >= goal;
+      if (filterStatus === "pending" && (goalHit || t.is_blocked)) return false;
+      if (filterStatus === "added" && !goalHit) return false;
       if (filterStatus === "blocked" && !t.is_blocked) return false;
       // "all" inclui bloqueados; demais filtros ocultam por padrão
       if (filterStatus !== "all" && filterStatus !== "blocked" && t.is_blocked) return false;
@@ -164,9 +167,13 @@ export default function PublicAmizades() {
 
   const stats = useMemo(() => {
     const total = targets.length;
-    const added = targets.filter((t) => t.added).length;
     const blocked = targets.filter((t) => t.is_blocked).length;
-    return { total, added, blocked, pending: total - added - blocked };
+    const completed = targets.filter((t) => {
+      const goal = t.friends_goal || 100;
+      const count = t.friends_count ?? 0;
+      return count >= goal;
+    }).length;
+    return { total, added: completed, blocked, pending: total - completed - blocked };
   }, [targets]);
 
   const bookmarkletCode = useMemo(() => {
@@ -316,7 +323,11 @@ export default function PublicAmizades() {
             variant="outline"
             className="gap-2 border-primary/40 text-primary hover:bg-primary/10"
             onClick={() => {
-              const pending = filtered.filter((t) => !t.added && !t.is_blocked).slice(0, 10);
+              const pending = filtered.filter((t) => {
+                const goal = t.friends_goal || 100;
+                const count = t.friends_count ?? 0;
+                return count < goal && !t.is_blocked;
+              }).slice(0, 10);
               if (!pending.length) { toast.message("Nenhum perfil pendente."); return; }
               pending.forEach((t) => openProfile(t));
               toast.success(`${pending.length} perfis abertos e marcados como solicitados`);
