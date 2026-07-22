@@ -173,7 +173,8 @@ export default function PublicAmizades() {
       const count = t.friends_count ?? 0;
       return count >= goal;
     }).length;
-    return { total, added: completed, blocked, pending: total - completed - blocked };
+    const requested = targets.filter((t) => t.added && !t.is_blocked).length;
+    return { total, added: requested, blocked, pending: total - completed - blocked };
   }, [targets]);
 
   const bookmarkletCode = useMemo(() => {
