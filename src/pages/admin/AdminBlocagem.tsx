@@ -49,9 +49,30 @@ const itemTypes = [
 
 // ─── Blocagem Flash (Beta) ───
 function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
-  const [rawText, setRawText] = useState("");
-  const [cookiesText, setCookiesText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+
+  // Product-level fields (parent when combo, single item otherwise)
+  const [categoryId, setCategoryId] = useState("");
+  const [preco, setPreco] = useState("");
+  const [fotoUrl, setFotoUrl] = useState("");
+
+  // Combo mode
+  const [isCombo, setIsCombo] = useState(false);
+  const [comboName, setComboName] = useState("");
+  const [comboDescricao, setComboDescricao] = useState("");
+
+  // Items list (each = 1 flash entry). Non-combo uses only index 0.
+  const [items, setItems] = useState<{ rawText: string; cookiesText: string }[]>([
+    { rawText: "", cookiesText: "" },
+  ]);
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+  }, []);
 
   const parseFlashText = (text: string) => {
     const normalizeKey = (k: string) => k.toLowerCase()
@@ -102,36 +123,10 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     return out;
   };
 
-  const preview = useMemo(() => parseFlashText(rawText), [rawText]);
-  const previewEntries = Object.entries(preview);
+  const parsedItems = useMemo(() => items.map(it => parseFlashText(it.rawText)), [items]);
+  const totalRecognized = parsedItems.reduce((n, p) => n + Object.keys(p).length, 0);
 
-  const handleSave = async () => {
-    if (!rawText.trim()) { toast.error("Cole o texto com os dados do perfil."); return; }
-    const data = preview;
-    if (previewEntries.length === 0) {
-      toast.error("Nenhum campo reconhecido. Use formato 'Chave: valor' por linha.");
-      return;
-    }
-    setSaving(true);
-    const insertData: any = {
-      name: data.nomePerfil || data.emailAcesso || `Flash ${new Date().toLocaleString("pt-BR")}`,
-      type: "perfil",
-      identification: data.idPerfil || null,
-      identification_link: data.linkPerfil || null,
-      status: "aguardando",
-      folder: folder.id,
-      data: {
-        ...data,
-        cookies: cookiesText.trim() || data.cookies || "",
-        _flashBeta: true,
-        _rawFlashText: rawText,
-        _rawCookies: cookiesText,
-      },
-    };
-    const { error } = await supabase.from("stock_items").insert(insertData);
-    setSaving(false);
-    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-    // Gera e baixa TXT usando o template padrão de blocagem
+  const generateTxt = async (data: Record<string, string>, cookies: string, fallbackName: string) => {
     try {
       const { data: tpls } = await supabase
         .from("block_templates" as any)
@@ -153,36 +148,33 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         "{{tempoPlataforma}}": d.tempoPlataforma || "—",
         "{{statusAtual}}": d.statusAtual || "—",
         "{{descricao}}": d.descricao || "—",
-        "{{cookies}}": (cookiesText.trim() || d.cookies || "—"),
+        "{{cookies}}": (cookies.trim() || d.cookies || "—"),
         "{{linkDocumento}}": d.linkDocumento || "—",
         "{{linkPerfil}}": d.linkPerfil || "—",
         "{{idPerfil}}": d.idPerfil || "—",
         "{{pedido}}": "—",
         "{{data}}": new Date().toLocaleDateString("pt-BR"),
-        "{{nomeProduto}}": insertData.name,
+        "{{nomeProduto}}": fallbackName,
       };
       let content: string;
       if (template) {
         content = template;
         for (const [k, v] of Object.entries(replacements)) content = content.split(k).join(v);
-        // Se o template não tiver placeholder de cookies, anexa no final
-        if (cookiesText.trim() && !/\{\{\s*cookies\s*\}\}/i.test(template)) {
-          content += `\n\n===== COOKIES =====\n${cookiesText.trim()}`;
+        if (cookies.trim() && !/\{\{\s*cookies\s*\}\}/i.test(template)) {
+          content += `\n\n===== COOKIES =====\n${cookies.trim()}`;
         }
       } else {
         content = Object.entries(d)
           .filter(([k]) => !k.startsWith("_") && k !== "cookies")
           .map(([k, v]) => `${k}: ${v}`)
           .join("\n");
-        if (cookiesText.trim()) {
-          content += `\n\n===== COOKIES =====\n${cookiesText.trim()}`;
-        }
+        if (cookies.trim()) content += `\n\n===== COOKIES =====\n${cookies.trim()}`;
       }
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const idBase = (data.idPerfil || data.emailAcesso || insertData.name || "blocagem_flash") as string;
+      const idBase = (data.idPerfil || data.emailAcesso || fallbackName || "blocagem_flash") as string;
       const safeName = idBase.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
       a.download = `${safeName}.txt`;
       document.body.appendChild(a);
@@ -192,10 +184,102 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     } catch (e) {
       console.error("Erro ao gerar TXT:", e);
     }
-    toast.success("Blocagem flash salva e TXT baixado!");
-    setRawText("");
-    setCookiesText("");
-    onSaved();
+  };
+
+  const buildChildInsert = (parsed: Record<string, string>, raw: string, cookies: string, comboIndex?: number, parentName?: string) => {
+    const name = parsed.nomePerfil || parsed.emailAcesso || `Flash ${new Date().toLocaleString("pt-BR")}`;
+    return {
+      name,
+      type: "perfil",
+      identification: parsed.idPerfil || null,
+      identification_link: parsed.linkPerfil || null,
+      status: "aguardando",
+      folder: folder.id,
+      data: {
+        ...parsed,
+        cookies: cookies.trim() || parsed.cookies || "",
+        _flashBeta: true,
+        _rawFlashText: raw,
+        _rawCookies: cookies,
+        ...(comboIndex !== undefined ? { _comboIndex: comboIndex, _comboName: parentName } : {}),
+      },
+    };
+  };
+
+  const handleSave = async () => {
+    // Validate items
+    const filled = items
+      .map((it, i) => ({ it, i, parsed: parsedItems[i] }))
+      .filter(x => x.it.rawText.trim() && Object.keys(x.parsed).length > 0);
+
+    if (filled.length === 0) {
+      toast.error("Cole ao menos um item com dados no formato 'Chave: valor'.");
+      return;
+    }
+    if (isCombo && !comboName.trim()) { toast.error("Dê um nome ao combo."); return; }
+    if (isCombo && filled.length < 2) { toast.error("Combo precisa de ao menos 2 itens."); return; }
+
+    setSaving(true);
+    try {
+      if (isCombo) {
+        // 1. Parent combo
+        const { data: parent, error: pErr } = await supabase.from("stock_items").insert({
+          name: comboName,
+          type: "combo",
+          status: "aguardando",
+          folder: folder.id,
+          data: {
+            nomeCombo: comboName,
+            descricaoCombo: comboDescricao || undefined,
+            isPacote: true,
+            preco: preco ? parseFloat(preco) : undefined,
+            categoryId: categoryId || undefined,
+            foto_url: fotoUrl || undefined,
+            childCount: filled.length,
+            childType: "perfil",
+            _flashBeta: true,
+          },
+        }).select("id").single();
+        if (pErr) throw pErr;
+
+        // 2. Children
+        const childInserts = filled.map((x, idx) => ({
+          ...buildChildInsert(x.parsed, x.it.rawText, x.it.cookiesText, idx + 1, comboName),
+          parent_id: parent.id,
+        }));
+        const { error: cErr } = await supabase.from("stock_items").insert(childInserts as any);
+        if (cErr) throw cErr;
+
+        // Download one TXT per child
+        for (const x of filled) {
+          const nm = x.parsed.nomePerfil || x.parsed.emailAcesso || `Item ${x.i + 1}`;
+          await generateTxt(x.parsed, x.it.cookiesText, nm);
+        }
+        toast.success(`Combo "${comboName}" com ${filled.length} itens criado!`);
+      } else {
+        const x = filled[0];
+        const insertData: any = {
+          ...buildChildInsert(x.parsed, x.it.rawText, x.it.cookiesText),
+          data: {
+            ...buildChildInsert(x.parsed, x.it.rawText, x.it.cookiesText).data,
+            preco: preco ? parseFloat(preco) : undefined,
+            categoryId: categoryId || undefined,
+            foto_url: fotoUrl || undefined,
+          },
+        };
+        const { error } = await supabase.from("stock_items").insert(insertData);
+        if (error) throw error;
+        await generateTxt(x.parsed, x.it.cookiesText, insertData.name);
+        toast.success("Blocagem flash salva e TXT baixado!");
+      }
+      setItems([{ rawText: "", cookiesText: "" }]);
+      setComboName(""); setComboDescricao("");
+      onSaved();
+    } catch (e: any) {
+      toast.error("Erro ao salvar: " + e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exampleText = `Nome: João Silva
@@ -228,70 +312,161 @@ Descrição: Perfil verificado, sem restrições`;
       </div>
 
       <div className="glass-panel rounded-xl p-5 space-y-4">
+        {/* Config: categoria, preço, foto, modo combo */}
+        <div className="grid md:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><FolderOpen className="h-3 w-3" /> Categoria (loja)</label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger className="bg-black/30 border-white/5 text-white h-9 text-xs">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><DollarSign className="h-3 w-3" /> Preço (R$)</label>
+            <Input type="number" step="0.01" value={preco} onChange={e => setPreco(e.target.value)} placeholder="0,00" className="bg-black/30 border-white/5 text-white h-9 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><ImageIcon className="h-3 w-3" /> Foto do produto</label>
+            <div className="flex items-center gap-2">
+              {fotoUrl ? (
+                <img src={fotoUrl} alt="" className="h-9 w-9 rounded object-cover border border-white/10" />
+              ) : null}
+              <Button type="button" size="sm" variant="outline" onClick={() => setShowImagePicker(true)} className="h-9 text-xs flex-1">
+                {fotoUrl ? "Trocar" : "Selecionar"}
+              </Button>
+              {fotoUrl && <Button type="button" size="sm" variant="ghost" onClick={() => setFotoUrl("")} className="h-9 text-zinc-500 hover:text-red-400"><X className="h-3 w-3" /></Button>}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><PackageOpen className="h-3 w-3" /> Modo</label>
+            <div className="flex rounded-lg overflow-hidden border border-white/10 h-9">
+              <button type="button" onClick={() => setIsCombo(false)} className={`flex-1 text-xs font-medium transition ${!isCombo ? "bg-yellow-500 text-black" : "text-zinc-400 hover:text-white"}`}>Item único</button>
+              <button type="button" onClick={() => setIsCombo(true)} className={`flex-1 text-xs font-medium transition ${isCombo ? "bg-yellow-500 text-black" : "text-zinc-400 hover:text-white"}`}>Combo</button>
+            </div>
+          </div>
+        </div>
+
+        {isCombo && (
+          <div className="grid md:grid-cols-2 gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-zinc-400">Nome do combo</label>
+              <Input value={comboName} onChange={e => setComboName(e.target.value)} placeholder="Ex.: Kit 5 Perfis Aquecidos" className="bg-black/30 border-white/5 text-white h-9 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-zinc-400">Descrição (opcional)</label>
+              <Input value={comboDescricao} onChange={e => setComboDescricao(e.target.value)} placeholder="Breve descrição do combo" className="bg-black/30 border-white/5 text-white h-9 text-xs" />
+            </div>
+          </div>
+        )}
+
         <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
           <Info className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-zinc-300 leading-relaxed">
-            Cole todos os dados em <span className="text-yellow-300 font-medium">texto livre</span>, uma informação por linha no formato <code className="text-yellow-300">Chave: valor</code>.
-            O sistema identifica automaticamente e gera o TXT no seu template padrão de blocagem.
+            Cole os dados em <span className="text-yellow-300 font-medium">texto livre</span>, uma informação por linha (<code className="text-yellow-300">Chave: valor</code>).
+            {isCombo ? " Cada bloco abaixo vira um item do combo — o cliente compra 1 vez e recebe todos, cada um com sua própria tela de detalhes." : " O sistema identifica e gera o TXT no seu template padrão."}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
-              <FileText className="h-3 w-3" /> Dados do perfil
-            </label>
-            <Textarea
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              placeholder={exampleText}
-              className="min-h-[340px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
-            />
-            <div className="flex items-center justify-between text-[10px] text-zinc-500">
-              <span>{previewEntries.length} campo(s) reconhecido(s)</span>
-              <button
-                type="button"
-                onClick={() => setRawText(exampleText)}
-                className="text-yellow-400 hover:text-yellow-300"
-              >
-                Usar exemplo
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
-              <BadgeCheck className="h-3 w-3" /> Cookies do perfil
-            </label>
-            <Textarea
-              value={cookiesText}
-              onChange={(e) => setCookiesText(e.target.value)}
-              placeholder={`Cole aqui os cookies do perfil (JSON, Netscape ou texto livre).\nSerão salvos junto no mesmo TXT ao final.`}
-              className="min-h-[340px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
-            />
-            <div className="flex items-center justify-between text-[10px] text-zinc-500">
-              <span>{cookiesText.trim() ? `${cookiesText.trim().length} caractere(s) de cookies` : "Nenhum cookie colado"}</span>
-              {cookiesText && (
-                <button type="button" onClick={() => setCookiesText("")} className="text-yellow-400 hover:text-yellow-300">
-                  Limpar
-                </button>
+        {items.map((item, idx) => {
+          const parsedCount = Object.keys(parsedItems[idx] || {}).length;
+          return (
+            <div key={idx} className={`space-y-2 ${isCombo ? "p-3 rounded-lg border border-white/5 bg-black/20" : ""}`}>
+              {isCombo && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-yellow-300 flex items-center gap-2">
+                    <PackageOpen className="h-3 w-3" /> Item {idx + 1}
+                  </span>
+                  {items.length > 1 && (
+                    <button type="button" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="text-zinc-500 hover:text-red-400">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
+                    <FileText className="h-3 w-3" /> Dados do perfil
+                  </label>
+                  <Textarea
+                    value={item.rawText}
+                    onChange={e => setItems(items.map((it, i) => i === idx ? { ...it, rawText: e.target.value } : it))}
+                    placeholder={exampleText}
+                    className="min-h-[280px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                    <span>{parsedCount} campo(s) reconhecido(s)</span>
+                    <button type="button" onClick={() => setItems(items.map((it, i) => i === idx ? { ...it, rawText: exampleText } : it))} className="text-yellow-400 hover:text-yellow-300">
+                      Usar exemplo
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
+                    <BadgeCheck className="h-3 w-3" /> Cookies do perfil
+                  </label>
+                  <Textarea
+                    value={item.cookiesText}
+                    onChange={e => setItems(items.map((it, i) => i === idx ? { ...it, cookiesText: e.target.value } : it))}
+                    placeholder={`Cole aqui os cookies do perfil (JSON, Netscape ou texto livre).\nSerão salvos junto no mesmo TXT ao final.`}
+                    className="min-h-[280px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                    <span>{item.cookiesText.trim() ? `${item.cookiesText.trim().length} caractere(s) de cookies` : "Nenhum cookie colado"}</span>
+                    {item.cookiesText && (
+                      <button type="button" onClick={() => setItems(items.map((it, i) => i === idx ? { ...it, cookiesText: "" } : it))} className="text-yellow-400 hover:text-yellow-300">
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
+
+        {isCombo && (
+          <button
+            type="button"
+            onClick={() => setItems([...items, { rawText: "", cookiesText: "" }])}
+            className="w-full py-2.5 rounded-lg border border-dashed border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/5 text-xs font-medium flex items-center justify-center gap-2 transition"
+          >
+            <Plus className="h-3.5 w-3.5" /> Adicionar item ao combo
+          </button>
+        )}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+          <span className="text-[11px] text-zinc-500 mr-auto self-center">{totalRecognized} campo(s) reconhecido(s) no total</span>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
             onClick={handleSave}
-            disabled={saving || !rawText.trim()}
+            disabled={saving || totalRecognized === 0}
             className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold gap-2"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-            Gerar e Salvar
+            {isCombo ? "Criar Combo e Baixar TXTs" : "Gerar e Salvar"}
           </Button>
         </div>
       </div>
+
+      <Dialog open={showImagePicker} onOpenChange={setShowImagePicker}>
+        <DialogContent className="max-w-2xl bg-zinc-950 border-white/10">
+          <DialogHeader><DialogTitle className="text-white">Selecionar imagem</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto">
+            {productImages.map(img => (
+              <button key={img.id} type="button" onClick={() => { setFotoUrl(img.url); setShowImagePicker(false); }} className="rounded-lg overflow-hidden border border-white/10 hover:border-yellow-500/50 transition">
+                <img src={img.url} alt={img.name} className="w-full h-24 object-cover" />
+                <div className="text-[10px] text-zinc-400 p-1 truncate text-left">{img.name}</div>
+              </button>
+            ))}
+            {productImages.length === 0 && <div className="col-span-4 text-center text-xs text-zinc-500 py-8">Nenhuma imagem cadastrada.</div>}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
