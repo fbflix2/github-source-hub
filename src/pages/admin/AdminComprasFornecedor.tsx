@@ -1088,6 +1088,7 @@ export default function AdminComprasFornecedor() {
                           a.email_principal ? `Email principal: ${a.email_principal}` : "",
                           a.email_password ? `Senha do email: ${a.email_password}` : "",
                           a.email_alt ? `Email alternativo: ${a.email_alt}` : "",
+                          a.profile_link ? `Link do perfil: ${a.profile_link}` : "",
                         ].filter(Boolean).join("\n");
                         if (!lines) { toast.error("Nenhum dado para copiar"); return; }
                         navigator.clipboard.writeText(lines).then(
