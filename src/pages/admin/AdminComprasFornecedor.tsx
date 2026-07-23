@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, UserPlus, ExternalLink, Link2
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, UserPlus, ExternalLink, Link2, Cake
 } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import FriendRequestLinksTab from "@/components/admin/FriendRequestLinksTab";
@@ -72,6 +72,7 @@ type Account = {
   created_at: string;
   two_factor?: string | null;
   profile_name?: string | null;
+  birth_date?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -1162,6 +1163,7 @@ export default function AdminComprasFornecedor() {
                         const derivedName = a.profile_name || extractNameFromProfileLink(a.profile_link);
                         const lines = [
                           derivedName ? `Nome do perfil: ${derivedName}` : "",
+                          a.birth_date ? `Data de nascimento: ${a.birth_date}` : "",
                           a.login ? `ID da conta: ${a.login}` : "",
                           a.password ? `Senha FB: ${a.password}` : "",
                           a.two_factor ? `Token 2FA: ${a.two_factor}` : "",
@@ -1180,6 +1182,39 @@ export default function AdminComprasFornecedor() {
                     >
                       <Copy className="size-3" /> Copiar Tudo
                     </Button>
+                  </div>
+
+                  {/* Data de nascimento (manual) */}
+                  <div className="flex items-center gap-1.5 text-[11px] rounded-md bg-black/20 border border-white/5 px-2 py-1.5">
+                    <Cake className="size-3 shrink-0 text-pink-400" />
+                    <span className="text-white/40 shrink-0">Nascimento:</span>
+                    <Input
+                      defaultValue={a.birth_date || ""}
+                      placeholder="dd/mm/aaaa"
+                      className="h-6 text-[11px] bg-white/5 border-white/10 flex-1"
+                      onBlur={async (e) => {
+                        const v = e.target.value.trim() || null;
+                        if ((a.birth_date || null) === v) return;
+                        const { error } = await supabase
+                          .from("supplier_accounts")
+                          .update({ birth_date: v })
+                          .eq("id", a.id);
+                        if (error) { toast.error("Erro ao salvar"); return; }
+                        setAccounts(prev => prev.map(x => x.id === a.id ? { ...x, birth_date: v } : x));
+                        toast.success("Nascimento salvo");
+                      }}
+                    />
+                    {a.birth_date && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-5 w-5 p-0 opacity-50 hover:opacity-100 hover:bg-white/10 shrink-0"
+                        onClick={() => copyToClipboard(a.birth_date, "Nascimento")}
+                        title="Copiar nascimento"
+                      >
+                        <Copy className="size-3" />
+                      </Button>
+                    )}
                   </div>
 
                   {a.profile_link && (

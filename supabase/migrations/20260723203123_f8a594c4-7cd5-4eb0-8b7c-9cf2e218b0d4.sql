@@ -1,0 +1,1 @@
+ALTER TABLE public.supplier_accounts ADD COLUMN IF NOT EXISTS birth_date TEXT;
