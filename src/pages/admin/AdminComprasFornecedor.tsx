@@ -292,26 +292,17 @@ export default function AdminComprasFornecedor() {
         const acc = queue.shift();
         if (!acc) break;
         try {
-          const { data, error } = await supabase.functions.invoke("fb-photo", {
-            body: null,
-          } as any).catch(() => ({ data: null, error: true } as any));
-          // supabase.functions.invoke doesn't support querystring cleanly; call via fetch instead
-          let name: string | null = null;
-          if (!data || (error as any)) {
-            const url =
-              `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/fb-photo?url=` +
-              encodeURIComponent(acc.profile_link!);
-            const r = await fetch(url, {
-              headers: {
-                apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                Authorization: `Bearer ${(import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              },
-            });
-            const j = await r.json().catch(() => ({}));
-            name = j?.name || null;
-          } else {
-            name = (data as any)?.name || null;
-          }
+          const url =
+            `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/fb-photo?url=` +
+            encodeURIComponent(acc.profile_link!);
+          const r = await fetch(url, {
+            headers: {
+              apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${(import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          });
+          const j = await r.json().catch(() => ({}));
+          const name: string | null = j?.name || null;
           if (!name || cancelled) continue;
           const clean = String(name).trim().slice(0, 120);
           if (!clean) continue;
