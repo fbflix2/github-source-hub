@@ -1118,6 +1118,11 @@ export default function AdminComprasFornecedor() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{a.login || "—"}</div>
+                      {(a.profile_name || extractNameFromProfileLink(a.profile_link)) && (
+                        <div className="text-[11px] text-white/70 truncate">
+                          👤 {a.profile_name || extractNameFromProfileLink(a.profile_link)}
+                        </div>
+                      )}
                       <div className="text-[10px] text-white/40 truncate">{batchMap[a.batch_id]?.name} · {supplierMap[a.supplier_id]?.name}</div>
                     </div>
                     <Badge className={`${statusColor(a.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[a.status]}</Badge>
@@ -1154,7 +1159,7 @@ export default function AdminComprasFornecedor() {
                       variant="ghost"
                       className="w-full mt-1 h-6 text-[10px] text-white/50 hover:text-white hover:bg-white/10 gap-1"
                       onClick={() => {
-                        const derivedName = extractNameFromProfileLink(a.profile_link);
+                        const derivedName = a.profile_name || extractNameFromProfileLink(a.profile_link);
                         const lines = [
                           derivedName ? `Nome do perfil: ${derivedName}` : "",
                           a.login ? `ID da conta: ${a.login}` : "",
@@ -1179,11 +1184,6 @@ export default function AdminComprasFornecedor() {
 
                   {a.profile_link && (
                     <div className="space-y-0.5">
-                      {extractNameFromProfileLink(a.profile_link) && (
-                        <div className="text-[11px] text-white/85 font-medium truncate">
-                          👤 {extractNameFromProfileLink(a.profile_link)}
-                        </div>
-                      )}
                       <a href={a.profile_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline truncate block">
                         {a.profile_link}
                       </a>
