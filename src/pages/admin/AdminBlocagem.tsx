@@ -266,7 +266,9 @@ ${cookiesOut}`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const idBase = (data.idPerfil || data.emailAcesso || fallbackName || "blocagem_flash") as string;
+      // Nome do TXT deve ser SEMPRE o ID do perfil quando disponível
+      const idOnly = (data.idPerfil || "").toString().trim();
+      const idBase = idOnly || (fallbackName || "blocagem_flash");
       const safeName = idBase.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
       a.download = `${safeName}.txt`;
       document.body.appendChild(a);
