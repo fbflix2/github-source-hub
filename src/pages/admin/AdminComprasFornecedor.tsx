@@ -71,6 +71,7 @@ type Account = {
   notes: string | null;
   created_at: string;
   two_factor?: string | null;
+  profile_name?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
