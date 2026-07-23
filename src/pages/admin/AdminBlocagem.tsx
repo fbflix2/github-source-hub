@@ -244,7 +244,8 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
             descricaoCombo: comboDescricao || undefined,
             isPacote: true,
             preco: preco ? parseFloat(preco) : undefined,
-            categoryId: categoryId || undefined,
+            productId: productId || undefined,
+            nomeProduto: nomeProduto || undefined,
             foto_url: fotoUrl || undefined,
             childCount: filled.length,
             childType: "perfil",
@@ -274,7 +275,8 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
           data: {
             ...buildChildInsert(x.parsed, x.it.rawText, x.it.cookiesText).data,
             preco: preco ? parseFloat(preco) : undefined,
-            categoryId: categoryId || undefined,
+            productId: productId || undefined,
+            nomeProduto: nomeProduto || undefined,
             foto_url: fotoUrl || undefined,
           },
         };
@@ -326,13 +328,17 @@ Descrição: Perfil verificado, sem restrições`;
         {/* Config: categoria, preço, foto, modo combo */}
         <div className="grid md:grid-cols-4 gap-3">
           <div className="space-y-1">
-            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><FolderOpen className="h-3 w-3" /> Categoria (loja)</label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
+            <label className="text-[11px] font-medium text-zinc-400 flex items-center gap-1"><FolderOpen className="h-3 w-3" /> Tipo de item (loja)</label>
+            <Select value={productId} onValueChange={setProductId}>
               <SelectTrigger className="bg-black/30 border-white/5 text-white h-9 text-xs">
-                <SelectValue placeholder="Selecione..." />
+                <SelectValue placeholder="Selecione o tipo..." />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {productDefaults.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}{p.price != null ? ` — R$ ${Number(p.price).toFixed(2)}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
