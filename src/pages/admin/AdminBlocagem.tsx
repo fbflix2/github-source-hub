@@ -127,8 +127,12 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
 
     // Auto-extract idPerfil from link
     if (out.linkPerfil && !out.idPerfil) {
-      const idMatch = out.linkPerfil.match(/profile\.php\?id=(\d+)/);
-      if (idMatch) out.idPerfil = idMatch[1];
+      // profile.php?id=NNN  |  /id=NNN  |  qualquer sequência longa de dígitos no final
+      const link = out.linkPerfil;
+      const m1 = link.match(/[?&]id=(\d{5,})/i);
+      const m2 = !m1 && link.match(/(\d{8,})(?:[/?#]|$)/);
+      const idFound = m1?.[1] || m2?.[1];
+      if (idFound) out.idPerfil = idFound;
     }
 
     return out;
@@ -147,25 +151,26 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         .limit(1);
       const template: string | null = (tpls && (tpls as any[])[0]?.content) || null;
       const d: Record<string, string> = data;
+      // Campos ausentes ficam VAZIOS (não usa "—") — mantém padrão limpo.
       const replacements: Record<string, string> = {
-        "{{nomePerfil}}": d.nomePerfil || "—",
-        "{{emailAcesso}}": d.emailAcesso || "—",
-        "{{emailAlternativo}}": d.emailAlternativo || "—",
-        "{{senha}}": d.senha || "—",
-        "{{senhaEmail}}": d.senhaEmail || "—",
-        "{{token2fa}}": d.token2fa || "—",
-        "{{dataNascimento}}": d.dataNascimento || "—",
-        "{{genero}}": d.genero || "—",
-        "{{tempoPlataforma}}": d.tempoPlataforma || "—",
-        "{{statusAtual}}": d.statusAtual || "—",
-        "{{descricao}}": d.descricao || "—",
-        "{{cookies}}": (cookies.trim() || d.cookies || "—"),
-        "{{linkDocumento}}": d.linkDocumento || "—",
-        "{{linkPerfil}}": d.linkPerfil || "—",
-        "{{idPerfil}}": d.idPerfil || "—",
-        "{{pedido}}": "—",
+        "{{nomePerfil}}": d.nomePerfil || "",
+        "{{emailAcesso}}": d.emailAcesso || "",
+        "{{emailAlternativo}}": d.emailAlternativo || "",
+        "{{senha}}": d.senha || "",
+        "{{senhaEmail}}": d.senhaEmail || "",
+        "{{token2fa}}": d.token2fa || "",
+        "{{dataNascimento}}": d.dataNascimento || "",
+        "{{genero}}": d.genero || "",
+        "{{tempoPlataforma}}": d.tempoPlataforma || "",
+        "{{statusAtual}}": d.statusAtual || "",
+        "{{descricao}}": d.descricao || "",
+        "{{cookies}}": (cookies.trim() || d.cookies || ""),
+        "{{linkDocumento}}": d.linkDocumento || "",
+        "{{linkPerfil}}": d.linkPerfil || "",
+        "{{idPerfil}}": d.idPerfil || "",
+        "{{pedido}}": "",
         "{{data}}": new Date().toLocaleDateString("pt-BR"),
-        "{{nomeProduto}}": fallbackName,
+        "{{nomeProduto}}": fallbackName || "",
       };
       let content: string;
       if (template) {
@@ -175,11 +180,27 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
           content += `\n\n===== COOKIES =====\n${cookies.trim()}`;
         }
       } else {
-        content = Object.entries(d)
-          .filter(([k]) => !k.startsWith("_") && k !== "cookies")
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("\n");
-        if (cookies.trim()) content += `\n\n===== COOKIES =====\n${cookies.trim()}`;
+        // Fallback SEM template: usa ordem padrão fixa (mesma do bloco de notas).
+        const orderedLines: [string, string][] = [
+          ["Nome", d.nomePerfil || ""],
+          ["Email", d.emailAcesso || ""],
+          ["Senha", d.senha || ""],
+          ["Senha Email", d.senhaEmail || ""],
+          ["2FA", d.token2fa || ""],
+          ["Email Alternativo", d.emailAlternativo || ""],
+          ["ID", d.idPerfil || ""],
+          ["Link", d.linkPerfil || ""],
+          ["Data Nascimento", d.dataNascimento || ""],
+          ["Gênero", d.genero || ""],
+          ["Tempo Plataforma", d.tempoPlataforma || ""],
+          ["Status", d.statusAtual || ""],
+          ["Link Documento", d.linkDocumento || ""],
+          ["Descrição", d.descricao || ""],
+        ];
+        content = orderedLines.map(([k, v]) => `${k}: ${v}`).join("\n");
+        if (cookies.trim() || d.cookies) {
+          content += `\n\n===== COOKIES =====\n${(cookies.trim() || d.cookies)}`;
+        }
       }
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
