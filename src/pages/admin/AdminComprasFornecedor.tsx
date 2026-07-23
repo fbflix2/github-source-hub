@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, UserPlus, ExternalLink, Link2
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, UserPlus, ExternalLink, Link2, Cake
 } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import FriendRequestLinksTab from "@/components/admin/FriendRequestLinksTab";
