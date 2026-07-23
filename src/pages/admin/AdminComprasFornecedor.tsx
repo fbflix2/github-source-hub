@@ -98,6 +98,26 @@ function statusColor(status: string) {
   }
 }
 
+function extractNameFromProfileLink(link?: string | null): string | null {
+  if (!link) return null;
+  try {
+    const u = new URL(link);
+    // facebook.com/people/<Nome-Sobrenome>/<pfbid...>/
+    const m = u.pathname.match(/\/people\/([^/]+)/i);
+    if (m?.[1]) {
+      const decoded = decodeURIComponent(m[1]).replace(/[-_+]+/g, " ").trim();
+      if (decoded && !/^\d+$/.test(decoded)) return decoded;
+    }
+    // facebook.com/<handle> — only if it looks like a name (letters + dot/dash)
+    const seg = u.pathname.split("/").filter(Boolean)[0];
+    if (seg && /[a-zA-Z]/.test(seg) && !/^(profile\.php|people|pages|watch|reel|groups|marketplace|login|settings|help|photo|photos|stories|messages|notifications|gaming|events|bookmarks)$/i.test(seg)) {
+      const decoded = decodeURIComponent(seg).replace(/[.\-_+]+/g, " ").trim();
+      if (decoded.length >= 3 && /\s/.test(decoded)) return decoded;
+    }
+  } catch {}
+  return null;
+}
+
 function normalizeAccountCredentials(account: Account): Account {
   const raw = account.notes?.trim();
   if (!raw || !raw.includes("|")) {
