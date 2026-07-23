@@ -128,7 +128,60 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     const { error } = await supabase.from("stock_items").insert(insertData);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-    toast.success("Blocagem flash salva! O TXT usará o template padrão.");
+    // Gera e baixa TXT usando o template padrão de blocagem
+    try {
+      const { data: tpls } = await supabase
+        .from("block_templates" as any)
+        .select("content,is_default,created_at")
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const template: string | null = (tpls && (tpls as any[])[0]?.content) || null;
+      const d: Record<string, string> = data;
+      const replacements: Record<string, string> = {
+        "{{nomePerfil}}": d.nomePerfil || "—",
+        "{{emailAcesso}}": d.emailAcesso || "—",
+        "{{emailAlternativo}}": d.emailAlternativo || "—",
+        "{{senha}}": d.senha || "—",
+        "{{senhaEmail}}": d.senhaEmail || "—",
+        "{{token2fa}}": d.token2fa || "—",
+        "{{dataNascimento}}": d.dataNascimento || "—",
+        "{{genero}}": d.genero || "—",
+        "{{tempoPlataforma}}": d.tempoPlataforma || "—",
+        "{{statusAtual}}": d.statusAtual || "—",
+        "{{descricao}}": d.descricao || "—",
+        "{{cookies}}": d.cookies || "—",
+        "{{linkDocumento}}": d.linkDocumento || "—",
+        "{{linkPerfil}}": d.linkPerfil || "—",
+        "{{idPerfil}}": d.idPerfil || "—",
+        "{{pedido}}": "—",
+        "{{data}}": new Date().toLocaleDateString("pt-BR"),
+        "{{nomeProduto}}": insertData.name,
+      };
+      let content: string;
+      if (template) {
+        content = template;
+        for (const [k, v] of Object.entries(replacements)) content = content.split(k).join(v);
+      } else {
+        content = Object.entries(d)
+          .filter(([k]) => !k.startsWith("_"))
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("\n");
+      }
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeName = (insertData.name as string).replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
+      a.download = `${safeName}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Erro ao gerar TXT:", e);
+    }
+    toast.success("Blocagem flash salva e TXT baixado!");
     setRawText("");
     onSaved();
   };
