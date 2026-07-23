@@ -50,6 +50,7 @@ const itemTypes = [
 // ─── Blocagem Flash (Beta) ───
 function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [rawText, setRawText] = useState("");
+  const [cookiesText, setCookiesText] = useState("");
   const [saving, setSaving] = useState(false);
 
   const parseFlashText = (text: string) => {
@@ -121,8 +122,10 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       folder: folder.id,
       data: {
         ...data,
+        cookies: cookiesText.trim() || data.cookies || "",
         _flashBeta: true,
         _rawFlashText: rawText,
+        _rawCookies: cookiesText,
       },
     };
     const { error } = await supabase.from("stock_items").insert(insertData);
@@ -150,7 +153,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         "{{tempoPlataforma}}": d.tempoPlataforma || "—",
         "{{statusAtual}}": d.statusAtual || "—",
         "{{descricao}}": d.descricao || "—",
-        "{{cookies}}": d.cookies || "—",
+        "{{cookies}}": (cookiesText.trim() || d.cookies || "—"),
         "{{linkDocumento}}": d.linkDocumento || "—",
         "{{linkPerfil}}": d.linkPerfil || "—",
         "{{idPerfil}}": d.idPerfil || "—",
@@ -162,11 +165,18 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       if (template) {
         content = template;
         for (const [k, v] of Object.entries(replacements)) content = content.split(k).join(v);
+        // Se o template não tiver placeholder de cookies, anexa no final
+        if (cookiesText.trim() && !/\{\{\s*cookies\s*\}\}/i.test(template)) {
+          content += `\n\n===== COOKIES =====\n${cookiesText.trim()}`;
+        }
       } else {
         content = Object.entries(d)
-          .filter(([k]) => !k.startsWith("_"))
+          .filter(([k]) => !k.startsWith("_") && k !== "cookies")
           .map(([k, v]) => `${k}: ${v}`)
           .join("\n");
+        if (cookiesText.trim()) {
+          content += `\n\n===== COOKIES =====\n${cookiesText.trim()}`;
+        }
       }
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -183,6 +193,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     }
     toast.success("Blocagem flash salva e TXT baixado!");
     setRawText("");
+    setCookiesText("");
     onSaved();
   };
 
@@ -249,18 +260,20 @@ Descrição: Perfil verificado, sem restrições`;
 
           <div className="space-y-2">
             <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
-              <BadgeCheck className="h-3 w-3" /> Pré-visualização
+              <BadgeCheck className="h-3 w-3" /> Cookies do perfil
             </label>
-            <div className="min-h-[340px] rounded-md bg-black/40 border border-white/5 p-3 space-y-1.5 overflow-y-auto">
-              {previewEntries.length === 0 ? (
-                <p className="text-xs text-zinc-600 italic">Nada reconhecido ainda. Comece colando o texto.</p>
-              ) : (
-                previewEntries.map(([k, v]) => (
-                  <div key={k} className="flex items-start gap-2 text-xs">
-                    <span className="text-yellow-400 font-mono min-w-[130px]">{k}</span>
-                    <span className="text-zinc-300 break-all">{v}</span>
-                  </div>
-                ))
+            <Textarea
+              value={cookiesText}
+              onChange={(e) => setCookiesText(e.target.value)}
+              placeholder={`Cole aqui os cookies do perfil (JSON, Netscape ou texto livre).\nSerão salvos junto no mesmo TXT ao final.`}
+              className="min-h-[340px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
+            />
+            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+              <span>{cookiesText.trim() ? `${cookiesText.trim().length} caractere(s) de cookies` : "Nenhum cookie colado"}</span>
+              {cookiesText && (
+                <button type="button" onClick={() => setCookiesText("")} className="text-yellow-400 hover:text-yellow-300">
+                  Limpar
+                </button>
               )}
             </div>
           </div>
