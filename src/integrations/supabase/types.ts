@@ -4919,6 +4919,7 @@ export type Database = {
           password: string | null
           password_enc: string | null
           profile_link: string | null
+          profile_name: string | null
           sold: boolean
           sold_at: string | null
           status: string
@@ -4945,6 +4946,7 @@ export type Database = {
           password?: string | null
           password_enc?: string | null
           profile_link?: string | null
+          profile_name?: string | null
           sold?: boolean
           sold_at?: string | null
           status?: string
@@ -4971,6 +4973,7 @@ export type Database = {
           password?: string | null
           password_enc?: string | null
           profile_link?: string | null
+          profile_name?: string | null
           sold?: boolean
           sold_at?: string | null
           status?: string
