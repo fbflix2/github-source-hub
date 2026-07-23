@@ -360,6 +360,8 @@ ${cookiesOut}`;
       }
       setItems([{ rawText: "", cookiesText: "" }]);
       setComboName(""); setComboDescricao("");
+      localStorage.removeItem(FLASH_DRAFT_KEY);
+      setHasDraft(false);
       onSaved();
     } catch (e: any) {
       toast.error("Erro ao salvar: " + e.message);
@@ -545,6 +547,15 @@ Descrição: Perfil verificado, sem restrições`;
 
         <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
           <span className="text-[11px] text-zinc-500 mr-auto self-center">{totalRecognized} campo(s) reconhecido(s) no total</span>
+          {hasDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft} className="text-xs text-zinc-500 hover:text-destructive">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar rascunho
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={handleSaveDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
+            {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Salvar como rascunho
+          </Button>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
             onClick={handleSave}
