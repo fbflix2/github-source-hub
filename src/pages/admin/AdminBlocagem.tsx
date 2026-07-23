@@ -4,7 +4,7 @@ import {
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
   AlertTriangle, Save, Copy, Hash, Mail, AtSign, KeyRound, Clock,
-   BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag, Download, Search, ListFilter
+   BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag, Download, Search, ListFilter, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +44,7 @@ const itemTypes = [
   { id: "pagina", icon: Flag, title: "Página", subtitle: "PÁGINAS DO FACEBOOK" },
   { id: "combo", icon: PackageOpen, title: "Combo ou Kit", subtitle: "PACOTE DE PRODUTOS" },
   { id: "personalizado", icon: FolderPlus, title: "Personalizado", subtitle: "E-MAIL, TIKTOK, INSTA..." },
+  { id: "flash", icon: Zap, title: "Blocagem Flash", subtitle: "BETA · COLE E GERE" },
 ];
 
 // ─── Personalizado Form ───
