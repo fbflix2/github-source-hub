@@ -177,6 +177,14 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       if (idFound) out.idPerfil = idFound;
     }
 
+    // Fallback final: procurar linha "ID ..." ou primeira sequência longa de dígitos no texto
+    if (!out.idPerfil) {
+      const mId = text.match(/\bID[^\n:]*:\s*(\d{5,})/i);
+      const mDigits = !mId && text.match(/\b(\d{10,})\b/);
+      const idFound = mId?.[1] || mDigits?.[1];
+      if (idFound) out.idPerfil = idFound;
+    }
+
     return out;
   };
 
@@ -258,7 +266,9 @@ ${cookiesOut}`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const idBase = (data.idPerfil || data.emailAcesso || fallbackName || "blocagem_flash") as string;
+      // Nome do TXT deve ser SEMPRE o ID do perfil quando disponível
+      const idOnly = (data.idPerfil || "").toString().trim();
+      const idBase = idOnly || (fallbackName || "blocagem_flash");
       const safeName = idBase.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
       a.download = `${safeName}.txt`;
       document.body.appendChild(a);
