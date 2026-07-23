@@ -177,6 +177,14 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       if (idFound) out.idPerfil = idFound;
     }
 
+    // Fallback final: procurar linha "ID ..." ou primeira sequência longa de dígitos no texto
+    if (!out.idPerfil) {
+      const mId = text.match(/\bID[^\n:]*:\s*(\d{5,})/i);
+      const mDigits = !mId && text.match(/\b(\d{10,})\b/);
+      const idFound = mId?.[1] || mDigits?.[1];
+      if (idFound) out.idPerfil = idFound;
+    }
+
     return out;
   };
 
