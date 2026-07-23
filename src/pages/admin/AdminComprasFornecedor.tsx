@@ -72,6 +72,7 @@ type Account = {
   created_at: string;
   two_factor?: string | null;
   profile_name?: string | null;
+  birth_date?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
