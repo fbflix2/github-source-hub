@@ -135,6 +135,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     const keyMap: Record<string, string> = {
       nome: "nomePerfil", nomeperfil: "nomePerfil", perfil: "nomePerfil",
       email: "emailAcesso", login: "emailAcesso", emailacesso: "emailAcesso", emaillogin: "emailAcesso", user: "emailAcesso", usuario: "emailAcesso",
+      emailprincipal: "emailAcesso", emailfb: "emailAcesso", emailfacebook: "emailAcesso", emailconta: "emailAcesso", mail: "emailAcesso",
       senha: "senha", password: "senha", pass: "senha", senhafb: "senha", senhafacebook: "senha",
       senhaemail: "senhaEmail", passemail: "senhaEmail", senhadoemail: "senhaEmail",
       "2fa": "token2fa", token: "token2fa", token2fa: "token2fa", totp: "token2fa", codigo2fa: "token2fa",
