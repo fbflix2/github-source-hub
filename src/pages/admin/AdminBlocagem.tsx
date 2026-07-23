@@ -47,6 +47,188 @@ const itemTypes = [
   { id: "flash", icon: Zap, title: "Blocagem Flash", subtitle: "BETA · COLE E GERE" },
 ];
 
+// ─── Blocagem Flash (Beta) ───
+function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
+  const [rawText, setRawText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const parseFlashText = (text: string) => {
+    const normalizeKey = (k: string) => k.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
+    const keyMap: Record<string, string> = {
+      nome: "nomePerfil", nomeperfil: "nomePerfil", perfil: "nomePerfil",
+      email: "emailAcesso", login: "emailAcesso", emailacesso: "emailAcesso", emaillogin: "emailAcesso", user: "emailAcesso", usuario: "emailAcesso",
+      senha: "senha", password: "senha", pass: "senha", senhafb: "senha", senhafacebook: "senha",
+      senhaemail: "senhaEmail", passemail: "senhaEmail", senhadoemail: "senhaEmail",
+      "2fa": "token2fa", token: "token2fa", token2fa: "token2fa", totp: "token2fa", codigo2fa: "token2fa",
+      emailalternativo: "emailAlternativo", altemail: "emailAlternativo", emailalt: "emailAlternativo", recuperacao: "emailAlternativo",
+      id: "idPerfil", idperfil: "idPerfil", uid: "idPerfil",
+      link: "linkPerfil", linkperfil: "linkPerfil", url: "linkPerfil",
+      datanascimento: "dataNascimento", nascimento: "dataNascimento", dtnascimento: "dataNascimento", aniversario: "dataNascimento",
+      genero: "genero", sexo: "genero",
+      tempoplataforma: "tempoPlataforma", tempo: "tempoPlataforma",
+      cookies: "cookies", cookie: "cookies",
+      descricao: "descricao", obs: "descricao", observacao: "descricao", observacoes: "descricao", notas: "descricao",
+      linkdocumento: "linkDocumento", documento: "linkDocumento", doc: "linkDocumento",
+      status: "statusAtual", statusatual: "statusAtual",
+    };
+
+    const out: Record<string, string> = {};
+    const lines = text.split(/\r?\n/);
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      const m = line.match(/^([^:=\-–]{1,40})\s*[:=\-–]\s*(.+)$/);
+      if (!m) {
+        // fallback: pure link line -> linkPerfil
+        if (/^https?:\/\//i.test(line) && !out.linkPerfil) out.linkPerfil = line;
+        continue;
+      }
+      const key = normalizeKey(m[1]);
+      const val = m[2].trim();
+      const mapped = keyMap[key];
+      if (mapped && !out[mapped]) out[mapped] = val;
+    }
+
+    // Auto-extract idPerfil from link
+    if (out.linkPerfil && !out.idPerfil) {
+      const idMatch = out.linkPerfil.match(/profile\.php\?id=(\d+)/);
+      if (idMatch) out.idPerfil = idMatch[1];
+    }
+
+    return out;
+  };
+
+  const preview = useMemo(() => parseFlashText(rawText), [rawText]);
+  const previewEntries = Object.entries(preview);
+
+  const handleSave = async () => {
+    if (!rawText.trim()) { toast.error("Cole o texto com os dados do perfil."); return; }
+    const data = preview;
+    if (previewEntries.length === 0) {
+      toast.error("Nenhum campo reconhecido. Use formato 'Chave: valor' por linha.");
+      return;
+    }
+    setSaving(true);
+    const insertData: any = {
+      name: data.nomePerfil || data.emailAcesso || `Flash ${new Date().toLocaleString("pt-BR")}`,
+      type: "perfil",
+      identification: data.idPerfil || null,
+      identification_link: data.linkPerfil || null,
+      status: "aguardando",
+      folder: folder.id,
+      data: {
+        ...data,
+        _flashBeta: true,
+        _rawFlashText: rawText,
+      },
+    };
+    const { error } = await supabase.from("stock_items").insert(insertData);
+    setSaving(false);
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    toast.success("Blocagem flash salva! O TXT usará o template padrão.");
+    setRawText("");
+    onSaved();
+  };
+
+  const exampleText = `Nome: João Silva
+Email: joao@email.com
+Senha: minhaSenha123
+Senha Email: emailPass456
+2FA: JBSWY3DPEHPK3PXP
+Email Alternativo: recuperacao@email.com
+ID: 100001234567890
+Link: https://facebook.com/profile.php?id=100001234567890
+Data Nascimento: 15/03/1990
+Gênero: masculino
+Tempo Plataforma: 5 anos
+Descrição: Perfil verificado, sem restrições`;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-zinc-400 hover:text-white gap-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
+        <div className="text-right">
+          <h1 className="text-xl font-bold text-white flex items-center gap-2 justify-end">
+            <Zap className="h-5 w-5 text-yellow-400" />
+            Blocagem Flash
+            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 text-[10px]">BETA</Badge>
+          </h1>
+          <p className="text-xs text-zinc-400">Pasta: {folder.name}</p>
+        </div>
+      </div>
+
+      <div className="glass-panel rounded-xl p-5 space-y-4">
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+          <Info className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-zinc-300 leading-relaxed">
+            Cole todos os dados em <span className="text-yellow-300 font-medium">texto livre</span>, uma informação por linha no formato <code className="text-yellow-300">Chave: valor</code>.
+            O sistema identifica automaticamente e gera o TXT no seu template padrão de blocagem.
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
+              <FileText className="h-3 w-3" /> Dados do perfil
+            </label>
+            <Textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              placeholder={exampleText}
+              className="min-h-[340px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
+            />
+            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+              <span>{previewEntries.length} campo(s) reconhecido(s)</span>
+              <button
+                type="button"
+                onClick={() => setRawText(exampleText)}
+                className="text-yellow-400 hover:text-yellow-300"
+              >
+                Usar exemplo
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2">
+              <BadgeCheck className="h-3 w-3" /> Pré-visualização
+            </label>
+            <div className="min-h-[340px] rounded-md bg-black/40 border border-white/5 p-3 space-y-1.5 overflow-y-auto">
+              {previewEntries.length === 0 ? (
+                <p className="text-xs text-zinc-600 italic">Nada reconhecido ainda. Comece colando o texto.</p>
+              ) : (
+                previewEntries.map(([k, v]) => (
+                  <div key={k} className="flex items-start gap-2 text-xs">
+                    <span className="text-yellow-400 font-mono min-w-[130px]">{k}</span>
+                    <span className="text-zinc-300 break-all">{v}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+          <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !rawText.trim()}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold gap-2"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            Gerar e Salvar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Personalizado Form ───
 function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const DRAFT_KEY = "personalizado_form_draft";
