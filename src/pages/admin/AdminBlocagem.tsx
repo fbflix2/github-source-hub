@@ -49,10 +49,6 @@ const itemTypes = [
 
 // ─── Personalizado Form ───
 function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
-  // placeholder anchor
-  return __PersonalizadoFormImpl({ folder, onBack, onSaved });
-}
-function __PersonalizadoFormImpl({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const DRAFT_KEY = "personalizado_form_draft";
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
