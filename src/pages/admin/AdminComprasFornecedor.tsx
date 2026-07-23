@@ -71,6 +71,7 @@ type Account = {
   notes: string | null;
   created_at: string;
   two_factor?: string | null;
+  profile_name?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -270,6 +271,58 @@ export default function AdminComprasFornecedor() {
       window.clearInterval(interval);
     };
   }, []);
+
+  // Auto-fetch profile names via fb-photo (og:title) for accounts that have a
+  // profile link but no name saved yet. Runs in the background with concurrency.
+  useEffect(() => {
+    const pending = accounts.filter(
+      (a) =>
+        !!a.profile_link &&
+        !a.profile_name &&
+        !extractNameFromProfileLink(a.profile_link)
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    const CONCURRENCY = 3;
+    const queue = [...pending];
+
+    async function worker() {
+      while (!cancelled && queue.length > 0) {
+        const acc = queue.shift();
+        if (!acc) break;
+        try {
+          const url =
+            `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/fb-photo?url=` +
+            encodeURIComponent(acc.profile_link!);
+          const r = await fetch(url, {
+            headers: {
+              apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${(import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          });
+          const j = await r.json().catch(() => ({}));
+          const name: string | null = j?.name || null;
+          if (!name || cancelled) continue;
+          const clean = String(name).trim().slice(0, 120);
+          if (!clean) continue;
+          await supabase.from("supplier_accounts").update({ profile_name: clean }).eq("id", acc.id);
+          if (cancelled) return;
+          setAccounts((prev) =>
+            prev.map((x) => (x.id === acc.id ? { ...x, profile_name: clean } : x))
+          );
+        } catch {
+          /* ignore individual failures */
+        }
+      }
+    }
+
+    const workers = Array.from({ length: CONCURRENCY }, () => worker());
+    Promise.all(workers).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts]);
 
   const supplierMap = useMemo(() => Object.fromEntries(suppliers.map(s => [s.id, s])), [suppliers]);
   const batchMap = useMemo(() => Object.fromEntries(batches.map(b => [b.id, b])), [batches]);
@@ -1065,6 +1118,11 @@ export default function AdminComprasFornecedor() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{a.login || "—"}</div>
+                      {(a.profile_name || extractNameFromProfileLink(a.profile_link)) && (
+                        <div className="text-[11px] text-white/70 truncate">
+                          👤 {a.profile_name || extractNameFromProfileLink(a.profile_link)}
+                        </div>
+                      )}
                       <div className="text-[10px] text-white/40 truncate">{batchMap[a.batch_id]?.name} · {supplierMap[a.supplier_id]?.name}</div>
                     </div>
                     <Badge className={`${statusColor(a.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[a.status]}</Badge>
@@ -1101,7 +1159,7 @@ export default function AdminComprasFornecedor() {
                       variant="ghost"
                       className="w-full mt-1 h-6 text-[10px] text-white/50 hover:text-white hover:bg-white/10 gap-1"
                       onClick={() => {
-                        const derivedName = extractNameFromProfileLink(a.profile_link);
+                        const derivedName = a.profile_name || extractNameFromProfileLink(a.profile_link);
                         const lines = [
                           derivedName ? `Nome do perfil: ${derivedName}` : "",
                           a.login ? `ID da conta: ${a.login}` : "",
@@ -1126,11 +1184,6 @@ export default function AdminComprasFornecedor() {
 
                   {a.profile_link && (
                     <div className="space-y-0.5">
-                      {extractNameFromProfileLink(a.profile_link) && (
-                        <div className="text-[11px] text-white/85 font-medium truncate">
-                          👤 {extractNameFromProfileLink(a.profile_link)}
-                        </div>
-                      )}
                       <a href={a.profile_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline truncate block">
                         {a.profile_link}
                       </a>
