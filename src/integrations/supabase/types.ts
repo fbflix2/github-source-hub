@@ -4902,6 +4902,7 @@ export type Database = {
         Row: {
           account_year: number | null
           batch_id: string
+          birth_date: string | null
           client_name: string | null
           country: string | null
           created_at: string
@@ -4929,6 +4930,7 @@ export type Database = {
         Insert: {
           account_year?: number | null
           batch_id: string
+          birth_date?: string | null
           client_name?: string | null
           country?: string | null
           created_at?: string
@@ -4956,6 +4958,7 @@ export type Database = {
         Update: {
           account_year?: number | null
           batch_id?: string
+          birth_date?: string | null
           client_name?: string | null
           country?: string | null
           created_at?: string
