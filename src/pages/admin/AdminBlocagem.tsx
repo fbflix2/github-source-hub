@@ -50,14 +50,15 @@ const itemTypes = [
 // ─── Blocagem Flash (Beta) ───
 function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; price?: number; default_image?: string; description?: string; tags?: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
 
   // Product-level fields (parent when combo, single item otherwise)
-  const [categoryId, setCategoryId] = useState("");
+  const [productId, setProductId] = useState("");
   const [preco, setPreco] = useState("");
   const [fotoUrl, setFotoUrl] = useState("");
+  const [nomeProduto, setNomeProduto] = useState("");
 
   // Combo mode
   const [isCombo, setIsCombo] = useState(false);
@@ -70,9 +71,19 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
   ]);
 
   useEffect(() => {
-    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
   }, []);
+
+  // Auto-fill price/foto/nome when tipo de item changes
+  useEffect(() => {
+    if (!productId) return;
+    const p = productDefaults.find(x => x.id === productId);
+    if (!p) return;
+    setNomeProduto(p.name);
+    if (p.price != null) setPreco(String(p.price));
+    if (p.default_image) setFotoUrl(p.default_image);
+  }, [productId, productDefaults]);
 
   const parseFlashText = (text: string) => {
     const normalizeKey = (k: string) => k.toLowerCase()
