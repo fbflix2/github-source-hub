@@ -1101,7 +1101,9 @@ export default function AdminComprasFornecedor() {
                       variant="ghost"
                       className="w-full mt-1 h-6 text-[10px] text-white/50 hover:text-white hover:bg-white/10 gap-1"
                       onClick={() => {
+                        const derivedName = extractNameFromProfileLink(a.profile_link);
                         const lines = [
+                          derivedName ? `Nome do perfil: ${derivedName}` : "",
                           a.login ? `ID da conta: ${a.login}` : "",
                           a.password ? `Senha FB: ${a.password}` : "",
                           a.two_factor ? `Token 2FA: ${a.two_factor}` : "",
@@ -1123,9 +1125,16 @@ export default function AdminComprasFornecedor() {
                   </div>
 
                   {a.profile_link && (
-                    <a href={a.profile_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline truncate block">
-                      {a.profile_link}
-                    </a>
+                    <div className="space-y-0.5">
+                      {extractNameFromProfileLink(a.profile_link) && (
+                        <div className="text-[11px] text-white/85 font-medium truncate">
+                          👤 {extractNameFromProfileLink(a.profile_link)}
+                        </div>
+                      )}
+                      <a href={a.profile_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-400 hover:underline truncate block">
+                        {a.profile_link}
+                      </a>
+                    </div>
                   )}
 
                   <div className="flex flex-wrap gap-1 text-[10px]">
