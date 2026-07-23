@@ -143,65 +143,63 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
 
   const generateTxt = async (data: Record<string, string>, cookies: string, fallbackName: string) => {
     try {
-      const { data: tpls } = await supabase
-        .from("block_templates" as any)
-        .select("content,is_default,created_at")
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1);
-      const template: string | null = (tpls && (tpls as any[])[0]?.content) || null;
       const d: Record<string, string> = data;
-      // Campos ausentes ficam VAZIOS (não usa "—") — mantém padrão limpo.
-      const replacements: Record<string, string> = {
-        "{{nomePerfil}}": d.nomePerfil || "",
-        "{{emailAcesso}}": d.emailAcesso || "",
-        "{{emailAlternativo}}": d.emailAlternativo || "",
-        "{{senha}}": d.senha || "",
-        "{{senhaEmail}}": d.senhaEmail || "",
-        "{{token2fa}}": d.token2fa || "",
-        "{{dataNascimento}}": d.dataNascimento || "",
-        "{{genero}}": d.genero || "",
-        "{{tempoPlataforma}}": d.tempoPlataforma || "",
-        "{{statusAtual}}": d.statusAtual || "",
-        "{{descricao}}": d.descricao || "",
-        "{{cookies}}": (cookies.trim() || d.cookies || ""),
-        "{{linkDocumento}}": d.linkDocumento || "",
-        "{{linkPerfil}}": d.linkPerfil || "",
-        "{{idPerfil}}": d.idPerfil || "",
-        "{{pedido}}": "",
-        "{{data}}": new Date().toLocaleDateString("pt-BR"),
-        "{{nomeProduto}}": fallbackName || "",
-      };
-      let content: string;
-      if (template) {
-        content = template;
-        for (const [k, v] of Object.entries(replacements)) content = content.split(k).join(v);
-        if (cookies.trim() && !/\{\{\s*cookies\s*\}\}/i.test(template)) {
-          content += `\n\n===== COOKIES =====\n${cookies.trim()}`;
-        }
-      } else {
-        // Fallback SEM template: usa ordem padrão fixa (mesma do bloco de notas).
-        const orderedLines: [string, string][] = [
-          ["Nome", d.nomePerfil || ""],
-          ["Email", d.emailAcesso || ""],
-          ["Senha", d.senha || ""],
-          ["Senha Email", d.senhaEmail || ""],
-          ["2FA", d.token2fa || ""],
-          ["Email Alternativo", d.emailAlternativo || ""],
-          ["ID", d.idPerfil || ""],
-          ["Link", d.linkPerfil || ""],
-          ["Data Nascimento", d.dataNascimento || ""],
-          ["Gênero", d.genero || ""],
-          ["Tempo Plataforma", d.tempoPlataforma || ""],
-          ["Status", d.statusAtual || ""],
-          ["Link Documento", d.linkDocumento || ""],
-          ["Descrição", d.descricao || ""],
-        ];
-        content = orderedLines.map(([k, v]) => `${k}: ${v}`).join("\n");
-        if (cookies.trim() || d.cookies) {
-          content += `\n\n===== COOKIES =====\n${(cookies.trim() || d.cookies)}`;
-        }
-      }
+      const nome = d.nomePerfil || "";
+      const mockup = d.linkDocumento || "https://fbflix.com.br/ferramentas";
+      const cookiesOut = (cookies.trim() || d.cookies || "");
+      // Formato PADRÃO fixo (mesmo do bloco de notas oficial). Independente da ordem
+      // colada, cada campo é posicionado no seu lugar; ausentes ficam em branco.
+      const content =
+`ATENÇÃO!
+Para garantir sua reposição por favor seguir as recomendações de uso
+e boas práticas.
+
+------------------------------------------------------------
+
+(1) (CONFIRA SEU PEDIDO EM ATÉ 24H - garantia de login - dê seu feedback)
+
+(2) Sobre garantia e como logar o perfil de forma correta, veja nossos tutoriais
+na aba tutoriais em nossa plataforma.
+
+(3) Evite conexões de má qualidade como o uso de VPN e proxy público
+Sugestão: use proxy dedicado + multlogin de sua confiança.
+Caso queira a indicação de um multilogin de confiança fale conosco no zap.
+
+(4) Faça um bom aquecimento do seu BM para diminuir os riscos de bloqueios.
+
+(5) ATENÇÃO IMPORTANTE!
+
+--------------------------Dados de acesso--------------------------
+– | ${nome} | –
+
+
+Nome do perfil: ${nome}
+
+Gênero: ${d.genero || ""}
+
+Aniversário: ${d.dataNascimento || ""}
+
+Link perfil: ${d.linkPerfil || ""}
+
+Mockup Doc Perfil: ${mockup}
+
+ID: ${d.idPerfil || ""}
+E-mail: ${d.emailAcesso || ""}
+Senha FB: ${d.senha || ""}
+Senha E-mail: ${d.senhaEmail || ""}
+
+Token: ${d.token2fa || ""}
+
+E-mail alternativo: ${d.emailAlternativo || ""}
+
+Site para gerar os códigos com o Token :https://fbflix.com.br/2fa
+--------------------------Acesso login--------------------------
+
+ (Logue via cookie ou usando o id ou e-mail conforme o tutorial)
+
+
+Cookies:
+${cookiesOut}`;
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
