@@ -1987,6 +1987,15 @@ export default function AdminBlocagem() {
     );
   }
 
+  // Show Blocagem Flash form (Beta)
+  if (selectedType === "flash" && selectedFolder) {
+    return (
+      <div className="py-6">
+        <FlashForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
+      </div>
+    );
+  }
+
   const formatUpdatedAt = (date: string) => {
     const d = new Date(date);
     const now = new Date();
