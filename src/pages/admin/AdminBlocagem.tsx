@@ -140,6 +140,18 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
 
   const parsedItems = useMemo(() => items.map(it => parseFlashText(it.rawText)), [items]);
   const totalRecognized = parsedItems.reduce((n, p) => n + Object.keys(p).length, 0);
+  const filledCount = items.reduce((n, it, i) => n + ((it.rawText.trim() && Object.keys(parsedItems[i] || {}).length > 0) ? 1 : 0), 0);
+
+  const setComboQty = (qty: number) => {
+    const q = Math.max(1, Math.min(200, Math.floor(qty || 1)));
+    setItems(prev => {
+      if (q === prev.length) return prev;
+      if (q > prev.length) {
+        return [...prev, ...Array.from({ length: q - prev.length }, () => ({ rawText: "", cookiesText: "" }))];
+      }
+      return prev.slice(0, q);
+    });
+  };
 
   const generateTxt = async (data: Record<string, string>, cookies: string, fallbackName: string) => {
     try {
@@ -387,7 +399,7 @@ Descrição: Perfil verificado, sem restrições`;
         </div>
 
         {isCombo && (
-          <div className="grid md:grid-cols-2 gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+          <div className="grid md:grid-cols-[1fr_1fr_140px] gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-zinc-400">Nome do combo</label>
               <Input value={comboName} onChange={e => setComboName(e.target.value)} placeholder="Ex.: Kit 5 Perfis Aquecidos" className="bg-black/30 border-white/5 text-white h-9 text-xs" />
@@ -395,6 +407,20 @@ Descrição: Perfil verificado, sem restrições`;
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-zinc-400">Descrição (opcional)</label>
               <Input value={comboDescricao} onChange={e => setComboDescricao(e.target.value)} placeholder="Breve descrição do combo" className="bg-black/30 border-white/5 text-white h-9 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-zinc-400 flex items-center justify-between">
+                <span>Qtd. de itens</span>
+                <span className="text-yellow-300 font-semibold">{filledCount}/{items.length}</span>
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={items.length}
+                onChange={e => setComboQty(parseInt(e.target.value, 10))}
+                className="bg-black/30 border-white/5 text-white h-9 text-xs text-center"
+              />
             </div>
           </div>
         )}
