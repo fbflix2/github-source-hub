@@ -271,7 +271,11 @@ ${cookiesOut}`;
   };
 
   const buildChildInsert = (parsed: Record<string, string>, raw: string, cookies: string, comboIndex?: number, parentName?: string) => {
-    const name = parsed.nomePerfil || parsed.emailAcesso || `Flash ${new Date().toLocaleString("pt-BR")}`;
+    const id = parsed.idPerfil?.trim();
+    const base = parsed.nomePerfil?.trim() || parsed.emailAcesso?.trim() || "";
+    const name = id
+      ? (base ? `${base} — ${id}` : id)
+      : (base || `Flash ${new Date().toLocaleString("pt-BR")}`);
     return {
       name,
       type: "perfil",
