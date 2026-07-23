@@ -272,6 +272,67 @@ export default function AdminComprasFornecedor() {
     };
   }, []);
 
+  // Auto-fetch profile names via fb-photo (og:title) for accounts that have a
+  // profile link but no name saved yet. Runs in the background with concurrency.
+  useEffect(() => {
+    const pending = accounts.filter(
+      (a) =>
+        !!a.profile_link &&
+        !a.profile_name &&
+        !extractNameFromProfileLink(a.profile_link)
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    const CONCURRENCY = 3;
+    const queue = [...pending];
+
+    async function worker() {
+      while (!cancelled && queue.length > 0) {
+        const acc = queue.shift();
+        if (!acc) break;
+        try {
+          const { data, error } = await supabase.functions.invoke("fb-photo", {
+            body: null,
+          } as any).catch(() => ({ data: null, error: true } as any));
+          // supabase.functions.invoke doesn't support querystring cleanly; call via fetch instead
+          let name: string | null = null;
+          if (!data || (error as any)) {
+            const url =
+              `${(import.meta as any).env.VITE_SUPABASE_URL}/functions/v1/fb-photo?url=` +
+              encodeURIComponent(acc.profile_link!);
+            const r = await fetch(url, {
+              headers: {
+                apikey: (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${(import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              },
+            });
+            const j = await r.json().catch(() => ({}));
+            name = j?.name || null;
+          } else {
+            name = (data as any)?.name || null;
+          }
+          if (!name || cancelled) continue;
+          const clean = String(name).trim().slice(0, 120);
+          if (!clean) continue;
+          await supabase.from("supplier_accounts").update({ profile_name: clean }).eq("id", acc.id);
+          if (cancelled) return;
+          setAccounts((prev) =>
+            prev.map((x) => (x.id === acc.id ? { ...x, profile_name: clean } : x))
+          );
+        } catch {
+          /* ignore individual failures */
+        }
+      }
+    }
+
+    const workers = Array.from({ length: CONCURRENCY }, () => worker());
+    Promise.all(workers).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts]);
+
   const supplierMap = useMemo(() => Object.fromEntries(suppliers.map(s => [s.id, s])), [suppliers]);
   const batchMap = useMemo(() => Object.fromEntries(batches.map(b => [b.id, b])), [batches]);
 
