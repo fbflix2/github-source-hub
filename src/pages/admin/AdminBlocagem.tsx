@@ -182,7 +182,8 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const safeName = (insertData.name as string).replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
+      const idBase = (data.idPerfil || data.emailAcesso || insertData.name || "blocagem_flash") as string;
+      const safeName = idBase.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
       a.download = `${safeName}.txt`;
       document.body.appendChild(a);
       a.click();
