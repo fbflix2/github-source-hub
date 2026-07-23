@@ -49,7 +49,10 @@ const itemTypes = [
 
 // ─── Blocagem Flash (Beta) ───
 function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
+  const FLASH_DRAFT_KEY = `flash_form_draft::${folder.id}`;
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [hasDraft, setHasDraft] = useState(() => !!localStorage.getItem(FLASH_DRAFT_KEY));
   const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; price?: number; default_image?: string; description?: string; tags?: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -69,6 +72,45 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
   const [items, setItems] = useState<{ rawText: string; cookiesText: string }[]>([
     { rawText: "", cookiesText: "" },
   ]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FLASH_DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.productId) setProductId(d.productId);
+      if (d.preco) setPreco(d.preco);
+      if (d.fotoUrl) setFotoUrl(d.fotoUrl);
+      if (d.nomeProduto) setNomeProduto(d.nomeProduto);
+      if (typeof d.isCombo === "boolean") setIsCombo(d.isCombo);
+      if (d.comboName) setComboName(d.comboName);
+      if (d.comboDescricao) setComboDescricao(d.comboDescricao);
+      if (Array.isArray(d.items) && d.items.length > 0) setItems(d.items);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSaveDraft = () => {
+    setSavingDraft(true);
+    localStorage.setItem(FLASH_DRAFT_KEY, JSON.stringify({
+      productId, preco, fotoUrl, nomeProduto,
+      isCombo, comboName, comboDescricao, items,
+    }));
+    setHasDraft(true);
+    setTimeout(() => setSavingDraft(false), 600);
+    toast.success("Rascunho salvo com sucesso!");
+  };
+
+  const handleClearDraft = () => {
+    localStorage.removeItem(FLASH_DRAFT_KEY);
+    setHasDraft(false);
+    setItems([{ rawText: "", cookiesText: "" }]);
+    setComboName(""); setComboDescricao("");
+    setProductId(""); setPreco(""); setFotoUrl(""); setNomeProduto("");
+    setIsCombo(false);
+    toast.info("Rascunho descartado.");
+  };
 
   useEffect(() => {
     supabase.from("product_defaults").select("id, name, tags, price, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
@@ -318,6 +360,8 @@ ${cookiesOut}`;
       }
       setItems([{ rawText: "", cookiesText: "" }]);
       setComboName(""); setComboDescricao("");
+      localStorage.removeItem(FLASH_DRAFT_KEY);
+      setHasDraft(false);
       onSaved();
     } catch (e: any) {
       toast.error("Erro ao salvar: " + e.message);
@@ -503,6 +547,15 @@ Descrição: Perfil verificado, sem restrições`;
 
         <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
           <span className="text-[11px] text-zinc-500 mr-auto self-center">{totalRecognized} campo(s) reconhecido(s) no total</span>
+          {hasDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft} className="text-xs text-zinc-500 hover:text-destructive">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar rascunho
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={handleSaveDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
+            {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Salvar como rascunho
+          </Button>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
             onClick={handleSave}
