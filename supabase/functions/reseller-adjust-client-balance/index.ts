@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       title,
       amount,
       balance_after: newClientBalance,
-      reference_id: reseller.id,
+      reference_id: String(reseller.id),
     });
 
     // Log reseller ledger
