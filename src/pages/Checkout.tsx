@@ -1815,7 +1815,7 @@ export default function Checkout() {
           </section>
 
           {/* Order Bumps Section */}
-          {relevantBumps.length > 0 && (
+          {!resellerId && relevantBumps.length > 0 && (
             <section className="glass-panel rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">
               <div className="flex flex-col gap-0.5 z-10">
                 <h2 className="text-sm font-bold flex items-center gap-2 text-foreground">
