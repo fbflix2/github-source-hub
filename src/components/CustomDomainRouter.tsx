@@ -27,6 +27,10 @@ const PASSTHROUGH_PREFIXES = [
   "/profile",
   "/welcome",
   "/migrar",
+  "/subscriptions",
+  "/orders",
+  "/item-details",
+  "/loja",
 ];
 
 /**
