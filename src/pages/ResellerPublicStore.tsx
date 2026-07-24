@@ -253,86 +253,23 @@ export default function ResellerPublicStore() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
-      {/* Header */}
-      <header className="shrink-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {reseller.logo_url ? (
-              <img src={reseller.logo_url} alt={brandName} className="h-10 w-10 rounded-lg object-cover" />
-            ) : (
-              <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                style={{ background: primaryColor }}
-              >
-                {brandName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <h1 className="font-bold text-foreground text-sm md:text-base">{brandName}</h1>
-              <p className="text-[10px] text-muted-foreground">Proxies Residenciais</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {reseller.support_whatsapp && (
-              <button
-                onClick={openWhatsApp}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition text-xs font-bold"
-              >
-                <MessageCircle className="size-4" /> WhatsApp
-              </button>
-            )}
-            {currentUser ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border hover:bg-muted transition"
-                  >
-                    {currentUser.avatar_url ? (
-                      <img src={currentUser.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-                    ) : (
-                      <div
-                        className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                        style={{ background: primaryColor }}
-                      >
-                        {(currentUser.full_name || currentUser.email || "?").charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="hidden sm:inline text-xs font-semibold text-foreground max-w-[120px] truncate">
-                      {currentUser.full_name || currentUser.email?.split("@")[0] || "Minha conta"}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="truncate">
-                    {currentUser.full_name || currentUser.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/perfil")}>
-                    <UserIcon className="size-4 mr-2" /> Meu Perfil
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/orders")}>
-                    <Package className="size-4 mr-2" /> Meus Pedidos
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500">
-                    <LogOut className="size-4 mr-2" /> Sair
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <button
-                onClick={() => navigate("/auth")}
-                className="px-4 py-2 rounded-lg text-white text-xs font-bold transition hover:opacity-90"
-                style={{ background: primaryColor }}
-              >
-                Entrar
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar
+        userName={currentUser?.full_name || currentUser?.email?.split("@")[0] || "Cliente"}
+        userEmail={currentUser?.email || ""}
+        balance={currentUser?.balance ?? 0}
+        avatarUrl={currentUser?.avatar_url || undefined}
+        onLogout={handleSignOut}
+        allowedKeys={["loja", "subscriptions"]}
+        logoOverride={reseller.logo_url || undefined}
+        brandNameOverride={brandName}
+        linkOverrides={{ loja: `/r/${reseller.slug}` }}
+        hideTickets
+        hideNotifications
+        unauthenticated={!currentUser}
+        onLoginClick={() => navigate("/auth")}
+      />
 
-      <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 pt-6">
+      <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 pt-24">
         {/* Área fixa: hero + banners + filtro + título */}
         <div className="shrink-0 space-y-6">
         {/* Hero */}
