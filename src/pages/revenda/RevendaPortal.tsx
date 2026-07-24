@@ -554,32 +554,33 @@ export default function RevendaPortal() {
             {/* Theme Toggle */}
             <ThemeToggle />
 
-            {/* Saldo */}
-            <NavLink
-              to="/wallet"
-              className={cn(
-                "hidden sm:flex items-center gap-2 border px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-colors group",
-                (profile?.balance ?? 0) > 0
-                  ? "bg-emerald-500/10 border-emerald-500/25 hover:bg-emerald-500/15"
-                  : "bg-destructive/10 border-destructive/25 hover:bg-destructive/15"
-              )}
-            >
-              <Wallet className={cn(
-                "size-4",
-                (profile?.balance ?? 0) > 0 ? "text-emerald-400" : "text-destructive"
-              )} />
-              <div className="flex flex-col leading-none">
-                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">
-                  Saldo
-                </span>
-                <span className={cn(
-                  "text-sm font-bold",
-                  (profile?.balance ?? 0) > 0 ? "text-emerald-400" : "text-destructive"
-                )}>
-                  R$ {(profile?.balance ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </NavLink>
+            {/* Saldo do revendedor */}
+            {(() => {
+              const resellerBalance = Number(reseller?.balance_credits ?? 0);
+              const positive = resellerBalance > 0;
+              return (
+                <button
+                  type="button"
+                  onClick={() => navigate("/revenda?tab=financeiro")}
+                  className={cn(
+                    "hidden sm:flex items-center gap-2 border px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-colors group",
+                    positive
+                      ? "bg-emerald-500/10 border-emerald-500/25 hover:bg-emerald-500/15"
+                      : "bg-destructive/10 border-destructive/25 hover:bg-destructive/15"
+                  )}
+                >
+                  <Wallet className={cn("size-4", positive ? "text-emerald-400" : "text-destructive")} />
+                  <div className="flex flex-col leading-none text-left">
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold">
+                      Saldo
+                    </span>
+                    <span className={cn("text-sm font-bold", positive ? "text-emerald-400" : "text-destructive")}>
+                      R$ {resellerBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </button>
+              );
+            })()}
 
             {/* User */}
             <DropdownMenu>
