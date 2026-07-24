@@ -291,23 +291,23 @@ export default function ResellerDashboard({
         </Card>
         <Card className="p-4 bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="size-4 text-primary" />
+            <TrendingUp className="size-4 text-primary" />
             <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
-              Comissões creditadas
+              Faturamento total
             </p>
           </div>
-          <p className="text-2xl font-bold text-foreground">R$ {fmt(creditedCommissions)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Total já liberado no histórico</p>
+          <p className="text-2xl font-bold text-foreground">R$ {fmt(totalGmv)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Volume acumulado da sua revenda</p>
         </Card>
         <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20">
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="size-4 text-amber-400" />
+            <Users className="size-4 text-amber-400" />
             <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-              Comissões pendentes
+              Clientes cadastrados
             </p>
           </div>
-          <p className="text-2xl font-bold text-foreground">R$ {fmt(pendingCommissions)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Aguardando período de garantia</p>
+          <p className="text-2xl font-bold text-foreground">{totalReferrals.toLocaleString("pt-BR")}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Total vinculado ao seu painel</p>
         </Card>
       </div>
 
