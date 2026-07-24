@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
- import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers, Trash2, X } from "lucide-react";
+import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers, Trash2, X } from "lucide-react";
+import IconWallet from "@/assets/payment/carteira.svg";
+import IconPix from "@/assets/payment/pix.svg";
+import IconCard from "@/assets/payment/visa.svg";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
@@ -1775,14 +1778,14 @@ export default function Checkout() {
               <label className="cursor-pointer group">
                 <input type="radio" name="payment_method" checked={paymentMethod === "saldo"} onChange={() => setPaymentMethod("saldo")} className="peer sr-only" />
                 <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
-                  <Wallet className="w-6 h-6 text-muted-foreground" />
+                  <img src={IconWallet} alt="Saldo" className="w-6 h-6 opacity-80" />
                   <span className="font-medium text-xs text-foreground">Saldo</span>
                 </div>
               </label>
               <label className="cursor-pointer group">
                 <input type="radio" name="payment_method" checked={paymentMethod === "pix"} onChange={() => setPaymentMethod("pix")} className="peer sr-only" />
                 <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
-                  <QrCode className="w-6 h-6 text-muted-foreground" />
+                  <img src={IconPix} alt="Pix" className="w-6 h-6 opacity-80" />
                   <span className="font-medium text-xs text-foreground">Pix</span>
                 </div>
               </label>
@@ -1790,14 +1793,14 @@ export default function Checkout() {
                 <label className="cursor-pointer group">
                   <input type="radio" name="payment_method" checked={paymentMethod === "cartao"} onChange={() => setPaymentMethod("cartao")} className="peer sr-only" />
                   <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
-                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <img src={IconCard} alt="Cartão" className="w-6 h-6 opacity-80" />
                     <span className="font-medium text-xs text-foreground">Cartão</span>
                   </div>
                 </label>
               ) : (
                 <div className="relative cursor-not-allowed group">
                   <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center opacity-50">
-                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <img src={IconCard} alt="Cartão" className="w-6 h-6 opacity-80" />
                     <span className="font-medium text-xs text-foreground">Cartão</span>
                   </div>
                   <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">EM BREVE</span>
