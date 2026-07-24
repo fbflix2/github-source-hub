@@ -30,7 +30,6 @@ const PASSTHROUGH_PREFIXES = [
   "/subscriptions",
   "/orders",
   "/item-details",
-  "/loja",
 ];
 
 /**

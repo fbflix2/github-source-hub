@@ -127,6 +127,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
         onLogout={onLogout}
         unreadTickets={unreadTickets}
         allowedKeys={isResellerDomain ? ["loja", "subscriptions"] : undefined}
+        linkOverrides={isResellerDomain && branding?.slug ? { loja: `/r/${branding.slug}` } : undefined}
         logoOverride={isResellerDomain ? branding?.logo_url ?? undefined : undefined}
         brandNameOverride={isResellerDomain ? branding?.brand_name ?? branding?.company_name ?? undefined : undefined}
         hideTickets={isResellerDomain}
