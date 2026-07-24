@@ -66,6 +66,11 @@ export default function AdminRevendedores() {
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [balanceReseller, setBalanceReseller] = useState<Reseller | null>(null);
+  const [balanceAmount, setBalanceAmount] = useState<string>("");
+  const [balanceDescription, setBalanceDescription] = useState<string>("");
+  const [balanceType, setBalanceType] = useState<"credit" | "debit">("credit");
+  const [balanceSaving, setBalanceSaving] = useState(false);
 
   useEffect(() => {
     fetchResellers();
@@ -203,6 +208,57 @@ export default function AdminRevendedores() {
     }
   };
 
+  const openBalance = (r: Reseller) => {
+    setBalanceReseller(r);
+    setBalanceAmount("");
+    setBalanceDescription("");
+    setBalanceType("credit");
+  };
+
+  const handleBalanceSubmit = async () => {
+    if (!balanceReseller) return;
+    const amt = Number(balanceAmount);
+    if (!amt || amt <= 0) {
+      toast.error("Informe um valor válido");
+      return;
+    }
+    setBalanceSaving(true);
+    try {
+      const current = Number(balanceReseller.balance_credits || 0);
+      const delta = balanceType === "credit" ? amt : -amt;
+      const newBalance = current + delta;
+      if (newBalance < 0) {
+        toast.error("Saldo ficaria negativo");
+        setBalanceSaving(false);
+        return;
+      }
+      const { error: updErr } = await supabase
+        .from("resellers")
+        .update({ balance_credits: newBalance })
+        .eq("id", balanceReseller.id);
+      if (updErr) throw updErr;
+      const { error: ledErr } = await supabase.from("reseller_credit_ledger").insert({
+        reseller_id: balanceReseller.id,
+        type: balanceType,
+        amount: amt,
+        balance_after: newBalance,
+        description:
+          balanceDescription.trim() ||
+          (balanceType === "credit" ? "Ajuste manual (crédito)" : "Ajuste manual (débito)"),
+      });
+      if (ledErr) throw ledErr;
+      toast.success(
+        `Saldo ${balanceType === "credit" ? "adicionado" : "debitado"} com sucesso`
+      );
+      setBalanceReseller(null);
+      fetchResellers();
+    } catch (err: any) {
+      toast.error("Erro ao ajustar saldo: " + err.message);
+    } finally {
+      setBalanceSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -335,6 +391,15 @@ export default function AdminRevendedores() {
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => openEdit(r)}>
                   <Pencil className="size-3" /> Editar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => openBalance(r)}
+                  title="Ajustar saldo"
+                >
+                  <Wallet className="size-3" />
                 </Button>
                 <Button
                   size="sm"
@@ -599,6 +664,59 @@ export default function AdminRevendedores() {
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="size-4 animate-spin mr-2" />}
               {editing ? "Salvar alterações" : "Cadastrar revendedor"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de saldo */}
+      <Dialog open={!!balanceReseller} onOpenChange={(o) => !o && setBalanceReseller(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo — {balanceReseller?.company_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/40 bg-muted/30 p-3 text-sm">
+              Saldo atual:{" "}
+              <span className="font-bold text-primary">
+                R$ {Number(balanceReseller?.balance_credits || 0).toFixed(2)}
+              </span>
+            </div>
+            <div>
+              <Label>Operação</Label>
+              <Select value={balanceType} onValueChange={(v: any) => setBalanceType(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Adicionar saldo (crédito)</SelectItem>
+                  <SelectItem value="debit">Debitar saldo (débito)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={balanceAmount}
+                onChange={(e) => setBalanceAmount(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Input
+                value={balanceDescription}
+                onChange={(e) => setBalanceDescription(e.target.value)}
+                placeholder="Ex: Recarga via PIX, ajuste, bonificação..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBalanceReseller(null)}>Cancelar</Button>
+            <Button onClick={handleBalanceSubmit} disabled={balanceSaving}>
+              {balanceSaving && <Loader2 className="size-4 animate-spin mr-2" />}
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
