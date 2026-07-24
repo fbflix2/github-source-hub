@@ -668,6 +668,59 @@ export default function AdminRevendedores() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de saldo */}
+      <Dialog open={!!balanceReseller} onOpenChange={(o) => !o && setBalanceReseller(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo — {balanceReseller?.company_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/40 bg-muted/30 p-3 text-sm">
+              Saldo atual:{" "}
+              <span className="font-bold text-primary">
+                R$ {Number(balanceReseller?.balance_credits || 0).toFixed(2)}
+              </span>
+            </div>
+            <div>
+              <Label>Operação</Label>
+              <Select value={balanceType} onValueChange={(v: any) => setBalanceType(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Adicionar saldo (crédito)</SelectItem>
+                  <SelectItem value="debit">Debitar saldo (débito)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={balanceAmount}
+                onChange={(e) => setBalanceAmount(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Input
+                value={balanceDescription}
+                onChange={(e) => setBalanceDescription(e.target.value)}
+                placeholder="Ex: Recarga via PIX, ajuste, bonificação..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBalanceReseller(null)}>Cancelar</Button>
+            <Button onClick={handleBalanceSubmit} disabled={balanceSaving}>
+              {balanceSaving && <Loader2 className="size-4 animate-spin mr-2" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
