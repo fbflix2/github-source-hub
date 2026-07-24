@@ -168,10 +168,17 @@ async function checkIsReseller(userId: string) {
 }
 
 function AuthLoadingScreen() {
+  const isCustomDomain =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-custom-domain") === "1";
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex items-center gap-2">
-        <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
+        {isCustomDomain ? (
+          <div className="w-10 h-10 rounded-full border-2 border-primary/40 border-t-primary animate-spin" />
+        ) : (
+          <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
+        )}
         <span className="text-xl font-bold text-foreground">​</span>
       </div>
     </div>
