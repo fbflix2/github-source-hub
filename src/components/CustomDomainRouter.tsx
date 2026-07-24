@@ -37,9 +37,6 @@ const PASSTHROUGH_PREFIXES = [
 export default function CustomDomainRouter({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  // Para hosts principais podemos renderizar imediatamente.
-  // Para hosts customizados, bloqueamos a renderização até resolver o redirect
-  // — evita o "flash" da FBFlix antes da loja do revendedor aparecer.
   const initialHost =
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   const isMainHostInitial =
@@ -53,18 +50,21 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
         window.location.pathname === p || window.location.pathname.startsWith(p),
     );
   const [checked, setChecked] = useState(isMainHostInitial || isPassthroughInitial);
+  const [resellerSlug, setResellerSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    if (checked) return;
     if (typeof window === "undefined") return;
 
     const host = window.location.hostname.toLowerCase();
-    if (MAIN_HOSTS.includes(host) || host.endsWith(".lovableproject.com")) {
+    if (
+      MAIN_HOSTS.includes(host) ||
+      host.endsWith(".lovableproject.com") ||
+      host.endsWith(".lovable.app")
+    ) {
       setChecked(true);
       return;
     }
 
-    // Se já está numa rota específica que deve continuar funcionando, não redireciona
     const path = location.pathname;
     if (PASSTHROUGH_PREFIXES.some((p) => path === p || path.startsWith(p))) {
       setChecked(true);
@@ -73,11 +73,16 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
 
     (async () => {
       try {
-        const { data, error } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
-        if (!error && data) {
-          navigate(`/r/${data}${location.search}`, { replace: true });
-          // Mantém o gate para o navigate acontecer no próximo tick,
-          // e evita render intermediário da FBFlix.
+        let slug = resellerSlug;
+        if (!slug) {
+          const { data, error } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+          if (!error && data) {
+            slug = data as string;
+            setResellerSlug(slug);
+          }
+        }
+        if (slug) {
+          navigate(`/r/${slug}${location.search}`, { replace: true });
           setTimeout(() => setChecked(true), 0);
           return;
         }
@@ -86,7 +91,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
       }
       setChecked(true);
     })();
-  }, [checked, location.pathname, location.search, navigate]);
+  }, [location.pathname, location.search, navigate, resellerSlug]);
 
   if (!checked) {
     // Tela neutra (sem branding FBFlix) enquanto resolvemos o domínio customizado
