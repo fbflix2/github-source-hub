@@ -42,6 +42,7 @@ import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
+import SiteImageUpload from "@/components/admin/SiteImageUpload";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -832,19 +833,19 @@ export default function RevendaPortal() {
                     />
                   </div>
                   <div>
-                    <Label>Logo (URL)</Label>
-                    <Input
+                    <SiteImageUpload
+                      label="Logo"
                       value={brand.logo_url}
-                      onChange={(e) => setBrand({ ...brand, logo_url: e.target.value })}
-                      placeholder="https://..."
+                      onChange={(url) => setBrand({ ...brand, logo_url: url })}
+                      pathPrefix={`resellers/${reseller.id}/logo`}
                     />
                   </div>
                   <div>
-                    <Label>Favicon (URL)</Label>
-                    <Input
+                    <SiteImageUpload
+                      label="Favicon"
                       value={brand.favicon_url}
-                      onChange={(e) => setBrand({ ...brand, favicon_url: e.target.value })}
-                      placeholder="https://..."
+                      onChange={(url) => setBrand({ ...brand, favicon_url: url })}
+                      pathPrefix={`resellers/${reseller.id}/favicon`}
                     />
                   </div>
                   <div>
