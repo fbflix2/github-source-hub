@@ -5,6 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Users,
   Search,
   LogIn,
@@ -22,6 +32,8 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +75,11 @@ export default function ResellerClientes() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [page, setPage] = useState(1);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [walletTarget, setWalletTarget] = useState<Client | null>(null);
+  const [walletOp, setWalletOp] = useState<"credit" | "debit">("credit");
+  const [walletAmount, setWalletAmount] = useState("");
+  const [walletNote, setWalletNote] = useState("");
+  const [walletSubmitting, setWalletSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -145,6 +162,56 @@ export default function ResellerClientes() {
       toast.error(e.message || "Erro ao acessar conta");
     } finally {
       setImpersonating(null);
+    }
+  };
+
+  const openWallet = (c: Client, op: "credit" | "debit") => {
+    setWalletTarget(c);
+    setWalletOp(op);
+    setWalletAmount("");
+    setWalletNote("");
+  };
+
+  const submitWallet = async () => {
+    if (!walletTarget) return;
+    const amount = Number(walletAmount.replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Informe um valor válido");
+      return;
+    }
+    setWalletSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || "https://mxnlerkeygfvdnznoxld.supabase.co"}/functions/v1/reseller-adjust-client-balance`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            target_user_id: walletTarget.user_id,
+            operation: walletOp,
+            amount,
+            note: walletNote,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao ajustar saldo");
+      toast.success(
+        walletOp === "credit"
+          ? `R$ ${brl(amount)} creditado ao cliente`
+          : `R$ ${brl(amount)} debitado do cliente`
+      );
+      setWalletTarget(null);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao ajustar saldo");
+    } finally {
+      setWalletSubmitting(false);
     }
   };
 
