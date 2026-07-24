@@ -258,9 +258,9 @@ export default function ResellerPublicStore() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
+      <header className="shrink-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {reseller.logo_url ? (
@@ -338,7 +338,9 @@ export default function ResellerPublicStore() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 pt-6">
+        {/* Área fixa: hero + banners + filtro + título */}
+        <div className="shrink-0 space-y-6">
         {/* Hero */}
         <section className="glass-card rounded-2xl p-6 md:p-10 relative overflow-hidden">
           <div
@@ -412,13 +414,15 @@ export default function ResellerPublicStore() {
           ))}
         </div>
 
-        {/* Catálogo */}
-        <section>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-foreground">Catálogo de Proxies</h2>
-            <p className="text-xs text-muted-foreground">Proxies residenciais premium para todas as finalidades</p>
-          </div>
+        {/* Título do catálogo (fixo) */}
+        <div className="mt-6 mb-3 shrink-0">
+          <h2 className="text-xl font-bold text-foreground">Catálogo de Proxies</h2>
+          <p className="text-xs text-muted-foreground">Proxies residenciais premium para todas as finalidades</p>
+        </div>
+        </div>
 
+        {/* Única área com scroll: cards + sobre + rodapé */}
+        <div className="flex-1 min-h-0 overflow-y-auto pb-8 -mx-1 px-1">
           {filtered.length === 0 ? (
             <div className="text-center py-16 glass-card rounded-2xl">
               <p className="text-muted-foreground">Nenhum proxy nessa finalidade.</p>
@@ -504,20 +508,20 @@ export default function ResellerPublicStore() {
               })}
             </div>
           )}
-        </section>
 
-        {reseller.about_text && (
-          <section className="glass-card rounded-2xl p-6 md:p-8">
+          {reseller.about_text && (
+            <section className="glass-card rounded-2xl p-6 md:p-8 mt-8">
             <h3 className="text-lg font-bold text-foreground mb-3">Sobre a {brandName}</h3>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{reseller.about_text}</p>
-          </section>
-        )}
+            </section>
+          )}
 
-        <footer className="text-center py-8 border-t border-border">
+          <footer className="text-center py-8 mt-8 border-t border-border">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {brandName}. Todos os direitos reservados.
           </p>
-        </footer>
+          </footer>
+        </div>
       </main>
     </div>
   );
