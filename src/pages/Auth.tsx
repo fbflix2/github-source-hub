@@ -206,10 +206,29 @@ export default function Auth() {
       // Save CPF and Referrer to profile
       if (signUpData?.user) {
         const partnerRefId = localStorage.getItem("partner_ref_id");
-        await supabase.from("profiles").update({ 
+        // Se o cadastro é no domínio de um revendedor, vincula o cliente a ele
+        let resellerIdToLink: string | null = null;
+        try {
+          const host = window.location.hostname.toLowerCase();
+          const isMainHost =
+            ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"].includes(host) ||
+            host.endsWith(".lovableproject.com") ||
+            host.endsWith(".lovable.app");
+          if (!isMainHost) {
+            const { data: slug } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+            if (slug) {
+              const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug as string });
+              const row = Array.isArray(r) ? r[0] : r;
+              if (row?.id) resellerIdToLink = row.id as string;
+            }
+          }
+        } catch { /* noop */ }
+
+        await supabase.from("profiles").update({
           cpf: registerCpf.replace(/\D/g, ""),
           full_name: registerName.trim(),
           referrer_id: partnerRefId || null,
+          ...(resellerIdToLink ? { reseller_id: resellerIdToLink } : {}),
         }).eq("user_id", signUpData.user.id);
         // Link earlier anonymous journey events to this newly-created user
         try {
