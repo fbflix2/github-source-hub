@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search, Link2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
@@ -19,6 +20,7 @@ interface StockItem {
   data: Record<string, unknown> | null;
   order_item_id: string | null;
   created_at: string;
+  childCount?: number;
 }
 
 interface StockItemsModalProps {
@@ -43,20 +45,55 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [replacementItem, setReplacementItem] = useState<StockItem | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "available" | "sold" | "blocked" | "expired">("all");
+  const [expandedChildrenId, setExpandedChildrenId] = useState<string | null>(null);
+  const [childrenMap, setChildrenMap] = useState<Record<string, StockItem[]>>({});
+  const [loadingChildren, setLoadingChildren] = useState<string | null>(null);
 
   const fetchItems = () => {
     setLoading(true);
-    supabase
-      .from("stock_items")
-      .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
-      .eq("product_id", productId)
-      .is("deleted_at", null)
-      .is("parent_id", null)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setItems((data as unknown as StockItem[]) ?? []);
-        setLoading(false);
-      });
+    (async () => {
+      const { data: parents } = await supabase
+        .from("stock_items")
+        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("product_id", productId)
+        .is("deleted_at", null)
+        .is("parent_id", null)
+        .order("created_at", { ascending: false });
+      const list = (parents as unknown as StockItem[]) ?? [];
+      const ids = list.map(i => i.id);
+      const counts: Record<string, number> = {};
+      if (ids.length) {
+        const { data: kids } = await supabase
+          .from("stock_items")
+          .select("parent_id")
+          .in("parent_id", ids)
+          .is("deleted_at", null);
+        (kids ?? []).forEach((k: any) => {
+          counts[k.parent_id] = (counts[k.parent_id] || 0) + 1;
+        });
+      }
+      setItems(list.map(i => ({ ...i, childCount: counts[i.id] || 0 })));
+      setLoading(false);
+    })();
+  };
+
+  const toggleChildren = async (item: StockItem) => {
+    if (expandedChildrenId === item.id) {
+      setExpandedChildrenId(null);
+      return;
+    }
+    setExpandedChildrenId(item.id);
+    if (!childrenMap[item.id]) {
+      setLoadingChildren(item.id);
+      const { data } = await supabase
+        .from("stock_items")
+        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("parent_id", item.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true });
+      setChildrenMap(prev => ({ ...prev, [item.id]: (data as unknown as StockItem[]) ?? [] }));
+      setLoadingChildren(null);
+    }
   };
 
   useEffect(() => {
@@ -302,7 +339,27 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                     return (
                       <>
                         <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
-                          <TableCell className="text-white text-sm font-medium">{item.name}</TableCell>
+                          <TableCell className="text-white text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              {(item.childCount ?? 0) > 0 && (
+                                <button
+                                  onClick={() => toggleChildren(item)}
+                                  className="text-zinc-400 hover:text-white"
+                                  title={`Ver ${item.childCount} itens do combo`}
+                                >
+                                  {expandedChildrenId === item.id
+                                    ? <ChevronDown className="h-4 w-4" />
+                                    : <ChevronRight className="h-4 w-4" />}
+                                </button>
+                              )}
+                              <span>{item.name}</span>
+                              {(item.childCount ?? 0) > 0 && (
+                                <Badge className="bg-purple-500/20 text-purple-300 text-[10px]">
+                                  combo · {item.childCount} itens
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-zinc-400 text-xs font-mono">
                             {item.identification || "—"}
                           </TableCell>
@@ -381,6 +438,46 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                               <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono p-2 bg-zinc-900/80 rounded-lg max-h-60 overflow-y-auto">
                                 {generateTxt(item)}
                               </pre>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {expandedChildrenId === item.id && (
+                          <TableRow key={`${item.id}-children`} className="border-zinc-800 bg-black/30">
+                            <TableCell colSpan={4} className="p-2">
+                              {loadingChildren === item.id ? (
+                                <div className="flex items-center gap-2 text-zinc-400 text-xs py-3 px-2">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando itens do combo...
+                                </div>
+                              ) : (
+                                <div className="max-h-80 overflow-y-auto rounded-md border border-zinc-800">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 text-[10px]">#</TableHead>
+                                        <TableHead className="text-zinc-500 text-[10px]">NOME</TableHead>
+                                        <TableHead className="text-zinc-500 text-[10px]">ID</TableHead>
+                                        <TableHead className="text-zinc-500 text-[10px]">LINK</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {(childrenMap[item.id] ?? []).map((c, idx) => (
+                                        <TableRow key={c.id} className="border-zinc-800/60 hover:bg-zinc-800/20">
+                                          <TableCell className="text-zinc-500 text-xs">{idx + 1}</TableCell>
+                                          <TableCell className="text-zinc-200 text-xs">{c.name}</TableCell>
+                                          <TableCell className="text-zinc-400 text-xs font-mono">{c.identification || "—"}</TableCell>
+                                          <TableCell className="text-cyan-400 text-xs truncate max-w-[240px]">
+                                            {c.identification_link ? (
+                                              <a href={c.identification_link} target="_blank" rel="noreferrer" className="hover:underline">
+                                                {c.identification_link}
+                                              </a>
+                                            ) : "—"}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         )}
