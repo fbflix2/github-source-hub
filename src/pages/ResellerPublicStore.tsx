@@ -80,7 +80,7 @@ export default function ResellerPublicStore() {
       }
       setReseller(r as ResellerPublic);
 
-      const [productsRes, imagesRes, bannersRes] = await Promise.all([
+      const [productsRes, imagesRes, bannersRes, ovsRes] = await Promise.all([
         supabase
           .from("products")
           .select("*, product_categories!inner(slug)")
@@ -93,11 +93,22 @@ export default function ResellerPublicStore() {
           .eq("active", true)
           .eq("reseller_id", r.id)
           .order("position", { ascending: true }),
+        supabase
+          .from("reseller_price_overrides")
+          .select("product_id, custom_price, enabled")
+          .eq("reseller_id", r.id),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data as any);
       if (imagesRes.data) setProxyImages(imagesRes.data);
       if (bannersRes.data) setBanners(bannersRes.data as any);
+      if (ovsRes.data) {
+        const map: Record<string, { custom_price: number; enabled: boolean }> = {};
+        (ovsRes.data as any[]).forEach((o) => {
+          map[o.product_id] = { custom_price: Number(o.custom_price), enabled: !!o.enabled };
+        });
+        setOverrides(map);
+      }
       setLoading(false);
     })();
   }, [slug]);
@@ -113,19 +124,26 @@ export default function ResellerPublicStore() {
 
   const priced = useMemo(() => {
     if (!reseller) return [];
-    return products.map((p) => {
-      const basePrice = Number(p.price || 0);
-      const newPrice =
-        reseller.proxy_price_mode === "fixed" && reseller.proxy_fixed_price !== null
-          ? Number(reseller.proxy_fixed_price)
-          : basePrice * Number(reseller.proxy_price_multiplier || 1);
-      return {
-        ...p,
-        price: newPrice,
-        image_url: p.image_url || getProxyImage(p.name),
-      };
-    });
-  }, [products, reseller, proxyImages]);
+    return products
+      .filter((p) => {
+        const o = overrides[p.id];
+        return o ? o.enabled : true;
+      })
+      .map((p) => {
+        const basePrice = Number(p.price || 0);
+        const override = overrides[p.id];
+        const newPrice = override
+          ? Number(override.custom_price)
+          : reseller.proxy_price_mode === "fixed" && reseller.proxy_fixed_price !== null
+            ? Number(reseller.proxy_fixed_price)
+            : basePrice * Number(reseller.proxy_price_multiplier || 1);
+        return {
+          ...p,
+          price: newPrice,
+          image_url: p.image_url || getProxyImage(p.name),
+        };
+      });
+  }, [products, reseller, proxyImages, overrides]);
 
   const filtered = useMemo(() => {
     if (activePurpose === "Todos") return priced;
