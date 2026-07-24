@@ -6,6 +6,7 @@ import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useResellerContext } from "@/hooks/useResellerContext";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
+  const { resellerId } = useResellerContext();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
   const initialQty = parseInt(searchParams.get("qty") || "1");
@@ -567,6 +569,7 @@ export default function Checkout() {
           status: "processing",
           coupon_code: null,
           partner_id: partnerRefId || null,
+          reseller_id: resellerId || null,
         }).select("id").single();
 
         if (error) {
@@ -1335,6 +1338,7 @@ export default function Checkout() {
         const proxyDataForPix = getProxyPurchaseData();
         const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
         const pixBody: any = { amount: chargeTotal, order_id: orderId };
+        if (resellerId) pixBody.reseller_id = resellerId;
         if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
