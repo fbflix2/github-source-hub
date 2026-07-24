@@ -343,7 +343,6 @@ export default function RevendaPortal() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "overview", label: "Catálogo & Preços", icon: Package },
     { id: "clientes", label: "Clientes", icon: Users },
-    { id: "vendas", label: "Vendas", icon: Receipt },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
