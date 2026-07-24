@@ -26,6 +26,12 @@ interface NavbarProps {
   resellerOnly?: boolean;
   onLogout: () => void;
   unreadTickets?: number;
+  allowedKeys?: string[];
+  logoOverride?: string;
+  brandNameOverride?: string;
+  linkOverrides?: Record<string, string>;
+  hideTickets?: boolean;
+  hideNotifications?: boolean;
 }
 
 const allNavLinks = [
@@ -47,7 +53,7 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0 }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false }: NavbarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
@@ -67,16 +73,20 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
   }, []);
 
   const isPartnerMode = location.pathname === "/parceria";
-  const navLinks = resellerOnly ? [] : allNavLinks.filter(link => !hiddenLinks.includes(link.key));
+  const navLinks = resellerOnly
+    ? []
+    : allNavLinks
+        .filter(link => (allowedKeys ? allowedKeys.includes(link.key) : !hiddenLinks.includes(link.key)))
+        .map(link => linkOverrides?.[link.key] ? { ...link, url: linkOverrides[link.key] } : link);
   const currentTab = searchParams.get("tab") || "";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <NavLink to={resellerOnly ? "/revenda" : "/loja"} className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
-          <img src={logoFbflix} alt="FBFLIX" style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
-          <span className="sr-only">FBFLIX</span>
+        <NavLink to={linkOverrides?.loja || (resellerOnly ? "/revenda" : "/loja")} className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
+          <img src={logoOverride || logoFbflix} alt={brandNameOverride || "FBFLIX"} style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
+          <span className="sr-only">{brandNameOverride || "FBFLIX"}</span>
         </NavLink>
 
         {/* Navigation Links */}
@@ -133,10 +143,10 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Notification Popup Overlay */}
-          {!resellerOnly && <NotificationPopup />}
+          {!resellerOnly && !hideNotifications && <NotificationPopup />}
 
           {/* Tickets Button */}
-          {!resellerOnly && <NavLink
+          {!resellerOnly && !hideTickets && <NavLink
             to="/tickets"
             className="relative flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-primary/10 transition-all group"
           >
