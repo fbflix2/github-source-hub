@@ -287,13 +287,53 @@ export default function ResellerPublicStore() {
                 <MessageCircle className="size-4" /> WhatsApp
               </button>
             )}
-            <button
-              onClick={() => navigate("/auth")}
-              className="px-4 py-2 rounded-lg text-white text-xs font-bold transition hover:opacity-90"
-              style={{ background: primaryColor }}
-            >
-              Entrar
-            </button>
+            {currentUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border hover:bg-muted transition"
+                  >
+                    {currentUser.avatar_url ? (
+                      <img src={currentUser.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                        style={{ background: primaryColor }}
+                      >
+                        {(currentUser.full_name || currentUser.email || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="hidden sm:inline text-xs font-semibold text-foreground max-w-[120px] truncate">
+                      {currentUser.full_name || currentUser.email?.split("@")[0] || "Minha conta"}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate">
+                    {currentUser.full_name || currentUser.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                    <UserIcon className="size-4 mr-2" /> Meu Perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/orders")}>
+                    <Package className="size-4 mr-2" /> Meus Pedidos
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500">
+                    <LogOut className="size-4 mr-2" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="px-4 py-2 rounded-lg text-white text-xs font-bold transition hover:opacity-90"
+                style={{ background: primaryColor }}
+              >
+                Entrar
+              </button>
+            )}
           </div>
         </div>
       </header>
