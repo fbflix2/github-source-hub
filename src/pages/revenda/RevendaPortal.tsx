@@ -346,7 +346,6 @@ export default function RevendaPortal() {
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
-    { id: "link", label: "Link de Revenda", icon: Globe },
     { id: "minha-loja", label: "Minha Loja", icon: ShoppingBag },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
     {
@@ -355,6 +354,7 @@ export default function RevendaPortal() {
       icon: Settings,
       children: [
         { id: "dominio", label: "Domínio Próprio", icon: Globe },
+        { id: "link", label: "Link de Revenda", icon: Globe },
         { id: "identidade", label: "Identidade Visual", icon: Palette },
         { id: "banners", label: "Banners da Loja", icon: ImageIcon },
         { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
