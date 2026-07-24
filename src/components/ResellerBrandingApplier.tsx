@@ -74,6 +74,47 @@ export default function ResellerBrandingApplier() {
   const primary = branding?.primary_color || userReseller?.primary_color || null;
   const accent = branding?.accent_color || userReseller?.accent_color || null;
 
+  // Aplica título e favicon do revendedor globalmente (aba/topo do navegador)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const brandName = branding?.brand_name || branding?.company_name;
+    const favicon = branding?.favicon_url || branding?.logo_url;
+    if (!brandName && !favicon) return;
+
+    if (brandName) {
+      document.title = brandName;
+    }
+
+    if (favicon) {
+      const selectors = [
+        'link[rel="icon"]',
+        'link[rel="shortcut icon"]',
+        'link[rel="apple-touch-icon"]',
+        'link[rel="mask-icon"]',
+      ];
+      selectors.forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => el.parentNode?.removeChild(el));
+      });
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.href = favicon;
+      link.setAttribute("data-reseller-favicon", "true");
+      document.head.appendChild(link);
+
+      const apple = document.createElement("link");
+      apple.rel = "apple-touch-icon";
+      apple.href = favicon;
+      apple.setAttribute("data-reseller-favicon", "true");
+      document.head.appendChild(apple);
+
+      const msTile = document.querySelector('meta[name="msapplication-TileImage"]');
+      if (msTile) msTile.setAttribute("content", favicon);
+
+      const ogImg = document.querySelector('meta[property="og:image"]');
+      if (ogImg) ogImg.setAttribute("content", favicon);
+    }
+  }, [branding?.brand_name, branding?.company_name, branding?.favicon_url, branding?.logo_url]);
+
   useEffect(() => {
     const STYLE_ID = "reseller-branding-vars-global";
     const existing = document.getElementById(STYLE_ID);
