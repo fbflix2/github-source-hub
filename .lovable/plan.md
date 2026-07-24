@@ -1,41 +1,61 @@
-# Estorno com devolução ao estoque (todos os tipos, opção A)
+# Pipeline de checkout revendedor
 
-## Objetivo
+Tornar a venda de proxies (e demais produtos) totalmente funcional no domínio do revendedor, com:
+- Cobrança feita no gateway OpenPix do revendedor
+- Débito automático do custo FBFlix do `balance_credits`
+- Rastreio via `reseller_id` em pedidos e comissões
 
-Permitir que um admin, ao aprovar o estorno de um pedido, devolva automaticamente ao estoque os itens vendidos (BM, perfil, proxy, combos, páginas, etc.) e faça com que esse pedido **suma das telas de gestão** (BMs, Perfis, Central Proxy), sem apagar o histórico financeiro.
+## 1. Detecção do revendedor no checkout
 
-## Fluxo
+- Novo hook `useResellerContext()` que resolve o `reseller_id` a partir do hostname (via RPC `get_reseller_slug_by_domain` já existente) ou do slug em `/r/:slug`.
+- Persistir `reseller_id` no `localStorage` (`fbflix_reseller_id`) durante a sessão de compra.
+- Injetar `reseller_id` no payload de `Checkout.tsx` e nas chamadas `supabase.functions.invoke("create-pix-payment", ...)`.
 
-1. Admin abre um pedido em **Pedidos** e clica em **"Estornar e devolver ao estoque"**.
-2. Modal de confirmação lista os itens que voltarão ao estoque.
-3. Ao confirmar, a operação faz tudo em uma transação:
-   - Solta cada `stock_item` do pedido: `order_item_id = NULL`, `status = 'revisado'` (pai + filhos de combo).
-   - Reseta `bm_tracking` correspondente para `em_estoque`, limpando `client_user_id`, `order_id`, `order_item_id`, `sold_at`, `sale_price`, `expires_at` distante.
-   - Libera `subscriptions` de proxy vinculadas àquele pedido (volta ao pool).
-   - Libera `ct_pool_items` (combos ScalePro) que estavam atribuídos.
-   - Marca `orders.status = 'refunded'` — os triggers já existentes cuidam de comissões de parceiros/revendedores.
-   - Credita o valor do pedido na **carteira** do cliente (`profiles.balance` + `wallet_transactions`), conforme conversado. Se preferir estorno externo (PIX), o admin cancela sem creditar via checkbox.
-4. `sync_product_stock` recalcula `products.stock` automaticamente → itens reaparecem na loja.
+## 2. Botão "Comprar" da loja pública
 
-## Telas de gestão — filtro por status
+- Na loja pública (quando `reseller_id` presente), o botão principal do card de produto vira "Comprar agora" → navega direto para `/checkout?product=<id>&reseller=<id>`.
+- Mantém carrinho como opção secundária.
 
-Adiciono filtro `orders.status NOT IN ('refunded','cancelled')` (ou pela flag do pedido) nas consultas de:
+## 3. Edge functions de pagamento
 
-- Gestão de BMs (`AdminGestaoBMs`)
-- Gestão de Perfis / rastreamento
-- Central Proxy (`AdminCentralProxy`) — itens de pedidos estornados somem da lista de "vendidos"
+Atualizar `create-pix-payment` e `create-card-payment` (Appmax quando pronto):
 
-Isso não apaga registros: o histórico continua acessível em Pedidos com o status `refunded`.
+- Aceitar `reseller_id` no body.
+- Se `reseller_id` presente e revendedor `active/warning`:
+  - Buscar credenciais OpenPix do próprio revendedor (`resellers.openpix_app_id`).
+  - Criar cobrança nesse gateway.
+- Se ausente ou revendedor inativo → cair no gateway FBFlix (comportamento atual).
+- Persistir `reseller_id` em `orders` e `payments`.
+
+## 4. Débito do custo FBFlix
+
+Já existe o trigger `process_reseller_commission()` que debita `reseller_cost` do `balance_credits` quando `orders.status='completed'`. Vamos:
+
+- Garantir que o webhook OpenPix marca `orders.status='completed'` após confirmação (já faz).
+- Adicionar guarda: se `balance_credits < custo` no momento do débito → registrar débito negativo + criar `admin_notifications` avisando saldo negativo (não bloqueia entrega — cliente já pagou).
+- Exibir aviso no painel do revendedor quando `balance_credits < 0`.
+
+## 5. UI do revendedor
+
+- Card "Saldo de créditos" no `RevendaPortal` com alerta vermelho quando negativo e botão "Recarregar via PIX" (fluxo existente).
+- Aba "Vendas" já lista `reseller_commissions` — validar que aparece após o pagamento.
+
+## 6. Testes manuais
+
+1. Comprar 1 proxy pelo domínio `painel.activecontingencia.com` → PIX gerado no OpenPix do revendedor.
+2. Confirmar pagamento → pedido `completed`, proxy entregue, `balance_credits` do revendedor reduzido pelo `reseller_cost`, `reseller_commissions` criado.
+3. Recomprar com saldo insuficiente → entrega ocorre, saldo fica negativo, notificação para admin.
 
 ## Detalhes técnicos
 
-- **Migration**: função `public.admin_refund_and_restock_order(_order_id uuid, _credit_wallet boolean)` `SECURITY DEFINER`, restrita a `has_role(auth.uid(), 'admin')`. Percorre `order_items`, chama a lógica descrita, retorna JSON com contagem por tipo.
-- **RPC**: chamada do frontend via `supabase.rpc('admin_refund_and_restock_order', ...)`.
-- **UI**: novo botão em `AdminPedidos.tsx` (linha de ação do pedido) + modal de confirmação com preview dos itens e checkbox "Creditar na carteira do cliente" (default: marcado).
-- **Guardas**: se o pedido já estiver `refunded`, botão fica desabilitado. Se algum `stock_item` já estiver reciclado/deletado, ignora com aviso não-fatal.
-- **Telas de gestão**: ajuste no `.select(...)` para trazer `orders.status` e filtrar em SQL/cliente.
+- **Arquivos alterados:**
+  - `src/hooks/useResellerContext.ts` (novo)
+  - `src/pages/Checkout.tsx`
+  - `src/pages/PublicStore.tsx` (ou equivalente do card de produto público)
+  - `src/pages/revenda/RevendaPortal.tsx` (card saldo)
+  - `supabase/functions/create-pix-payment/index.ts`
+  - `supabase/functions/openpix-webhook/index.ts` (garantir set de `reseller_id`)
+- **Migração:** garantir `orders.reseller_id`, `payments.reseller_id` (já existem — confirmar), e trigger `autofill_order_reseller_id` (já existe).
+- Appmax fica para uma segunda etapa (quando a conta estiver criada).
 
-## Fora do escopo
-
-- Retorno de dinheiro real via PIX/MercadoPago (fica manual — o crédito na carteira cobre o caso comum).
-- Reversão de aquecimento/tarefas do operador (permanecem no histórico).
+Depois da aprovação, começo pela detecção + edge function e sigo até o débito automático.
