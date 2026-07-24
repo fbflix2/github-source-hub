@@ -41,6 +41,7 @@ import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
+import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
@@ -52,7 +53,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
-import { Ticket, Wrench, CreditCard } from "lucide-react";
+import { Ticket, Wrench, CreditCard, Package } from "lucide-react";
 import { Image as ImageIcon } from "lucide-react";
 
 // Converte #RRGGBB para o formato "H S% L%" usado pelas variáveis CSS do design system
@@ -340,7 +341,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "overview", label: "Loja", icon: Store },
+    { id: "overview", label: "Catálogo & Preços", icon: Package },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "vendas", label: "Vendas", icon: Receipt },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
@@ -677,29 +678,15 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "overview" && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Banner acima */}
-                <ResellerLoja
-                  resellerId={reseller.id}
-                  primaryColor={reseller.primary_color}
-                  bannerOnly
-                />
-
-                {/* Greeting */}
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-                    Bem-vindo, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{reseller.brand_name || reseller.company_name}</span>
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">Visão geral do seu painel de revenda</p>
-                </div>
-
-                {/* Catálogo abaixo */}
-                <ResellerLoja
-                  resellerId={reseller.id}
-                  primaryColor={reseller.primary_color}
-                  catalogOnly
-                />
-              </div>
+              <ResellerCatalogoPrecos
+                resellerId={reseller.id}
+                model={reseller.model}
+                proxyUnitCost={Number(reseller.proxy_unit_cost || 0)}
+                commissionRate={Number(reseller.commission_rate || 0)}
+                proxyPriceMultiplier={reseller.proxy_price_multiplier ?? 1.5}
+                proxyFixedPrice={reseller.proxy_fixed_price ?? null}
+                proxyPriceMode={reseller.proxy_price_mode ?? "multiplier"}
+              />
             )}
 
             {activeSection === "loja" && (
