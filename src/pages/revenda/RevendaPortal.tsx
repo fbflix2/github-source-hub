@@ -1239,36 +1239,6 @@ export default function RevendaPortal() {
           </Card>
             )}
 
-            {activeSection === "ajuda" && (
-              <Card className="p-5 bg-card/60 border-border/40 space-y-3">
-                <div className="flex items-center gap-2">
-                  <LifeBuoy className="size-4 text-primary" />
-                  <h3 className="font-bold">Como funciona o programa</h3>
-                </div>
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    Seu modelo atual é{" "}
-                    <strong className="text-foreground">
-                      {reseller.model === "percentage" ? "Comissão por %" : "Créditos pré-pagos"}
-                    </strong>
-                    .
-                  </p>
-                  {reseller.model === "percentage" ? (
-                    <>
-                      <p>• Comissões ficam pendentes por 7 dias antes de creditar.</p>
-                      <p>• Mantenha {reseller.min_proxies_per_month} proxies ativos/mês.</p>
-                      <p>• Sem recarga, sem custo fixo.</p>
-                    </>
-                  ) : (
-                    <>
-                      <p>• Compre proxies por R$ {Number(reseller.proxy_unit_cost).toFixed(2)}.</p>
-                      <p>• Recarga mínima: R$ {Number(reseller.min_monthly_recharge).toFixed(2)}/mês.</p>
-                      <p>• Revenda pelo preço que quiser.</p>
-                    </>
-                  )}
-                </div>
-              </Card>
-            )}
           </div>
         </div>
       </main>
