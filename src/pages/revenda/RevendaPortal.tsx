@@ -341,7 +341,6 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "overview", label: "Catálogo & Preços", icon: Package },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
