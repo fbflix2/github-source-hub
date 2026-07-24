@@ -41,12 +41,43 @@ interface BumpProduct {
   icon_type: string | null;
 }
 
+const MAIN_CHECKOUT_HOSTS = [
+  "fbflix.com.br",
+  "www.fbflix.com.br",
+  "fbflix1.lovable.app",
+  "localhost",
+];
+
+const hasResellerCheckoutSignal = (searchParams: URLSearchParams) => {
+  if (searchParams.get("r")) return true;
+  if (typeof window === "undefined") return false;
+
+  const host = window.location.hostname.toLowerCase();
+  const isMainHost =
+    !host ||
+    MAIN_CHECKOUT_HOSTS.includes(host) ||
+    host.endsWith(".lovableproject.com") ||
+    host.endsWith(".lovable.app");
+
+  if (!isMainHost) return true;
+
+  try {
+    return Boolean(
+      localStorage.getItem("fbflix_reseller_id") ||
+      localStorage.getItem("fbflix_reseller_slug")
+    );
+  } catch {
+    return false;
+  }
+};
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
-  const { resellerId } = useResellerContext();
+  const { resellerId, loading: resellerContextLoading } = useResellerContext();
+  const isResellerCheckout = resellerContextLoading || Boolean(resellerId) || hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
   const initialQty = parseInt(searchParams.get("qty") || "1");
@@ -424,6 +455,12 @@ export default function Checkout() {
 
   // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
+    if (isResellerCheckout) {
+      setSelectedBumps([]);
+      setBumpProducts([]);
+      setPromoProxy(null);
+      return;
+    }
     if (!product) return;
     const fetchBumps = async () => {
       // 1. Check for admin-configured bumps
@@ -543,7 +580,7 @@ export default function Checkout() {
       setPromoProxy(promoData || null);
     };
     fetchBumps();
-  }, [product]);
+  }, [product, isResellerCheckout]);
 
   // Create draft order when entering checkout (for abandoned cart tracking)
   // Skip if resuming an existing order
@@ -710,6 +747,7 @@ export default function Checkout() {
 
   // Smart complementary bumps: detect main product type and show only different categories
   const relevantBumps = useMemo(() => {
+    if (isResellerCheckout) return [];
     if (!product || bumpProducts.length === 0) return [];
 
     const mainName = (product.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -801,7 +839,7 @@ export default function Checkout() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map(s => s.bump);
-  }, [product, bumpProducts]);
+  }, [product, bumpProducts, isResellerCheckout]);
 
   const subtotal = useMemo(() => {
     if (!product) return 0;
@@ -821,13 +859,15 @@ export default function Checkout() {
       total += ciPrice * ci.quantity;
     });
 
-    selectedBumps.forEach((bumpId) => {
-      const bump = bumpProducts.find((b) => b.id === bumpId);
-      if (bump) total += bump.price;
-    });
+    if (!isResellerCheckout) {
+      selectedBumps.forEach((bumpId) => {
+        const bump = bumpProducts.find((b) => b.id === bumpId);
+        if (bump) total += bump.price;
+      });
+    }
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile, isResellerCheckout]);
 
   const total = subtotal - discount;
 
@@ -1018,13 +1058,15 @@ export default function Checkout() {
 
       // Add bump order items if any
       const extraItems: any[] = [];
-      selectedBumps.forEach(bumpId => {
-        const bump = bumpProducts.find(b => b.id === bumpId);
-        if (bump) {
-          const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
-          extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
-        }
-      });
+      if (!isResellerCheckout) {
+        selectedBumps.forEach(bumpId => {
+          const bump = bumpProducts.find(b => b.id === bumpId);
+          if (bump) {
+            const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
+            extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
+          }
+        });
+      }
         if (extraItems.length > 0) {
           const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
           if (extraItemsError) throw extraItemsError;
@@ -1815,7 +1857,7 @@ export default function Checkout() {
           </section>
 
           {/* Order Bumps Section */}
-          {!resellerId && relevantBumps.length > 0 && (
+          {!isResellerCheckout && relevantBumps.length > 0 && (
             <section className="glass-panel rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">
               <div className="flex flex-col gap-0.5 z-10">
                 <h2 className="text-sm font-bold flex items-center gap-2 text-foreground">
@@ -1864,7 +1906,7 @@ export default function Checkout() {
           <div className="sticky top-24 flex flex-col gap-3">
             {/* Upsell Offer - Proxy IPV4 Contingência only for non-proxy products */}
             {(() => {
-              if (resellerId) return null;
+              if (isResellerCheckout) return null;
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
               // When bumps are admin-configured, the main bump is already set in promoProxy with correct price
               const hasConfiguredBumps = (promoProxy as any)?._label;
@@ -1958,7 +2000,7 @@ export default function Checkout() {
                     </button>
                   </div>
                 ))}
-                {selectedBumps.map((bumpId) => {
+                {!isResellerCheckout && selectedBumps.map((bumpId) => {
                   const bump = bumpProducts.find((b) => b.id === bumpId);
                   if (!bump) return null;
                   return (
