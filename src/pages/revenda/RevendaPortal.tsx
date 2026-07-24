@@ -369,17 +369,29 @@ export default function RevendaPortal() {
 
   return (
     <div
-      className="reseller-portal-root fixed inset-0 flex w-full font-display overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground"
+      className="reseller-portal-root fixed inset-0 flex w-full font-display overflow-hidden text-foreground selection:bg-primary selection:text-primary-foreground"
       style={(() => {
         const hsl = hexToHslTriplet(reseller.primary_color || "");
-        return hsl
-          ? ({
-              ["--primary" as any]: hsl,
-              ["--ring" as any]: hsl,
-              ["--sidebar-primary" as any]: hsl,
-              ["--sidebar-ring" as any]: hsl,
-            } as React.CSSProperties)
-          : undefined;
+        const base: React.CSSProperties = {
+          // Tonalidade azul-navy premium para o painel do revendedor
+          background:
+            "radial-gradient(1200px 800px at 15% -10%, hsl(215 55% 14%) 0%, transparent 60%), radial-gradient(1000px 700px at 110% 110%, hsl(220 50% 12%) 0%, transparent 55%), hsl(220 45% 8%)",
+          ["--background" as any]: "220 45% 8%",
+          ["--card" as any]: "220 40% 11%",
+          ["--popover" as any]: "220 40% 11%",
+          ["--muted" as any]: "220 30% 15%",
+          ["--secondary" as any]: "220 30% 14%",
+          ["--border" as any]: "215 40% 100% / 0.06",
+          ["--input" as any]: "220 35% 13%",
+          ["--sidebar-background" as any]: "220 45% 9%",
+        };
+        if (hsl) {
+          base["--primary" as any] = hsl;
+          base["--ring" as any] = hsl;
+          base["--sidebar-primary" as any] = hsl;
+          base["--sidebar-ring" as any] = hsl;
+        }
+        return base;
       })()}
     >
       {/* Background */}
@@ -426,7 +438,6 @@ export default function RevendaPortal() {
               <p className="text-sm font-bold text-foreground truncate">
                 {reseller.brand_name || reseller.company_name}
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Reseller Panel</p>
             </div>
           </div>
           <button
