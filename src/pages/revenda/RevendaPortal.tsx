@@ -561,7 +561,7 @@ export default function RevendaPortal() {
               return (
                 <button
                   type="button"
-                  onClick={() => setActiveTab("financeiro")}
+                  onClick={() => navigate("/revenda?tab=financeiro")}
                   className={cn(
                     "hidden sm:flex items-center gap-2 border px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-colors group",
                     positive
