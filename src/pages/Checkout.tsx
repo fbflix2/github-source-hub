@@ -1058,13 +1058,15 @@ export default function Checkout() {
 
       // Add bump order items if any
       const extraItems: any[] = [];
-      selectedBumps.forEach(bumpId => {
-        const bump = bumpProducts.find(b => b.id === bumpId);
-        if (bump) {
-          const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
-          extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
-        }
-      });
+      if (!isResellerCheckout) {
+        selectedBumps.forEach(bumpId => {
+          const bump = bumpProducts.find(b => b.id === bumpId);
+          if (bump) {
+            const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
+            extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
+          }
+        });
+      }
         if (extraItems.length > 0) {
           const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
           if (extraItemsError) throw extraItemsError;
@@ -1998,7 +2000,7 @@ export default function Checkout() {
                     </button>
                   </div>
                 ))}
-                {selectedBumps.map((bumpId) => {
+                {!isResellerCheckout && selectedBumps.map((bumpId) => {
                   const bump = bumpProducts.find((b) => b.id === bumpId);
                   if (!bump) return null;
                   return (
