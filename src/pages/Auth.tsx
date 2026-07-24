@@ -8,7 +8,10 @@ import { useResellerBranding } from "@/hooks/useResellerBranding";
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { branding } = useResellerBranding();
+  const { branding, loading: brandingLoading } = useResellerBranding();
+  const isCustomDomain =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-custom-domain") === "1";
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -303,6 +306,8 @@ export default function Auth() {
                      {branding.brand_name || branding.company_name}
                    </span>
                  </>
+               ) : isCustomDomain || brandingLoading ? (
+                 <div className="w-20 h-20 rounded-xl bg-muted/30 animate-pulse" />
                ) : (
                  <>
                    <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
