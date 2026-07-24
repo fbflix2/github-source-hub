@@ -517,11 +517,14 @@ export default function RevendaPortal() {
         {/* Sidebar Footer */}
         <div className="p-3 space-y-2">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              setSidebarOpen(false);
+              setSidebarCollapsed(true);
+            }}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
           >
-            <LogOut className="size-4" />
-            <span>Sair</span>
+            <ChevronLeft className="size-4" />
+            <span>Recolher painel</span>
           </button>
         </div>
       </aside>
