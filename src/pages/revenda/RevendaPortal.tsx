@@ -1281,7 +1281,7 @@ function StatCard({
   accent?: string;
 }) {
   return (
-    <Card className="p-4 bg-white/[0.02] border-white/5 shadow-none backdrop-blur-sm">
+    <Card className="p-4 bg-card/40 border-border/50 shadow-none backdrop-blur-sm">
       <div className="flex items-center gap-2 text-muted-foreground text-xs">
         {icon} {label}
       </div>
