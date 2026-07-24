@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Image as ImageIcon, Plus, Pencil, Trash2, ExternalLink, Loader2, Upload } from "lucide-react";
+import { Image as ImageIcon, Plus, Pencil, Trash2, ExternalLink, Loader2, Upload, Lightbulb, Ruler, Megaphone, Sparkles } from "lucide-react";
 
 interface Banner {
   id: string;
@@ -166,6 +166,51 @@ export function ResellerBannersManager({ resellerId }: Props) {
         <Button onClick={openNew} className="gap-2">
           <Plus className="size-4" /> Novo banner
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="rounded-xl border border-border/50 bg-card/40 p-3 space-y-1">
+          <div className="flex items-center gap-2 text-primary">
+            <Ruler className="size-4" />
+            <span className="text-xs font-bold uppercase tracking-wide">Tamanho ideal</span>
+          </div>
+          <p className="text-sm font-semibold">1920 × 640 px (proporção 3:1)</p>
+          <p className="text-xs text-muted-foreground">
+            Mínimo recomendado: <strong>1200 × 400 px</strong>. Formatos aceitos: JPG, PNG ou WebP até 2 MB. Evite textos muito próximos das bordas — deixe uma margem segura de ~80 px.
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-card/40 p-3 space-y-1">
+          <div className="flex items-center gap-2 text-primary">
+            <Lightbulb className="size-4" />
+            <span className="text-xs font-bold uppercase tracking-wide">Boas práticas de design</span>
+          </div>
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+            <li>Use uma única mensagem principal por banner (headline curto).</li>
+            <li>Contraste alto entre texto e fundo — nada de texto pequeno.</li>
+            <li>Inclua sempre um CTA claro: "Comprar agora", "Aproveitar", "Ver oferta".</li>
+            <li>Mantenha a identidade visual da sua marca (cores, logo, tipografia).</li>
+          </ul>
+        </div>
+        <div className="rounded-xl border border-border/50 bg-card/40 p-3 space-y-1">
+          <div className="flex items-center gap-2 text-primary">
+            <Megaphone className="size-4" />
+            <span className="text-xs font-bold uppercase tracking-wide">Como impulsionar vendas</span>
+          </div>
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+            <li><strong>Gatilhos de urgência:</strong> "Só hoje", "Últimas unidades", "Promo relâmpago".</li>
+            <li><strong>Prova social:</strong> destaque números — "+500 clientes ativos".</li>
+            <li><strong>Ofertas segmentadas:</strong> um banner por categoria (proxies, BMs, combos).</li>
+            <li><strong>Rotação semanal:</strong> troque banners a cada 7–15 dias para manter novidade.</li>
+            <li><strong>Link direto:</strong> aponte o CTA para o produto/categoria — evite página inicial.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <Sparkles className="size-4 text-primary mt-0.5 shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          <strong className="text-foreground">Dica pro:</strong> mantenha entre 2 e 4 banners ativos por vez. Menos que isso perde impacto, mais que isso confunde o cliente. Use a <strong>posição</strong> para controlar a ordem de exibição — o de posição <strong>0</strong> aparece primeiro.
+        </p>
       </div>
 
       {loading ? (
