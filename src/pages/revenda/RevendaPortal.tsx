@@ -678,29 +678,15 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "overview" && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Banner acima */}
-                <ResellerLoja
-                  resellerId={reseller.id}
-                  primaryColor={reseller.primary_color}
-                  bannerOnly
-                />
-
-                {/* Greeting */}
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-                    Bem-vindo, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{reseller.brand_name || reseller.company_name}</span>
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">Visão geral do seu painel de revenda</p>
-                </div>
-
-                {/* Catálogo abaixo */}
-                <ResellerLoja
-                  resellerId={reseller.id}
-                  primaryColor={reseller.primary_color}
-                  catalogOnly
-                />
-              </div>
+              <ResellerCatalogoPrecos
+                resellerId={reseller.id}
+                model={reseller.model}
+                proxyUnitCost={Number(reseller.proxy_unit_cost || 0)}
+                commissionRate={Number(reseller.commission_rate || 0)}
+                proxyPriceMultiplier={reseller.proxy_price_multiplier ?? 1.5}
+                proxyFixedPrice={reseller.proxy_fixed_price ?? null}
+                proxyPriceMode={reseller.proxy_price_mode ?? "multiplier"}
+              />
             )}
 
             {activeSection === "loja" && (
