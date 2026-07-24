@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    const { amount, order_id, proxy_data } = await req.json();
+    const { amount, order_id, proxy_data, reseller_id } = await req.json();
     const numericAmount = Number(amount);
 
     if (!numericAmount || numericAmount < 1) {
@@ -50,6 +50,53 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // --- Resolve gateway credentials (reseller-aware) ---
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    let effectiveAppId = OPENPIX_APP_ID;
+    let effectiveResellerId: string | null = reseller_id || null;
+
+    // If order already has reseller_id, prefer it
+    if (order_id) {
+      const { data: orderRow } = await adminClient
+        .from("orders")
+        .select("reseller_id")
+        .eq("id", order_id)
+        .maybeSingle();
+      if (orderRow?.reseller_id) effectiveResellerId = orderRow.reseller_id;
+    }
+
+    if (effectiveResellerId) {
+      const { data: reseller } = await adminClient
+        .from("resellers")
+        .select("id, gateway_openpix_app_id, status")
+        .eq("id", effectiveResellerId)
+        .maybeSingle();
+      if (
+        reseller &&
+        ["active", "warning"].includes(String(reseller.status)) &&
+        reseller.gateway_openpix_app_id &&
+        String(reseller.gateway_openpix_app_id).trim().length > 0
+      ) {
+        effectiveAppId = String(reseller.gateway_openpix_app_id).trim();
+        console.log(`[create-pix-payment] Using reseller gateway for ${effectiveResellerId}`);
+      } else {
+        console.log(`[create-pix-payment] Reseller ${effectiveResellerId} sem gateway próprio, usando FBFlix`);
+      }
+
+      // Make sure the order carries reseller_id (in case autofill did not run)
+      if (order_id) {
+        await adminClient
+          .from("orders")
+          .update({ reseller_id: effectiveResellerId })
+          .eq("id", order_id)
+          .is("reseller_id", null);
+      }
     }
 
     // Create payment record
@@ -63,7 +110,11 @@ Deno.serve(async (req) => {
         gateway: "openpix",
         status: "pending",
         order_id: order_id || null,
-        metadata: { type: order_id ? "order_payment" : "wallet_recharge" },
+        metadata: {
+          type: order_id ? "order_payment" : "wallet_recharge",
+          reseller_id: effectiveResellerId,
+          gateway_owner: effectiveResellerId && effectiveAppId !== OPENPIX_APP_ID ? "reseller" : "fbflix",
+        },
       })
       .select("id")
       .single();
@@ -75,11 +126,7 @@ Deno.serve(async (req) => {
 
     // Persist proxy_data if provided
     if (proxy_data && order_id) {
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-      const { data: orderItems } = await supabaseAdmin
+      const { data: orderItems } = await adminClient
         .from("order_items")
         .select("id")
         .eq("order_id", order_id);
@@ -93,7 +140,7 @@ Deno.serve(async (req) => {
           quantity: proxy_data.quantity || 1,
           interval: proxy_data.interval || "monthly",
         };
-        await supabaseAdmin
+        await adminClient
           .from("order_items")
           .update({ delivery_data: deliveryData })
           .eq("id", orderItems[0].id);
@@ -105,7 +152,7 @@ Deno.serve(async (req) => {
     const openPixResponse = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
       headers: {
-        Authorization: OPENPIX_APP_ID,
+        Authorization: effectiveAppId,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -135,7 +182,7 @@ Deno.serve(async (req) => {
     try {
       // Try official v1 endpoint for base64 qrcode
       const imgResponse = await fetch(`https://api.openpix.com.br/api/v1/charge/${charge.identifier}/qrcode?format=base64`, {
-        headers: { Authorization: OPENPIX_APP_ID }
+        headers: { Authorization: effectiveAppId }
       });
       
       if (imgResponse.ok) {
@@ -156,16 +203,14 @@ Deno.serve(async (req) => {
     }
 
     // Update payment with gateway reference
-    const supabaseAdminForUpdate = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-    await supabaseAdminForUpdate
+    await adminClient
       .from("payments")
       .update({
         gateway_reference: charge.identifier,
         metadata: {
           type: order_id ? "order_payment" : "wallet_recharge",
+          reseller_id: effectiveResellerId,
+          gateway_owner: effectiveResellerId && effectiveAppId !== OPENPIX_APP_ID ? "reseller" : "fbflix",
           openpix_charge_id: charge.identifier,
           openpix_status: charge.status,
         },
