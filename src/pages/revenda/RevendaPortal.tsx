@@ -29,6 +29,7 @@ import {
   Sparkles,
   Settings,
   ChevronDown,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -145,6 +146,7 @@ export default function RevendaPortal() {
     "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes" | "banners"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const navigate = useNavigate();
   const [brand, setBrand] = useState({
@@ -398,8 +400,9 @@ export default function RevendaPortal() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl transition-transform duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl transition-all duration-300 overflow-hidden",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          sidebarCollapsed && "lg:-translate-x-full lg:w-0"
         )}
       >
         {/* Sidebar Header */}
@@ -515,11 +518,14 @@ export default function RevendaPortal() {
         {/* Sidebar Footer */}
         <div className="p-3 space-y-2">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              setSidebarOpen(false);
+              setSidebarCollapsed(true);
+            }}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
           >
-            <LogOut className="size-4" />
-            <span>Sair</span>
+            <ChevronLeft className="size-4" />
+            <span>Recolher painel</span>
           </button>
         </div>
       </aside>
@@ -530,8 +536,15 @@ export default function RevendaPortal() {
         <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 bg-background/60 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
-              onClick={() => setSidebarOpen(true)}
+              className={cn(
+                "p-2 rounded-lg hover:bg-muted/50 text-muted-foreground",
+                !sidebarCollapsed && "lg:hidden"
+              )}
+              onClick={() => {
+                setSidebarOpen(true);
+                setSidebarCollapsed(false);
+              }}
+              title="Abrir painel"
             >
               <Menu className="size-5" />
             </button>
