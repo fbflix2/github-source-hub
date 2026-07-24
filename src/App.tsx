@@ -190,10 +190,11 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
 
   useEffect(() => {
     let cancelled = false;
+    const mainHosts = ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"];
     // Honor ?redirect=... on /auth so that a logged-in customer arriving
     // from a reseller store "Comprar" button lands on /checkout instead of
     // being kicked to /loja.
-    const computeCustomerTarget = (): string => {
+    const computeCustomerTarget = async (): Promise<string> => {
       try {
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect");
@@ -205,15 +206,26 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
           const qs = forwarded.toString();
           return qs ? `${redirect}?${qs}` : redirect;
         }
+        const host = window.location.hostname.toLowerCase();
+        const isMainHost =
+          mainHosts.includes(host) ||
+          host.endsWith(".lovableproject.com") ||
+          host.endsWith(".lovable.app");
+        if (!isMainHost && (fallback === "/loja" || fallback === "/")) {
+          const { data: slug } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+          if (slug) return `/r/${slug as string}`;
+        }
       } catch { /* noop */ }
       return fallback;
     };
     checkIsReseller(user.id)
-      .then((isReseller) => {
-        if (!cancelled) setTarget(isReseller ? "/revenda" : computeCustomerTarget());
+      .then(async (isReseller) => {
+        const nextTarget = isReseller ? "/revenda" : await computeCustomerTarget();
+        if (!cancelled) setTarget(nextTarget);
       })
-      .catch(() => {
-        if (!cancelled) setTarget(computeCustomerTarget());
+      .catch(async () => {
+        const nextTarget = await computeCustomerTarget();
+        if (!cancelled) setTarget(nextTarget);
       });
     return () => {
       cancelled = true;
