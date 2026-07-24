@@ -391,7 +391,8 @@ export default function Checkout() {
         .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city, show_proxy_city_on_checkout")
         .eq("user_id", user.id)
         .single();
-      setCardEnabled(profile?.card_payment_enabled ?? false);
+      // Cartão ainda não liberado — força "Em breve" para todos
+      setCardEnabled(false);
       if (profile?.cpf) setCardCpf(profile.cpf);
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
       setLauthEmail((profile as any)?.lauth_email || null);
