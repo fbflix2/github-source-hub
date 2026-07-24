@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import CTCheckoutModal from "@/components/contingencia/CTCheckoutModal";
+import { useResellerContext } from "@/hooks/useResellerContext";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -80,7 +81,7 @@ function getDaysInfo(sub: ProxySubscription) {
 
 type SubscriptionCategory = "proxies" | "safebm" | "contingencia";
 
-const categoryTabs: { key: SubscriptionCategory; label: string; icon: React.ReactNode }[] = [
+const allCategoryTabs: { key: SubscriptionCategory; label: string; icon: React.ReactNode }[] = [
   { key: "proxies", label: "Proxies", icon: <Globe className="size-4" /> },
   { key: "safebm", label: "Safe BM", icon: <Shield className="size-4" /> },
   { key: "contingencia", label: "Scale Pro", icon: <Layers className="size-4" /> },
@@ -93,6 +94,17 @@ export default function Subscriptions() {
   const [hasActiveProxy, setHasActiveProxy] = useState<boolean | null>(null);
   const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
   const navigate = useNavigate();
+  const { resellerId } = useResellerContext();
+  const isResellerClient = !!resellerId;
+  const categoryTabs = isResellerClient
+    ? allCategoryTabs.filter((t) => t.key === "proxies")
+    : allCategoryTabs;
+
+  useEffect(() => {
+    if (isResellerClient && activeCategory !== "proxies") {
+      setActiveCategory("proxies");
+    }
+  }, [isResellerClient, activeCategory]);
 
   useEffect(() => {
     (async () => {
