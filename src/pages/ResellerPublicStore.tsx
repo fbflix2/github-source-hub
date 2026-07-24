@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap, LogOut, User as UserIcon, Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ResellerPublic {
   id: string;
