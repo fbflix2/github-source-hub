@@ -145,6 +145,7 @@ export default function RevendaPortal() {
     "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes" | "banners"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const navigate = useNavigate();
   const [brand, setBrand] = useState({
@@ -398,8 +399,9 @@ export default function RevendaPortal() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl transition-transform duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "fixed lg:relative z-50 lg:z-10 h-full w-64 shrink-0 flex flex-col bg-[hsl(var(--card))]/40 backdrop-blur-2xl transition-all duration-300 overflow-hidden",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          sidebarCollapsed && "lg:-translate-x-full lg:w-0"
         )}
       >
         {/* Sidebar Header */}
