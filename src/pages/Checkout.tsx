@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResellerContext } from "@/hooks/useResellerContext";
+import { useResellerBranding } from "@/hooks/useResellerBranding";
 import {
   Dialog,
   DialogContent,
@@ -77,7 +78,13 @@ export default function Checkout() {
   const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
   const { resellerId, loading: resellerContextLoading } = useResellerContext();
-  const isResellerCheckout = resellerContextLoading || Boolean(resellerId) || hasResellerCheckoutSignal(searchParams);
+  const { branding: resellerBranding, loading: resellerBrandingLoading } = useResellerBranding();
+  const isResellerCheckout =
+    resellerContextLoading ||
+    resellerBrandingLoading ||
+    Boolean(resellerId) ||
+    Boolean(resellerBranding) ||
+    hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
   const initialQty = parseInt(searchParams.get("qty") || "1");
