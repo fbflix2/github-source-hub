@@ -13,6 +13,21 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // If the user was sent to /auth with a ?redirect=... target (e.g. from a
+  // reseller store "Comprar" button), honor it after successful login/register.
+  const getRedirectTarget = (): string | null => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get("redirect");
+    if (!redirect || !redirect.startsWith("/")) return null;
+    // Forward remaining query params (product, qty, r, etc.) to the target.
+    const forwarded = new URLSearchParams();
+    params.forEach((v, k) => {
+      if (k !== "redirect" && k !== "type") forwarded.append(k, v);
+    });
+    const qs = forwarded.toString();
+    return qs ? `${redirect}?${qs}` : redirect;
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("type") === "recovery") {
@@ -124,7 +139,12 @@ export default function Auth() {
         title: "Bem-vindo!",
         description: "Login realizado com sucesso.",
       });
-      navigate(isStaff ? "/admin" : resellerData ? "/revenda" : "/loja");
+      const target = getRedirectTarget();
+      if (target && !isStaff && !resellerData) {
+        navigate(target);
+      } else {
+        navigate(isStaff ? "/admin" : resellerData ? "/revenda" : "/loja");
+      }
     }
 
     setLoading(false);
@@ -245,7 +265,8 @@ export default function Auth() {
         title: "Conta criada!",
         description: "Você já pode fazer login.",
       });
-      navigate("/loja");
+      const target = getRedirectTarget();
+      navigate(target || "/loja");
     }
 
     setLoading(false);
