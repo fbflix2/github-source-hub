@@ -6,6 +6,7 @@ import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useResellerContext } from "@/hooks/useResellerContext";
 import {
   Dialog,
   DialogContent,
