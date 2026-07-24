@@ -536,8 +536,15 @@ export default function RevendaPortal() {
         <header className="flex items-center justify-between gap-3 px-4 lg:px-8 h-16 bg-background/60 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-2 rounded-lg hover:bg-muted/50 text-muted-foreground"
-              onClick={() => setSidebarOpen(true)}
+              className={cn(
+                "p-2 rounded-lg hover:bg-muted/50 text-muted-foreground",
+                !sidebarCollapsed && "lg:hidden"
+              )}
+              onClick={() => {
+                setSidebarOpen(true);
+                setSidebarCollapsed(false);
+              }}
+              title="Abrir painel"
             >
               <Menu className="size-5" />
             </button>
