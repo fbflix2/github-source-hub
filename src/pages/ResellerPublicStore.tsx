@@ -74,6 +74,42 @@ export default function ResellerPublicStore() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadUser = async (userId: string, email: string | null) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!mounted) return;
+      setCurrentUser({
+        id: userId,
+        email,
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+      });
+    };
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) loadUser(data.session.user.id, data.session.user.email ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user) loadUser(session.user.id, session.user.email ?? null);
+      else setCurrentUser(null);
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    toast.success("Sessão encerrada");
+  };
 
   useEffect(() => {
     if (!slug) return;
