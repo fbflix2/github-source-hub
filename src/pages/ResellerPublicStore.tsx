@@ -90,8 +90,7 @@ export default function ResellerPublicStore() {
           .from("banners")
           .select("*")
           .eq("active", true)
-          .eq("audience", "reseller")
-          .or(`reseller_id.eq.${r.id},reseller_id.is.null`)
+          .eq("reseller_id", r.id)
           .order("position", { ascending: true }),
       ]);
 

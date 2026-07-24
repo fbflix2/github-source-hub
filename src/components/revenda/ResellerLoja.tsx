@@ -46,7 +46,7 @@ interface Props {
 
 const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
-export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPrice = null, bannerOnly = false, catalogOnly = false }: Props) {
+export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, proxyFixedPrice = null, bannerOnly = false, catalogOnly = false }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [loading, setLoading] = useState(true);
@@ -71,7 +71,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
       supabase.from("products").select("*, product_categories!inner(slug)").eq("status", "active").eq("product_categories.slug", "proxy"),
       supabase.from("product_categories").select("id, slug"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
-      supabase.from("banners").select("*").eq("active", true).eq("audience", "reseller").order("position", { ascending: true }),
+      supabase.from("banners").select("*").eq("active", true).eq("reseller_id", resellerId).order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
       supabase.from("profiles").select("id", { count: "exact", head: true }),
     ]);
@@ -86,7 +86,7 @@ export function ResellerLoja({ primaryColor, proxyMultiplier = 1, proxyFixedPric
     }
     if (countRes.count) setTotalClients(countRes.count);
     setLoading(false);
-  }, []);
+  }, [resellerId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
