@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap, LogOut, User as UserIcon, Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ResellerPublic {
   id: string;
@@ -66,6 +74,42 @@ export default function ResellerPublicStore() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadUser = async (userId: string, email: string | null) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!mounted) return;
+      setCurrentUser({
+        id: userId,
+        email,
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+      });
+    };
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) loadUser(data.session.user.id, data.session.user.email ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user) loadUser(session.user.id, session.user.email ?? null);
+      else setCurrentUser(null);
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    toast.success("Sessão encerrada");
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -243,13 +287,53 @@ export default function ResellerPublicStore() {
                 <MessageCircle className="size-4" /> WhatsApp
               </button>
             )}
-            <button
-              onClick={() => navigate("/auth")}
-              className="px-4 py-2 rounded-lg text-white text-xs font-bold transition hover:opacity-90"
-              style={{ background: primaryColor }}
-            >
-              Entrar
-            </button>
+            {currentUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border hover:bg-muted transition"
+                  >
+                    {currentUser.avatar_url ? (
+                      <img src={currentUser.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                        style={{ background: primaryColor }}
+                      >
+                        {(currentUser.full_name || currentUser.email || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="hidden sm:inline text-xs font-semibold text-foreground max-w-[120px] truncate">
+                      {currentUser.full_name || currentUser.email?.split("@")[0] || "Minha conta"}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate">
+                    {currentUser.full_name || currentUser.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                    <UserIcon className="size-4 mr-2" /> Meu Perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/orders")}>
+                    <Package className="size-4 mr-2" /> Meus Pedidos
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500">
+                    <LogOut className="size-4 mr-2" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="px-4 py-2 rounded-lg text-white text-xs font-bold transition hover:opacity-90"
+                style={{ background: primaryColor }}
+              >
+                Entrar
+              </button>
+            )}
           </div>
         </div>
       </header>
