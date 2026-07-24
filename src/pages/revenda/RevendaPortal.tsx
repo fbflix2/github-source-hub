@@ -145,7 +145,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes" | "banners"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -347,6 +347,7 @@ export default function RevendaPortal() {
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
     { id: "minha-loja", label: "Minha Loja", icon: ShoppingBag },
+    { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
     { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
     {
       id: "configuracoes",
@@ -357,7 +358,7 @@ export default function RevendaPortal() {
         { id: "link", label: "Link de Revenda", icon: Globe },
         { id: "identidade", label: "Identidade Visual", icon: Palette },
         { id: "banners", label: "Banners da Loja", icon: ImageIcon },
-        { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
+        { id: "gateway", label: "Gateway de Pagamento", icon: CreditCard },
       ],
     },
   ] as const;
@@ -717,6 +718,10 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "pagamentos" && (
+              <ResellerPagamentos resellerId={reseller.id} />
+            )}
+
+            {activeSection === "gateway" && (
               <ResellerGatewayConfig resellerId={reseller.id} />
             )}
 
