@@ -36,16 +36,11 @@ export default function ResellerRevenueGoal({ resellerId }: { resellerId: string
 
   return (
     <div
-      className="hidden md:flex flex-col justify-center gap-1 px-3.5 py-1.5 rounded-full border border-border/60 bg-card/60 backdrop-blur-sm min-w-[180px]"
+      className="hidden md:flex flex-col justify-center gap-1 min-w-[180px]"
       title={`Meta mensal: R$ ${GOAL.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
     >
       <div className="flex items-center justify-between gap-3 leading-none">
-        <div className="flex items-center gap-1.5">
-          <Trophy className={cn("size-3", reached ? "text-emerald-400" : "text-primary")} />
-          <span className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground">
-            Meta 1K
-          </span>
-        </div>
+        <Trophy className={cn("size-3.5", reached ? "text-emerald-400" : "text-primary")} />
         <span className={cn("text-[11px] font-bold tabular-nums", reached ? "text-emerald-400" : "text-foreground")}>
           {pct}%
         </span>
