@@ -32,6 +32,8 @@ interface NavbarProps {
   linkOverrides?: Record<string, string>;
   hideTickets?: boolean;
   hideNotifications?: boolean;
+  unauthenticated?: boolean;
+  onLoginClick?: () => void;
 }
 
 const allNavLinks = [
@@ -53,7 +55,7 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false, unauthenticated = false, onLoginClick }: NavbarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
@@ -143,10 +145,10 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Notification Popup Overlay */}
-          {!resellerOnly && !hideNotifications && <NotificationPopup />}
+          {!resellerOnly && !hideNotifications && !unauthenticated && <NotificationPopup />}
 
           {/* Tickets Button */}
-          {!resellerOnly && !hideTickets && <NavLink
+          {!resellerOnly && !hideTickets && !unauthenticated && <NavLink
             to="/tickets"
             className="relative flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-primary/10 transition-all group"
           >
@@ -162,7 +164,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
           <ThemeToggle />
 
           {/* Balance Badge */}
-          {!isPartnerMode && !resellerOnly && <NavLink
+          {!isPartnerMode && !resellerOnly && !unauthenticated && <NavLink
             to="/wallet"
             className={`hidden sm:flex items-center gap-2 border px-4 py-1.5 rounded-full backdrop-blur-sm transition-colors cursor-pointer group ${
               balance > 0
@@ -191,6 +193,14 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
           )}
 
           {/* User Profile */}
+          {unauthenticated ? (
+            <button
+              onClick={onLoginClick}
+              className="px-4 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition"
+            >
+              Entrar
+            </button>
+          ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-3 cursor-pointer pl-4 border-l border-border">
@@ -260,6 +270,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
     </header>
