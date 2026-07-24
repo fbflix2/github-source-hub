@@ -382,9 +382,9 @@ export default function RevendaPortal() {
           ["--popover" as any]: "220 40% 11%",
           ["--muted" as any]: "220 30% 15%",
           ["--secondary" as any]: "220 30% 14%",
-          ["--border" as any]: "215 50% 45% / 0.22",
-          ["--input" as any]: "215 45% 40% / 0.25",
-          ["--sidebar-border" as any]: "215 50% 45% / 0.22",
+          ["--border" as any]: "215 45% 28%",
+          ["--input" as any]: "215 45% 25%",
+          ["--sidebar-border" as any]: "215 45% 28%",
           ["--sidebar-background" as any]: "220 45% 9%",
         };
         if (hsl) {
