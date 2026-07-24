@@ -62,6 +62,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
   const [logoHeight, setLogoHeight] = useState(32);
 
   useEffect(() => {
+    if (logoOverride) return;
     supabase.from("site_settings").select("value").eq("key", "landing_page_config").maybeSingle().then(({ data }) => {
       if (data?.value) {
         try {
@@ -72,7 +73,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         } catch {}
       }
     });
-  }, []);
+  }, [logoOverride]);
 
   const isPartnerMode = location.pathname === "/parceria";
   const navLinks = resellerOnly
