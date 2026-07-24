@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { useResellerBranding } from "@/hooks/useResellerBranding";
 
 interface MainLayoutProps {
   userName: string;
@@ -25,6 +26,8 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
   const [isPartner, setIsPartner] = useState(false);
   const [partnerEarned, setPartnerEarned] = useState<number | null>(null);
   const [isReseller, setIsReseller] = useState(false);
+  const { branding } = useResellerBranding();
+  const isResellerDomain = !!branding;
 
   useEffect(() => {
     let userId: string | null = null;
@@ -123,6 +126,11 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
         resellerOnly={forceResellerMode}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
+        allowedKeys={isResellerDomain ? ["loja", "subscriptions"] : undefined}
+        logoOverride={isResellerDomain ? branding?.logo_url ?? undefined : undefined}
+        brandNameOverride={isResellerDomain ? branding?.brand_name ?? branding?.company_name ?? undefined : undefined}
+        hideTickets={isResellerDomain}
+        hideNotifications={isResellerDomain}
       />
 
       {/* Main Content */}

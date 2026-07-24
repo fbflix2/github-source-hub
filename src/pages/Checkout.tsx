@@ -1864,6 +1864,7 @@ export default function Checkout() {
           <div className="sticky top-24 flex flex-col gap-3">
             {/* Upsell Offer - Proxy IPV4 Contingência only for non-proxy products */}
             {(() => {
+              if (resellerId) return null;
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
               // When bumps are admin-configured, the main bump is already set in promoProxy with correct price
               const hasConfiguredBumps = (promoProxy as any)?._label;
