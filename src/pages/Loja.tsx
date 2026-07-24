@@ -80,6 +80,26 @@ export default function Dashboard() {
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const [totalClients, setTotalClients] = useState(3746);
 
+  useEffect(() => {
+    let cancelled = false;
+    const mainHosts = ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"];
+    const host = window.location.hostname.toLowerCase();
+    const isMainHost =
+      mainHosts.includes(host) ||
+      host.endsWith(".lovableproject.com") ||
+      host.endsWith(".lovable.app");
+
+    if (isMainHost) return;
+
+    supabase.rpc("get_reseller_slug_by_domain", { _domain: host }).then(({ data: slug }) => {
+      if (!cancelled && slug) navigate(`/r/${slug as string}`, { replace: true });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
   // Auto-slide banners every 6 seconds
   useEffect(() => {
     if (heroBanners.length <= 1) return;
