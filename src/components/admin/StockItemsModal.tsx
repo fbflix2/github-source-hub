@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search, Link2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
@@ -19,6 +20,7 @@ interface StockItem {
   data: Record<string, unknown> | null;
   order_item_id: string | null;
   created_at: string;
+  childCount?: number;
 }
 
 interface StockItemsModalProps {
@@ -43,20 +45,55 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [replacementItem, setReplacementItem] = useState<StockItem | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "available" | "sold" | "blocked" | "expired">("all");
+  const [expandedChildrenId, setExpandedChildrenId] = useState<string | null>(null);
+  const [childrenMap, setChildrenMap] = useState<Record<string, StockItem[]>>({});
+  const [loadingChildren, setLoadingChildren] = useState<string | null>(null);
 
   const fetchItems = () => {
     setLoading(true);
-    supabase
-      .from("stock_items")
-      .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
-      .eq("product_id", productId)
-      .is("deleted_at", null)
-      .is("parent_id", null)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setItems((data as unknown as StockItem[]) ?? []);
-        setLoading(false);
-      });
+    (async () => {
+      const { data: parents } = await supabase
+        .from("stock_items")
+        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("product_id", productId)
+        .is("deleted_at", null)
+        .is("parent_id", null)
+        .order("created_at", { ascending: false });
+      const list = (parents as unknown as StockItem[]) ?? [];
+      const ids = list.map(i => i.id);
+      const counts: Record<string, number> = {};
+      if (ids.length) {
+        const { data: kids } = await supabase
+          .from("stock_items")
+          .select("parent_id")
+          .in("parent_id", ids)
+          .is("deleted_at", null);
+        (kids ?? []).forEach((k: any) => {
+          counts[k.parent_id] = (counts[k.parent_id] || 0) + 1;
+        });
+      }
+      setItems(list.map(i => ({ ...i, childCount: counts[i.id] || 0 })));
+      setLoading(false);
+    })();
+  };
+
+  const toggleChildren = async (item: StockItem) => {
+    if (expandedChildrenId === item.id) {
+      setExpandedChildrenId(null);
+      return;
+    }
+    setExpandedChildrenId(item.id);
+    if (!childrenMap[item.id]) {
+      setLoadingChildren(item.id);
+      const { data } = await supabase
+        .from("stock_items")
+        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("parent_id", item.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true });
+      setChildrenMap(prev => ({ ...prev, [item.id]: (data as unknown as StockItem[]) ?? [] }));
+      setLoadingChildren(null);
+    }
   };
 
   useEffect(() => {
