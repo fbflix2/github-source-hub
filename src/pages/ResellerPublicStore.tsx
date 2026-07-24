@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap, LogOut, User as UserIcon, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MessageCircle, ShoppingCart, Zap } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Navbar } from "@/components/layout/Navbar";
 
 interface ResellerPublic {
   id: string;
@@ -74,14 +67,14 @@ export default function ResellerPublicStore() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
 
   useEffect(() => {
     let mounted = true;
     const loadUser = async (userId: string, email: string | null) => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url")
+        .select("full_name, avatar_url, balance")
         .eq("user_id", userId)
         .maybeSingle();
       if (!mounted) return;
@@ -90,6 +83,7 @@ export default function ResellerPublicStore() {
         email,
         full_name: profile?.full_name ?? null,
         avatar_url: profile?.avatar_url ?? null,
+        balance: Number(profile?.balance ?? 0),
       });
     };
     supabase.auth.getSession().then(({ data }) => {
