@@ -1,0 +1,1 @@
+CREATE POLICY "Admins insert ledger" ON public.reseller_credit_ledger FOR INSERT TO authenticated WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
