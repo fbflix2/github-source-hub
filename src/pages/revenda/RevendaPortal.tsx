@@ -41,6 +41,7 @@ import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
+import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
@@ -52,7 +53,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
-import { Ticket, Wrench, CreditCard } from "lucide-react";
+import { Ticket, Wrench, CreditCard, Package } from "lucide-react";
 import { Image as ImageIcon } from "lucide-react";
 
 // Converte #RRGGBB para o formato "H S% L%" usado pelas variáveis CSS do design system
@@ -340,7 +341,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "overview", label: "Loja", icon: Store },
+    { id: "overview", label: "Catálogo & Preços", icon: Package },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "vendas", label: "Vendas", icon: Receipt },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
