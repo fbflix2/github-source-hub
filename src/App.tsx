@@ -183,12 +183,30 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
 
   useEffect(() => {
     let cancelled = false;
+    // Honor ?redirect=... on /auth so that a logged-in customer arriving
+    // from a reseller store "Comprar" button lands on /checkout instead of
+    // being kicked to /loja.
+    const computeCustomerTarget = (): string => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        if (redirect && redirect.startsWith("/")) {
+          const forwarded = new URLSearchParams();
+          params.forEach((v, k) => {
+            if (k !== "redirect" && k !== "type") forwarded.append(k, v);
+          });
+          const qs = forwarded.toString();
+          return qs ? `${redirect}?${qs}` : redirect;
+        }
+      } catch { /* noop */ }
+      return fallback;
+    };
     checkIsReseller(user.id)
       .then((isReseller) => {
-        if (!cancelled) setTarget(isReseller ? "/revenda" : fallback);
+        if (!cancelled) setTarget(isReseller ? "/revenda" : computeCustomerTarget());
       })
       .catch(() => {
-        if (!cancelled) setTarget(fallback);
+        if (!cancelled) setTarget(computeCustomerTarget());
       });
     return () => {
       cancelled = true;
