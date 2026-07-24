@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import CTCheckoutModal from "@/components/contingencia/CTCheckoutModal";
 import { useResellerContext } from "@/hooks/useResellerContext";
+import { useResellerBranding } from "@/hooks/useResellerBranding";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -95,7 +96,10 @@ export default function Subscriptions() {
   const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { resellerId } = useResellerContext();
-  const isResellerClient = !!resellerId;
+  const { branding } = useResellerBranding();
+  const hostIsCustomDomain = typeof window !== "undefined"
+    && !/fbflix\.com\.br|fbflix1\.lovable\.app|lovable\.app|lovableproject\.com|localhost/.test(window.location.hostname);
+  const isResellerClient = !!resellerId || !!branding || hostIsCustomDomain;
   const categoryTabs = isResellerClient
     ? allCategoryTabs.filter((t) => t.key === "proxies")
     : allCategoryTabs;
