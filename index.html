@@ -14,6 +14,26 @@
     <meta name="description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
     <meta name="author" content="FBFLIX" />
     <link rel="canonical" href="https://fbflix.com.br" />
+    <script>
+      // Em domínios customizados de revendedores, remove o branding FBFlix
+      // imediatamente (título, favicon, meta) antes de qualquer render, para
+      // não vazar identidade visual da FBFlix na aba/preview.
+      (function () {
+        try {
+          var h = (location.hostname || "").toLowerCase();
+          var MAIN = ["fbflix.com.br","www.fbflix.com.br","fbflix1.lovable.app","localhost"];
+          var isMain = MAIN.indexOf(h) !== -1 || /\.lovableproject\.com$/.test(h) || /\.lovable\.app$/.test(h);
+          if (!isMain) {
+            document.title = " ";
+            var sels = ['link[rel="icon"]','link[rel="shortcut icon"]','link[rel="apple-touch-icon"]','link[rel="mask-icon"]'];
+            sels.forEach(function (s) {
+              document.querySelectorAll(s).forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
+            });
+            document.documentElement.setAttribute("data-custom-domain","1");
+          }
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- Preconnect to font origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
