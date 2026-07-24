@@ -704,6 +704,10 @@ export default function RevendaPortal() {
               <ResellerGatewayConfig resellerId={reseller.id} />
             )}
 
+            {activeSection === "banners" && (
+              <ResellerBannersManager resellerId={reseller.id} />
+            )}
+
             {activeSection === "clientes" && <ResellerClientes />}
 
             {activeSection === "manutencao" && (
