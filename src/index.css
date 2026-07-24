@@ -75,7 +75,7 @@
     --success-foreground: 0 0% 100%;
     --warning: 45 93% 47%;
     --warning-foreground: 0 0% 0%;
-    --border: 0 0% 100% / 0.08;
+    --border: 0 0% 100% / 0.04;
     --input: 0 0% 12%;
     --ring: 0 85% 50%;
   }
