@@ -349,7 +349,6 @@ export default function RevendaPortal() {
     { id: "manutencao", label: "Manutenção", icon: Wrench },
     { id: "minha-loja", label: "Minha Loja", icon: ShoppingBag },
     { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
-    { id: "ajuda", label: "Como Funciona", icon: LifeBuoy },
     {
       id: "configuracoes",
       label: "Configurações",
