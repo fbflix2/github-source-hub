@@ -41,6 +41,7 @@ import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
 import { Ticket, Wrench, CreditCard } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 
 // Converte #RRGGBB para o formato "H S% L%" usado pelas variáveis CSS do design system
 function hexToHslTriplet(hex: string): string | null {
@@ -139,7 +141,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "clientes" | "banners"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -351,6 +353,7 @@ export default function RevendaPortal() {
       children: [
         { id: "dominio", label: "Domínio Próprio", icon: Globe },
         { id: "identidade", label: "Identidade Visual", icon: Palette },
+        { id: "banners", label: "Banners da Loja", icon: ImageIcon },
         { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
       ],
     },
