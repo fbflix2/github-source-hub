@@ -1,0 +1,1 @@
+UPDATE public.profiles SET reseller_id = (SELECT id FROM public.resellers WHERE slug = 'active-growth-marketing' LIMIT 1) WHERE user_id = '1367bde3-d6ba-4d65-9d3f-a106f68dd66d' AND reseller_id IS NULL;
