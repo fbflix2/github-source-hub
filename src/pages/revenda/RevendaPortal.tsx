@@ -40,6 +40,7 @@ import ResellerMaintenance from "@/components/revenda/ResellerMaintenance";
 import ResellerDashboard from "@/components/revenda/ResellerDashboard";
 import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
+import ResellerPagamentos from "@/components/revenda/ResellerPagamentos";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
 import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 import ResellerRevenueGoal from "@/components/revenda/ResellerRevenueGoal";
