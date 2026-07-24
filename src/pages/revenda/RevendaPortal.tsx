@@ -42,6 +42,7 @@ import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
 import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
+import ResellerRevenueGoal from "@/components/revenda/ResellerRevenueGoal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
@@ -577,6 +578,9 @@ export default function RevendaPortal() {
 
             {/* Theme Toggle */}
             <ThemeToggle />
+
+            {/* Meta de faturamento */}
+            <ResellerRevenueGoal resellerId={reseller.id} />
 
             {/* Saldo do revendedor */}
             {(() => {
