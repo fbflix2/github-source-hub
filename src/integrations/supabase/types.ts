@@ -764,6 +764,7 @@ export type Database = {
           id: string
           max_uses: number
           product_id: string | null
+          reseller_id: string | null
           status: string
           used_count: number
         }
@@ -777,6 +778,7 @@ export type Database = {
           id?: string
           max_uses?: number
           product_id?: string | null
+          reseller_id?: string | null
           status?: string
           used_count?: number
         }
@@ -790,6 +792,7 @@ export type Database = {
           id?: string
           max_uses?: number
           product_id?: string | null
+          reseller_id?: string | null
           status?: string
           used_count?: number
         }
@@ -6246,20 +6249,36 @@ export type Database = {
           type: string
         }[]
       }
-      validate_coupon: {
-        Args: { _code: string }
-        Returns: {
-          code: string
-          discount_type: string
-          discount_value: number
-          expires_at: string
-          id: string
-          max_uses: number
-          product_id: string
-          status: string
-          used_count: number
-        }[]
-      }
+      validate_coupon:
+        | {
+            Args: { _code: string }
+            Returns: {
+              code: string
+              discount_type: string
+              discount_value: number
+              expires_at: string
+              id: string
+              max_uses: number
+              product_id: string
+              status: string
+              used_count: number
+            }[]
+          }
+        | {
+            Args: { _code: string; _reseller_id?: string }
+            Returns: {
+              code: string
+              discount_type: string
+              discount_value: number
+              expires_at: string
+              id: string
+              max_uses: number
+              product_id: string
+              reseller_id: string
+              status: string
+              used_count: number
+            }[]
+          }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

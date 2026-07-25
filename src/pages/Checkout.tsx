@@ -910,7 +910,7 @@ export default function Checkout() {
     setApplyingCoupon(true);
     try {
       const { data: rows, error } = await supabase
-        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase() });
+        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase(), _reseller_id: resellerId || null });
 
       if (error) throw error;
 

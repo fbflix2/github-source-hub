@@ -43,9 +43,10 @@ interface NovoCupomModalProps {
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
   editCoupon?: CouponData | null;
+  resellerId?: string | null;
 }
 
-export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: NovoCupomModalProps) {
+export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, resellerId = null }: NovoCupomModalProps) {
   const isEditing = !!editCoupon;
   const [code, setCode] = useState("");
   const [discountValue, setDiscountValue] = useState("");
@@ -115,6 +116,7 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
         expires_at: expiresAt ? expiresAt.toISOString() : null,
         status: isActive ? "active" : "paused",
         product_id: selectedProductId || null,
+        reseller_id: resellerId,
       };
 
       if (isEditing && editCoupon) {

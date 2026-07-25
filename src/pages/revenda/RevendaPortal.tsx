@@ -42,6 +42,7 @@ import ResellerStoreConfig from "@/components/revenda/ResellerStoreConfig";
 import ResellerGatewayConfig from "@/components/revenda/ResellerGatewayConfig";
 import ResellerPagamentos from "@/components/revenda/ResellerPagamentos";
 import ResellerClientes from "@/components/revenda/ResellerClientes";
+import ResellerCupons from "@/components/revenda/ResellerCupons";
 import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 import ResellerRevenueGoal from "@/components/revenda/ResellerRevenueGoal";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -56,7 +57,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NavLink } from "react-router-dom";
 import { Ticket, Wrench, CreditCard, Package } from "lucide-react";
-import { Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, Tag } from "lucide-react";
 
 // Converte #RRGGBB para o formato "H S% L%" usado pelas variáveis CSS do design system
 function hexToHslTriplet(hex: string): string | null {
@@ -146,7 +147,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners" | "cupons"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -344,6 +345,7 @@ export default function RevendaPortal() {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "clientes", label: "Clientes", icon: Users },
+    { id: "cupons", label: "Cupons", icon: Tag },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
@@ -702,6 +704,7 @@ export default function RevendaPortal() {
             )}
 
             {activeSection === "clientes" && <ResellerClientes />}
+            {activeSection === "cupons" && <ResellerCupons resellerId={reseller.id} />}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
