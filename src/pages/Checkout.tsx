@@ -1109,6 +1109,14 @@ export default function Checkout() {
 
   const total = subtotal - discount;
 
+  const mainDisplayUnitPrice = product
+    ? Number(isResellerCheckout ? resellerItemPrices[product.id] ?? product.price : product.price)
+    : 0;
+  const mainDisplayTotal = mainDisplayUnitPrice * quantity;
+
+  const getCartDisplayUnitPrice = (item: { productId: string; price: number }) =>
+    Number(isResellerCheckout ? resellerItemPrices[item.productId] ?? item.price : item.price);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -1959,7 +1967,7 @@ export default function Checkout() {
               <div className="w-16 h-16 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${product.image_url || "/placeholder.svg"}')` }} />
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-foreground leading-tight">{product.name}</h2>
-                <p className="text-sm text-primary font-semibold mt-0.5">R$ {(product.price * quantity).toFixed(2).replace(".", ",")} {quantity > 1 && `(x${quantity})`}</p>
+                <p className="text-sm text-primary font-semibold mt-0.5">R$ {mainDisplayTotal.toFixed(2).replace(".", ",")} {quantity > 1 && `(x${quantity})`}</p>
               </div>
               {product.slug && (
                 <button
@@ -2304,7 +2312,7 @@ export default function Checkout() {
                   <div className="w-12 h-12 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${product.image_url || "/placeholder.svg"}')` }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground leading-tight truncate">{product.name} {quantity > 1 && `(x${quantity})`}</p>
-                    <p className="text-xs text-muted-foreground">R$ {(product.price * quantity).toFixed(2).replace(".", ",")}</p>
+                    <p className="text-xs text-muted-foreground">R$ {mainDisplayTotal.toFixed(2).replace(".", ",")}</p>
                   </div>
                 </div>
                 {extraCartItems.map((ci) => (
@@ -2312,7 +2320,7 @@ export default function Checkout() {
                     <div className="w-12 h-12 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${ci.image || "/placeholder.svg"}')` }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground leading-tight truncate">{ci.name} {ci.quantity > 1 && `(x${ci.quantity})`}</p>
-                      <p className="text-xs text-muted-foreground">R$ {(ci.price * ci.quantity).toFixed(2).replace(".", ",")}</p>
+                      <p className="text-xs text-muted-foreground">R$ {(getCartDisplayUnitPrice(ci) * ci.quantity).toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
                       onClick={() => {
