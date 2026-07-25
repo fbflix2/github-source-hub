@@ -356,6 +356,7 @@ export default function Checkout() {
         }
 
         if (!resellerPricing || !resolvedId) {
+          if (resellerContextLoading || resellerBrandingLoading) return;
           if (!cancelled) setResellerPricingReady(true);
           return;
         }
@@ -363,17 +364,19 @@ export default function Checkout() {
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
 
-        const [productRowsRes, overridesRes] = await Promise.all([
-          supabase
-            .from("products")
-            .select("id, name, price, icon_type, tags, product_categories(slug)")
-            .in("id", productIds),
-          supabase
-            .from("reseller_price_overrides")
-            .select("product_id, custom_price, enabled")
-            .eq("reseller_id", resolvedId)
-            .in("product_id", productIds),
-        ]);
+        const [productRowsRes, overridesRes] = productIds.length > 0
+          ? await Promise.all([
+              supabase
+                .from("products")
+                .select("id, name, price, icon_type, tags, product_categories(slug)")
+                .in("id", productIds),
+              supabase
+                .from("reseller_price_overrides")
+                .select("product_id, custom_price, enabled")
+                .eq("reseller_id", resolvedId)
+                .in("product_id", productIds),
+            ])
+          : [{ data: [] }, { data: [] }];
 
         if (cancelled) return;
 
@@ -439,7 +442,7 @@ export default function Checkout() {
     return () => {
       cancelled = true;
     };
-  }, [isResellerCheckout, activeResellerId, activeResellerSlug, product?.id, extraCartItems]);
+  }, [isResellerCheckout, activeResellerId, activeResellerSlug, resellerContextLoading, resellerBrandingLoading, product?.id, extraCartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
