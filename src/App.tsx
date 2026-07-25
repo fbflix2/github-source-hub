@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -282,9 +282,11 @@ function ProductRedirect({ logo }: { logo: string }) {
 
 function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { totalUnread } = useTickets();
+  const location = useLocation();
   const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
   const [isResellerAccount, setIsResellerAccount] = useState<boolean | null>(null);
+  const isDirectCheckout = location.pathname === "/checkout";
 
   useEffect(() => {
     const fetchProfileName = async () => {
@@ -299,6 +301,10 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
   }, [user.id]);
 
   useEffect(() => {
+    if (isDirectCheckout) {
+      setIsResellerAccount(false);
+      return;
+    }
     let cancelled = false;
     checkIsReseller(user.id)
       .then((isReseller) => {
@@ -310,7 +316,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [isDirectCheckout, user.id]);
 
   if (isResellerAccount === null) {
     return <AuthLoadingScreen />;
