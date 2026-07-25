@@ -95,6 +95,20 @@ const readStoredResellerValue = (key: string) => {
   }
 };
 
+const getResellerSlugFromCheckoutSearch = (searchParams: URLSearchParams) => {
+  const directSlug = searchParams.get("r")?.trim().toLowerCase();
+  if (directSlug) return directSlug;
+
+  const redirect = searchParams.get("redirect");
+  if (!redirect || typeof window === "undefined") return null;
+  try {
+    const redirectUrl = new URL(redirect, window.location.origin);
+    return redirectUrl.searchParams.get("r")?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+};
+
 const withCheckoutTimeout = async <T,>(promise: PromiseLike<T>, fallback: T, ms = 4500): Promise<T> => {
   const timeout = new Promise<T>((resolve) => {
     window.setTimeout(() => resolve(fallback), ms);
@@ -114,7 +128,7 @@ export default function Checkout() {
   const [resellerItemPrices, setResellerItemPrices] = useState<Record<string, number>>({});
   const activeResellerId = resolvedCheckoutResellerId || resellerId;
   const activeResellerSlug = useMemo(() => {
-    const querySlug = (searchParams.get("r") || "").trim().toLowerCase();
+    const querySlug = getResellerSlugFromCheckoutSearch(searchParams);
     return resellerSlug || resellerBranding?.slug || querySlug || readStoredResellerValue("fbflix_reseller_slug");
   }, [resellerSlug, resellerBranding?.slug, searchParams]);
   const isResellerCheckout =
@@ -370,28 +384,27 @@ export default function Checkout() {
         });
         let resolvedId = activeResellerId;
         let resellerPricing: any = null;
+        let pricingSlug = String(activeResellerSlug || "").trim().toLowerCase();
 
-        if (resolvedId) {
-          const { data } = await withCheckoutTimeout(
-            supabase
-              .from("resellers")
-              .select("id, slug, proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
-              .eq("id", resolvedId)
-              .maybeSingle(),
+        if (!pricingSlug && isResellerHost()) {
+          const host = window.location.hostname.toLowerCase();
+          const { data: domainSlug } = await withCheckoutTimeout(
+            supabase.rpc("get_reseller_slug_by_domain", { _domain: host }),
             { data: null, error: null } as any,
           );
-          if (data) resellerPricing = data;
+          if (domainSlug) pricingSlug = String(domainSlug).trim().toLowerCase();
         }
 
-        if (!resellerPricing && activeResellerSlug) {
+        if (pricingSlug) {
           const { data } = await withCheckoutTimeout(
-            supabase.rpc("get_reseller_public_by_slug", { _slug: activeResellerSlug }),
+            supabase.rpc("get_reseller_public_by_slug", { _slug: pricingSlug }),
             { data: null, error: null } as any,
           );
           const publicReseller = Array.isArray(data) ? data[0] : data;
           if (publicReseller?.id) {
             resolvedId = publicReseller.id;
             resellerPricing = publicReseller;
+            pricingSlug = String(publicReseller.slug || pricingSlug).trim().toLowerCase();
           }
         }
 
@@ -406,11 +419,16 @@ export default function Checkout() {
 
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
-        const pricingSlug = String(resellerPricing.slug || activeResellerSlug || "").trim().toLowerCase();
 
-        if (!pricingSlug || productIds.length === 0) {
-          toast.error("Não foi possível carregar o preço da loja do revendedor.");
-          navigate(activeResellerSlug ? `/r/${activeResellerSlug}` : "/");
+        if (!pricingSlug) {
+          console.warn("[checkout] reseller pricing skipped: missing slug", { activeResellerId, activeResellerSlug });
+          if (!cancelled) setResellerPricingReady(true);
+          return;
+        }
+
+        if (productIds.length === 0) {
+          console.warn("[checkout] reseller pricing skipped: no UUID products", { productId: product.id });
+          if (!cancelled) setResellerPricingReady(true);
           return;
         }
 
@@ -455,8 +473,8 @@ export default function Checkout() {
         console.debug("[checkout] reseller pricing ready", { resolvedId: rpcResolvedId, prices: nextPrices });
         try {
           localStorage.setItem("fbflix_reseller_id", rpcResolvedId);
-          if (resellerPricing.slug || activeResellerSlug) {
-            localStorage.setItem("fbflix_reseller_slug", resellerPricing.slug || activeResellerSlug);
+          if (resellerPricing.slug || pricingSlug) {
+            localStorage.setItem("fbflix_reseller_slug", resellerPricing.slug || pricingSlug);
           }
         } catch { /* noop */ }
 
