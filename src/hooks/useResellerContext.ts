@@ -11,6 +11,26 @@ const MAIN_HOSTS = [
 
 const STORAGE_KEY = "fbflix_reseller_id";
 const STORAGE_SLUG_KEY = "fbflix_reseller_slug";
+const LOOKUP_TIMEOUT_MS = 3500;
+
+const withTimeout = async <T,>(promise: PromiseLike<T>, fallback: T): Promise<T> => {
+  const timeout = new Promise<T>((resolve) => {
+    window.setTimeout(() => resolve(fallback), LOOKUP_TIMEOUT_MS);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]);
+};
+
+const getSlugFromRedirect = (searchParams: URLSearchParams) => {
+  if (typeof window === "undefined") return null;
+  const redirect = searchParams.get("redirect");
+  if (!redirect) return null;
+  try {
+    const redirectUrl = new URL(redirect, window.location.origin);
+    return redirectUrl.searchParams.get("r")?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Resolve o reseller_id ativo a partir de:
@@ -31,6 +51,7 @@ export function useResellerContext() {
     (async () => {
       try {
         const querySlug = (searchParams.get("r") || "").trim().toLowerCase();
+        const redirectSlug = getSlugFromRedirect(searchParams);
         const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
         const isMainHost =
           !host ||
@@ -38,9 +59,12 @@ export function useResellerContext() {
           host.endsWith(".lovableproject.com") ||
           host.endsWith(".lovable.app");
 
-        let slug: string | null = querySlug || null;
+        let slug: string | null = querySlug || redirectSlug || null;
         if (!slug && !isMainHost) {
-          const { data } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+          const { data } = await withTimeout(
+            supabase.rpc("get_reseller_slug_by_domain", { _domain: host }),
+            { data: null, error: null } as any,
+          );
           if (data) slug = String(data);
         }
         if (!slug && typeof window !== "undefined") {
@@ -52,7 +76,10 @@ export function useResellerContext() {
           return;
         }
 
-        const { data: publicData } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug });
+        const { data: publicData } = await withTimeout(
+          supabase.rpc("get_reseller_public_by_slug", { _slug: slug }),
+          { data: null, error: null } as any,
+        );
         const publicReseller = Array.isArray(publicData) ? publicData[0] : publicData;
 
         if (!cancelled && publicReseller?.id) {

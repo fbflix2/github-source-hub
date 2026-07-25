@@ -75,6 +75,17 @@ const hasResellerCheckoutSignal = (searchParams: URLSearchParams) => {
   }
 };
 
+const isResellerHost = () => {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  const isMainHost =
+    !host ||
+    MAIN_CHECKOUT_HOSTS.includes(host) ||
+    host.endsWith(".lovableproject.com") ||
+    host.endsWith(".lovable.app");
+  return !isMainHost;
+};
+
 const getCategorySlug = (row: any) => {
   const relation = row?.product_categories;
   if (Array.isArray(relation)) return relation[0]?.slug || null;
@@ -97,6 +108,13 @@ const readStoredResellerValue = (key: string) => {
   }
 };
 
+const withCheckoutTimeout = async <T,>(promise: PromiseLike<T>, fallback: T, ms = 4500): Promise<T> => {
+  const timeout = new Promise<T>((resolve) => {
+    window.setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]);
+};
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -113,10 +131,9 @@ export default function Checkout() {
     return resellerSlug || resellerBranding?.slug || querySlug || readStoredResellerValue("fbflix_reseller_slug");
   }, [resellerSlug, resellerBranding?.slug, searchParams]);
   const isResellerCheckout =
-    resellerContextLoading ||
-    resellerBrandingLoading ||
     Boolean(activeResellerId) ||
     Boolean(resellerBranding) ||
+    isResellerHost() ||
     hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
@@ -368,7 +385,7 @@ export default function Checkout() {
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
 
         const [productRowsRes, overridesRes] = productIds.length > 0
-          ? await Promise.all([
+          ? await withCheckoutTimeout(Promise.all([
               supabase
                 .from("products")
                 .select("id, name, price, icon_type, tags, product_categories(slug)")
@@ -378,7 +395,7 @@ export default function Checkout() {
                 .select("product_id, custom_price, enabled")
                 .eq("reseller_id", resolvedId)
                 .in("product_id", productIds),
-            ])
+            ]), [{ data: [] }, { data: [] }] as any)
           : [{ data: [] }, { data: [] }];
 
         if (cancelled) return;

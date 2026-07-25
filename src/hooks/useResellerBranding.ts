@@ -7,6 +7,14 @@ const MAIN_HOSTS = [
   "fbflix1.lovable.app",
   "localhost",
 ];
+const LOOKUP_TIMEOUT_MS = 3500;
+
+const withTimeout = async <T,>(promise: PromiseLike<T>, fallback: T): Promise<T> => {
+  const timeout = new Promise<T>((resolve) => {
+    window.setTimeout(() => resolve(fallback), LOOKUP_TIMEOUT_MS);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]);
+};
 
 export interface ResellerBranding {
   slug: string;
@@ -17,6 +25,22 @@ export interface ResellerBranding {
   accent_color: string | null;
   company_name: string | null;
 }
+
+const getSlugFromUrl = () => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const directSlug = params.get("r")?.trim().toLowerCase();
+  if (directSlug) return directSlug;
+
+  const redirect = params.get("redirect");
+  if (!redirect) return null;
+  try {
+    const redirectUrl = new URL(redirect, window.location.origin);
+    return redirectUrl.searchParams.get("r")?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Detecta se o hostname atual pertence a um revendedor (custom_domain)
@@ -33,11 +57,12 @@ export function useResellerBranding() {
       return;
     }
     const host = window.location.hostname.toLowerCase();
-    if (
+    const urlSlug = getSlugFromUrl();
+    if (!urlSlug && (
       MAIN_HOSTS.includes(host) ||
       host.endsWith(".lovableproject.com") ||
       host.endsWith(".lovable.app")
-    ) {
+    )) {
       setLoading(false);
       return;
     }
@@ -45,17 +70,22 @@ export function useResellerBranding() {
     let cancelled = false;
     (async () => {
       try {
-        const { data: slug } = await supabase.rpc(
-          "get_reseller_slug_by_domain",
-          { _domain: host },
-        );
+        let slug: string | null = urlSlug;
+        if (!slug) {
+          const { data } = await withTimeout(
+            supabase.rpc("get_reseller_slug_by_domain", { _domain: host }),
+            { data: null, error: null } as any,
+          );
+          slug = data ? String(data) : null;
+        }
         if (!slug || cancelled) {
           if (!cancelled) setLoading(false);
           return;
         }
-        const { data } = await supabase.rpc("get_reseller_public_by_slug", {
-          _slug: slug as string,
-        });
+        const { data } = await withTimeout(
+          supabase.rpc("get_reseller_public_by_slug", { _slug: slug }),
+          { data: null, error: null } as any,
+        );
         const r = Array.isArray(data) ? data[0] : data;
         if (!cancelled && r) {
           setBranding({
