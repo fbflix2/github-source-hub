@@ -93,7 +93,6 @@ const allMenuItems: MenuItem[] = [
   { title: "Cobrança Avulsa", icon: Receipt, path: "/admin/cobranca-avulsa" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
     { title: "ProxyFbflix", icon: Globe, path: "/admin/central-proxy" },
-    { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
     { title: "Proxy Interno", icon: Shield, path: "/admin/central-proxy/interno" },
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   ]},
