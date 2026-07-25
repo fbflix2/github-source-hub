@@ -8,6 +8,36 @@ const MAIN_HOSTS = [
   "localhost",
 ];
 const LOOKUP_TIMEOUT_MS = 3500;
+const CACHE_PREFIX = "reseller_branding_cache_v1:";
+
+const isResellerHostSync = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  if (MAIN_HOSTS.includes(host)) return false;
+  if (host.endsWith(".lovableproject.com")) return false;
+  if (host.endsWith(".lovable.app")) return false;
+  return true;
+};
+
+const readCachedBranding = (): ResellerBranding | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const host = window.location.hostname.toLowerCase();
+    const raw = window.localStorage.getItem(CACHE_PREFIX + host);
+    if (!raw) return null;
+    return JSON.parse(raw) as ResellerBranding;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedBranding = (b: ResellerBranding) => {
+  if (typeof window === "undefined") return;
+  try {
+    const host = window.location.hostname.toLowerCase();
+    window.localStorage.setItem(CACHE_PREFIX + host, JSON.stringify(b));
+  } catch {}
+};
 
 const withTimeout = async <T,>(promise: PromiseLike<T>, fallback: T): Promise<T> => {
   const timeout = new Promise<T>((resolve) => {
@@ -48,8 +78,9 @@ const getSlugFromUrl = () => {
  * (FBFlix) ou enquanto carrega.
  */
 export function useResellerBranding() {
-  const [branding, setBranding] = useState<ResellerBranding | null>(null);
+  const [branding, setBranding] = useState<ResellerBranding | null>(() => readCachedBranding());
   const [loading, setLoading] = useState(true);
+  const isResellerHost = isResellerHostSync();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -88,7 +119,7 @@ export function useResellerBranding() {
         );
         const r = Array.isArray(data) ? data[0] : data;
         if (!cancelled && r) {
-          setBranding({
+          const next: ResellerBranding = {
             slug: slug as string,
             brand_name: r.brand_name ?? r.company_name ?? null,
             logo_url: r.logo_url ?? null,
@@ -96,7 +127,9 @@ export function useResellerBranding() {
             primary_color: r.primary_color ?? null,
             accent_color: r.accent_color ?? null,
             company_name: r.company_name ?? null,
-          });
+          };
+          setBranding(next);
+          writeCachedBranding(next);
         }
       } catch {
         // silencioso
@@ -109,5 +142,5 @@ export function useResellerBranding() {
     };
   }, []);
 
-  return { branding, loading };
+  return { branding, loading, isResellerHost };
 }
