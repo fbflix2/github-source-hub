@@ -1254,32 +1254,32 @@ export default function Checkout() {
       // to cover the FBFlix cost of the items being purchased.
       if (isResellerCheckout && activeResellerId && product) {
         try {
-          const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter(Boolean);
-          const { data: costRows } = await supabase
-            .from("products")
-            .select("id, reseller_cost")
-            .in("id", productIds);
-          const costMap = new Map<string, number>();
-          (costRows || []).forEach((r: any) => costMap.set(r.id, Number(r.reseller_cost) || 0));
-          let totalCost = (costMap.get(product.id) || 0) * quantity;
-          extraCartItems.forEach((ci) => {
-            totalCost += (costMap.get(ci.productId) || 0) * ci.quantity;
-          });
+          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const capacityItems = [
+            { id: product.id, quantity },
+            ...extraCartItems.map((ci) => ({ id: ci.productId, quantity: ci.quantity })),
+          ].filter((item) => uuidRe.test(item.id));
 
-          const { data: reseller } = await supabase
-            .from("resellers")
-            .select("balance_credits, brand_name, company_name")
-            .eq("id", activeResellerId)
-            .maybeSingle();
+          const { data: capacityRows, error: capacityError } = await (supabase as any).rpc(
+            "check_reseller_checkout_capacity",
+            {
+              _reseller_id: activeResellerId,
+              _product_ids: capacityItems.map((item) => item.id),
+              _quantities: capacityItems.map((item) => item.quantity),
+            },
+          );
 
-          const rBalance = Number(reseller?.balance_credits || 0);
-          if (totalCost > 0 && rBalance < totalCost) {
+          if (capacityError) throw capacityError;
+
+          const capacity = Array.isArray(capacityRows) ? capacityRows[0] : capacityRows;
+          if (capacity && capacity.can_cover === false) {
             toast.error(
               `Compra indisponível no momento. Entre em contato com o suporte.`,
               { duration: 6000 }
             );
             console.warn("[reseller-guard] insufficient recharge balance", {
-              resellerId: activeResellerId, rBalance, totalCost,
+              resellerId: activeResellerId,
+              totalCost: Number(capacity.total_cost || 0),
             });
             setProcessing(false);
             clearTimeout(safetyTimeout);
