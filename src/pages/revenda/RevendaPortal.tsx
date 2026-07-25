@@ -47,6 +47,7 @@ import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos"
 import ResellerRevenueGoal from "@/components/revenda/ResellerRevenueGoal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
+import ResellerNotificationBell from "@/components/revenda/ResellerNotificationBell";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
 import {
   DropdownMenu,
@@ -581,6 +582,9 @@ export default function RevendaPortal() {
 
             {/* Theme Toggle */}
             <ThemeToggle />
+
+            {/* Notificações */}
+            <ResellerNotificationBell resellerId={reseller.id} />
 
             {/* Meta de faturamento */}
             <ResellerRevenueGoal resellerId={reseller.id} />
