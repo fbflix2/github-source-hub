@@ -293,8 +293,10 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
   const location = useLocation();
   const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
-  const [isResellerAccount, setIsResellerAccount] = useState<boolean | null>(null);
   const isDirectCheckout = location.pathname === "/checkout";
+  const [isResellerAccount, setIsResellerAccount] = useState<boolean | null>(
+    isDirectCheckout ? false : null,
+  );
 
   useEffect(() => {
     const fetchProfileName = async () => {
