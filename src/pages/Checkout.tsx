@@ -1028,13 +1028,19 @@ export default function Checkout() {
       : (userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null);
     
     // Apply special pricing for proxies
-    const adjustedProductPrice = isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
+    const resellerMainPrice = Number(resellerItemPrices[product.id] ?? product.price);
+    const adjustedProductPrice = isResellerCheckout
+      ? resellerMainPrice
+      : isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
     
     let total = adjustedProductPrice * quantity;
 
     extraCartItems.forEach((ci) => {
       const ciIsProxy = ci.isProxy;
-      const ciPrice = ciIsProxy && fixedPrice !== null ? fixedPrice : ci.price * (ciIsProxy ? multiplier : 1);
+      const resellerCartPrice = Number(resellerItemPrices[ci.productId] ?? ci.price);
+      const ciPrice = isResellerCheckout
+        ? resellerCartPrice
+        : ciIsProxy && fixedPrice !== null ? fixedPrice : ci.price * (ciIsProxy ? multiplier : 1);
       total += ciPrice * ci.quantity;
     });
 
@@ -1046,11 +1052,11 @@ export default function Checkout() {
     }
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile, isResellerCheckout]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile, isResellerCheckout, resellerItemPrices]);
 
   const total = subtotal - discount;
 
-  if (loading) {
+  if (loading || (isResellerCheckout && product && !resellerPricingReady)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 text-primary animate-spin" />
