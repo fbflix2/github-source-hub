@@ -46,13 +46,10 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     MAIN_HOSTS.includes(initialHost) ||
     initialHost.endsWith(".lovableproject.com") ||
     initialHost.endsWith(".lovable.app");
-  const isPassthroughInitial =
-    typeof window !== "undefined" &&
-    PASSTHROUGH_PREFIXES.some(
-      (p) =>
-        window.location.pathname === p || window.location.pathname.startsWith(p),
-    );
-  const [checked, setChecked] = useState(isMainHostInitial || isPassthroughInitial);
+  // Em domínio de revendedor, sempre aguardar a resolução do branding antes
+  // de renderizar (mesmo em rotas passthrough), para evitar o flash com logo
+  // e menus da FBFlix.
+  const [checked, setChecked] = useState(isMainHostInitial);
   const [resellerSlug, setResellerSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,10 +66,9 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     }
 
     const path = location.pathname;
-    if (PASSTHROUGH_PREFIXES.some((p) => path === p || path.startsWith(p))) {
-      setChecked(true);
-      return;
-    }
+    const isPassthrough = PASSTHROUGH_PREFIXES.some(
+      (p) => path === p || path.startsWith(p),
+    );
 
     (async () => {
       try {
@@ -84,7 +80,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
             setResellerSlug(slug);
           }
         }
-        if (slug) {
+        if (slug && !isPassthrough) {
           navigate(`/r/${slug}${location.search}`, { replace: true });
           setTimeout(() => setChecked(true), 0);
           return;
