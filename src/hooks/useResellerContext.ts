@@ -13,11 +13,11 @@ const STORAGE_KEY = "fbflix_reseller_id";
 const STORAGE_SLUG_KEY = "fbflix_reseller_slug";
 const LOOKUP_TIMEOUT_MS = 3500;
 
-const withTimeout = async <T,>(promise: Promise<T>, fallback: T): Promise<T> => {
+const withTimeout = async <T,>(promise: PromiseLike<T>, fallback: T): Promise<T> => {
   const timeout = new Promise<T>((resolve) => {
     window.setTimeout(() => resolve(fallback), LOOKUP_TIMEOUT_MS);
   });
-  return Promise.race([promise, timeout]);
+  return Promise.race([Promise.resolve(promise), timeout]);
 };
 
 const getSlugFromRedirect = (searchParams: URLSearchParams) => {
