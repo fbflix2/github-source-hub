@@ -6164,6 +6164,17 @@ export type Database = {
         Returns: Json
       }
       can_access_whatsapp_phone: { Args: { _phone: string }; Returns: boolean }
+      check_reseller_checkout_capacity: {
+        Args: {
+          _product_ids: string[]
+          _quantities: number[]
+          _reseller_id: string
+        }
+        Returns: {
+          can_cover: boolean
+          total_cost: number
+        }[]
+      }
       check_supplier_token: { Args: { token: string }; Returns: string }
       fulfill_order_item: {
         Args: { p_order_item_id: string; p_product_id: string }
