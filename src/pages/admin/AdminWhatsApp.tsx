@@ -154,95 +154,131 @@ function RenewalsTab() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   const { data: renewalData, isLoading } = useQuery({
-    queryKey: ["proxy-renewal-tracking-v2", filterMonth],
+    queryKey: ["proxy-renewal-tracking-real", filterMonth],
     queryFn: async () => {
       const startDate = `${filterMonth}-01T00:00:00Z`;
       const endMonth = new Date(startDate);
       endMonth.setMonth(endMonth.getMonth() + 1);
       const endDate = endMonth.toISOString();
 
-      const { data: alertLogs, error } = await supabase
-        .from("whatsapp_logs")
-        .select("*")
-        .eq("event_key", "proxy_expiring")
-        .gte("created_at", startDate)
-        .lt("created_at", endDate)
-        .order("created_at", { ascending: false })
-        .limit(1000);
-
-      if (error) throw error;
-      if (!alertLogs?.length) return { dailyGroups: [], totals: { expected: 0, renewed: 0, pending: 0, clients: 0, subs: 0, renewedSubs: 0 } };
-
-      const allSubIds = new Set<string>();
-      for (const log of alertLogs) {
-        const meta = log.metadata as any;
-        if (meta?.sub_ids) for (const sid of meta.sub_ids) allSubIds.add(sid);
+      // 1) Real proxy subscriptions expiring in the month (= expected renewals)
+      const expiringSubs: any[] = [];
+      {
+        let from = 0;
+        const step = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("subscriptions")
+            .select("id, name, type, status, end_date, auto_renew, user_id, product_id, raw_data")
+            .in("type", ["proxyfbflix", "proxybr", "webshare"])
+            .gte("end_date", startDate)
+            .lt("end_date", endDate)
+            .order("end_date", { ascending: true })
+            .range(from, from + step - 1);
+          if (error) throw error;
+          if (!data?.length) break;
+          expiringSubs.push(...data);
+          if (data.length < step) break;
+          from += step;
+        }
       }
 
-      const subIdArr = Array.from(allSubIds);
-      const subMap: Record<string, any> = {};
-      for (let i = 0; i < subIdArr.length; i += 50) {
-        const chunk = subIdArr.slice(i, i + 50);
-        const { data: subs } = await supabase
-          .from("subscriptions")
-          .select("id, name, type, status, end_date, auto_renew, user_id, product_id")
+      // 2) Real renewal wallet transactions in the month
+      const renewalTxs: any[] = [];
+      {
+        let from = 0;
+        const step = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("wallet_transactions")
+            .select("id, user_id, title, amount, reference_id, created_at")
+            .ilike("title", "Renovação Proxy%")
+            .lt("amount", 0)
+            .gte("created_at", startDate)
+            .lt("created_at", endDate)
+            .order("created_at", { ascending: false })
+            .range(from, from + step - 1);
+          if (error) throw error;
+          if (!data?.length) break;
+          renewalTxs.push(...data);
+          if (data.length < step) break;
+          from += step;
+        }
+      }
+
+      // 3) Build user lookup (name + phone)
+      const userIds = new Set<string>();
+      for (const s of expiringSubs) if (s.user_id) userIds.add(s.user_id);
+      for (const t of renewalTxs) if (t.user_id) userIds.add(t.user_id);
+      const profileMap: Record<string, any> = {};
+      const uidArr = Array.from(userIds);
+      for (let i = 0; i < uidArr.length; i += 75) {
+        const chunk = uidArr.slice(i, i + 75);
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone")
           .in("id", chunk);
-        if (subs) for (const s of subs) subMap[s.id] = s;
+        if (profs) for (const p of profs) profileMap[p.id] = p;
       }
 
+      // 4) Price map
       const productIds = new Set<string>();
-      for (const s of Object.values(subMap)) if (s.product_id) productIds.add(s.product_id);
+      for (const s of expiringSubs) if (s.product_id) productIds.add(s.product_id);
       const priceMap: Record<string, number> = {};
-      if (productIds.size > 0) {
-        const pids = Array.from(productIds);
-        for (let i = 0; i < pids.length; i += 50) {
-          const chunk = pids.slice(i, i + 50);
-          const { data: prods } = await supabase.from("products").select("id, price").in("id", chunk);
-          if (prods) for (const p of prods) priceMap[p.id] = p.price;
+      const pids = Array.from(productIds);
+      for (let i = 0; i < pids.length; i += 50) {
+        const chunk = pids.slice(i, i + 50);
+        const { data: prods } = await supabase.from("products").select("id, price").in("id", chunk);
+        if (prods) for (const p of prods) priceMap[p.id] = p.price;
+      }
+
+      const subPrice = (s: any): number => {
+        const rp = s?.raw_data?.renewal_price;
+        if (rp && !isNaN(Number(rp))) return Number(rp);
+        if (s?.product_id && priceMap[s.product_id]) return Number(priceMap[s.product_id]);
+        return 25;
+      };
+
+      // 5) Index renewed subscription ids by day
+      const renewedByDay: Record<string, Set<string>> = {};
+      const renewedAmountByDay: Record<string, number> = {};
+      const renewedTxByUserDay: Record<string, any[]> = {};
+      for (const t of renewalTxs) {
+        const day = t.created_at.slice(0, 10);
+        if (!renewedByDay[day]) renewedByDay[day] = new Set();
+        if (t.reference_id) renewedByDay[day].add(t.reference_id);
+        renewedAmountByDay[day] = (renewedAmountByDay[day] || 0) + Math.abs(Number(t.amount));
+        const k = `${day}_${t.user_id}`;
+        (renewedTxByUserDay[k] ||= []).push(t);
+      }
+
+      // 6) Group expiring subs by day+user
+      const dayMap: Record<string, Record<string, any>> = {};
+      for (const s of expiringSubs) {
+        if (!s.user_id) continue;
+        const day = (s.end_date as string).slice(0, 10);
+        const key = s.user_id;
+        dayMap[day] ||= {};
+        const bucket = (dayMap[day][key] ||= {
+          userId: s.user_id,
+          clientName: profileMap[s.user_id]?.full_name || "—",
+          phone: profileMap[s.user_id]?.phone || "",
+          subs: [] as any[],
+          renewedIds: new Set<string>(),
+          expectedRevenue: 0,
+          renewedRevenue: 0,
+        });
+        bucket.subs.push(s);
+        bucket.expectedRevenue += subPrice(s);
+        if (renewedByDay[day]?.has(s.id)) {
+          bucket.renewedIds.add(s.id);
+          bucket.renewedRevenue += subPrice(s);
         }
       }
 
-      const dayMap: Record<string, any[]> = {};
-      const seen = new Set<string>();
-
-      for (const log of alertLogs) {
-        const uid = log.user_id;
-        if (!uid) continue;
-        const dayStr = log.created_at?.slice(0, 10) || "";
-        const key = `${dayStr}_${uid}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        const meta = log.metadata as any;
-        const logSubIds: string[] = meta?.sub_ids || [];
-        const subs = logSubIds.map((sid: string) => subMap[sid]).filter(Boolean);
-
-        let expectedRevenue = 0;
-        for (const s of subs) {
-          expectedRevenue += s.product_id && priceMap[s.product_id] ? priceMap[s.product_id] : 25;
-        }
-        if (subs.length === 0) expectedRevenue = extractPriceFromMessage(log.message_sent);
-
-        const renewedSubs = subs.filter((s: any) => s.status === "active" && new Date(s.end_date) > new Date());
-        let renewedRevenue = 0;
-        for (const s of renewedSubs) {
-          renewedRevenue += s.product_id && priceMap[s.product_id] ? priceMap[s.product_id] : 25;
-        }
-
-        const nameMatch = log.message_sent?.match(/Olá\s+(.+?)[\s\n👋]/);
-        const clientName = nameMatch?.[1]?.trim() || "—";
-
-        const entry = {
-          userId: uid, clientName, phone: log.phone, subs,
-          totalSubs: subs.length || logSubIds.length,
-          renewedCount: renewedSubs.length, expectedRevenue, renewedRevenue,
-          status: subs.length === 0 ? "unknown" : renewedSubs.length === subs.length ? "renewed" : renewedSubs.length > 0 ? "partial" : "pending",
-          wasDelivered: !!log.delivered_at, wasRead: !!log.read_at, wasReplied: !!log.replied_at,
-          alertDate: log.created_at,
-        };
-
-        if (!dayMap[dayStr]) dayMap[dayStr] = [];
-        dayMap[dayStr].push(entry);
+      // 7) Also surface days that had renewals for subs whose end_date fell in a previous period
+      for (const day of Object.keys(renewedByDay)) {
+        dayMap[day] ||= {};
       }
 
       const dailyGroups = Object.entries(dayMap)
