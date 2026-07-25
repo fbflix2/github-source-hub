@@ -176,7 +176,11 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
 
   if (!checked) {
     // Tela neutra (sem branding FBFlix) enquanto resolvemos o domínio customizado
-    return <div className="min-h-screen bg-background" />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="size-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
   }
 
   return <>{children}</>;

@@ -464,7 +464,7 @@ const App = () => {
           if (sessionStorage.getItem(redirectKey)) return;
 
           const currentPath = window.location.pathname;
-          if (currentPath.startsWith('/admin') || currentPath === '/loja' || currentPath === '/profile' || currentPath === '/wallet' || currentPath.startsWith('/subscriptions') || currentPath.startsWith('/orders') || currentPath.startsWith('/item-details')) return;
+          if (currentPath.startsWith('/admin') || currentPath === '/auth' || currentPath === '/checkout' || currentPath === '/loja' || currentPath === '/profile' || currentPath === '/wallet' || currentPath.startsWith('/subscriptions') || currentPath.startsWith('/orders') || currentPath.startsWith('/item-details')) return;
 
           // Use setTimeout to avoid blocking auth state processing
           setTimeout(async () => {
