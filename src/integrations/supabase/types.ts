@@ -6170,6 +6170,15 @@ export type Database = {
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_reseller_checkout_prices: {
+        Args: { _product_ids: string[]; _slug: string }
+        Returns: {
+          enabled: boolean
+          final_price: number
+          product_id: string
+          reseller_id: string
+        }[]
+      }
       get_reseller_public_by_slug: {
         Args: { _slug: string }
         Returns: {
