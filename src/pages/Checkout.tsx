@@ -904,8 +904,13 @@ export default function Checkout() {
     if (!product) return 0;
     
     const isProxy = product.icon_type === 'proxy' || !!getProxyPurchaseData();
-    const multiplier = Number(userProfile?.proxy_price_multiplier ?? 1) || 1;
-    const fixedPrice = userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null;
+    // FBFlix per-client proxy pricing does NOT apply on reseller checkouts —
+    // the price shown in the reseller store (already applied to product.price)
+    // must be honored exactly.
+    const multiplier = isResellerCheckout ? 1 : (Number(userProfile?.proxy_price_multiplier ?? 1) || 1);
+    const fixedPrice = isResellerCheckout
+      ? null
+      : (userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null);
     
     // Apply special pricing for proxies
     const adjustedProductPrice = isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
