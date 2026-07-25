@@ -1118,6 +1118,10 @@ export default function Checkout() {
   const getCartDisplayUnitPrice = (item: { productId: string; price: number }) =>
     Number(isResellerCheckout ? resellerItemPrices[item.productId] ?? item.price : item.price);
 
+  const resellerPricePending = Boolean(
+    isResellerCheckout && product && (!resellerPricingReady || resellerItemPrices[product.id] == null),
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -1349,13 +1353,12 @@ export default function Checkout() {
         }
       }
 
-      // When resuming an existing order, recompute totals from the actual
-      // order_items in DB. The in-memory `subtotal`/`total` are unreliable on
-      // resume because `quantity`/`extraCartItems` are not restored from the
-      // saved order, which would otherwise undercharge the customer.
+      // Recompute totals from the actual order_items in DB after any reseller
+      // price enforcement. The in-memory totals can be stale while pricing RPCs
+      // finish, so the amount charged must follow the persisted line items.
       let chargeSubtotal = subtotal;
       let chargeTotal = total;
-      if (existingOrderId && orderItemsToCheck && orderItemsToCheck.length > 0) {
+      if (orderItemsToCheck && orderItemsToCheck.length > 0) {
         const { data: priced } = await supabase
           .from("order_items")
           .select("price, quantity")
@@ -2407,10 +2410,15 @@ export default function Checkout() {
               {/* Pay Button */}
               <button
                 onClick={handlePay}
-                disabled={processing}
+                disabled={processing || resellerPricePending}
                 className="w-full bg-primary hover:bg-primary/90 shadow-glow text-primary-foreground font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                {processing ? (
+                {resellerPricePending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    CARREGANDO PREÇO...
+                  </>
+                ) : processing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     PROCESSANDO...
