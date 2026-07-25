@@ -141,83 +141,83 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-transparent border-0 p-0 max-w-[480px] shadow-none">
-        <div className="flex flex-col gap-6">
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl relative">
-            <DialogHeader className="mb-8">
-              <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-white tracking-tight">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,6,6,0.4)]">
-                  <Plus className="w-5 h-5 text-white" />
+      <DialogContent className="bg-transparent border-0 p-0 max-w-[420px] max-h-[90vh] overflow-y-auto shadow-none">
+        <div className="flex flex-col gap-3">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-5 rounded-2xl shadow-2xl relative">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white tracking-tight">
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,6,6,0.4)]">
+                  <Plus className="w-4 h-4 text-white" />
                 </div>
                 {isEditing ? "Editar Cupom" : "Novo Cupom"}
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               {/* Código */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Código do Cupom</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Código do Cupom</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Tag className="w-5 h-5 text-white/30 group-focus-within:text-white/80 transition-colors" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Tag className="w-4 h-4 text-white/30 group-focus-within:text-white/80 transition-colors" />
                   </div>
                   <Input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="EX: BLACKFRIDAY10"
-                    className="w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium"
+                    className="w-full pl-10 pr-3 py-2 h-10 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium text-sm"
                   />
                 </div>
               </div>
 
               {/* Descrição */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Descrição (opcional)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Descrição (opcional)</label>
                 <Input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ex: Desconto para novos clientes"
-                  className="w-full px-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium"
+                  className="w-full px-3 py-2 h-10 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium text-sm"
                 />
               </div>
 
               {/* Tipo de desconto */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Tipo de Desconto</label>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Tipo de Desconto</label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setDiscountType("percent")}
-                    className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${discountType === "percent" ? "border-primary bg-primary/10 text-white" : "border-white/10 bg-black/20 text-white/60 hover:border-white/20"}`}
+                    className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all ${discountType === "percent" ? "border-primary bg-primary/10 text-white" : "border-white/10 bg-black/20 text-white/60 hover:border-white/20"}`}
                   >
-                    <Percent className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Porcentagem</span>
+                    <Percent className="w-3.5 h-3.5" />
+                    <span className="text-xs font-semibold">Porcentagem</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDiscountType("fixed")}
-                    className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${discountType === "fixed" ? "border-primary bg-primary/10 text-white" : "border-white/10 bg-black/20 text-white/60 hover:border-white/20"}`}
+                    className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border transition-all ${discountType === "fixed" ? "border-primary bg-primary/10 text-white" : "border-white/10 bg-black/20 text-white/60 hover:border-white/20"}`}
                   >
-                    <DollarSign className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Valor Fixo (R$)</span>
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span className="text-xs font-semibold">Valor Fixo (R$)</span>
                   </button>
                 </div>
               </div>
 
               {/* Desconto e Limite */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">
                     {discountType === "percent" ? "Desconto (%)" : "Valor (R$)"}
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       {discountType === "percent" ? (
-                        <Percent className="w-5 h-5 text-white/30 group-focus-within:text-white/80 transition-colors" />
+                        <Percent className="w-4 h-4 text-white/30 group-focus-within:text-white/80 transition-colors" />
                       ) : (
-                        <DollarSign className="w-5 h-5 text-white/30 group-focus-within:text-white/80 transition-colors" />
+                        <DollarSign className="w-4 h-4 text-white/30 group-focus-within:text-white/80 transition-colors" />
                       )}
                     </div>
                     <Input
@@ -227,16 +227,16 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
                       placeholder={discountType === "percent" ? "20" : "50"}
                       min="1"
                       max={discountType === "percent" ? "100" : undefined}
-                      className="w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium"
+                      className="w-full pl-10 pr-3 py-2 h-10 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Limite de Usos</label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Limite de Usos</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Users className="w-5 h-5 text-white/30 group-focus-within:text-white/80 transition-colors" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Users className="w-4 h-4 text-white/30 group-focus-within:text-white/80 transition-colors" />
                     </div>
                     <Input
                       type="number"
@@ -244,25 +244,25 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
                       onChange={(e) => setLimit(e.target.value)}
                       placeholder="100"
                       min="1"
-                      className="w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium"
+                      className="w-full pl-10 pr-3 py-2 h-10 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/50 focus:bg-black/60 transition-all font-medium text-sm"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Expira em */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Expira em</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Expira em</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-left font-medium hover:bg-black/60 hover:border-primary/50 transition-all justify-start",
+                        "w-full pl-10 pr-3 h-10 rounded-xl bg-black/40 border border-white/10 text-left font-medium hover:bg-black/60 hover:border-primary/50 transition-all justify-start text-sm",
                         !expiresAt && "text-white/20"
                       )}
                     >
-                      <CalendarIcon className="absolute left-4 w-5 h-5 text-white/30" />
+                      <CalendarIcon className="absolute left-3 w-4 h-4 text-white/30" />
                       {expiresAt ? format(expiresAt, "dd/MM/yyyy", { locale: ptBR }) : <span>Sem expiração</span>}
                     </Button>
                   </PopoverTrigger>
@@ -280,16 +280,16 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
               </div>
 
               {/* Produto específico */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Produto (opcional)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest pl-1">Produto (opcional)</label>
                 {selectedProductId ? (
-                  <div className="flex items-center gap-2 p-3 rounded-2xl bg-black/40 border border-primary/30">
-                    <Package className="w-5 h-5 text-primary shrink-0" />
-                    <span className="text-white text-sm font-medium flex-1 truncate">
+                  <div className="flex items-center gap-2 px-3 h-10 rounded-xl bg-black/40 border border-primary/30">
+                    <Package className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-white text-xs font-medium flex-1 truncate">
                       {products.find(p => p.id === selectedProductId)?.name || "Produto selecionado"}
                     </span>
                     <button type="button" onClick={() => setSelectedProductId(null)} className="text-white/40 hover:text-white transition-colors">
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ) : (
@@ -298,9 +298,9 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-left font-medium hover:bg-black/60 hover:border-primary/50 transition-all justify-start text-white/20"
+                        className="w-full pl-10 pr-3 h-10 rounded-xl bg-black/40 border border-white/10 text-left font-medium hover:bg-black/60 hover:border-primary/50 transition-all justify-start text-white/20 text-sm"
                       >
-                        <Package className="absolute left-4 w-5 h-5 text-white/30" />
+                        <Package className="absolute left-3 w-4 h-4 text-white/30" />
                         Todos os produtos
                       </Button>
                     </PopoverTrigger>
@@ -334,14 +334,14 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
                     </PopoverContent>
                   </Popover>
                 )}
-                <span className="text-[10px] text-white/30 pl-1">Deixe vazio para aceitar em todos os produtos</span>
+                <span className="text-[9px] text-white/30 pl-1">Deixe vazio para aceitar em todos os produtos</span>
               </div>
 
               {/* Ativar */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-black/20 border border-white/5">
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white">Ativar Cupom</span>
-                  <span className="text-xs text-white/40">Disponível imediatamente</span>
+                  <span className="text-xs font-bold text-white">Ativar Cupom</span>
+                  <span className="text-[10px] text-white/40">Disponível imediatamente</span>
                 </div>
                 <Switch checked={isActive} onCheckedChange={setIsActive} className="data-[state=checked]:bg-primary" />
               </div>
@@ -349,22 +349,22 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon, rese
               <Button
                 type="submit"
                 disabled={saving}
-                className="mt-4 w-full bg-primary hover:bg-red-600 text-white font-bold py-4 px-6 h-auto rounded-2xl shadow-[0_0_20px_rgba(249,6,6,0.4)] hover:shadow-[0_0_30px_rgba(249,6,6,0.6)] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                className="mt-1 w-full bg-primary hover:bg-red-600 text-white font-bold h-11 px-5 rounded-xl shadow-[0_0_20px_rgba(249,6,6,0.4)] hover:shadow-[0_0_30px_rgba(249,6,6,0.6)] transition-all flex items-center justify-center gap-2 group disabled:opacity-50 text-sm"
               >
                 {saving ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> {isEditing ? "Salvando..." : "Criando..."}</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {isEditing ? "Salvando..." : "Criando..."}</>
                 ) : (
-                  <><span>{isEditing ? "SALVAR CUPOM" : "CRIAR CUPOM"}</span><ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
+                  <><span>{isEditing ? "SALVAR CUPOM" : "CRIAR CUPOM"}</span><ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
                 )}
               </Button>
             </form>
           </div>
 
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/5 p-6 rounded-3xl relative overflow-hidden">
-            <div className="absolute left-0 top-6 bottom-6 w-1 bg-primary rounded-r-full shadow-[0_0_10px_rgba(249,6,6,0.5)]" />
-            <div className="pl-4">
-              <h4 className="text-white font-bold mb-2 text-sm">Dica Pro:</h4>
-              <p className="text-white/60 text-sm leading-relaxed">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/5 p-3 rounded-2xl relative overflow-hidden">
+            <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-full shadow-[0_0_10px_rgba(249,6,6,0.5)]" />
+            <div className="pl-3">
+              <h4 className="text-white font-bold mb-0.5 text-xs">Dica Pro:</h4>
+              <p className="text-white/60 text-[11px] leading-relaxed">
                 Cupons sem data de expiração ficarão ativos indefinidamente até serem desativados manualmente.
               </p>
             </div>
