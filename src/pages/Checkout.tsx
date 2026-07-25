@@ -179,147 +179,151 @@ export default function Checkout() {
 
   useEffect(() => {
     async function fetchData() {
-      // If resuming an existing order
-      if (existingOrderId) {
-        const { data: order } = await withCheckoutTimeout(
+      try {
+        console.debug("[checkout] product load start", { productId, existingOrderId, reseller: searchParams.get("r") });
+
+        // If resuming an existing order
+        if (existingOrderId) {
+          const { data: order } = await withCheckoutTimeout(
+            supabase
+              .from("orders")
+              .select("id, code, total, subtotal, discount, payment_method, coupon_code")
+              .eq("id", existingOrderId)
+              .single(),
+            { data: null, error: null } as any,
+          );
+
+          if (!order) return;
+
+          setDraftOrderId(order.id);
+          setDraftOrderCode(order.code);
+
+          const { data: items } = await withCheckoutTimeout(
+            supabase
+              .from("order_items")
+              .select("product_id, name, price, quantity")
+              .eq("order_id", existingOrderId),
+            { data: [], error: null } as any,
+          );
+
+          if (items && items.length > 0) {
+            const mainItem = items[0];
+            if (mainItem.product_id) {
+              const { data: prod } = await withCheckoutTimeout(
+                supabase
+                  .from("products")
+                  .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
+                  .eq("id", mainItem.product_id)
+                  .single(),
+                { data: null, error: null } as any,
+              );
+              if (prod) setProduct(prod);
+            } else {
+              setProduct({
+                id: "unknown",
+                name: mainItem.name,
+                description: null,
+                price: mainItem.price,
+                image_url: null,
+                stock: 999,
+                available: true,
+                category_id: null,
+                icon_type: null,
+                external_id: null,
+                tags: null,
+              });
+            }
+          }
+          return;
+        }
+
+        // Normal flow
+        if (!productId) {
+          if (cartItems.length > 0) {
+            const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
+            let proxyDescription: string | null = null;
+            if (proxyPurchaseStr) {
+              try {
+                const pp = JSON.parse(proxyPurchaseStr);
+                proxyDescription = pp.description || null;
+              } catch {}
+            }
+
+            let dbDescription: string | null = null;
+            let dbTags: string[] | null = null;
+            let dbIconType: string | null = null;
+            let dbExternalId: string | null = null;
+            let dbSlug = null;
+            let dbStock = 999;
+            let dbAvailable = true;
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
+            if (isValidUUID) {
+              const { data: dbProd } = await withCheckoutTimeout(
+                supabase
+                  .from("products")
+                  .select("description, tags, icon_type, external_id, slug, stock, available")
+                  .eq("id", cartItems[0].productId)
+                  .single(),
+                { data: null, error: null } as any,
+              );
+              dbDescription = dbProd?.description || null;
+              dbTags = dbProd?.tags || null;
+              dbIconType = dbProd?.icon_type || null;
+              dbExternalId = dbProd?.external_id || null;
+              dbSlug = (dbProd as any)?.slug || null;
+              dbStock = dbProd?.stock ?? 999;
+              dbAvailable = dbProd?.available ?? true;
+            }
+
+            const isProxy = dbIconType === 'proxy';
+            if (!isProxy && isValidUUID && (dbStock <= 0 || !dbAvailable)) {
+              toast.error("Este produto está sem estoque no momento.");
+              navigate("/loja");
+              return;
+            }
+
+            setProduct({
+              id: cartItems[0].productId,
+              name: cartItems[0].name,
+              description: dbDescription || proxyDescription,
+              price: cartItems[0].price,
+              image_url: cartItems[0].image,
+              stock: dbStock,
+              available: dbAvailable,
+              category_id: null,
+              icon_type: dbIconType,
+              external_id: dbExternalId,
+              tags: dbTags,
+              slug: dbSlug,
+            });
+          }
+          return;
+        }
+
+        const { data } = await withCheckoutTimeout(
           supabase
-            .from("orders")
-            .select("id, code, total, subtotal, discount, payment_method, coupon_code")
-            .eq("id", existingOrderId)
+            .from("products")
+            .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
+            .eq("id", productId)
             .single(),
           { data: null, error: null } as any,
         );
 
-        if (!order) { setLoading(false); return; }
-
-        setDraftOrderId(order.id);
-        setDraftOrderCode(order.code);
-
-        // Fetch order items to get main product
-        const { data: items } = await supabase
-          .from("order_items")
-          .select("product_id, name, price, quantity")
-          .eq("order_id", existingOrderId);
-
-        if (items && items.length > 0) {
-          const mainItem = items[0];
-          if (mainItem.product_id) {
-            const { data: prod } = await withCheckoutTimeout(
-              supabase
-                .from("products")
-                .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
-                .eq("id", mainItem.product_id)
-                .single(),
-              { data: null, error: null } as any,
-            );
-            if (prod) setProduct(prod);
-          } else {
-            setProduct({
-              id: "unknown",
-              name: mainItem.name,
-              description: null,
-              price: mainItem.price,
-              image_url: null,
-              stock: 999,
-              available: true,
-              category_id: null,
-              icon_type: null,
-              external_id: null,
-              tags: null,
-            });
-          }
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Normal flow
-      if (!productId) {
-        if (cartItems.length > 0) {
-          // Try to get description from proxy_purchase sessionStorage
-          const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
-          let proxyDescription: string | null = null;
-          if (proxyPurchaseStr) {
-            try {
-              const pp = JSON.parse(proxyPurchaseStr);
-              proxyDescription = pp.description || null;
-            } catch {}
-          }
-
-          // Try to fetch product from DB for description
-          let dbDescription: string | null = null;
-          let dbTags: string[] | null = null;
-          let dbIconType: string | null = null;
-          let dbExternalId: string | null = null;
-          let dbSlug: string | null = null;
-          let dbStock = 999;
-          let dbAvailable = true;
-          const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
-          if (isValidUUID) {
-            const { data: dbProd } = await withCheckoutTimeout(
-              supabase
-                .from("products")
-                .select("description, tags, icon_type, external_id, slug, stock, available")
-                .eq("id", cartItems[0].productId)
-                .single(),
-              { data: null, error: null } as any,
-            );
-            dbDescription = dbProd?.description || null;
-            dbTags = dbProd?.tags || null;
-            dbIconType = dbProd?.icon_type || null;
-            dbExternalId = dbProd?.external_id || null;
-            dbSlug = (dbProd as any)?.slug || null;
-            dbStock = dbProd?.stock ?? 999;
-            dbAvailable = dbProd?.available ?? true;
-          }
-
-          // Block checkout for out-of-stock non-proxy products
-          const isProxy = dbIconType === 'proxy';
-          if (!isProxy && isValidUUID && (dbStock <= 0 || !dbAvailable)) {
+        if (data) {
+          const isProxy = data.icon_type === 'proxy';
+          if (!isProxy && (data.stock <= 0 || !data.available)) {
             toast.error("Este produto está sem estoque no momento.");
             navigate("/loja");
             return;
           }
-
-          setProduct({
-            id: cartItems[0].productId,
-            name: cartItems[0].name,
-            description: dbDescription || proxyDescription,
-            price: cartItems[0].price,
-            image_url: cartItems[0].image,
-            stock: dbStock,
-            available: dbAvailable,
-            category_id: null,
-            icon_type: dbIconType,
-            external_id: dbExternalId,
-            tags: dbTags,
-            slug: dbSlug,
-          });
+          setProduct(data);
+          console.debug("[checkout] product load success", { productId: data.id });
         }
+      } catch (error) {
+        console.error("[checkout] product load failed", error);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const { data } = await withCheckoutTimeout(
-        supabase
-          .from("products")
-          .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
-          .eq("id", productId)
-          .single(),
-        { data: null, error: null } as any,
-      );
-
-      if (data) {
-        // Block checkout for out-of-stock non-proxy products
-        const isProxy = data.icon_type === 'proxy';
-        if (!isProxy && (data.stock <= 0 || !data.available)) {
-          toast.error("Este produto está sem estoque no momento.");
-          navigate("/loja");
-          return;
-        }
-        setProduct(data);
-      }
-      setLoading(false);
     }
 
     if (searchParams.get("type") === "safe_bm_renewal") {
