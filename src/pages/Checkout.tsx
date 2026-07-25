@@ -330,7 +330,7 @@ export default function Checkout() {
       setResellerItemPrices({});
       return;
     }
-    if (resellerContextLoading || resellerBrandingLoading) {
+    if ((resellerContextLoading || resellerBrandingLoading) && !activeResellerSlug && !activeResellerId) {
       setResellerPricingReady(false);
       return;
     }

@@ -34,6 +34,7 @@ const PASSTHROUGH_PREFIXES = [
 
 const DOMAIN_LOOKUP_TIMEOUT_MS = 2500;
 const RESELLER_SLUG_STORAGE_KEY = "fbflix_reseller_slug";
+const PURCHASE_PASSTHROUGH_PREFIXES = ["/checkout", "/auth"];
 
 function isMainHost(host: string) {
   return (
@@ -67,10 +68,14 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   const isMainHostInitial =
     isMainHost(initialHost);
+  const initialQuerySlug = new URLSearchParams(location.search).get("r")?.trim().toLowerCase() || null;
+  const isPurchasePassthrough = PURCHASE_PASSTHROUGH_PREFIXES.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p),
+  );
   // Em domínio de revendedor, sempre aguardar a resolução do branding antes
   // de renderizar (mesmo em rotas passthrough), para evitar o flash com logo
   // e menus da FBFlix.
-  const [checked, setChecked] = useState(isMainHostInitial);
+  const [checked, setChecked] = useState(isMainHostInitial || (isPurchasePassthrough && Boolean(initialQuerySlug)));
   const [resellerSlug, setResellerSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,6 +96,20 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     const isPassthrough = PASSTHROUGH_PREFIXES.some(
       (p) => path === p || path.startsWith(p),
     );
+    const querySlug = new URLSearchParams(location.search).get("r")?.trim().toLowerCase() || null;
+
+    // Compra/login do revendedor não podem ficar bloqueados pela resolução do
+    // domínio: a própria URL já informa o slug em `r=...`.
+    if (isPassthrough && querySlug) {
+      setResellerSlug(querySlug);
+      try {
+        localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, querySlug);
+      } catch {
+        // silencioso
+      }
+      setChecked(true);
+      return;
+    }
 
     if (resellerSlug && isPassthrough) {
       setChecked(true);
@@ -100,9 +119,8 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     (async () => {
       try {
         let slug = resellerSlug;
-        const querySlug = new URLSearchParams(location.search).get("r");
         if (!slug && querySlug) {
-          slug = querySlug.trim().toLowerCase();
+          slug = querySlug;
           setResellerSlug(slug);
           try {
             localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, slug);
