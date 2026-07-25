@@ -75,6 +75,17 @@ const hasResellerCheckoutSignal = (searchParams: URLSearchParams) => {
   }
 };
 
+const isResellerHost = () => {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  const isMainHost =
+    !host ||
+    MAIN_CHECKOUT_HOSTS.includes(host) ||
+    host.endsWith(".lovableproject.com") ||
+    host.endsWith(".lovable.app");
+  return !isMainHost;
+};
+
 const getCategorySlug = (row: any) => {
   const relation = row?.product_categories;
   if (Array.isArray(relation)) return relation[0]?.slug || null;
@@ -113,10 +124,9 @@ export default function Checkout() {
     return resellerSlug || resellerBranding?.slug || querySlug || readStoredResellerValue("fbflix_reseller_slug");
   }, [resellerSlug, resellerBranding?.slug, searchParams]);
   const isResellerCheckout =
-    resellerContextLoading ||
-    resellerBrandingLoading ||
     Boolean(activeResellerId) ||
     Boolean(resellerBranding) ||
+    isResellerHost() ||
     hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
