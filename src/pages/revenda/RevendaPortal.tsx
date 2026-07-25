@@ -711,6 +711,7 @@ export default function RevendaPortal() {
 
             {activeSection === "clientes" && <ResellerClientes />}
             {activeSection === "cupons" && <ResellerCupons resellerId={reseller.id} />}
+            {activeSection === "marketing" && <ResellerMarketing />}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
