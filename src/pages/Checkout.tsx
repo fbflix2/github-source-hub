@@ -287,6 +287,48 @@ export default function Checkout() {
 
   }, [productId, existingOrderId, cartItems]);
 
+  // Apply reseller price override for proxy products
+  useEffect(() => {
+    if (!resellerId || !product) return;
+    if (product.icon_type !== "proxy") return;
+    let cancelled = false;
+    (async () => {
+      const [ovRes, rRes] = await Promise.all([
+        supabase
+          .from("reseller_price_overrides")
+          .select("custom_price, enabled")
+          .eq("reseller_id", resellerId)
+          .eq("product_id", product.id)
+          .maybeSingle(),
+        supabase
+          .from("resellers")
+          .select("proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
+          .eq("id", resellerId)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      const basePrice = Number(product.price || 0);
+      let newPrice = basePrice;
+      const ov = ovRes.data as any;
+      const r = rRes.data as any;
+      if (ov && ov.enabled) {
+        newPrice = Number(ov.custom_price);
+      } else if (r) {
+        if (r.proxy_price_mode === "fixed" && r.proxy_fixed_price !== null) {
+          newPrice = Number(r.proxy_fixed_price);
+        } else {
+          newPrice = basePrice * Number(r.proxy_price_multiplier || 1);
+        }
+      }
+      if (newPrice !== basePrice) {
+        setProduct((p) => (p ? { ...p, price: newPrice } : p));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [resellerId, product?.id, product?.icon_type]);
+
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [bumpProducts, setBumpProducts] = useState<BumpProduct[]>([]);
