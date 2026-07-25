@@ -86,19 +86,6 @@ const isResellerHost = () => {
   return !isMainHost;
 };
 
-const getCategorySlug = (row: any) => {
-  const relation = row?.product_categories;
-  if (Array.isArray(relation)) return relation[0]?.slug || null;
-  return relation?.slug || null;
-};
-
-const looksLikeProxyProduct = (row: any) => {
-  const name = String(row?.name || "").toLowerCase();
-  const icon = String(row?.icon_type || "").toLowerCase();
-  const tags = Array.isArray(row?.tags) ? row.tags.map((tag: string) => tag.toLowerCase()) : [];
-  return icon === "proxy" || getCategorySlug(row) === "proxy" || name.includes("proxy") || tags.some((tag: string) => tag.includes("proxy"));
-};
-
 const readStoredResellerValue = (key: string) => {
   if (typeof window === "undefined") return null;
   try {
@@ -419,50 +406,37 @@ export default function Checkout() {
 
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
+        const pricingSlug = String(resellerPricing.slug || activeResellerSlug || "").trim().toLowerCase();
 
-        const [productRowsRes, overridesRes] = productIds.length > 0
-          ? await withCheckoutTimeout(Promise.all([
-              supabase
-                .from("products")
-                .select("id, name, price, icon_type, tags, product_categories(slug)")
-                .in("id", productIds),
-              supabase
-                .from("reseller_price_overrides")
-                .select("product_id, custom_price, enabled")
-                .eq("reseller_id", resolvedId)
-                .in("product_id", productIds),
-            ]), [{ data: [] }, { data: [] }] as any)
-          : [{ data: [] }, { data: [] }];
+        if (!pricingSlug || productIds.length === 0) {
+          toast.error("Não foi possível carregar o preço da loja do revendedor.");
+          navigate(activeResellerSlug ? `/r/${activeResellerSlug}` : "/");
+          return;
+        }
+
+        const { data: checkoutPriceRows } = await withCheckoutTimeout(
+          (supabase as any).rpc("get_reseller_checkout_prices", {
+            _slug: pricingSlug,
+            _product_ids: productIds,
+          }),
+          { data: [], error: null } as any,
+        );
 
         if (cancelled) return;
 
-        const productRows = new Map<string, any>();
-        (productRowsRes.data || []).forEach((row: any) => productRows.set(row.id, row));
-        const overrides = new Map<string, any>();
-        (overridesRes.data || []).forEach((row: any) => overrides.set(row.product_id, row));
+        const priceRows = Array.isArray(checkoutPriceRows) ? checkoutPriceRows : [];
+        const priceMap = new Map<string, any>();
+        priceRows.forEach((row: any) => priceMap.set(row.product_id, row));
 
-        const nextPrices: Record<string, number> = {};
-        const getFinalResellerPrice = (id: string, fallback: number) => {
-          const row = productRows.get(id);
-          const basePrice = Number(row?.price ?? fallback ?? 0);
-          const override = overrides.get(id);
-
-          if (override) {
-            if (!override.enabled) return null;
-            return Number(override.custom_price);
-          }
-
-          if (looksLikeProxyProduct(row || { id, name: product.name, icon_type: product.icon_type, tags: product.tags })) {
-            if (resellerPricing.proxy_price_mode === "fixed" && resellerPricing.proxy_fixed_price !== null) {
-              return Number(resellerPricing.proxy_fixed_price);
-            }
-            return basePrice * Number(resellerPricing.proxy_price_multiplier || 1);
-          }
-
-          return basePrice;
+        const getFinalResellerPrice = (id: string) => {
+          const row = priceMap.get(id);
+          if (!row || !row.enabled) return null;
+          const value = Number(row.final_price);
+          return Number.isFinite(value) ? value : null;
         };
 
-        const mainPrice = getFinalResellerPrice(product.id, product.price);
+        const nextPrices: Record<string, number> = {};
+        const mainPrice = getFinalResellerPrice(product.id);
         if (mainPrice === null) {
           toast.error("Este item não está disponível na loja do revendedor.");
           navigate(activeResellerSlug ? `/r/${activeResellerSlug}` : "/");
@@ -471,15 +445,16 @@ export default function Checkout() {
 
         nextPrices[product.id] = mainPrice;
         extraCartItems.forEach((ci) => {
-          const finalPrice = getFinalResellerPrice(ci.productId, ci.price);
+          const finalPrice = getFinalResellerPrice(ci.productId);
           if (finalPrice !== null) nextPrices[ci.productId] = finalPrice;
         });
 
-        setResolvedCheckoutResellerId(resolvedId);
+        const rpcResolvedId = priceRows[0]?.reseller_id ? String(priceRows[0].reseller_id) : resolvedId;
+        setResolvedCheckoutResellerId(rpcResolvedId);
         setResellerItemPrices(nextPrices);
-        console.debug("[checkout] reseller pricing ready", { resolvedId, prices: nextPrices });
+        console.debug("[checkout] reseller pricing ready", { resolvedId: rpcResolvedId, prices: nextPrices });
         try {
-          localStorage.setItem("fbflix_reseller_id", resolvedId);
+          localStorage.setItem("fbflix_reseller_id", rpcResolvedId);
           if (resellerPricing.slug || activeResellerSlug) {
             localStorage.setItem("fbflix_reseller_slug", resellerPricing.slug || activeResellerSlug);
           }
