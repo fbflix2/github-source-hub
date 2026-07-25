@@ -290,10 +290,9 @@ export default function Checkout() {
   // Apply reseller price override for proxy products
   useEffect(() => {
     if (!resellerId || !product) return;
-    if (product.icon_type !== "proxy") return;
     let cancelled = false;
     (async () => {
-      const [ovRes, rRes] = await Promise.all([
+      const [ovRes, rRes, catRes] = await Promise.all([
         supabase
           .from("reseller_price_overrides")
           .select("custom_price, enabled")
@@ -305,15 +304,22 @@ export default function Checkout() {
           .select("proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
           .eq("id", resellerId)
           .maybeSingle(),
+        supabase
+          .from("products")
+          .select("product_categories(slug)")
+          .eq("id", product.id)
+          .maybeSingle(),
       ]);
       if (cancelled) return;
       const basePrice = Number(product.price || 0);
       let newPrice = basePrice;
       const ov = ovRes.data as any;
       const r = rRes.data as any;
+      const catSlug = (catRes.data as any)?.product_categories?.slug || null;
+      const isProxy = product.icon_type === "proxy" || catSlug === "proxy";
       if (ov && ov.enabled) {
         newPrice = Number(ov.custom_price);
-      } else if (r) {
+      } else if (r && isProxy) {
         if (r.proxy_price_mode === "fixed" && r.proxy_fixed_price !== null) {
           newPrice = Number(r.proxy_fixed_price);
         } else {
