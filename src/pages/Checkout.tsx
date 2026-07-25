@@ -1729,13 +1729,25 @@ export default function Checkout() {
           if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
         }
 
-        // Notify admin about completed order
-        await supabase.from("notifications").insert({
-          title: "Pedido Concluído",
-          message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Saldo)`,
-          type: "order",
-          global: true,
-        });
+        // Notify admin about completed order (distinguish reseller sales)
+        {
+          let resellerLabel = "";
+          if (activeResellerId) {
+            const { data: rInfo } = await supabase
+              .from("resellers")
+              .select("company_name, brand_name, slug")
+              .eq("id", activeResellerId)
+              .maybeSingle();
+            const rName = (rInfo as any)?.brand_name || (rInfo as any)?.company_name || (rInfo as any)?.slug;
+            if (rName) resellerLabel = ` · Revendedor: ${rName}`;
+          }
+          await supabase.from("notifications").insert({
+            title: activeResellerId ? "Pedido Concluído (Revendedor)" : "Pedido Concluído",
+            message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Saldo)${resellerLabel}`,
+            type: "order",
+            global: true,
+          });
+        }
 
         // Clear ref after use
         localStorage.removeItem("partner_ref");
@@ -1953,12 +1965,24 @@ export default function Checkout() {
             if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
           }
 
-          await supabase.from("notifications").insert({
-            title: "Pedido Concluído",
-            message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Cartão)`,
-            type: "order",
-            global: true,
-          });
+          {
+            let resellerLabel = "";
+            if (activeResellerId) {
+              const { data: rInfo } = await supabase
+                .from("resellers")
+                .select("company_name, brand_name, slug")
+                .eq("id", activeResellerId)
+                .maybeSingle();
+              const rName = (rInfo as any)?.brand_name || (rInfo as any)?.company_name || (rInfo as any)?.slug;
+              if (rName) resellerLabel = ` · Revendedor: ${rName}`;
+            }
+            await supabase.from("notifications").insert({
+              title: activeResellerId ? "Pedido Concluído (Revendedor)" : "Pedido Concluído",
+              message: `Pedido #${orderCode} finalizado — R$ ${chargeTotal.toFixed(2)} (Cartão)${resellerLabel}`,
+              type: "order",
+              global: true,
+            });
+          }
 
           sessionStorage.removeItem("proxy_purchase");
           toast.success("Pagamento aprovado! Pedido realizado.");
