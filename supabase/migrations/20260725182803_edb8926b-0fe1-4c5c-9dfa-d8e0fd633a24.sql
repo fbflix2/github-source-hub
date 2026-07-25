@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.enforce_reseller_order_item_price() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sync_reseller_order_totals_from_items() FROM PUBLIC, anon, authenticated;
