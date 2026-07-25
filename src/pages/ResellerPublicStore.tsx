@@ -427,7 +427,17 @@ export default function ResellerPublicStore() {
                         </button>
                         <button
                           onClick={async () => {
-                            const target = `/checkout?product=${product.id}&qty=${getQty(product.id)}&r=${reseller.slug}`;
+                            const qty = getQty(product.id);
+                            const target = `/checkout?product=${product.id}&qty=${qty}&r=${reseller.slug}`;
+                            try {
+                              sessionStorage.setItem("reseller_checkout_price", JSON.stringify({
+                                reseller_id: reseller.id,
+                                reseller_slug: reseller.slug,
+                                product_id: product.id,
+                                price: product.price,
+                                quantity: qty,
+                              }));
+                            } catch { /* noop */ }
                             try {
                               const { data: { session } } = await supabase.auth.getSession();
                               if (session) {

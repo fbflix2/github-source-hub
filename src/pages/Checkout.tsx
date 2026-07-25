@@ -109,6 +109,26 @@ const getResellerSlugFromCheckoutSearch = (searchParams: URLSearchParams) => {
   }
 };
 
+const getResellerCheckoutPriceSnapshot = (productId: string) => {
+  if (typeof window === "undefined" || !productId) return null;
+  try {
+    const raw = sessionStorage.getItem("reseller_checkout_price");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.product_id !== productId) return null;
+    const price = Number(parsed.price);
+    if (!Number.isFinite(price) || price <= 0) return null;
+    return {
+      resellerId: typeof parsed.reseller_id === "string" ? parsed.reseller_id : null,
+      resellerSlug: typeof parsed.reseller_slug === "string" ? parsed.reseller_slug : null,
+      productId: parsed.product_id as string,
+      price,
+    };
+  } catch {
+    return null;
+  }
+};
+
 const withCheckoutTimeout = async <T,>(promise: PromiseLike<T>, fallback: T, ms = 4500): Promise<T> => {
   const timeout = new Promise<T>((resolve) => {
     window.setTimeout(() => resolve(fallback), ms);
@@ -374,7 +394,18 @@ export default function Checkout() {
       return;
     }
     let cancelled = false;
-    setResellerPricingReady(false);
+    const checkoutPriceSnapshot = getResellerCheckoutPriceSnapshot(product.id);
+    if (checkoutPriceSnapshot) {
+      setResellerItemPrices((current) => ({ ...current, [product.id]: checkoutPriceSnapshot.price }));
+      if (checkoutPriceSnapshot.resellerId) setResolvedCheckoutResellerId(checkoutPriceSnapshot.resellerId);
+      setProduct((current) => {
+        if (!current || current.id !== checkoutPriceSnapshot.productId) return current;
+        if (Math.abs(Number(current.price || 0) - checkoutPriceSnapshot.price) < 0.001) return current;
+        return { ...current, price: checkoutPriceSnapshot.price };
+      });
+    } else {
+      setResellerPricingReady(false);
+    }
     (async () => {
       try {
         console.debug("[checkout] reseller pricing start", {
@@ -417,7 +448,7 @@ export default function Checkout() {
           return;
         }
 
-        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
 
         if (!pricingSlug) {
@@ -803,7 +834,7 @@ export default function Checkout() {
   // Create draft order when entering checkout (for abandoned cart tracking)
   // Skip if resuming an existing order
   useEffect(() => {
-    if (!product || (isResellerCheckout && !resellerPricingReady) || draftOrderId || draftCreatingRef.current || existingOrderId) return;
+    if (!product || draftOrderId || draftCreatingRef.current || existingOrderId) return;
     if (isResellerCheckout && resellerItemPrices[product.id] == null) return;
 
     const createDraftOrder = async () => {
@@ -937,7 +968,7 @@ export default function Checkout() {
     };
 
     createDraftOrder();
-  }, [product, isResellerCheckout, resellerPricingReady, resellerItemPrices, activeResellerId]);
+  }, [product, isResellerCheckout, resellerItemPrices, activeResellerId]);
 
   // Helper to get proxy purchase data from sessionStorage
   const getProxyPurchaseData = () => {
@@ -1119,7 +1150,7 @@ export default function Checkout() {
     Number(isResellerCheckout ? resellerItemPrices[item.productId] ?? item.price : item.price);
 
   const resellerPricePending = Boolean(
-    isResellerCheckout && product && (!resellerPricingReady || resellerItemPrices[product.id] == null),
+    isResellerCheckout && product && resellerItemPrices[product.id] == null,
   );
 
   if (loading) {
@@ -1234,7 +1265,7 @@ export default function Checkout() {
   
 
   const handlePay = async () => {
-    if (isResellerCheckout && (!resellerPricingReady || (product && resellerItemPrices[product.id] == null))) {
+    if (isResellerCheckout && product && resellerItemPrices[product.id] == null) {
       toast.error("Aguarde o preço da loja carregar para finalizar.");
       return;
     }
