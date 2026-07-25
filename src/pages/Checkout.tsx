@@ -86,19 +86,6 @@ const isResellerHost = () => {
   return !isMainHost;
 };
 
-const getCategorySlug = (row: any) => {
-  const relation = row?.product_categories;
-  if (Array.isArray(relation)) return relation[0]?.slug || null;
-  return relation?.slug || null;
-};
-
-const looksLikeProxyProduct = (row: any) => {
-  const name = String(row?.name || "").toLowerCase();
-  const icon = String(row?.icon_type || "").toLowerCase();
-  const tags = Array.isArray(row?.tags) ? row.tags.map((tag: string) => tag.toLowerCase()) : [];
-  return icon === "proxy" || getCategorySlug(row) === "proxy" || name.includes("proxy") || tags.some((tag: string) => tag.includes("proxy"));
-};
-
 const readStoredResellerValue = (key: string) => {
   if (typeof window === "undefined") return null;
   try {
