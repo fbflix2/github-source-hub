@@ -181,11 +181,14 @@ export default function Checkout() {
     async function fetchData() {
       // If resuming an existing order
       if (existingOrderId) {
-        const { data: order } = await supabase
-          .from("orders")
-          .select("id, code, total, subtotal, discount, payment_method, coupon_code")
-          .eq("id", existingOrderId)
-          .single();
+        const { data: order } = await withCheckoutTimeout(
+          supabase
+            .from("orders")
+            .select("id, code, total, subtotal, discount, payment_method, coupon_code")
+            .eq("id", existingOrderId)
+            .single(),
+          { data: null, error: null } as any,
+        );
 
         if (!order) { setLoading(false); return; }
 
@@ -201,11 +204,14 @@ export default function Checkout() {
         if (items && items.length > 0) {
           const mainItem = items[0];
           if (mainItem.product_id) {
-            const { data: prod } = await supabase
-              .from("products")
-              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
-              .eq("id", mainItem.product_id)
-              .single();
+            const { data: prod } = await withCheckoutTimeout(
+              supabase
+                .from("products")
+                .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
+                .eq("id", mainItem.product_id)
+                .single(),
+              { data: null, error: null } as any,
+            );
             if (prod) setProduct(prod);
           } else {
             setProduct({
@@ -250,11 +256,14 @@ export default function Checkout() {
           let dbAvailable = true;
           const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
           if (isValidUUID) {
-            const { data: dbProd } = await supabase
-              .from("products")
-              .select("description, tags, icon_type, external_id, slug, stock, available")
-              .eq("id", cartItems[0].productId)
-              .single();
+            const { data: dbProd } = await withCheckoutTimeout(
+              supabase
+                .from("products")
+                .select("description, tags, icon_type, external_id, slug, stock, available")
+                .eq("id", cartItems[0].productId)
+                .single(),
+              { data: null, error: null } as any,
+            );
             dbDescription = dbProd?.description || null;
             dbTags = dbProd?.tags || null;
             dbIconType = dbProd?.icon_type || null;
@@ -291,11 +300,14 @@ export default function Checkout() {
         return;
       }
 
-      const { data } = await supabase
-        .from("products")
-        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
-        .eq("id", productId)
-        .single();
+      const { data } = await withCheckoutTimeout(
+        supabase
+          .from("products")
+          .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
+          .eq("id", productId)
+          .single(),
+        { data: null, error: null } as any,
+      );
 
       if (data) {
         // Block checkout for out-of-stock non-proxy products
@@ -359,16 +371,22 @@ export default function Checkout() {
         let resellerPricing: any = null;
 
         if (resolvedId) {
-          const { data } = await supabase
-            .from("resellers")
-            .select("id, slug, proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
-            .eq("id", resolvedId)
-            .maybeSingle();
+          const { data } = await withCheckoutTimeout(
+            supabase
+              .from("resellers")
+              .select("id, slug, proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
+              .eq("id", resolvedId)
+              .maybeSingle(),
+            { data: null, error: null } as any,
+          );
           if (data) resellerPricing = data;
         }
 
         if (!resellerPricing && activeResellerSlug) {
-          const { data } = await supabase.rpc("get_reseller_public_by_slug", { _slug: activeResellerSlug });
+          const { data } = await withCheckoutTimeout(
+            supabase.rpc("get_reseller_public_by_slug", { _slug: activeResellerSlug }),
+            { data: null, error: null } as any,
+          );
           const publicReseller = Array.isArray(data) ? data[0] : data;
           if (publicReseller?.id) {
             resolvedId = publicReseller.id;
