@@ -185,6 +185,14 @@ function AuthLoadingScreen() {
   );
 }
 
+function AuthRedirectPreservingLocation() {
+  const location = useLocation();
+  const target = `${location.pathname}${location.search}`;
+  const params = new URLSearchParams();
+  params.set("redirect", target);
+  return <Navigate to={`/auth?${params.toString()}`} replace />;
+}
+
 function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: string }) {
   const [target, setTarget] = useState<string | null>(null);
 
@@ -639,7 +647,7 @@ const App = () => {
                 {user ? (
                   <Route path="/*" element={<AuthenticatedApp user={user} onLogout={handleLogout} />} />
                 ) : (
-                  <Route path="*" element={<Navigate to="/auth" replace />} />
+                  <Route path="*" element={<AuthRedirectPreservingLocation />} />
                 )}
               </Routes>
               </CustomDomainRouter>
