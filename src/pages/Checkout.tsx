@@ -75,17 +75,47 @@ const hasResellerCheckoutSignal = (searchParams: URLSearchParams) => {
   }
 };
 
+const getCategorySlug = (row: any) => {
+  const relation = row?.product_categories;
+  if (Array.isArray(relation)) return relation[0]?.slug || null;
+  return relation?.slug || null;
+};
+
+const looksLikeProxyProduct = (row: any) => {
+  const name = String(row?.name || "").toLowerCase();
+  const icon = String(row?.icon_type || "").toLowerCase();
+  const tags = Array.isArray(row?.tags) ? row.tags.map((tag: string) => tag.toLowerCase()) : [];
+  return icon === "proxy" || getCategorySlug(row) === "proxy" || name.includes("proxy") || tags.some((tag: string) => tag.includes("proxy"));
+};
+
+const readStoredResellerValue = (key: string) => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
-  const { resellerId, loading: resellerContextLoading } = useResellerContext();
+  const { resellerId, resellerSlug, loading: resellerContextLoading } = useResellerContext();
   const { branding: resellerBranding, loading: resellerBrandingLoading } = useResellerBranding();
+  const [resolvedCheckoutResellerId, setResolvedCheckoutResellerId] = useState<string | null>(null);
+  const [resellerPricingReady, setResellerPricingReady] = useState(false);
+  const [resellerItemPrices, setResellerItemPrices] = useState<Record<string, number>>({});
+  const activeResellerId = resolvedCheckoutResellerId || resellerId;
+  const activeResellerSlug = useMemo(() => {
+    const querySlug = (searchParams.get("r") || "").trim().toLowerCase();
+    return resellerSlug || resellerBranding?.slug || querySlug || readStoredResellerValue("fbflix_reseller_slug");
+  }, [resellerSlug, resellerBranding?.slug, searchParams]);
   const isResellerCheckout =
     resellerContextLoading ||
     resellerBrandingLoading ||
-    Boolean(resellerId) ||
+    Boolean(activeResellerId) ||
     Boolean(resellerBranding) ||
     hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
