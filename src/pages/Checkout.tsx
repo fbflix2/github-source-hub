@@ -317,53 +317,129 @@ export default function Checkout() {
 
   }, [productId, existingOrderId, cartItems]);
 
-  // Apply reseller price override for proxy products
+  // Apply reseller prices before showing/creating the order. The checkout must
+  // charge exactly the public store price configured by the reseller, never the
+  // original FBFlix product price.
   useEffect(() => {
-    if (!resellerId || !product) return;
+    if (!product) {
+      setResellerPricingReady(false);
+      return;
+    }
+    if (!isResellerCheckout) {
+      setResellerPricingReady(true);
+      setResellerItemPrices({});
+      return;
+    }
     let cancelled = false;
+    setResellerPricingReady(false);
     (async () => {
-      const [ovRes, rRes, catRes] = await Promise.all([
-        supabase
-          .from("reseller_price_overrides")
-          .select("custom_price, enabled")
-          .eq("reseller_id", resellerId)
-          .eq("product_id", product.id)
-          .maybeSingle(),
-        supabase
-          .from("resellers")
-          .select("proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
-          .eq("id", resellerId)
-          .maybeSingle(),
-        supabase
-          .from("products")
-          .select("product_categories(slug)")
-          .eq("id", product.id)
-          .maybeSingle(),
-      ]);
-      if (cancelled) return;
-      const basePrice = Number(product.price || 0);
-      let newPrice = basePrice;
-      const ov = ovRes.data as any;
-      const r = rRes.data as any;
-      const catSlug = (catRes.data as any)?.product_categories?.slug || null;
-      const isProxy = product.icon_type === "proxy" || catSlug === "proxy";
-      if (ov && ov.enabled) {
-        newPrice = Number(ov.custom_price);
-      } else if (r && isProxy) {
-        if (r.proxy_price_mode === "fixed" && r.proxy_fixed_price !== null) {
-          newPrice = Number(r.proxy_fixed_price);
-        } else {
-          newPrice = basePrice * Number(r.proxy_price_multiplier || 1);
+      try {
+        let resolvedId = activeResellerId;
+        let resellerPricing: any = null;
+
+        if (resolvedId) {
+          const { data } = await supabase
+            .from("resellers")
+            .select("id, slug, proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
+            .eq("id", resolvedId)
+            .maybeSingle();
+          if (data) resellerPricing = data;
         }
-      }
-      if (newPrice !== basePrice) {
-        setProduct((p) => (p ? { ...p, price: newPrice } : p));
+
+        if (!resellerPricing && activeResellerSlug) {
+          const { data } = await supabase.rpc("get_reseller_public_by_slug", { _slug: activeResellerSlug });
+          const publicReseller = Array.isArray(data) ? data[0] : data;
+          if (publicReseller?.id) {
+            resolvedId = publicReseller.id;
+            resellerPricing = publicReseller;
+          }
+        }
+
+        if (!resellerPricing || !resolvedId) {
+          if (!cancelled) setResellerPricingReady(true);
+          return;
+        }
+
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
+
+        const [productRowsRes, overridesRes] = await Promise.all([
+          supabase
+            .from("products")
+            .select("id, name, price, icon_type, tags, product_categories(slug)")
+            .in("id", productIds),
+          supabase
+            .from("reseller_price_overrides")
+            .select("product_id, custom_price, enabled")
+            .eq("reseller_id", resolvedId)
+            .in("product_id", productIds),
+        ]);
+
+        if (cancelled) return;
+
+        const productRows = new Map<string, any>();
+        (productRowsRes.data || []).forEach((row: any) => productRows.set(row.id, row));
+        const overrides = new Map<string, any>();
+        (overridesRes.data || []).forEach((row: any) => overrides.set(row.product_id, row));
+
+        const nextPrices: Record<string, number> = {};
+        const getFinalResellerPrice = (id: string, fallback: number) => {
+          const row = productRows.get(id);
+          const basePrice = Number(row?.price ?? fallback ?? 0);
+          const override = overrides.get(id);
+
+          if (override) {
+            if (!override.enabled) return null;
+            return Number(override.custom_price);
+          }
+
+          if (looksLikeProxyProduct(row || { id, name: product.name, icon_type: product.icon_type, tags: product.tags })) {
+            if (resellerPricing.proxy_price_mode === "fixed" && resellerPricing.proxy_fixed_price !== null) {
+              return Number(resellerPricing.proxy_fixed_price);
+            }
+            return basePrice * Number(resellerPricing.proxy_price_multiplier || 1);
+          }
+
+          return basePrice;
+        };
+
+        const mainPrice = getFinalResellerPrice(product.id, product.price);
+        if (mainPrice === null) {
+          toast.error("Este item não está disponível na loja do revendedor.");
+          navigate(activeResellerSlug ? `/r/${activeResellerSlug}` : "/");
+          return;
+        }
+
+        nextPrices[product.id] = mainPrice;
+        extraCartItems.forEach((ci) => {
+          const finalPrice = getFinalResellerPrice(ci.productId, ci.price);
+          if (finalPrice !== null) nextPrices[ci.productId] = finalPrice;
+        });
+
+        setResolvedCheckoutResellerId(resolvedId);
+        setResellerItemPrices(nextPrices);
+        try {
+          localStorage.setItem("fbflix_reseller_id", resolvedId);
+          if (resellerPricing.slug || activeResellerSlug) {
+            localStorage.setItem("fbflix_reseller_slug", resellerPricing.slug || activeResellerSlug);
+          }
+        } catch { /* noop */ }
+
+        setProduct((current) => {
+          if (!current) return current;
+          if (Math.abs(Number(current.price || 0) - mainPrice) < 0.001) return current;
+          return { ...current, price: mainPrice };
+        });
+      } catch (error) {
+        console.error("Reseller checkout pricing error", error);
+      } finally {
+        if (!cancelled) setResellerPricingReady(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [resellerId, product?.id, product?.icon_type]);
+  }, [isResellerCheckout, activeResellerId, activeResellerSlug, product?.id, extraCartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
