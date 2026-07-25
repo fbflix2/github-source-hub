@@ -7,6 +7,14 @@ const MAIN_HOSTS = [
   "fbflix1.lovable.app",
   "localhost",
 ];
+const LOOKUP_TIMEOUT_MS = 3500;
+
+const withTimeout = async <T,>(promise: PromiseLike<T>, fallback: T): Promise<T> => {
+  const timeout = new Promise<T>((resolve) => {
+    window.setTimeout(() => resolve(fallback), LOOKUP_TIMEOUT_MS);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]);
+};
 
 export interface ResellerBranding {
   slug: string;
@@ -64,9 +72,9 @@ export function useResellerBranding() {
       try {
         let slug: string | null = urlSlug;
         if (!slug) {
-          const { data } = await supabase.rpc(
-            "get_reseller_slug_by_domain",
-            { _domain: host },
+          const { data } = await withTimeout(
+            supabase.rpc("get_reseller_slug_by_domain", { _domain: host }),
+            { data: null, error: null } as any,
           );
           slug = data ? String(data) : null;
         }
@@ -74,9 +82,10 @@ export function useResellerBranding() {
           if (!cancelled) setLoading(false);
           return;
         }
-        const { data } = await supabase.rpc("get_reseller_public_by_slug", {
-          _slug: slug,
-        });
+        const { data } = await withTimeout(
+          supabase.rpc("get_reseller_public_by_slug", { _slug: slug }),
+          { data: null, error: null } as any,
+        );
         const r = Array.isArray(data) ? data[0] : data;
         if (!cancelled && r) {
           setBranding({
