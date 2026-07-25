@@ -1116,7 +1116,7 @@ export default function Checkout() {
 
   const total = subtotal - discount;
 
-  if (loading || (isResellerCheckout && product && !resellerPricingReady)) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 text-primary animate-spin" />
