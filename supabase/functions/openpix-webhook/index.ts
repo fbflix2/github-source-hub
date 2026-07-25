@@ -530,7 +530,11 @@ Deno.serve(async (req) => {
         type: "wallet", global: true,
       });
     } else if (orderId) {
-      const { data: orderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("code, reseller_id")
+        .eq("id", orderId)
+        .single();
       await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
       await supabase.from("wallet_transactions").insert({
         user_id: userId, type: "debit",
@@ -538,9 +542,21 @@ Deno.serve(async (req) => {
         amount, reference_id: paymentId,
       });
       await fulfillOrder(supabase, orderId, userId);
+
+      let resellerLabel = "";
+      const resellerId = (orderData as any)?.reseller_id;
+      if (resellerId) {
+        const { data: rInfo } = await supabase
+          .from("resellers")
+          .select("company_name, brand_name, slug")
+          .eq("id", resellerId)
+          .maybeSingle();
+        const rName = (rInfo as any)?.brand_name || (rInfo as any)?.company_name || (rInfo as any)?.slug;
+        if (rName) resellerLabel = ` · Revendedor: ${rName}`;
+      }
       await supabase.from("notifications").insert({
-        title: "Pedido Pago",
-        message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via OpenPix.`,
+        title: resellerId ? "Pedido Pago (Revendedor)" : "Pedido Pago",
+        message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via OpenPix.${resellerLabel}`,
         type: "order", global: true,
       });
     }
