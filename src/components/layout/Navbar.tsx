@@ -32,6 +32,7 @@ interface NavbarProps {
   linkOverrides?: Record<string, string>;
   hideTickets?: boolean;
   hideNotifications?: boolean;
+  hideLogo?: boolean;
   unauthenticated?: boolean;
   onLoginClick?: () => void;
 }
@@ -55,7 +56,7 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false, unauthenticated = false, onLoginClick }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false, hideLogo = false, unauthenticated = false, onLoginClick }: NavbarProps) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
@@ -88,8 +89,12 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <NavLink to={linkOverrides?.loja || (resellerOnly ? "/revenda" : "/loja")} className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
-          <img src={logoOverride || logoFbflix} alt={brandNameOverride || "FBFLIX"} style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
-          <span className="sr-only">{brandNameOverride || "FBFLIX"}</span>
+          {hideLogo ? (
+            <div style={{ height: `${logoHeight}px`, width: `${logoHeight}px` }} className="mr-2" aria-hidden />
+          ) : (
+            <img src={logoOverride || logoFbflix} alt={brandNameOverride || "FBFLIX"} style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
+          )}
+          <span className="sr-only">{brandNameOverride || (hideLogo ? "" : "FBFLIX")}</span>
         </NavLink>
 
         {/* Navigation Links */}
