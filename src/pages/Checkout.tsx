@@ -750,7 +750,7 @@ export default function Checkout() {
   // Create draft order when entering checkout (for abandoned cart tracking)
   // Skip if resuming an existing order
   useEffect(() => {
-    if (!product || draftOrderId || draftCreatingRef.current || existingOrderId) return;
+    if (!product || (isResellerCheckout && !resellerPricingReady) || draftOrderId || draftCreatingRef.current || existingOrderId) return;
 
     const createDraftOrder = async () => {
       draftCreatingRef.current = true;
@@ -761,17 +761,26 @@ export default function Checkout() {
         const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
         const partnerRefId = localStorage.getItem("partner_ref_id");
 
+        const mainUnitPrice = isResellerCheckout
+          ? Number(resellerItemPrices[product.id] ?? product.price)
+          : Number(product.price || 0);
+        const extraItemsTotal = extraCartItems.reduce((sum, ci) => {
+          const unitPrice = isResellerCheckout ? Number(resellerItemPrices[ci.productId] ?? ci.price) : Number(ci.price || 0);
+          return sum + unitPrice * ci.quantity;
+        }, 0);
+        const draftSubtotal = mainUnitPrice * quantity + extraItemsTotal;
+
         const { data: order, error } = await supabase.from("orders").insert({
           code: orderCode,
           user_id: user.id,
-          subtotal: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
+          subtotal: draftSubtotal,
           discount: 0,
-          total: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
+          total: draftSubtotal,
           payment_method: null,
           status: "processing",
           coupon_code: null,
           partner_id: partnerRefId || null,
-          reseller_id: resellerId || null,
+          reseller_id: activeResellerId || null,
         }).select("id").single();
 
         if (error) {
@@ -787,7 +796,7 @@ export default function Checkout() {
               partnerId: partnerRefId,
               productId: product.id,
               productName: product.name,
-              amount: product.price * quantity,
+              amount: mainUnitPrice * quantity,
               metadata: { order_id: order.id, quantity },
             });
           } catch { /* noop */ }
@@ -835,10 +844,10 @@ export default function Checkout() {
         const isProxy = product.icon_type === 'proxy' || !!deliveryData;
         const orderItems: any[] = [];
         if (isProxy || quantity <= 1) {
-          orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity, delivery_data: deliveryData });
+          orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: mainUnitPrice, quantity, delivery_data: deliveryData });
         } else {
           for (let i = 0; i < quantity; i++) {
-            orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity: 1, delivery_data: null });
+            orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: mainUnitPrice, quantity: 1, delivery_data: null });
           }
         }
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
@@ -856,7 +865,7 @@ export default function Checkout() {
             order_id: order.id,
             product_id: uuidRe.test(ci.productId) ? ci.productId : null,
             name: ci.name,
-            price: ci.price,
+            price: isResellerCheckout ? Number(resellerItemPrices[ci.productId] ?? ci.price) : ci.price,
             quantity: ci.quantity,
             delivery_data: null,
           }));
@@ -874,7 +883,7 @@ export default function Checkout() {
     };
 
     createDraftOrder();
-  }, [product]);
+  }, [product, isResellerCheckout, resellerPricingReady, resellerItemPrices, activeResellerId]);
 
   // Helper to get proxy purchase data from sessionStorage
   const getProxyPurchaseData = () => {
