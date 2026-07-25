@@ -1084,7 +1084,7 @@ export default function Checkout() {
     setApplyingCoupon(true);
     try {
       const { data: rows, error } = await supabase
-        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase(), _reseller_id: resellerId || null });
+        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase(), _reseller_id: activeResellerId || null });
 
       if (error) throw error;
 
@@ -1126,7 +1126,7 @@ export default function Checkout() {
 
       // Reseller safety: the final price can never go below the sum of
       // reseller costs (what the reseller pays FBFlix for each item).
-      if (isResellerCheckout && resellerId && product) {
+      if (isResellerCheckout && activeResellerId && product) {
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)]
           .filter((id) => id && !id.startsWith("safe-bm") && !id.startsWith("scale-pro"));
         if (productIds.length > 0) {
@@ -1199,7 +1199,7 @@ export default function Checkout() {
 
       // RESELLER GUARD: block sale if reseller has insufficient recharge balance
       // to cover the FBFlix cost of the items being purchased.
-      if (isResellerCheckout && resellerId && product) {
+      if (isResellerCheckout && activeResellerId && product) {
         try {
           const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter(Boolean);
           const { data: costRows } = await supabase
@@ -1216,7 +1216,7 @@ export default function Checkout() {
           const { data: reseller } = await supabase
             .from("resellers")
             .select("balance_credits, brand_name, company_name")
-            .eq("id", resellerId)
+            .eq("id", activeResellerId)
             .maybeSingle();
 
           const rBalance = Number(reseller?.balance_credits || 0);
@@ -1226,7 +1226,7 @@ export default function Checkout() {
               { duration: 6000 }
             );
             console.warn("[reseller-guard] insufficient recharge balance", {
-              resellerId, rBalance, totalCost,
+              resellerId: activeResellerId, rBalance, totalCost,
             });
             setProcessing(false);
             clearTimeout(safetyTimeout);
@@ -1263,6 +1263,24 @@ export default function Checkout() {
 
       const orderId = draftOrderId;
       const orderCode = draftOrderCode;
+
+      if (isResellerCheckout && product) {
+        const mainCheckoutPrice = Number(resellerItemPrices[product.id] ?? product.price);
+        await supabase
+          .from("order_items")
+          .update({ price: mainCheckoutPrice })
+          .eq("order_id", orderId)
+          .eq("product_id", product.id);
+
+        for (const ci of extraCartItems) {
+          const itemCheckoutPrice = Number(resellerItemPrices[ci.productId] ?? ci.price);
+          await supabase
+            .from("order_items")
+            .update({ price: itemCheckoutPrice })
+            .eq("order_id", orderId)
+            .eq("product_id", ci.productId);
+        }
+      }
 
       // When resuming an existing order, recompute totals from the actual
       // order_items in DB. The in-memory `subtotal`/`total` are unreliable on
@@ -1635,7 +1653,7 @@ export default function Checkout() {
         const proxyDataForPix = getProxyPurchaseData();
         const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
         const pixBody: any = { amount: chargeTotal, order_id: orderId };
-        if (resellerId) pixBody.reseller_id = resellerId;
+        if (activeResellerId) pixBody.reseller_id = activeResellerId;
         if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
