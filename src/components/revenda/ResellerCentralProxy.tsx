@@ -220,7 +220,7 @@ export function ResellerCentralProxy({
       setExchangeCount(exCount || 0);
       setLoading(false);
     })();
-  }, [resellerId]);
+  }, [resellerId, model, proxyUnitCost, commissionRate]);
 
   const kpis = useMemo(() => {
     const now = Date.now();
@@ -581,7 +581,12 @@ export function ResellerCentralProxy({
                         <td className="text-right px-4 py-3 font-mono">
                           {BRL(Number(c.revenue))}
                         </td>
-                        <td className="text-right px-4 py-3 font-mono font-bold text-emerald-400">
+                        <td
+                          className={cn(
+                            "text-right px-4 py-3 font-mono font-bold",
+                            c.profit >= 0 ? "text-emerald-400" : "text-primary"
+                          )}
+                        >
                           {BRL(Number(c.profit))}
                         </td>
                         <td className="text-center px-5 py-3">
