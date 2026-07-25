@@ -26,8 +26,8 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
   const [isPartner, setIsPartner] = useState(false);
   const [partnerEarned, setPartnerEarned] = useState<number | null>(null);
   const [isReseller, setIsReseller] = useState(false);
-  const { branding } = useResellerBranding();
-  const isResellerDomain = !!branding;
+  const { branding, loading: brandingLoading, isResellerHost } = useResellerBranding();
+  const isResellerDomain = !!branding || isResellerHost;
 
   useEffect(() => {
     let userId: string | null = null;
@@ -132,6 +132,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
         brandNameOverride={isResellerDomain ? branding?.brand_name ?? branding?.company_name ?? undefined : undefined}
         hideTickets={isResellerDomain}
         hideNotifications={isResellerDomain}
+        hideLogo={isResellerHost && !branding}
       />
 
       {/* Main Content */}
