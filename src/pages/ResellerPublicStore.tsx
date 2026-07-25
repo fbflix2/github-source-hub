@@ -68,6 +68,7 @@ export default function ResellerPublicStore() {
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
+  const [authPrompt, setAuthPrompt] = useState<{ target: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -434,7 +435,7 @@ export default function ResellerPublicStore() {
                                 return;
                               }
                             } catch { /* noop */ }
-                            navigate(`/auth?redirect=${encodeURIComponent(target)}`);
+                            setAuthPrompt({ target });
                           }}
                           className="flex-1 h-8 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 hover:opacity-90"
                           style={{ background: primaryColor }}
@@ -464,6 +465,52 @@ export default function ResellerPublicStore() {
           </footer>
         </div>
       </main>
+
+      {authPrompt && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setAuthPrompt(null)}
+        >
+          <div
+            className="glass-card rounded-2xl p-6 md:p-8 max-w-md w-full relative animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setAuthPrompt(null)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition"
+              aria-label="Fechar"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: `${primaryColor}20`, border: `1px solid ${primaryColor}40` }}
+            >
+              <Zap className="size-7" style={{ color: primaryColor }} />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">Falta pouco para finalizar!</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Para concluir sua compra na <span className="font-semibold text-foreground">{brandName}</span>, é necessário ter uma conta.
+              Se já é cliente, faça login. Caso contrário, o cadastro é rápido e leva menos de 1 minuto.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(authPrompt.target)}`)}
+                className="w-full h-11 text-white font-bold text-sm rounded-lg transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                style={{ background: primaryColor }}
+              >
+                Criar conta rápida
+              </button>
+              <button
+                onClick={() => navigate(`/auth?mode=login&redirect=${encodeURIComponent(authPrompt.target)}`)}
+                className="w-full h-11 bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-sm rounded-lg border border-border transition-all"
+              >
+                Já tenho conta — Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
