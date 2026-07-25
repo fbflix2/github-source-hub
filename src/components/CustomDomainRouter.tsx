@@ -32,6 +32,29 @@ const PASSTHROUGH_PREFIXES = [
   "/item-details",
 ];
 
+const DOMAIN_LOOKUP_TIMEOUT_MS = 2500;
+const RESELLER_SLUG_STORAGE_KEY = "fbflix_reseller_slug";
+
+function isMainHost(host: string) {
+  return (
+    MAIN_HOSTS.includes(host) ||
+    host.endsWith(".lovableproject.com") ||
+    host.endsWith(".lovable.app")
+  );
+}
+
+async function resolveSlugWithTimeout(host: string): Promise<string | null> {
+  const lookup = supabase
+    .rpc("get_reseller_slug_by_domain", { _domain: host })
+    .then(({ data, error }) => (!error && data ? String(data) : null));
+
+  const timeout = new Promise<null>((resolve) => {
+    window.setTimeout(() => resolve(null), DOMAIN_LOOKUP_TIMEOUT_MS);
+  });
+
+  return Promise.race([lookup, timeout]);
+}
+
 /**
  * Detecta se o hostname atual pertence a um revendedor (custom_domain) e,
  * se sim, redireciona a rota raiz para a loja pública desse revendedor.
@@ -43,9 +66,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
   const initialHost =
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   const isMainHostInitial =
-    MAIN_HOSTS.includes(initialHost) ||
-    initialHost.endsWith(".lovableproject.com") ||
-    initialHost.endsWith(".lovable.app");
+    isMainHost(initialHost);
   // Em domínio de revendedor, sempre aguardar a resolução do branding antes
   // de renderizar (mesmo em rotas passthrough), para evitar o flash com logo
   // e menus da FBFlix.
@@ -56,28 +77,56 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     if (typeof window === "undefined") return;
 
     const host = window.location.hostname.toLowerCase();
-    if (
-      MAIN_HOSTS.includes(host) ||
-      host.endsWith(".lovableproject.com") ||
-      host.endsWith(".lovable.app")
-    ) {
+    const root = document.documentElement;
+
+    if (isMainHost(host)) {
+      root.removeAttribute("data-custom-domain");
       setChecked(true);
       return;
     }
+
+    root.setAttribute("data-custom-domain", "1");
 
     const path = location.pathname;
     const isPassthrough = PASSTHROUGH_PREFIXES.some(
       (p) => path === p || path.startsWith(p),
     );
 
+    if (resellerSlug && isPassthrough) {
+      setChecked(true);
+      return;
+    }
+
     (async () => {
       try {
         let slug = resellerSlug;
+        const querySlug = new URLSearchParams(location.search).get("r");
+        if (!slug && querySlug) {
+          slug = querySlug.trim().toLowerCase();
+          setResellerSlug(slug);
+          try {
+            localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, slug);
+          } catch {
+            // silencioso
+          }
+        }
         if (!slug) {
-          const { data, error } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
-          if (!error && data) {
-            slug = data as string;
+          try {
+            slug = localStorage.getItem(RESELLER_SLUG_STORAGE_KEY);
+          } catch {
+            slug = null;
+          }
+          if (slug) setResellerSlug(slug);
+        }
+        if (!slug) {
+          slug = await resolveSlugWithTimeout(host);
+          if (slug) {
             setResellerSlug(slug);
+            try {
+              localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, slug);
+            } catch {
+              // silencioso
+            }
           }
         }
         if (slug && !isPassthrough) {
@@ -94,7 +143,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
 
   if (!checked) {
     // Tela neutra (sem branding FBFlix) enquanto resolvemos o domínio customizado
-    return <div style={{ minHeight: "100vh", background: "#000" }} />;
+    return <div className="min-h-screen bg-background" />;
   }
 
   return <>{children}</>;
