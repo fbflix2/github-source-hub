@@ -1023,6 +1023,46 @@ export default function Checkout() {
         return;
       }
 
+      // RESELLER GUARD: block sale if reseller has insufficient recharge balance
+      // to cover the FBFlix cost of the items being purchased.
+      if (isResellerCheckout && resellerId && product) {
+        try {
+          const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter(Boolean);
+          const { data: costRows } = await supabase
+            .from("products")
+            .select("id, reseller_cost")
+            .in("id", productIds);
+          const costMap = new Map<string, number>();
+          (costRows || []).forEach((r: any) => costMap.set(r.id, Number(r.reseller_cost) || 0));
+          let totalCost = (costMap.get(product.id) || 0) * quantity;
+          extraCartItems.forEach((ci) => {
+            totalCost += (costMap.get(ci.productId) || 0) * ci.quantity;
+          });
+
+          const { data: reseller } = await supabase
+            .from("resellers")
+            .select("balance_credits, brand_name, company_name")
+            .eq("id", resellerId)
+            .maybeSingle();
+
+          const rBalance = Number(reseller?.balance_credits || 0);
+          if (totalCost > 0 && rBalance < totalCost) {
+            toast.error(
+              `Compra indisponível no momento. Entre em contato com o suporte.`,
+              { duration: 6000 }
+            );
+            console.warn("[reseller-guard] insufficient recharge balance", {
+              resellerId, rBalance, totalCost,
+            });
+            setProcessing(false);
+            clearTimeout(safetyTimeout);
+            return;
+          }
+        } catch (e) {
+          console.error("[reseller-guard] check failed", e);
+        }
+      }
+
       // Re-validate stock right before payment
       const { data: orderItemsToCheck } = await supabase
         .from("order_items")
