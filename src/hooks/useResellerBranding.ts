@@ -18,6 +18,22 @@ export interface ResellerBranding {
   company_name: string | null;
 }
 
+const getSlugFromUrl = () => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const directSlug = params.get("r")?.trim().toLowerCase();
+  if (directSlug) return directSlug;
+
+  const redirect = params.get("redirect");
+  if (!redirect) return null;
+  try {
+    const redirectUrl = new URL(redirect, window.location.origin);
+    return redirectUrl.searchParams.get("r")?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Detecta se o hostname atual pertence a um revendedor (custom_domain)
  * e retorna a identidade visual dele. Retorna null nos hosts principais
@@ -33,11 +49,12 @@ export function useResellerBranding() {
       return;
     }
     const host = window.location.hostname.toLowerCase();
-    if (
+    const urlSlug = getSlugFromUrl();
+    if (!urlSlug && (
       MAIN_HOSTS.includes(host) ||
       host.endsWith(".lovableproject.com") ||
       host.endsWith(".lovable.app")
-    ) {
+    )) {
       setLoading(false);
       return;
     }
@@ -45,16 +62,20 @@ export function useResellerBranding() {
     let cancelled = false;
     (async () => {
       try {
-        const { data: slug } = await supabase.rpc(
-          "get_reseller_slug_by_domain",
-          { _domain: host },
-        );
+        let slug: string | null = urlSlug;
+        if (!slug) {
+          const { data } = await supabase.rpc(
+            "get_reseller_slug_by_domain",
+            { _domain: host },
+          );
+          slug = data ? String(data) : null;
+        }
         if (!slug || cancelled) {
           if (!cancelled) setLoading(false);
           return;
         }
         const { data } = await supabase.rpc("get_reseller_public_by_slug", {
-          _slug: slug as string,
+          _slug: slug,
         });
         const r = Array.isArray(data) ? data[0] : data;
         if (!cancelled && r) {
