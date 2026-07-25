@@ -75,17 +75,47 @@ const hasResellerCheckoutSignal = (searchParams: URLSearchParams) => {
   }
 };
 
+const getCategorySlug = (row: any) => {
+  const relation = row?.product_categories;
+  if (Array.isArray(relation)) return relation[0]?.slug || null;
+  return relation?.slug || null;
+};
+
+const looksLikeProxyProduct = (row: any) => {
+  const name = String(row?.name || "").toLowerCase();
+  const icon = String(row?.icon_type || "").toLowerCase();
+  const tags = Array.isArray(row?.tags) ? row.tags.map((tag: string) => tag.toLowerCase()) : [];
+  return icon === "proxy" || getCategorySlug(row) === "proxy" || name.includes("proxy") || tags.some((tag: string) => tag.includes("proxy"));
+};
+
+const readStoredResellerValue = (key: string) => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { items: cartItems, removeItem, clearCart } = useCart();
   const queryClient = useQueryClient();
-  const { resellerId, loading: resellerContextLoading } = useResellerContext();
+  const { resellerId, resellerSlug, loading: resellerContextLoading } = useResellerContext();
   const { branding: resellerBranding, loading: resellerBrandingLoading } = useResellerBranding();
+  const [resolvedCheckoutResellerId, setResolvedCheckoutResellerId] = useState<string | null>(null);
+  const [resellerPricingReady, setResellerPricingReady] = useState(false);
+  const [resellerItemPrices, setResellerItemPrices] = useState<Record<string, number>>({});
+  const activeResellerId = resolvedCheckoutResellerId || resellerId;
+  const activeResellerSlug = useMemo(() => {
+    const querySlug = (searchParams.get("r") || "").trim().toLowerCase();
+    return resellerSlug || resellerBranding?.slug || querySlug || readStoredResellerValue("fbflix_reseller_slug");
+  }, [resellerSlug, resellerBranding?.slug, searchParams]);
   const isResellerCheckout =
     resellerContextLoading ||
     resellerBrandingLoading ||
-    Boolean(resellerId) ||
+    Boolean(activeResellerId) ||
     Boolean(resellerBranding) ||
     hasResellerCheckoutSignal(searchParams);
   const productId = searchParams.get("product") || "";
@@ -287,53 +317,135 @@ export default function Checkout() {
 
   }, [productId, existingOrderId, cartItems]);
 
-  // Apply reseller price override for proxy products
+  // Apply reseller prices before showing/creating the order. The checkout must
+  // charge exactly the public store price configured by the reseller, never the
+  // original FBFlix product price.
   useEffect(() => {
-    if (!resellerId || !product) return;
+    if (!product) {
+      setResellerPricingReady(false);
+      return;
+    }
+    if (!isResellerCheckout) {
+      setResellerPricingReady(true);
+      setResellerItemPrices({});
+      return;
+    }
+    if (resellerContextLoading || resellerBrandingLoading) {
+      setResellerPricingReady(false);
+      return;
+    }
     let cancelled = false;
+    setResellerPricingReady(false);
     (async () => {
-      const [ovRes, rRes, catRes] = await Promise.all([
-        supabase
-          .from("reseller_price_overrides")
-          .select("custom_price, enabled")
-          .eq("reseller_id", resellerId)
-          .eq("product_id", product.id)
-          .maybeSingle(),
-        supabase
-          .from("resellers")
-          .select("proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
-          .eq("id", resellerId)
-          .maybeSingle(),
-        supabase
-          .from("products")
-          .select("product_categories(slug)")
-          .eq("id", product.id)
-          .maybeSingle(),
-      ]);
-      if (cancelled) return;
-      const basePrice = Number(product.price || 0);
-      let newPrice = basePrice;
-      const ov = ovRes.data as any;
-      const r = rRes.data as any;
-      const catSlug = (catRes.data as any)?.product_categories?.slug || null;
-      const isProxy = product.icon_type === "proxy" || catSlug === "proxy";
-      if (ov && ov.enabled) {
-        newPrice = Number(ov.custom_price);
-      } else if (r && isProxy) {
-        if (r.proxy_price_mode === "fixed" && r.proxy_fixed_price !== null) {
-          newPrice = Number(r.proxy_fixed_price);
-        } else {
-          newPrice = basePrice * Number(r.proxy_price_multiplier || 1);
+      try {
+        let resolvedId = activeResellerId;
+        let resellerPricing: any = null;
+
+        if (resolvedId) {
+          const { data } = await supabase
+            .from("resellers")
+            .select("id, slug, proxy_price_mode, proxy_price_multiplier, proxy_fixed_price")
+            .eq("id", resolvedId)
+            .maybeSingle();
+          if (data) resellerPricing = data;
         }
-      }
-      if (newPrice !== basePrice) {
-        setProduct((p) => (p ? { ...p, price: newPrice } : p));
+
+        if (!resellerPricing && activeResellerSlug) {
+          const { data } = await supabase.rpc("get_reseller_public_by_slug", { _slug: activeResellerSlug });
+          const publicReseller = Array.isArray(data) ? data[0] : data;
+          if (publicReseller?.id) {
+            resolvedId = publicReseller.id;
+            resellerPricing = publicReseller;
+          }
+        }
+
+        if (!resellerPricing || !resolvedId) {
+          if (!cancelled) setResellerPricingReady(true);
+          return;
+        }
+
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter((id) => uuidRe.test(id));
+
+        const [productRowsRes, overridesRes] = productIds.length > 0
+          ? await Promise.all([
+              supabase
+                .from("products")
+                .select("id, name, price, icon_type, tags, product_categories(slug)")
+                .in("id", productIds),
+              supabase
+                .from("reseller_price_overrides")
+                .select("product_id, custom_price, enabled")
+                .eq("reseller_id", resolvedId)
+                .in("product_id", productIds),
+            ])
+          : [{ data: [] }, { data: [] }];
+
+        if (cancelled) return;
+
+        const productRows = new Map<string, any>();
+        (productRowsRes.data || []).forEach((row: any) => productRows.set(row.id, row));
+        const overrides = new Map<string, any>();
+        (overridesRes.data || []).forEach((row: any) => overrides.set(row.product_id, row));
+
+        const nextPrices: Record<string, number> = {};
+        const getFinalResellerPrice = (id: string, fallback: number) => {
+          const row = productRows.get(id);
+          const basePrice = Number(row?.price ?? fallback ?? 0);
+          const override = overrides.get(id);
+
+          if (override) {
+            if (!override.enabled) return null;
+            return Number(override.custom_price);
+          }
+
+          if (looksLikeProxyProduct(row || { id, name: product.name, icon_type: product.icon_type, tags: product.tags })) {
+            if (resellerPricing.proxy_price_mode === "fixed" && resellerPricing.proxy_fixed_price !== null) {
+              return Number(resellerPricing.proxy_fixed_price);
+            }
+            return basePrice * Number(resellerPricing.proxy_price_multiplier || 1);
+          }
+
+          return basePrice;
+        };
+
+        const mainPrice = getFinalResellerPrice(product.id, product.price);
+        if (mainPrice === null) {
+          toast.error("Este item não está disponível na loja do revendedor.");
+          navigate(activeResellerSlug ? `/r/${activeResellerSlug}` : "/");
+          return;
+        }
+
+        nextPrices[product.id] = mainPrice;
+        extraCartItems.forEach((ci) => {
+          const finalPrice = getFinalResellerPrice(ci.productId, ci.price);
+          if (finalPrice !== null) nextPrices[ci.productId] = finalPrice;
+        });
+
+        setResolvedCheckoutResellerId(resolvedId);
+        setResellerItemPrices(nextPrices);
+        try {
+          localStorage.setItem("fbflix_reseller_id", resolvedId);
+          if (resellerPricing.slug || activeResellerSlug) {
+            localStorage.setItem("fbflix_reseller_slug", resellerPricing.slug || activeResellerSlug);
+          }
+        } catch { /* noop */ }
+
+        setProduct((current) => {
+          if (!current) return current;
+          if (Math.abs(Number(current.price || 0) - mainPrice) < 0.001) return current;
+          return { ...current, price: mainPrice };
+        });
+      } catch (error) {
+        console.error("Reseller checkout pricing error", error);
+      } finally {
+        if (!cancelled) setResellerPricingReady(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [resellerId, product?.id, product?.icon_type]);
+  }, [isResellerCheckout, activeResellerId, activeResellerSlug, resellerContextLoading, resellerBrandingLoading, product?.id, extraCartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
@@ -644,7 +756,7 @@ export default function Checkout() {
   // Create draft order when entering checkout (for abandoned cart tracking)
   // Skip if resuming an existing order
   useEffect(() => {
-    if (!product || draftOrderId || draftCreatingRef.current || existingOrderId) return;
+    if (!product || (isResellerCheckout && !resellerPricingReady) || draftOrderId || draftCreatingRef.current || existingOrderId) return;
 
     const createDraftOrder = async () => {
       draftCreatingRef.current = true;
@@ -655,17 +767,26 @@ export default function Checkout() {
         const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
         const partnerRefId = localStorage.getItem("partner_ref_id");
 
+        const mainUnitPrice = isResellerCheckout
+          ? Number(resellerItemPrices[product.id] ?? product.price)
+          : Number(product.price || 0);
+        const extraItemsTotal = extraCartItems.reduce((sum, ci) => {
+          const unitPrice = isResellerCheckout ? Number(resellerItemPrices[ci.productId] ?? ci.price) : Number(ci.price || 0);
+          return sum + unitPrice * ci.quantity;
+        }, 0);
+        const draftSubtotal = mainUnitPrice * quantity + extraItemsTotal;
+
         const { data: order, error } = await supabase.from("orders").insert({
           code: orderCode,
           user_id: user.id,
-          subtotal: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
+          subtotal: draftSubtotal,
           discount: 0,
-          total: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
+          total: draftSubtotal,
           payment_method: null,
           status: "processing",
           coupon_code: null,
           partner_id: partnerRefId || null,
-          reseller_id: resellerId || null,
+          reseller_id: activeResellerId || null,
         }).select("id").single();
 
         if (error) {
@@ -681,7 +802,7 @@ export default function Checkout() {
               partnerId: partnerRefId,
               productId: product.id,
               productName: product.name,
-              amount: product.price * quantity,
+              amount: mainUnitPrice * quantity,
               metadata: { order_id: order.id, quantity },
             });
           } catch { /* noop */ }
@@ -729,10 +850,10 @@ export default function Checkout() {
         const isProxy = product.icon_type === 'proxy' || !!deliveryData;
         const orderItems: any[] = [];
         if (isProxy || quantity <= 1) {
-          orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity, delivery_data: deliveryData });
+          orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: mainUnitPrice, quantity, delivery_data: deliveryData });
         } else {
           for (let i = 0; i < quantity; i++) {
-            orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity: 1, delivery_data: null });
+            orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: mainUnitPrice, quantity: 1, delivery_data: null });
           }
         }
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
@@ -750,7 +871,7 @@ export default function Checkout() {
             order_id: order.id,
             product_id: uuidRe.test(ci.productId) ? ci.productId : null,
             name: ci.name,
-            price: ci.price,
+            price: isResellerCheckout ? Number(resellerItemPrices[ci.productId] ?? ci.price) : ci.price,
             quantity: ci.quantity,
             delivery_data: null,
           }));
@@ -768,7 +889,7 @@ export default function Checkout() {
     };
 
     createDraftOrder();
-  }, [product]);
+  }, [product, isResellerCheckout, resellerPricingReady, resellerItemPrices, activeResellerId]);
 
   // Helper to get proxy purchase data from sessionStorage
   const getProxyPurchaseData = () => {
@@ -913,13 +1034,19 @@ export default function Checkout() {
       : (userProfile?.proxy_fixed_price ? Number(userProfile.proxy_fixed_price) : null);
     
     // Apply special pricing for proxies
-    const adjustedProductPrice = isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
+    const resellerMainPrice = Number(resellerItemPrices[product.id] ?? product.price);
+    const adjustedProductPrice = isResellerCheckout
+      ? resellerMainPrice
+      : isProxy && fixedPrice !== null ? fixedPrice : product.price * (isProxy ? multiplier : 1);
     
     let total = adjustedProductPrice * quantity;
 
     extraCartItems.forEach((ci) => {
       const ciIsProxy = ci.isProxy;
-      const ciPrice = ciIsProxy && fixedPrice !== null ? fixedPrice : ci.price * (ciIsProxy ? multiplier : 1);
+      const resellerCartPrice = Number(resellerItemPrices[ci.productId] ?? ci.price);
+      const ciPrice = isResellerCheckout
+        ? resellerCartPrice
+        : ciIsProxy && fixedPrice !== null ? fixedPrice : ci.price * (ciIsProxy ? multiplier : 1);
       total += ciPrice * ci.quantity;
     });
 
@@ -931,11 +1058,11 @@ export default function Checkout() {
     }
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile, isResellerCheckout]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems, userProfile, isResellerCheckout, resellerItemPrices]);
 
   const total = subtotal - discount;
 
-  if (loading) {
+  if (loading || (isResellerCheckout && product && !resellerPricingReady)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 text-primary animate-spin" />
@@ -963,7 +1090,7 @@ export default function Checkout() {
     setApplyingCoupon(true);
     try {
       const { data: rows, error } = await supabase
-        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase(), _reseller_id: resellerId || null });
+        .rpc("validate_coupon", { _code: coupon.trim().toUpperCase(), _reseller_id: activeResellerId || null });
 
       if (error) throw error;
 
@@ -1005,7 +1132,7 @@ export default function Checkout() {
 
       // Reseller safety: the final price can never go below the sum of
       // reseller costs (what the reseller pays FBFlix for each item).
-      if (isResellerCheckout && resellerId && product) {
+      if (isResellerCheckout && activeResellerId && product) {
         const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)]
           .filter((id) => id && !id.startsWith("safe-bm") && !id.startsWith("scale-pro"));
         if (productIds.length > 0) {
@@ -1078,7 +1205,7 @@ export default function Checkout() {
 
       // RESELLER GUARD: block sale if reseller has insufficient recharge balance
       // to cover the FBFlix cost of the items being purchased.
-      if (isResellerCheckout && resellerId && product) {
+      if (isResellerCheckout && activeResellerId && product) {
         try {
           const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)].filter(Boolean);
           const { data: costRows } = await supabase
@@ -1095,7 +1222,7 @@ export default function Checkout() {
           const { data: reseller } = await supabase
             .from("resellers")
             .select("balance_credits, brand_name, company_name")
-            .eq("id", resellerId)
+            .eq("id", activeResellerId)
             .maybeSingle();
 
           const rBalance = Number(reseller?.balance_credits || 0);
@@ -1105,7 +1232,7 @@ export default function Checkout() {
               { duration: 6000 }
             );
             console.warn("[reseller-guard] insufficient recharge balance", {
-              resellerId, rBalance, totalCost,
+              resellerId: activeResellerId, rBalance, totalCost,
             });
             setProcessing(false);
             clearTimeout(safetyTimeout);
@@ -1142,6 +1269,24 @@ export default function Checkout() {
 
       const orderId = draftOrderId;
       const orderCode = draftOrderCode;
+
+      if (isResellerCheckout && product) {
+        const mainCheckoutPrice = Number(resellerItemPrices[product.id] ?? product.price);
+        await supabase
+          .from("order_items")
+          .update({ price: mainCheckoutPrice })
+          .eq("order_id", orderId)
+          .eq("product_id", product.id);
+
+        for (const ci of extraCartItems) {
+          const itemCheckoutPrice = Number(resellerItemPrices[ci.productId] ?? ci.price);
+          await supabase
+            .from("order_items")
+            .update({ price: itemCheckoutPrice })
+            .eq("order_id", orderId)
+            .eq("product_id", ci.productId);
+        }
+      }
 
       // When resuming an existing order, recompute totals from the actual
       // order_items in DB. The in-memory `subtotal`/`total` are unreliable on
@@ -1514,7 +1659,7 @@ export default function Checkout() {
         const proxyDataForPix = getProxyPurchaseData();
         const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
         const pixBody: any = { amount: chargeTotal, order_id: orderId };
-        if (resellerId) pixBody.reseller_id = resellerId;
+        if (activeResellerId) pixBody.reseller_id = activeResellerId;
         if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
