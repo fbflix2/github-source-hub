@@ -63,6 +63,12 @@ export default function Auth() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
 
+  useEffect(() => {
+    const mode = new URLSearchParams(location.search).get("mode");
+    if (mode === "signup") setIsLogin(false);
+    if (mode === "login") setIsLogin(true);
+  }, [location.search]);
+
   // CPF mask helper
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
