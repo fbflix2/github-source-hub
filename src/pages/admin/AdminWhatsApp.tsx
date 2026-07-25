@@ -276,27 +276,89 @@ function RenewalsTab() {
         }
       }
 
-      // 7) Also surface days that had renewals for subs whose end_date fell in a previous period
+      // 7) Add "extra" buckets on renewal days for renewals that don't match an expiring sub in the month
       for (const day of Object.keys(renewedByDay)) {
         dayMap[day] ||= {};
+        for (const [k, txs] of Object.entries(renewedTxByUserDay)) {
+          if (!k.startsWith(`${day}_`)) continue;
+          const uid = k.slice(day.length + 1);
+          const bucket = dayMap[day][uid];
+          const matchedIds = new Set<string>();
+          if (bucket) {
+            for (const id of bucket.renewedIds as Set<string>) matchedIds.add(id);
+          }
+          const extras = (txs as any[]).filter((t) => !t.reference_id || !matchedIds.has(t.reference_id));
+          if (!extras.length) continue;
+          const extraRevenue = extras.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
+          if (bucket) {
+            bucket.renewedRevenue += extraRevenue;
+            bucket.extraRenewedCount = (bucket.extraRenewedCount || 0) + extras.length;
+          } else {
+            dayMap[day][uid] = {
+              userId: uid,
+              clientName: profileMap[uid]?.full_name || "—",
+              phone: profileMap[uid]?.phone || "",
+              subs: [] as any[],
+              renewedIds: new Set<string>(),
+              expectedRevenue: 0,
+              renewedRevenue: extraRevenue,
+              extraRenewedCount: extras.length,
+            };
+          }
+        }
       }
 
       const dailyGroups = Object.entries(dayMap)
         .sort(([a], [b]) => b.localeCompare(a))
-        .map(([date, entries]) => {
-          const expected = entries.reduce((sum: number, e: any) => sum + e.expectedRevenue, 0);
-          const renewed = entries.reduce((sum: number, e: any) => sum + e.renewedRevenue, 0);
-          const totalClients = entries.length;
-          const renewedClients = entries.filter((e: any) => e.status === "renewed").length;
-          const pendingClients = entries.filter((e: any) => e.status === "pending").length;
-          const partialClients = entries.filter((e: any) => e.status === "partial").length;
-          const totalSubs = entries.reduce((sum: number, e: any) => sum + e.totalSubs, 0);
-          const renewedSubs = entries.reduce((sum: number, e: any) => sum + e.renewedCount, 0);
-          entries.sort((a: any, b: any) => {
-            const ord: Record<string, number> = { pending: 0, partial: 1, unknown: 2, renewed: 3 };
-            return (ord[a.status] ?? 2) - (ord[b.status] ?? 2);
+        .map(([date, bucketMap]) => {
+          const entries = Object.values(bucketMap).map((b: any) => {
+            const totalSubs = b.subs.length;
+            const renewedCount = (b.renewedIds?.size || 0) + (b.extraRenewedCount || 0);
+            const status =
+              totalSubs === 0
+                ? "renewed"
+                : renewedCount >= totalSubs
+                ? "renewed"
+                : renewedCount > 0
+                ? "partial"
+                : "pending";
+            return {
+              userId: b.userId,
+              clientName: b.clientName,
+              phone: b.phone,
+              subs: b.subs,
+              totalSubs: totalSubs || renewedCount,
+              renewedCount,
+              expectedRevenue: b.expectedRevenue,
+              renewedRevenue: b.renewedRevenue,
+              status,
+            };
           });
-          return { date, entries, expected, renewed, totalClients, renewedClients, pendingClients, partialClients, totalSubs, renewedSubs, conversionRate: totalClients > 0 ? Math.round((renewedClients / totalClients) * 100) : 0 };
+          entries.sort((a, b) => {
+            const ord: Record<string, number> = { pending: 0, partial: 1, renewed: 2 };
+            return (ord[a.status] ?? 3) - (ord[b.status] ?? 3);
+          });
+          const expected = entries.reduce((s, e) => s + e.expectedRevenue, 0);
+          const renewed = entries.reduce((s, e) => s + e.renewedRevenue, 0);
+          const totalClients = entries.length;
+          const renewedClients = entries.filter((e) => e.status === "renewed").length;
+          const pendingClients = entries.filter((e) => e.status === "pending").length;
+          const partialClients = entries.filter((e) => e.status === "partial").length;
+          const totalSubs = entries.reduce((s, e) => s + e.totalSubs, 0);
+          const renewedSubs = entries.reduce((s, e) => s + e.renewedCount, 0);
+          return {
+            date,
+            entries,
+            expected,
+            renewed,
+            totalClients,
+            renewedClients,
+            pendingClients,
+            partialClients,
+            totalSubs,
+            renewedSubs,
+            conversionRate: totalClients > 0 ? Math.round((renewedClients / totalClients) * 100) : 0,
+          };
         });
 
       const totals = {
