@@ -850,6 +850,17 @@ Deno.serve(async (req) => {
       if (profileErr || !profile) throw new Error("Perfil não encontrado");
       if (profile.balance < total) throw new Error("Saldo insuficiente");
 
+      // 1.4 Inherit reseller_id from the order (so it shows in the reseller's dashboard)
+      let orderResellerId: string | null = null;
+      try {
+        const { data: orderRow } = await supabaseAdmin
+          .from("orders")
+          .select("reseller_id")
+          .eq("id", order_id)
+          .maybeSingle();
+        orderResellerId = (orderRow as any)?.reseller_id ?? null;
+      } catch (_) { /* noop */ }
+
       // 1.5. Determine target country from product tags or name
       let targetCountryCode: string | null = null;
       if (product_id) {
@@ -965,6 +976,7 @@ Deno.serve(async (req) => {
           end_date: endDate.toISOString(),
           product_id: product_id || null,
           auto_renew: false,
+          reseller_id: orderResellerId,
           raw_data: {
             fbflix_proxy_id: assignedProxy.id,
             proxy_address: assignedProxy.proxy_address,
@@ -976,6 +988,8 @@ Deno.serve(async (req) => {
             provider: "proxyfbflix",
             exchange_quota_free: 2,
             exchange_quota_pay: 0,
+            order_id: order_id,
+            reseller_id: orderResellerId,
           },
         });
 
