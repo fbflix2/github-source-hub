@@ -52,19 +52,15 @@ export function useResellerContext() {
           return;
         }
 
-        const { data: rows } = await supabase
-          .from("resellers")
-          .select("id, slug, status")
-          .eq("slug", slug)
-          .in("status", ["active", "warning"])
-          .maybeSingle();
+        const { data: publicData } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug });
+        const publicReseller = Array.isArray(publicData) ? publicData[0] : publicData;
 
-        if (!cancelled && rows?.id) {
-          setResellerId(rows.id);
-          setResellerSlug(rows.slug);
+        if (!cancelled && publicReseller?.id) {
+          setResellerId(publicReseller.id);
+          setResellerSlug(publicReseller.slug || slug);
           try {
-            localStorage.setItem(STORAGE_KEY, rows.id);
-            localStorage.setItem(STORAGE_SLUG_KEY, rows.slug);
+            localStorage.setItem(STORAGE_KEY, publicReseller.id);
+            localStorage.setItem(STORAGE_SLUG_KEY, publicReseller.slug || slug);
           } catch { /* noop */ }
         }
       } catch (e) {
