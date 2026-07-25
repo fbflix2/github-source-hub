@@ -804,6 +804,7 @@ export default function Checkout() {
   // Skip if resuming an existing order
   useEffect(() => {
     if (!product || (isResellerCheckout && !resellerPricingReady) || draftOrderId || draftCreatingRef.current || existingOrderId) return;
+    if (isResellerCheckout && resellerItemPrices[product.id] == null) return;
 
     const createDraftOrder = async () => {
       draftCreatingRef.current = true;
@@ -1229,6 +1230,11 @@ export default function Checkout() {
   
 
   const handlePay = async () => {
+    if (isResellerCheckout && (!resellerPricingReady || (product && resellerItemPrices[product.id] == null))) {
+      toast.error("Aguarde o preço da loja carregar para finalizar.");
+      return;
+    }
+
     setProcessing(true);
 
     // Safety timeout: if processing takes more than 60s, force stop spinning
