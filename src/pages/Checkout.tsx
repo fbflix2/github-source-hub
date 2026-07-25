@@ -156,6 +156,10 @@ export default function Checkout() {
     // that the user explicitly dropped in the cart — still treat them as extras.
     return cartItems.filter((ci) => ci.productId !== product.id);
   }, [cartItems, product]);
+  const extraCartKey = useMemo(
+    () => extraCartItems.map((ci) => `${ci.productId}:${ci.quantity}:${ci.price}`).join("|"),
+    [extraCartItems],
+  );
 
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -253,7 +257,7 @@ export default function Checkout() {
             let dbTags: string[] | null = null;
             let dbIconType: string | null = null;
             let dbExternalId: string | null = null;
-            let dbSlug = null;
+            let dbSlug: string | null = null;
             let dbStock = 999;
             let dbAvailable = true;
             const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
@@ -365,12 +369,18 @@ export default function Checkout() {
     }
     if ((resellerContextLoading || resellerBrandingLoading) && !activeResellerSlug && !activeResellerId) {
       setResellerPricingReady(false);
+      console.debug("[checkout] reseller pricing waiting for context");
       return;
     }
     let cancelled = false;
     setResellerPricingReady(false);
     (async () => {
       try {
+        console.debug("[checkout] reseller pricing start", {
+          productId: product.id,
+          activeResellerId,
+          activeResellerSlug,
+        });
         let resolvedId = activeResellerId;
         let resellerPricing: any = null;
 
@@ -399,6 +409,10 @@ export default function Checkout() {
         }
 
         if (!resellerPricing || !resolvedId) {
+          console.debug("[checkout] reseller pricing fallback without reseller data", {
+            activeResellerId,
+            activeResellerSlug,
+          });
           if (!cancelled) setResellerPricingReady(true);
           return;
         }
@@ -463,6 +477,7 @@ export default function Checkout() {
 
         setResolvedCheckoutResellerId(resolvedId);
         setResellerItemPrices(nextPrices);
+        console.debug("[checkout] reseller pricing ready", { resolvedId, prices: nextPrices });
         try {
           localStorage.setItem("fbflix_reseller_id", resolvedId);
           if (resellerPricing.slug || activeResellerSlug) {
@@ -484,7 +499,7 @@ export default function Checkout() {
     return () => {
       cancelled = true;
     };
-  }, [isResellerCheckout, activeResellerId, activeResellerSlug, resellerContextLoading, resellerBrandingLoading, product?.id, extraCartItems]);
+  }, [isResellerCheckout, activeResellerId, activeResellerSlug, resellerContextLoading, resellerBrandingLoading, product?.id, extraCartKey]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
