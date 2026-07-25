@@ -950,6 +950,36 @@ export default function Checkout() {
       // Cap discount at subtotal
       discountAmount = Math.min(discountAmount, subtotal);
 
+      // Reseller safety: the final price can never go below the sum of
+      // reseller costs (what the reseller pays FBFlix for each item).
+      if (isResellerCheckout && resellerId && product) {
+        const productIds = [product.id, ...extraCartItems.map((ci) => ci.productId)]
+          .filter((id) => id && !id.startsWith("safe-bm") && !id.startsWith("scale-pro"));
+        if (productIds.length > 0) {
+          const { data: costRows } = await supabase
+            .from("products")
+            .select("id, reseller_cost")
+            .in("id", productIds);
+          const costMap = new Map<string, number>();
+          (costRows || []).forEach((r: any) => costMap.set(r.id, Number(r.reseller_cost) || 0));
+          let costFloor = (costMap.get(product.id) || 0) * quantity;
+          extraCartItems.forEach((ci) => {
+            costFloor += (costMap.get(ci.productId) || 0) * ci.quantity;
+          });
+          const maxDiscount = Math.max(0, subtotal - costFloor);
+          if (discountAmount > maxDiscount) {
+            if (maxDiscount <= 0) {
+              setDiscount(0);
+              setCouponApplied(false);
+              toast.error("Este cupom não pode ser aplicado: o valor final ficaria abaixo do custo dos produtos.");
+              return;
+            }
+            discountAmount = maxDiscount;
+            toast.info("Desconto ajustado para respeitar o custo mínimo dos produtos.");
+          }
+        }
+      }
+
       setDiscount(discountAmount);
       setCouponApplied(true);
       toast.success(`Cupom ${data.code} aplicado! -R$ ${discountAmount.toFixed(2).replace(".", ",")}`);
