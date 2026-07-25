@@ -191,6 +191,23 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
   useEffect(() => {
     let cancelled = false;
     const mainHosts = ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"];
+
+    // FAST PATH: honor ?redirect=... immediately (e.g. reseller "Comprar" button)
+    // to avoid a blank/loading screen while checkIsReseller resolves.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect && redirect.startsWith("/")) {
+        const forwarded = new URLSearchParams();
+        params.forEach((v, k) => {
+          if (k !== "redirect" && k !== "type") forwarded.append(k, v);
+        });
+        const qs = forwarded.toString();
+        setTarget(qs ? `${redirect}?${qs}` : redirect);
+        return () => { cancelled = true; };
+      }
+    } catch { /* noop */ }
+
     // Honor ?redirect=... on /auth so that a logged-in customer arriving
     // from a reseller store "Comprar" button lands on /checkout instead of
     // being kicked to /loja.

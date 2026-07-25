@@ -425,7 +425,17 @@ export default function ResellerPublicStore() {
                           <ShoppingCart className="size-4" />
                         </button>
                         <button
-                          onClick={() => navigate(`/auth?redirect=/checkout&product=${product.id}&qty=${getQty(product.id)}&r=${reseller.slug}`)}
+                          onClick={async () => {
+                            const target = `/checkout?product=${product.id}&qty=${getQty(product.id)}&r=${reseller.slug}`;
+                            try {
+                              const { data: { session } } = await supabase.auth.getSession();
+                              if (session) {
+                                navigate(target);
+                                return;
+                              }
+                            } catch { /* noop */ }
+                            navigate(`/auth?redirect=${encodeURIComponent(target)}`);
+                          }}
                           className="flex-1 h-8 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 hover:opacity-90"
                           style={{ background: primaryColor }}
                           disabled={product.stock === 0}
