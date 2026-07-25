@@ -100,6 +100,16 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     (async () => {
       try {
         let slug = resellerSlug;
+        const querySlug = new URLSearchParams(location.search).get("r");
+        if (!slug && querySlug) {
+          slug = querySlug.trim().toLowerCase();
+          setResellerSlug(slug);
+          try {
+            localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, slug);
+          } catch {
+            // silencioso
+          }
+        }
         if (!slug) {
           try {
             slug = localStorage.getItem(RESELLER_SLUG_STORAGE_KEY);
