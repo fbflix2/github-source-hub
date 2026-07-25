@@ -36,6 +36,21 @@ const DOMAIN_LOOKUP_TIMEOUT_MS = 2500;
 const RESELLER_SLUG_STORAGE_KEY = "fbflix_reseller_slug";
 const PURCHASE_PASSTHROUGH_PREFIXES = ["/checkout", "/auth"];
 
+function getResellerSlugFromSearch(search: string) {
+  const params = new URLSearchParams(search);
+  const directSlug = params.get("r")?.trim().toLowerCase();
+  if (directSlug) return directSlug;
+
+  const redirect = params.get("redirect");
+  if (!redirect || typeof window === "undefined") return null;
+  try {
+    const redirectUrl = new URL(redirect, window.location.origin);
+    return redirectUrl.searchParams.get("r")?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
 function isMainHost(host: string) {
   return (
     MAIN_HOSTS.includes(host) ||
@@ -68,7 +83,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   const isMainHostInitial =
     isMainHost(initialHost);
-  const initialQuerySlug = new URLSearchParams(location.search).get("r")?.trim().toLowerCase() || null;
+  const initialQuerySlug = getResellerSlugFromSearch(location.search);
   const isPurchasePassthrough = PURCHASE_PASSTHROUGH_PREFIXES.some(
     (p) => location.pathname === p || location.pathname.startsWith(p),
   );
@@ -96,7 +111,7 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
     const isPassthrough = PASSTHROUGH_PREFIXES.some(
       (p) => path === p || path.startsWith(p),
     );
-    const querySlug = new URLSearchParams(location.search).get("r")?.trim().toLowerCase() || null;
+    const querySlug = getResellerSlugFromSearch(location.search);
 
     // Compra/login do revendedor não podem ficar bloqueados pela resolução do
     // domínio: a própria URL já informa o slug em `r=...`.
