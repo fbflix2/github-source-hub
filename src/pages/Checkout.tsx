@@ -330,6 +330,10 @@ export default function Checkout() {
       setResellerItemPrices({});
       return;
     }
+    if (resellerContextLoading || resellerBrandingLoading) {
+      setResellerPricingReady(false);
+      return;
+    }
     let cancelled = false;
     setResellerPricingReady(false);
     (async () => {
@@ -356,7 +360,6 @@ export default function Checkout() {
         }
 
         if (!resellerPricing || !resolvedId) {
-          if (resellerContextLoading || resellerBrandingLoading) return;
           if (!cancelled) setResellerPricingReady(true);
           return;
         }
