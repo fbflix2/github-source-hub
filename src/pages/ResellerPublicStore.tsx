@@ -68,6 +68,7 @@ export default function ResellerPublicStore() {
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
+  const [authPrompt, setAuthPrompt] = useState<{ target: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -434,7 +435,7 @@ export default function ResellerPublicStore() {
                                 return;
                               }
                             } catch { /* noop */ }
-                            navigate(`/auth?redirect=${encodeURIComponent(target)}`);
+                            setAuthPrompt({ target });
                           }}
                           className="flex-1 h-8 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 hover:opacity-90"
                           style={{ background: primaryColor }}
