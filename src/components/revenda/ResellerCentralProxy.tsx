@@ -52,10 +52,41 @@ interface Override {
 
 interface CommissionRow {
   id: string;
-  order_total: number;
-  commission_amount: number;
+  code: string | null;
+  revenue: number;
+  cost: number;
+  profit: number;
   status: string;
   created_at: string;
+  itemsLabel: string;
+}
+
+interface ResellerOrderRow {
+  id: string;
+  code: string | null;
+  total: number | string | null;
+  status: string;
+  created_at: string;
+}
+
+interface OrderItemRow {
+  id: string;
+  order_id: string;
+  name: string | null;
+  quantity: number | null;
+  price: number | string | null;
+  products:
+    | {
+        name?: string | null;
+        icon_type?: string | null;
+        reseller_cost?: number | string | null;
+      }
+    | {
+        name?: string | null;
+        icon_type?: string | null;
+        reseller_cost?: number | string | null;
+      }[]
+    | null;
 }
 
 const BRL = (n: number) =>
@@ -72,13 +103,13 @@ export function ResellerCentralProxy({
   const [products, setProducts] = useState<ProxyProduct[]>([]);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [commissions, setCommissions] = useState<CommissionRow[]>([]);
+  const [sales, setSales] = useState<CommissionRow[]>([]);
   const [exchangeCount, setExchangeCount] = useState(0);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [{ data: prods }, { data: ovs }, { data: coms }, { count: exCount }] =
+      const [{ data: prods }, { data: ovs }, { data: orders }, { count: exCount }] =
         await Promise.all([
           supabase
             .from("products")
@@ -90,9 +121,10 @@ export function ResellerCentralProxy({
             .select("*")
             .eq("reseller_id", resellerId),
           supabase
-            .from("reseller_commissions")
-            .select("id, order_total, commission_amount, status, created_at")
+            .from("orders")
+            .select("id, code, total, status, created_at")
             .eq("reseller_id", resellerId)
+            .eq("status", "completed")
             .order("created_at", { ascending: false })
             .limit(500),
           supabase
@@ -109,7 +141,82 @@ export function ResellerCentralProxy({
       });
       setOverrides(oMap);
       setDrafts(dMap);
-      setCommissions((coms as CommissionRow[]) || []);
+
+      const completedOrders = ((orders as ResellerOrderRow[]) || []).filter(
+        (order) => order.id
+      );
+      const orderIds = completedOrders.map((order) => order.id);
+      let orderItems: OrderItemRow[] = [];
+      if (orderIds.length > 0) {
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("id, order_id, name, quantity, price, products(name, icon_type, reseller_cost)")
+          .in("order_id", orderIds);
+        orderItems = (items as OrderItemRow[]) || [];
+      }
+
+      const itemsByOrder = orderItems.reduce<Record<string, OrderItemRow[]>>(
+        (acc, item) => {
+          if (!acc[item.order_id]) acc[item.order_id] = [];
+          acc[item.order_id].push(item);
+          return acc;
+        },
+        {}
+      );
+
+      const proxySales = completedOrders.flatMap((order) => {
+        const items = itemsByOrder[order.id] || [];
+        const proxyItems = items.filter((item) => {
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          const marker = `${item.name || ""} ${product?.name || ""} ${product?.icon_type || ""}`.toLowerCase();
+          return product?.icon_type === "proxy" || marker.includes("proxy");
+        });
+
+        if (proxyItems.length === 0) return [];
+
+        const allItemsGross = items.reduce(
+          (sum, item) =>
+            sum + Number(item.price || 0) * Math.max(1, Number(item.quantity || 1)),
+          0
+        );
+        const proxyGross = proxyItems.reduce(
+          (sum, item) =>
+            sum + Number(item.price || 0) * Math.max(1, Number(item.quantity || 1)),
+          0
+        );
+        const proxyCost = proxyItems.reduce((sum, item) => {
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          const unitFallback =
+            model === "credit"
+              ? proxyUnitCost
+              : Number(item.price || 0) * (1 - commissionRate / 100);
+          const unitCost =
+            Number(product?.reseller_cost || 0) > 0
+              ? Number(product?.reseller_cost || 0)
+              : unitFallback;
+          return sum + unitCost * Math.max(1, Number(item.quantity || 1));
+        }, 0);
+        const ratio = allItemsGross > 0 ? proxyGross / allItemsGross : 1;
+        const revenue = Number(order.total || 0) * ratio;
+
+        return [
+          {
+            id: order.id,
+            code: order.code,
+            revenue,
+            cost: proxyCost,
+            profit: revenue - proxyCost,
+            status: order.status,
+            created_at: order.created_at,
+            itemsLabel: proxyItems
+              .map((item) => item.name || "Proxy")
+              .filter(Boolean)
+              .join(", "),
+          },
+        ];
+      });
+
+      setSales(proxySales);
       setExchangeCount(exCount || 0);
       setLoading(false);
     })();
@@ -117,24 +224,16 @@ export function ResellerCentralProxy({
 
   const kpis = useMemo(() => {
     const now = Date.now();
-    const in30d = commissions.filter(
+    const in30d = sales.filter(
       (c) => now - new Date(c.created_at).getTime() <= 30 * 24 * 3600 * 1000
     );
-    const revenue = commissions.reduce((s, c) => s + Number(c.order_total || 0), 0);
-    const commission = commissions.reduce(
-      (s, c) => s + Number(c.commission_amount || 0),
-      0
-    );
-    // Custo real: modelo % → custo é (receita - comissão). Modelo crédito → custo unitário × qtd vendas.
-    const cost =
-      model === "percentage"
-        ? Math.max(0, revenue - commission)
-        : commissions.length * proxyUnitCost;
-    const profit = revenue - cost;
+    const revenue = sales.reduce((s, c) => s + Number(c.revenue || 0), 0);
+    const cost = sales.reduce((s, c) => s + Number(c.cost || 0), 0);
+    const profit = sales.reduce((s, c) => s + Number(c.profit || 0), 0);
     const mrr =
-      in30d.reduce((s, c) => s + Number(c.order_total || 0), 0) /
+      in30d.reduce((s, c) => s + Number(c.revenue || 0), 0) /
       Math.max(1, Math.min(1, in30d.length ? 1 : 1));
-    const mrrValue = in30d.reduce((s, c) => s + Number(c.order_total || 0), 0);
+    const mrrValue = in30d.reduce((s, c) => s + Number(c.revenue || 0), 0);
     return {
       revenue,
       cost,
@@ -142,11 +241,11 @@ export function ResellerCentralProxy({
       profitMargin: revenue > 0 ? (profit / revenue) * 100 : 0,
       mrr: mrrValue,
       newSales: in30d.length,
-      totalSales: commissions.length,
+      totalSales: sales.length,
       exchanges: exchangeCount,
       _mrrPeriod: mrr,
     };
-  }, [commissions, model, proxyUnitCost, exchangeCount]);
+  }, [sales, exchangeCount]);
 
   const savePrice = async (product: ProxyProduct) => {
     const raw = drafts[product.id];
@@ -464,23 +563,26 @@ export function ResellerCentralProxy({
                   </tr>
                 </thead>
                 <tbody>
-                  {commissions.length === 0 ? (
+                  {sales.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="text-center py-12 text-muted-foreground">
                         Nenhuma venda registrada ainda.
                       </td>
                     </tr>
                   ) : (
-                    commissions.slice(0, 30).map((c) => (
+                    sales.slice(0, 30).map((c) => (
                       <tr key={c.id} className="border-t border-border/30">
                         <td className="px-5 py-3">
-                          {new Date(c.created_at).toLocaleString("pt-BR")}
+                          <p>{new Date(c.created_at).toLocaleString("pt-BR")}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {c.code || "Pedido"} · {c.itemsLabel || "Proxy"}
+                          </p>
                         </td>
                         <td className="text-right px-4 py-3 font-mono">
-                          {BRL(Number(c.order_total))}
+                          {BRL(Number(c.revenue))}
                         </td>
                         <td className="text-right px-4 py-3 font-mono font-bold text-emerald-400">
-                          {BRL(Number(c.commission_amount))}
+                          {BRL(Number(c.profit))}
                         </td>
                         <td className="text-center px-5 py-3">
                           <Badge
