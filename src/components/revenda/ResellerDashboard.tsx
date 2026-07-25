@@ -62,6 +62,7 @@ export default function ResellerDashboard({
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [clientNames, setClientNames] = useState<Record<string, string>>({});
   const [range, setRange] = useState<7 | 30 | 90>(30);
+  const [linkedClients, setLinkedClients] = useState<number>(0);
 
   useEffect(() => {
     (async () => {
@@ -87,6 +88,11 @@ export default function ResellerDashboard({
         (profs || []).forEach((p: any) => (map[p.user_id] = p.full_name || "Cliente"));
         setClientNames(map);
       }
+      const { count: clientsCount } = await supabase
+        .from("profiles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("reseller_id", resellerId);
+      setLinkedClients(clientsCount || 0);
       setLoading(false);
     })();
   }, [resellerId]);
@@ -306,7 +312,7 @@ export default function ResellerDashboard({
               Clientes cadastrados
             </p>
           </div>
-          <p className="text-2xl font-bold text-foreground">{totalReferrals.toLocaleString("pt-BR")}</p>
+          <p className="text-2xl font-bold text-foreground">{linkedClients.toLocaleString("pt-BR")}</p>
           <p className="text-[10px] text-muted-foreground mt-1">Total vinculado ao seu painel</p>
         </Card>
       </div>
