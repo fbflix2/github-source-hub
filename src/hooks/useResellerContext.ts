@@ -11,6 +11,14 @@ const MAIN_HOSTS = [
 
 const STORAGE_KEY = "fbflix_reseller_id";
 const STORAGE_SLUG_KEY = "fbflix_reseller_slug";
+const LOOKUP_TIMEOUT_MS = 3500;
+
+const withTimeout = async <T,>(promise: Promise<T>, fallback: T): Promise<T> => {
+  const timeout = new Promise<T>((resolve) => {
+    window.setTimeout(() => resolve(fallback), LOOKUP_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]);
+};
 
 const getSlugFromRedirect = (searchParams: URLSearchParams) => {
   if (typeof window === "undefined") return null;
@@ -53,7 +61,10 @@ export function useResellerContext() {
 
         let slug: string | null = querySlug || redirectSlug || null;
         if (!slug && !isMainHost) {
-          const { data } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+          const { data } = await withTimeout(
+            supabase.rpc("get_reseller_slug_by_domain", { _domain: host }),
+            { data: null, error: null } as any,
+          );
           if (data) slug = String(data);
         }
         if (!slug && typeof window !== "undefined") {
@@ -65,7 +76,10 @@ export function useResellerContext() {
           return;
         }
 
-        const { data: publicData } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug });
+        const { data: publicData } = await withTimeout(
+          supabase.rpc("get_reseller_public_by_slug", { _slug: slug }),
+          { data: null, error: null } as any,
+        );
         const publicReseller = Array.isArray(publicData) ? publicData[0] : publicData;
 
         if (!cancelled && publicReseller?.id) {
