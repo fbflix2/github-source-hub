@@ -1,61 +1,49 @@
-# Pipeline de checkout revendedor
+## Problema confirmado
+O cliente chega em `/checkout?product=...&qty=1&r=active-growth-marketing`, o layout do revendedor aparece, mas o conteúdo do checkout fica preso no spinner. Pelo código lido, esse spinner só é exibido quando:
 
-Tornar a venda de proxies (e demais produtos) totalmente funcional no domínio do revendedor, com:
-- Cobrança feita no gateway OpenPix do revendedor
-- Débito automático do custo FBFlix do `balance_credits`
-- Rastreio via `reseller_id` em pedidos e comissões
+1. `loading` ainda está `true` enquanto busca o produto; ou
+2. `isResellerCheckout && product && !resellerPricingReady` enquanto resolve preço/override do revendedor.
 
-## 1. Detecção do revendedor no checkout
+Também foi confirmado que a rota `/checkout` está dentro do app autenticado e que o `CustomDomainRouter` já deixa passar `/checkout` quando existe `r=` na URL. Então o bloqueio atual está dentro do `Checkout.tsx`, não mais no roteador externo.
 
-- Novo hook `useResellerContext()` que resolve o `reseller_id` a partir do hostname (via RPC `get_reseller_slug_by_domain` já existente) ou do slug em `/r/:slug`.
-- Persistir `reseller_id` no `localStorage` (`fbflix_reseller_id`) durante a sessão de compra.
-- Injetar `reseller_id` no payload de `Checkout.tsx` e nas chamadas `supabase.functions.invoke("create-pix-payment", ...)`.
+## Plano de correção
 
-## 2. Botão "Comprar" da loja pública
+1. **Remover o spinner infinito como estado bloqueante**
+   - Trocar o bloqueio `isResellerCheckout && product && !resellerPricingReady` por uma experiência não bloqueante.
+   - O checkout deve renderizar assim que o produto for encontrado.
+   - Enquanto o preço do revendedor resolve, exibir o conteúdo com preço provisório/fallback e atualizar assim que o preço correto chegar.
 
-- Na loja pública (quando `reseller_id` presente), o botão principal do card de produto vira "Comprar agora" → navega direto para `/checkout?product=<id>&reseller=<id>`.
-- Mantém carrinho como opção secundária.
+2. **Tornar o fetch do produto impossível de travar visualmente**
+   - Garantir `try/catch/finally` no `fetchData()` principal do checkout.
+   - Mesmo se a consulta de produto falhar ou demorar, `setLoading(false)` precisa sempre rodar.
+   - Quando houver falha, mostrar “Produto não encontrado” com botão para voltar para a loja do revendedor, em vez de spinner permanente.
 
-## 3. Edge functions de pagamento
+3. **Criar fallback local do preço do revendedor**
+   - Se a URL tem `r=active-growth-marketing`, o checkout deve considerar esse slug como suficiente para continuar.
+   - Se a consulta de override/preço não responder rápido, liberar a tela e manter o fallback até a consulta terminar.
+   - A criação do pedido ainda deve usar `resellerItemPrices[product.id] ?? product.price`, então a tela não trava.
 
-Atualizar `create-pix-payment` e `create-card-payment` (Appmax quando pronto):
+4. **Reduzir dependências que reexecutam o pricing sem necessidade**
+   - Ajustar o `useEffect` de preço para depender de valores estáveis, principalmente `product.id` e uma chave estável dos itens extras, evitando reexecuções/cancelamentos contínuos.
 
-- Aceitar `reseller_id` no body.
-- Se `reseller_id` presente e revendedor `active/warning`:
-  - Buscar credenciais OpenPix do próprio revendedor (`resellers.openpix_app_id`).
-  - Criar cobrança nesse gateway.
-- Se ausente ou revendedor inativo → cair no gateway FBFlix (comportamento atual).
-- Persistir `reseller_id` em `orders` e `payments`.
+5. **Adicionar logs temporários úteis para diagnóstico se persistir**
+   - Adicionar logs seguros e sem dados sensíveis para marcar: produto carregado, pricing iniciado, pricing finalizado e razão de fallback.
+   - Se o problema continuar na próxima mensagem, esses logs vão aparecer automaticamente e indicar o ponto exato.
 
-## 4. Débito do custo FBFlix
+6. **Validar o fluxo**
+   - Testar `/checkout?product=e22acc24-d124-4cad-9b65-1095021d471f&qty=1&r=active-growth-marketing` no preview.
+   - Conferir que a tela não fica só no spinner e que o cliente vê o formulário/resumo do checkout.
+   - Quando autenticado não estiver disponível no sandbox, validar ao menos o redirect preservado para `/auth?redirect=...` e a ausência de bloqueio no roteador.
 
-Já existe o trigger `process_reseller_commission()` que debita `reseller_cost` do `balance_credits` quando `orders.status='completed'`. Vamos:
+## Arquivos envolvidos
 
-- Garantir que o webhook OpenPix marca `orders.status='completed'` após confirmação (já faz).
-- Adicionar guarda: se `balance_credits < custo` no momento do débito → registrar débito negativo + criar `admin_notifications` avisando saldo negativo (não bloqueia entrega — cliente já pagou).
-- Exibir aviso no painel do revendedor quando `balance_credits < 0`.
+- `src/pages/Checkout.tsx`
+  - Corrigir renderização bloqueante.
+  - Blindar carregamento de produto/preço com `finally`.
+  - Tornar pricing de revendedor não bloqueante.
 
-## 5. UI do revendedor
+- `src/components/CustomDomainRouter.tsx`
+  - Manter como está, pois a leitura confirmou que `/checkout` com `r=` já passa direto.
 
-- Card "Saldo de créditos" no `RevendaPortal` com alerta vermelho quando negativo e botão "Recarregar via PIX" (fluxo existente).
-- Aba "Vendas" já lista `reseller_commissions` — validar que aparece após o pagamento.
-
-## 6. Testes manuais
-
-1. Comprar 1 proxy pelo domínio `painel.activecontingencia.com` → PIX gerado no OpenPix do revendedor.
-2. Confirmar pagamento → pedido `completed`, proxy entregue, `balance_credits` do revendedor reduzido pelo `reseller_cost`, `reseller_commissions` criado.
-3. Recomprar com saldo insuficiente → entrega ocorre, saldo fica negativo, notificação para admin.
-
-## Detalhes técnicos
-
-- **Arquivos alterados:**
-  - `src/hooks/useResellerContext.ts` (novo)
-  - `src/pages/Checkout.tsx`
-  - `src/pages/PublicStore.tsx` (ou equivalente do card de produto público)
-  - `src/pages/revenda/RevendaPortal.tsx` (card saldo)
-  - `supabase/functions/create-pix-payment/index.ts`
-  - `supabase/functions/openpix-webhook/index.ts` (garantir set de `reseller_id`)
-- **Migração:** garantir `orders.reseller_id`, `payments.reseller_id` (já existem — confirmar), e trigger `autofill_order_reseller_id` (já existe).
-- Appmax fica para uma segunda etapa (quando a conta estiver criada).
-
-Depois da aprovação, começo pela detecção + edge function e sigo até o débito automático.
+- `src/App.tsx`
+  - Manter como está salvo nova evidência, pois `/checkout` já está protegido corretamente dentro de `AuthenticatedApp` e o redirect para login preserva a URL.
