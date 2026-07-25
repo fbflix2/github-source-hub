@@ -67,16 +67,26 @@ function useLogs(search: string, eventFilter: string) {
   return useQuery({
     queryKey: ["whatsapp-logs", search, eventFilter],
     queryFn: async () => {
-      let q = supabase
-        .from("whatsapp_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (eventFilter && eventFilter !== "all") q = q.eq("event_key", eventFilter);
-      if (search) q = q.or(`phone.ilike.%${search}%,message_sent.ilike.%${search}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
+      // Paginate to bypass Supabase's default 1000-row cap and return
+      // the full log set so stats/funnel/campaigns reflect real totals.
+      const PAGE = 1000;
+      const MAX_ROWS = 50_000; // hard safety cap
+      const all: any[] = [];
+      for (let from = 0; from < MAX_ROWS; from += PAGE) {
+        let q = supabase
+          .from("whatsapp_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (eventFilter && eventFilter !== "all") q = q.eq("event_key", eventFilter);
+        if (search) q = q.or(`phone.ilike.%${search}%,message_sent.ilike.%${search}%`);
+        const { data, error } = await q;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE) break;
+      }
+      return all;
     },
     refetchInterval: 15_000,
   });
