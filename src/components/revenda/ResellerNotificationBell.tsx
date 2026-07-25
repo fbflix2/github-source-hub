@@ -101,6 +101,22 @@ export default function ResellerNotificationBell({ resellerId }: Props) {
         }).slice(0, 20);
       }
 
+      // Fetch item summary per order (product names)
+      const itemMap: Record<string, string> = {};
+      const orderIds = (orders || []).map((o: any) => o.id);
+      if (orderIds.length > 0) {
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("order_id, name, quantity")
+          .in("order_id", orderIds);
+        for (const it of (items || []) as any[]) {
+          const label = `${it.quantity > 1 ? `${it.quantity}x ` : ""}${it.name}`;
+          itemMap[it.order_id] = itemMap[it.order_id]
+            ? `${itemMap[it.order_id]}, ${label}`
+            : label;
+        }
+      }
+
       // Fetch names
       const userIds = Array.from(new Set([...(orders || []).map((o: any) => o.user_id), ...recharges.map((r) => r.user_id)].filter(Boolean)));
       const nameMap: Record<string, string> = {};
@@ -114,7 +130,7 @@ export default function ResellerNotificationBell({ resellerId }: Props) {
           id: `sale:${o.id}`,
           kind: "sale" as const,
           title: `Nova venda • ${o.code || o.id.slice(0, 6)}`,
-          subtitle: nameMap[o.user_id] || "Cliente",
+          subtitle: `${nameMap[o.user_id] || "Cliente"}${itemMap[o.id] ? ` — ${itemMap[o.id]}` : ""}`,
           amount: Number(o.total || 0),
           created_at: o.created_at,
           read: readIdsRef.current.has(`sale:${o.id}`),
@@ -154,10 +170,18 @@ export default function ResellerNotificationBell({ resellerId }: Props) {
             const { data: p } = await supabase.from("profiles").select("full_name").eq("user_id", row.user_id).maybeSingle();
             name = (p as any)?.full_name || name;
           }
+          // Fetch items detail for this order
+          const { data: oiRows } = await supabase
+            .from("order_items")
+            .select("name, quantity")
+            .eq("order_id", row.id);
+          const itemsLabel = (oiRows || [])
+            .map((it: any) => `${it.quantity > 1 ? `${it.quantity}x ` : ""}${it.name}`)
+            .join(", ");
           const item: NotifItem = {
             id, kind: "sale",
             title: `Nova venda • ${row.code || row.id.slice(0, 6)}`,
-            subtitle: name,
+            subtitle: `${name}${itemsLabel ? ` — ${itemsLabel}` : ""}`,
             amount: Number(row.total || 0),
             created_at: row.created_at || new Date().toISOString(),
             read: false,
