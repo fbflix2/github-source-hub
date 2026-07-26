@@ -350,7 +350,6 @@ export default function RevendaPortal() {
     { id: "pedidos", label: "Pedidos", icon: ShoppingBag },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "cupons", label: "Cupons", icon: Tag },
-    { id: "marketing", label: "Marketing", icon: Megaphone },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
