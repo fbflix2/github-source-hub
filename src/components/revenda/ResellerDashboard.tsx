@@ -103,6 +103,11 @@ export default function ResellerDashboard({
     return orders.filter((o) => new Date(o.created_at) >= cutoff);
   }, [orders, range]);
 
+  const validOrders = useMemo(
+    () => rangeOrders.filter((o) => !["abandoned", "cancelled", "refunded"].includes(o.status)),
+    [rangeOrders]
+  );
+
   const completed = useMemo(
     () => rangeOrders.filter((o) => o.status === "completed"),
     [rangeOrders]
@@ -191,7 +196,7 @@ export default function ResellerDashboard({
     {
       label: "Pedidos",
       sub: `${completed.length} concluídos`,
-      value: String(rangeOrders.length),
+      value: String(validOrders.length),
       icon: ShoppingBag,
       accent: "#0ea5e9",
     },
