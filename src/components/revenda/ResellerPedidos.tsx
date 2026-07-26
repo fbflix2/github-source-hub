@@ -160,6 +160,11 @@ export default function ResellerPedidos({ resellerId }: Props) {
 
   const filtered = orders.filter((o) => {
     if (o.items.length === 0) return false;
+    // Ocultar pedidos abandonados/pendentes com mais de 3 minutos (só saem se não concluídos a tempo)
+    if (o.status === "abandoned" || o.status === "pending") {
+      const ageMs = Date.now() - new Date(o.created_at).getTime();
+      if (ageMs > 3 * 60 * 1000) return false;
+    }
     const matchesStatus =
       statusFilter === "todos" ? o.status !== "processing" : o.status === statusFilter;
     const term = searchTerm.toLowerCase();
