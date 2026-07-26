@@ -49,6 +49,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import ResellerNotificationBell from "@/components/revenda/ResellerNotificationBell";
 import ResellerMarketing from "@/components/revenda/ResellerMarketing";
+import ResellerPedidos from "@/components/revenda/ResellerPedidos";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
 import {
   DropdownMenu,
@@ -346,6 +347,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "pedidos", label: "Pedidos", icon: ShoppingBag },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "cupons", label: "Cupons", icon: Tag },
     { id: "marketing", label: "Marketing", icon: Megaphone },
@@ -712,6 +714,7 @@ export default function RevendaPortal() {
             {activeSection === "clientes" && <ResellerClientes />}
             {activeSection === "cupons" && <ResellerCupons resellerId={reseller.id} />}
             {activeSection === "marketing" && <ResellerMarketing />}
+    {activeSection === "pedidos" && <ResellerPedidos resellerId={reseller.id} />}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
