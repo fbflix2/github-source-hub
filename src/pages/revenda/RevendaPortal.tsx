@@ -49,6 +49,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ResellerBannersManager } from "@/components/revenda/ResellerBannersManager";
 import ResellerNotificationBell from "@/components/revenda/ResellerNotificationBell";
 import ResellerMarketing from "@/components/revenda/ResellerMarketing";
+import ResellerPedidos from "@/components/revenda/ResellerPedidos";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
 import {
   DropdownMenu,
@@ -149,7 +150,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners" | "cupons" | "marketing"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners" | "cupons" | "marketing" | "pedidos"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -346,6 +347,7 @@ export default function RevendaPortal() {
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "pedidos", label: "Pedidos", icon: ShoppingBag },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "cupons", label: "Cupons", icon: Tag },
     { id: "marketing", label: "Marketing", icon: Megaphone },
@@ -712,6 +714,7 @@ export default function RevendaPortal() {
             {activeSection === "clientes" && <ResellerClientes />}
             {activeSection === "cupons" && <ResellerCupons resellerId={reseller.id} />}
             {activeSection === "marketing" && <ResellerMarketing />}
+    {activeSection === "pedidos" && <ResellerPedidos resellerId={reseller.id} />}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
