@@ -1111,24 +1111,13 @@ export default function AdminComprasFornecedor() {
           </Card>
 
           {(() => {
-            const bmLinks = filteredAccounts
-              .map(a => (a.profile_link || "").trim())
-              .filter(l => /business\.facebook\.com/i.test(l));
-            const bmIds = Array.from(new Set(
-              bmLinks
-                .map(l => {
-                  // Tenta parâmetros conhecidos primeiro
-                  const known = l.match(/(?:business_id|asset_id|asset-id|bm_id|id)=(\d{6,})/i);
-                  if (known) return known[1];
-                  // Fallback: qualquer número longo no path
-                  const path = l.match(/\/(\d{6,})(?:[/?#]|$)/);
-                  if (path) return path[1];
-                  // Último fallback: primeiro número com 6+ dígitos no link
-                  const any = l.match(/(\d{6,})/);
-                  return any ? any[1] : null;
-                })
-                .filter((x): x is string => !!x)
-            ));
+            const bmAccounts = filteredAccounts.filter(
+              a => /business\.facebook\.com/i.test((a.profile_link || "").trim())
+            );
+            const bmLinks = bmAccounts.map(a => (a.profile_link || "").trim());
+            const bmIds = bmAccounts
+              .map(a => (a.login || "").trim())
+              .filter(Boolean);
             return (
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="text-xs text-white/50">{filteredAccounts.length} de {accounts.length} contas</div>
