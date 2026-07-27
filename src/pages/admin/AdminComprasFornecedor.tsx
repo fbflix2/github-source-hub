@@ -1110,7 +1110,33 @@ export default function AdminComprasFornecedor() {
             </CardContent>
           </Card>
 
-          <div className="text-xs text-white/50">{filteredAccounts.length} de {accounts.length} contas</div>
+          {(() => {
+            const bmLinks = filteredAccounts
+              .map(a => (a.profile_link || "").trim())
+              .filter(l => /business\.facebook\.com/i.test(l));
+            return (
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="text-xs text-white/50">{filteredAccounts.length} de {accounts.length} contas</div>
+                {bmLinks.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-[11px] border-purple-500/40 text-purple-300 hover:bg-purple-500/10 gap-1.5"
+                    onClick={() => {
+                      const text = bmLinks.join("\n");
+                      navigator.clipboard.writeText(text).then(
+                        () => toast.success(`${bmLinks.length} link(s) de BM copiados!`),
+                        () => toast.error("Falha ao copiar")
+                      );
+                    }}
+                    title="Copiar todos os links de BM listados"
+                  >
+                    <Copy className="size-3.5" /> Copiar todos os BMs ({bmLinks.length})
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {filteredAccounts.map(a => (
