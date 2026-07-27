@@ -1114,9 +1114,18 @@ export default function AdminComprasFornecedor() {
             const bmLinks = filteredAccounts
               .map(a => (a.profile_link || "").trim())
               .filter(l => /business\.facebook\.com/i.test(l));
+            const bmIds = Array.from(new Set(
+              bmLinks
+                .map(l => {
+                  const m = l.match(/business_id=(\d+)/i) || l.match(/asset[_-]?id=(\d+)/i) || l.match(/\/(\d{6,})(?:[/?#]|$)/);
+                  return m ? m[1] : null;
+                })
+                .filter((x): x is string => !!x)
+            ));
             return (
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="text-xs text-white/50">{filteredAccounts.length} de {accounts.length} contas</div>
+                <div className="flex items-center gap-2 flex-wrap">
                 {bmLinks.length > 0 && (
                   <Button
                     size="sm"
@@ -1134,6 +1143,24 @@ export default function AdminComprasFornecedor() {
                     <Copy className="size-3.5" /> Copiar todos os BMs ({bmLinks.length})
                   </Button>
                 )}
+                {bmIds.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-[11px] border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 gap-1.5"
+                    onClick={() => {
+                      const text = bmIds.join("\n");
+                      navigator.clipboard.writeText(text).then(
+                        () => toast.success(`${bmIds.length} ID(s) de BM copiados!`),
+                        () => toast.error("Falha ao copiar")
+                      );
+                    }}
+                    title="Copiar apenas os IDs das BMs (um por linha)"
+                  >
+                    <Copy className="size-3.5" /> Copiar IDs das BMs ({bmIds.length})
+                  </Button>
+                )}
+                </div>
               </div>
             );
           })()}
