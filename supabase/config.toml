@@ -135,3 +135,9 @@ verify_jwt = false
 
 [functions.appmax-card-payment]
 verify_jwt = false
+
+[functions.stripe-card-payment]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
