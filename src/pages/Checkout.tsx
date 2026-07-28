@@ -542,6 +542,7 @@ export default function Checkout() {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [cardInstallments, setCardInstallments] = useState(1);
+  const stripeCardRef = useRef<StripeCardFieldsHandle>(null);
   const [targetCity, setTargetCity] = useState("all");
   const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
