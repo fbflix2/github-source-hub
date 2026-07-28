@@ -38,8 +38,15 @@ function normalizeLegacyBase(raw: string | null | undefined): string {
 }
 
 function getLegacyApiBases(): string[] {
-  const explicit = normalizeLegacyBase(Deno.env.get('APPMAX_API_BASE'))
+  let explicit = normalizeLegacyBase(Deno.env.get('APPMAX_API_BASE'))
   const fallback = isProd() ? PROD_BASE : SANDBOX_BASE
+
+  // Em produção, um APPMAX_API_BASE apontando para sandbox é ignorado como host
+  // primário (evita cobrar/criar cliente no ambiente errado ou em host inválido
+  // como admin.sandboxappmax.com.br, que responde 500).
+  if (isProd() && /sandbox/i.test(explicit)) explicit = ''
+  // Host de sandbox só é válido no domínio da loja
+  if (!isProd() && /sandbox/i.test(explicit) && !/breakingcode\./i.test(explicit)) explicit = ''
 
   // APPMAX_API_BASE deve ser respeitado quando configurado, porque a API v3
   // legada da Appmax pode ser amarrada ao host específico da loja/ambiente.
@@ -354,8 +361,12 @@ Deno.serve(async (req) => {
         selectedBase = base
         break
       }
-      // Se o erro não for de token/host, não adianta tentar outro host.
-      if (!looksInvalidToken(customerRes.status, customerRes.data)) break
+      // Token inválido ou host indisponível (5xx/404) → tenta o próximo host.
+      const hostProblem =
+        looksInvalidToken(customerRes.status, customerRes.data) ||
+        customerRes.status >= 500 ||
+        customerRes.status === 404
+      if (!hostProblem) break
     }
 
     if (!customerRes.ok || !customerId) {
