@@ -1751,39 +1751,12 @@ export default function Checkout() {
         setCopied(false);
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
-        const identificationNumber = cardCpf.replace(/\D/g, "");
-
-        if (!cardName.trim()) {
-          toast.error("Preencha o nome no cartão.");
-          return;
-        }
-
-        if (identificationNumber.length !== 11) {
-          toast.error("Informe um CPF válido para pagar com cartão.");
-          return;
-        }
-
-        const rawCardNumber = cardNumber.replace(/\D/g, "");
-        const rawCvv = cardCvv.replace(/\D/g, "");
-        const [expMonthRaw, expYearRaw] = cardExpiry.split("/");
-        const expMonth = (expMonthRaw || "").replace(/\D/g, "");
-        const expYearDigits = (expYearRaw || "").replace(/\D/g, "");
-        const expYear = expYearDigits.length === 2 ? `20${expYearDigits}` : expYearDigits;
-
-        if (rawCardNumber.length < 13 || rawCardNumber.length > 19) {
-          toast.error("Número do cartão inválido.");
-          return;
-        }
-        if (expMonth.length !== 2 || Number(expMonth) < 1 || Number(expMonth) > 12 || expYear.length !== 4) {
-          toast.error("Validade do cartão inválida (MM/AA).");
-          return;
-        }
-        if (rawCvv.length < 3 || rawCvv.length > 4) {
-          toast.error("CVV inválido.");
-          return;
-        }
         if (chargeTotal < 5) {
           toast.error("Pagamento com cartão exige valor mínimo de R$ 5,00. Use Pix ou saldo.");
+          return;
+        }
+        if (!stripeCardRef.current) {
+          toast.error("Formulário de cartão indisponível. Recarregue a página.");
           return;
         }
 
@@ -1793,19 +1766,6 @@ export default function Checkout() {
         // Build proxy data if applicable
         const proxyDataForCard = getProxyPurchaseData();
         const isProxyBRCard = product?.icon_type === 'proxy' && !!product?.external_id;
-        const cardBody: any = {
-          amount: chargeTotal,
-          order_id: orderId,
-          cpf: identificationNumber,
-          installments: Math.max(1, Math.min(cardInstallments, Math.floor(chargeTotal / 5))),
-          card: {
-            number: rawCardNumber,
-            cvv: rawCvv,
-            month: expMonth,
-            year: expYear,
-            name: cardName.trim(),
-          },
-        };
 
         if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
           let cardVariantId = proxyDataForCard?.product_variant_id;
@@ -1820,24 +1780,33 @@ export default function Checkout() {
             }
           }
           if (cardVariantId) {
-            cardBody.proxy_data = {
-              product_variant_id: cardVariantId,
-              api_product_id: proxyDataForCard?.api_product_id || product?.external_id,
-              variant_location: proxyDataForCard?.variant_location,
-              quantity: proxyDataForCard?.quantity || quantity || 1,
-              interval: proxyDataForCard?.interval || "monthly",
-            };
+            const { data: cardOrderItems } = await supabase
+              .from("order_items")
+              .select("id")
+              .eq("order_id", orderId)
+              .limit(1);
+            if (cardOrderItems?.[0]?.id) {
+              await supabase.from("order_items").update({
+                delivery_data: {
+                  type: "proxy_contract",
+                  product_variant_id: cardVariantId,
+                  api_product_id: proxyDataForCard?.api_product_id || product?.external_id,
+                  variant_location: proxyDataForCard?.variant_location,
+                  quantity: proxyDataForCard?.quantity || quantity || 1,
+                  interval: proxyDataForCard?.interval || "monthly",
+                },
+              }).eq("id", cardOrderItems[0].id);
+            }
           }
         }
 
-        const { data: cardResult, error: cardError } = await supabase.functions.invoke("appmax-card-payment", {
-          body: cardBody,
-        });
+        // Cobrança via Stripe, sem sair do checkout da FBFLIX
+        const stripeResult = await stripeCardRef.current.confirm(orderId);
+        const cardResult = stripeResult.ok
+          ? { status: "approved" }
+          : { status: "refused", status_detail: stripeResult.error };
 
-        if (cardError) throw cardError;
-        if (cardResult?.error) throw new Error(cardResult.error);
-
-        if (cardResult?.status === "approved") {
+        if (cardResult.status === "approved") {
           // Payment approved — handle fulfillment
           const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
           const isProxyFbflixProduct = product?.icon_type === 'proxy' && !product?.external_id;
