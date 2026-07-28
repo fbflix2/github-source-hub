@@ -77,7 +77,8 @@ export default function ResellerCatalogoPrecos({
         .order("name", { ascending: true }),
       supabase.from("reseller_price_overrides").select("*").eq("reseller_id", resellerId),
     ]);
-    setProducts((prods as any) || []);
+    // Proxy Rotativo é uso interno — nunca disponível para revenda
+    setProducts((((prods as any[]) || []).filter((p) => !/rotativ/i.test(p.name || "")) as any));
     const oMap: Record<string, Override> = {};
     const dMap: Record<string, string> = {};
     ((ovs as Override[]) || []).forEach((o) => {
