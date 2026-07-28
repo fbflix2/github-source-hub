@@ -138,7 +138,10 @@ export default function ResellerPublicStore() {
           .eq("reseller_id", r.id),
       ]);
 
-      if (productsRes.data) setProducts(productsRes.data as any);
+      if (productsRes.data)
+        setProducts(
+          (productsRes.data as any[]).filter((p) => !/rotativ/i.test(p.name || "")) as any
+        );
       if (imagesRes.data) setProxyImages(imagesRes.data);
       if (bannersRes.data) setBanners(bannersRes.data as any);
       if (ovsRes.data) {
