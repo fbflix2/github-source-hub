@@ -3638,6 +3638,7 @@ export type Database = {
           rua: string | null
           show_proxy_city_on_checkout: boolean
           status: string
+          stripe_customer_id: string | null
           updated_at: string
           user_id: string
           verified: boolean
@@ -3676,6 +3677,7 @@ export type Database = {
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id: string
           verified?: boolean
@@ -3714,6 +3716,7 @@ export type Database = {
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string
           verified?: boolean
