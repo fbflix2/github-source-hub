@@ -2146,101 +2146,23 @@ export default function Checkout() {
             {/* Card Form (show only when card is selected) */}
             {paymentMethod === "cartao" && (
               <div className="pt-4 border-t border-border">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="cc-number"
-                        value={cardNumber}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 19);
-                          setCardNumber(digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim());
-                        }}
-                        placeholder="0000 0000 0000 0000"
-                        className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="cc-exp"
-                      value={cardExpiry}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-                        setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
-                      }}
-                      placeholder="MM/AA"
-                      maxLength={5}
-                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                {total < 5 ? (
+                  <p className="text-xs text-destructive">
+                    Pagamento com cartão exige valor mínimo de R$ 5,00. Use Pix ou saldo para este valor.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <StripeCardFields
+                      ref={stripeCardRef}
+                      amount={total}
+                      subscription={product?.icon_type === "proxy"}
+                      description={`FBFLIX - ${product?.name || "Pedido"}`}
                     />
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Pagamento processado com criptografia — você continua aqui na FBFLIX.
+                    </p>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="cc-csc"
-                      value={cardCvv}
-                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      placeholder="123"
-                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
-                    />
-                  </div>
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parcelas</label>
-                    <select
-                      value={cardInstallments}
-                      onChange={(e) => setCardInstallments(Number(e.target.value))}
-                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
-                    >
-                       {Array.from({ length: Math.max(1, Math.min(12, Math.floor(total / 5))) }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n} className="bg-background text-foreground">
-                          {n}x {n === 1 ? "à vista" : "sem juros no cartão"}
-                        </option>
-                      ))}
-                    </select>
-                    {total < 5 && (
-                      <p className="text-xs text-destructive">
-                        Pagamento com cartão exige valor mínimo de R$ 5,00. Use Pix ou saldo para este valor.
-                      </p>
-                    )}
-                  </div>
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="email" value={cardEmail} readOnly className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground/70 placeholder-muted-foreground outline-none bg-background/30 border border-border cursor-not-allowed" />
-                    </div>
-                  </div>
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome no Cartão</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Como impresso no cartão" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border" />
-                    </div>
-                  </div>
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CPF do Titular</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" inputMode="numeric" value={cardCpf} onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
-                        const formatted = digits
-                          .replace(/(\d{3})(\d)/, "$1.$2")
-                          .replace(/(\d{3})(\d)/, "$1.$2")
-                          .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-                        setCardCpf(formatted);
-                      }} placeholder="000.000.000-00" maxLength={14} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border" />
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </section>
