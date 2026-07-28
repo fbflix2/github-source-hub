@@ -30,14 +30,15 @@ function resolveApiBase(): string {
 
 const API_BASE = resolveApiBase()
 
-// Appmax API v3 does NOT use OAuth. Every request carries the API key
-// as the `access-token` field in the JSON body.
+// Appmax API v3 does NOT use OAuth. Every request carries the API token
+// as the `access-token` field in the JSON body. Client ID/Secret are app
+// installation credentials and are not accepted by the sales/payment API.
 function getAppmaxToken(): string {
   const token =
     Deno.env.get('APPMAX_ACCESS_TOKEN') ||
-    Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET') ||
-    Deno.env.get('APPMAX_SANDBOX_CLIENT_ID')
-  if (!token) throw new Error('Credenciais Appmax não configuradas')
+    Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
+    Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN')
+  if (!token) throw new Error('APPMAX_ACCESS_TOKEN não configurado')
   return token
 }
 
