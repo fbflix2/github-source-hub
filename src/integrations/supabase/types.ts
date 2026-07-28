@@ -5358,6 +5358,7 @@ export type Database = {
           id: string
           link: string | null
           priority: string
+          reseller_id: string | null
           status: string
           title: string
           updated_at: string
@@ -5371,6 +5372,7 @@ export type Database = {
           id?: string
           link?: string | null
           priority?: string
+          reseller_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -5384,6 +5386,7 @@ export type Database = {
           id?: string
           link?: string | null
           priority?: string
+          reseller_id?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -5395,6 +5398,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "resellers"
             referencedColumns: ["id"]
           },
         ]
@@ -6239,6 +6249,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_reseller_owner: { Args: { _reseller_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       partner_campaign_increment_click: {
         Args: { _short_code: string }
