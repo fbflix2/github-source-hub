@@ -1764,35 +1764,28 @@ export default function Checkout() {
           return;
         }
 
-        if (!mpInstanceRef.current || !cardFieldsRef.current) {
-          toast.error("Campos do cartão não carregados. Recarregue a página e tente novamente.");
+        const rawCardNumber = cardNumber.replace(/\D/g, "");
+        const rawCvv = cardCvv.replace(/\D/g, "");
+        const [expMonthRaw, expYearRaw] = cardExpiry.split("/");
+        const expMonth = (expMonthRaw || "").replace(/\D/g, "");
+        const expYearDigits = (expYearRaw || "").replace(/\D/g, "");
+        const expYear = expYearDigits.length === 2 ? `20${expYearDigits}` : expYearDigits;
+
+        if (rawCardNumber.length < 13 || rawCardNumber.length > 19) {
+          toast.error("Número do cartão inválido.");
+          return;
+        }
+        if (expMonth.length !== 2 || Number(expMonth) < 1 || Number(expMonth) > 12 || expYear.length !== 4) {
+          toast.error("Validade do cartão inválida (MM/AA).");
+          return;
+        }
+        if (rawCvv.length < 3 || rawCvv.length > 4) {
+          toast.error("CVV inválido.");
           return;
         }
 
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
-
-        let cardToken: string;
-        try {
-          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
-            cardholderName: cardName.trim(),
-            identificationType: "CPF",
-            identificationNumber,
-          });
-          if (!tokenResult?.id) throw new Error("Token não gerado");
-          cardToken = tokenResult.id;
-        } catch (tokenErr: any) {
-          console.error("Card token error:", tokenErr);
-          const detailedMessage = Array.isArray(tokenErr?.cause)
-            ? tokenErr.cause.map((cause: any) => cause?.message || cause?.description).filter(Boolean).join(" | ")
-            : tokenErr?.message;
-          toast.error(
-            detailedMessage?.toLowerCase().includes("public key")
-              ? "Erro de configuração do cartão."
-              : detailedMessage || "Não foi possível validar os dados do cartão."
-          );
-          return;
-        }
 
         // Build proxy data if applicable
         const proxyDataForCard = getProxyPurchaseData();
@@ -1800,7 +1793,15 @@ export default function Checkout() {
         const cardBody: any = {
           amount: chargeTotal,
           order_id: orderId,
-          token: cardToken,
+          cpf: identificationNumber,
+          installments: cardInstallments,
+          card: {
+            number: rawCardNumber,
+            cvv: rawCvv,
+            month: expMonth,
+            year: expYear,
+            name: cardName.trim(),
+          },
         };
 
         if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
@@ -1826,7 +1827,7 @@ export default function Checkout() {
           }
         }
 
-        const { data: cardResult, error: cardError } = await supabase.functions.invoke("create-card-payment", {
+        const { data: cardResult, error: cardError } = await supabase.functions.invoke("appmax-card-payment", {
           body: cardBody,
         });
 
