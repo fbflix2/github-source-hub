@@ -258,6 +258,14 @@ Deno.serve(async (req) => {
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
       telephone,
+      document_number: docNumber,
+      postcode: '01310100',
+      address_street: 'Avenida Paulista',
+      address_street_number: '1000',
+      address_street_complement: '',
+      address_street_district: 'Bela Vista',
+      address_city: 'Sao Paulo',
+      address_state: 'SP',
       ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0',
     })
     const customerId = customerRes.data?.data?.id || customerRes.data?.id
