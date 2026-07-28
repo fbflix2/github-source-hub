@@ -58,10 +58,10 @@ async function appmaxPost(path: string, token: string, payload: Record<string, u
   } catch {
     data = { raw: raw.slice(0, 500) }
   }
-  if (!res.ok) {
+  if (!res.ok || data?.success === false) {
     console.error(`[appmax-card-payment] ${path} HTTP ${res.status} @ ${url} :: ${raw.slice(0, 800)}`)
   }
-  return { ok: res.ok, status: res.status, data }
+  return { ok: res.ok && data?.success !== false, status: res.status, data }
 }
 
 const onlyDigits = (v: unknown) => String(v ?? '').replace(/\D/g, '')
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     if (!customerRes.ok || !customerId) {
       console.error('[appmax-card-payment] customer error', customerRes.status, JSON.stringify(customerRes.data))
       await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
-      return json({ error: 'Não foi possível iniciar o pagamento' }, 502)
+      return json({ error: `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}` }, 502)
     }
 
     const orderRes = await appmaxPost('order', token, {
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     if (!orderRes.ok || !appmaxOrderId) {
       console.error('[appmax-card-payment] order error', orderRes.status, JSON.stringify(orderRes.data))
       await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
-      return json({ error: 'Não foi possível iniciar o pagamento' }, 502)
+      return json({ error: `Appmax: ${orderRes.data?.text || 'não foi possível criar o pedido'}` }, 502)
     }
 
     const payRes = await appmaxPost('payment/credit-card', token, {
