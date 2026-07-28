@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
     // 2) hash de autorização da instalação
     const apiUrl = prod ? 'https://api.appmax.com.br/app/authorize' : 'https://api.sandboxappmax.com.br/app/authorize'
     const body = await req.json().catch(() => ({}))
-    const appId = (body as any)?.app_id || Deno.env.get('APPMAX_APP_ID') || clientId
+    const appId =
+      (body as any)?.app_id ||
+      Deno.env.get('APPMAX_APP_PUBLIC_ID') ||
+      Deno.env.get('APPMAX_APP_ID') ||
+      clientId
     const externalKey = (body as any)?.external_key || 'fbflix'
     const urlCallback =
       (body as any)?.url_callback ||
