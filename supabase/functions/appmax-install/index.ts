@@ -36,6 +36,33 @@ Deno.serve(async (req) => {
     // 2) hash de autorização da instalação
     const apiUrl = prod ? 'https://api.appmax.com.br/app/authorize' : 'https://api.sandboxappmax.com.br/app/authorize'
     const body = await req.json().catch(() => ({}))
+
+    // Modo sonda: após a instalação, buscar as credenciais do merchant pelo hash
+    const probeHash = (body as any)?.probe_hash
+    if (probeHash) {
+      const apiRoot = prod ? 'https://api.appmax.com.br' : 'https://api.sandboxappmax.com.br'
+      const candidates = [
+        `${apiRoot}/app/authorize/${probeHash}`,
+        `${apiRoot}/app/integration/${probeHash}`,
+        `${apiRoot}/app/credentials/${probeHash}`,
+        `${apiRoot}/app/token/${probeHash}`,
+        `${apiRoot}/app/installations`,
+      ]
+      const results: unknown[] = []
+      for (const url of candidates) {
+        try {
+          const r = await fetch(url, {
+            headers: { Accept: 'application/json', Authorization: `Bearer ${appToken}` },
+          })
+          const t = await r.text()
+          results.push({ url, status: r.status, body: t.slice(0, 600) })
+        } catch (e) {
+          results.push({ url, error: e instanceof Error ? e.message : 'fetch error' })
+        }
+      }
+      return json({ probe: probeHash, results })
+    }
+
     const appId =
       (body as any)?.app_id ||
       Deno.env.get('APPMAX_APP_PUBLIC_ID') ||
