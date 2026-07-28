@@ -537,6 +537,10 @@ export default function Checkout() {
   const [cardName, setCardName] = useState("");
   const [cardCpf, setCardCpf] = useState("");
   const [cardEmail, setCardEmail] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardInstallments, setCardInstallments] = useState(1);
   const [targetCity, setTargetCity] = useState("all");
   const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
@@ -599,9 +603,6 @@ export default function Checkout() {
     { value: "Houston", label: "🇺🇸 Houston" },
     { value: "Phoenix", label: "🇺🇸 Phoenix" }
   ];
-  const mpInstanceRef = useRef<any>(null);
-  const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
-  const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
    const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number; payment_link?: string } | null>(null);
@@ -629,8 +630,8 @@ export default function Checkout() {
         .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city, show_proxy_city_on_checkout")
         .eq("user_id", user.id)
         .single();
-      // Cartão ainda não liberado — força "Em breve" para todos
-      setCardEnabled(false);
+      // Cartão via Appmax: liberado apenas para perfis habilitados
+      setCardEnabled(!!(profile as any)?.card_payment_enabled);
       if (profile?.cpf) setCardCpf(profile.cpf);
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
       setLauthEmail((profile as any)?.lauth_email || null);
@@ -642,65 +643,6 @@ export default function Checkout() {
     };
     checkFirstPurchase();
   }, []);
-
-  // Initialize MercadoPago secure fields when card payment is selected
-  useEffect(() => {
-    const cleanupFields = () => {
-      cardFieldsRef.current?.cardNumber?.unmount?.();
-      cardFieldsRef.current?.expirationDate?.unmount?.();
-      cardFieldsRef.current?.securityCode?.unmount?.();
-      cardFieldsRef.current = null;
-      fieldsInitializedRef.current = false;
-      mpInstanceRef.current = null;
-    };
-
-    if (paymentMethod !== "cartao") {
-      cleanupFields();
-      return;
-    }
-
-    if (fieldsInitializedRef.current) return;
-
-    const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-    if (!mpPublicKey) {
-      console.error("Mercado Pago public key missing");
-      toast.error("Chave pública do cartão não configurada.");
-      return;
-    }
-
-    if (!(window as any).MercadoPago) {
-      console.error("Mercado Pago SDK not loaded");
-      toast.error("SDK do cartão indisponível no momento.");
-      return;
-    }
-
-    try {
-      const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
-      mpInstanceRef.current = mp;
-
-      const style = {
-        height: "100%",
-        width: "100%",
-        "font-size": "14px",
-        "font-family": "inherit",
-        color: "hsl(0 0% 95%)",
-        "padding-left": "12px",
-      };
-
-      const cardNumber = mp.fields.create("cardNumber", { placeholder: "0000 0000 0000 0000", style }).mount("mp-card-number");
-      const expirationDate = mp.fields.create("expirationDate", { placeholder: "MM/AA", style }).mount("mp-expiration-date");
-      const securityCode = mp.fields.create("securityCode", { placeholder: "123", style }).mount("mp-security-code");
-
-      cardFieldsRef.current = { cardNumber, expirationDate, securityCode };
-      fieldsInitializedRef.current = true;
-    } catch (err) {
-      console.error("MP fields init error:", err);
-      cleanupFields();
-      toast.error("Não foi possível carregar os campos do cartão.");
-    }
-
-    return cleanupFields;
-  }, [paymentMethod]);
 
   // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
@@ -1819,35 +1761,28 @@ export default function Checkout() {
           return;
         }
 
-        if (!mpInstanceRef.current || !cardFieldsRef.current) {
-          toast.error("Campos do cartão não carregados. Recarregue a página e tente novamente.");
+        const rawCardNumber = cardNumber.replace(/\D/g, "");
+        const rawCvv = cardCvv.replace(/\D/g, "");
+        const [expMonthRaw, expYearRaw] = cardExpiry.split("/");
+        const expMonth = (expMonthRaw || "").replace(/\D/g, "");
+        const expYearDigits = (expYearRaw || "").replace(/\D/g, "");
+        const expYear = expYearDigits.length === 2 ? `20${expYearDigits}` : expYearDigits;
+
+        if (rawCardNumber.length < 13 || rawCardNumber.length > 19) {
+          toast.error("Número do cartão inválido.");
+          return;
+        }
+        if (expMonth.length !== 2 || Number(expMonth) < 1 || Number(expMonth) > 12 || expYear.length !== 4) {
+          toast.error("Validade do cartão inválida (MM/AA).");
+          return;
+        }
+        if (rawCvv.length < 3 || rawCvv.length > 4) {
+          toast.error("CVV inválido.");
           return;
         }
 
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
-
-        let cardToken: string;
-        try {
-          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
-            cardholderName: cardName.trim(),
-            identificationType: "CPF",
-            identificationNumber,
-          });
-          if (!tokenResult?.id) throw new Error("Token não gerado");
-          cardToken = tokenResult.id;
-        } catch (tokenErr: any) {
-          console.error("Card token error:", tokenErr);
-          const detailedMessage = Array.isArray(tokenErr?.cause)
-            ? tokenErr.cause.map((cause: any) => cause?.message || cause?.description).filter(Boolean).join(" | ")
-            : tokenErr?.message;
-          toast.error(
-            detailedMessage?.toLowerCase().includes("public key")
-              ? "Erro de configuração do cartão."
-              : detailedMessage || "Não foi possível validar os dados do cartão."
-          );
-          return;
-        }
 
         // Build proxy data if applicable
         const proxyDataForCard = getProxyPurchaseData();
@@ -1855,7 +1790,15 @@ export default function Checkout() {
         const cardBody: any = {
           amount: chargeTotal,
           order_id: orderId,
-          token: cardToken,
+          cpf: identificationNumber,
+          installments: cardInstallments,
+          card: {
+            number: rawCardNumber,
+            cvv: rawCvv,
+            month: expMonth,
+            year: expYear,
+            name: cardName.trim(),
+          },
         };
 
         if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
@@ -1881,7 +1824,7 @@ export default function Checkout() {
           }
         }
 
-        const { data: cardResult, error: cardError } = await supabase.functions.invoke("create-card-payment", {
+        const { data: cardResult, error: cardError } = await supabase.functions.invoke("appmax-card-payment", {
           body: cardBody,
         });
 
@@ -2204,8 +2147,61 @@ export default function Checkout() {
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
                     <div className="relative">
                       <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <div id="mp-card-number" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="cc-number"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 19);
+                          setCardNumber(digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim());
+                        }}
+                        placeholder="0000 0000 0000 0000"
+                        className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                      />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="cc-exp"
+                      value={cardExpiry}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
+                      }}
+                      placeholder="MM/AA"
+                      maxLength={5}
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="cc-csc"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="123"
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parcelas</label>
+                    <select
+                      value={cardInstallments}
+                      onChange={(e) => setCardInstallments(Number(e.target.value))}
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n} className="bg-background text-foreground">
+                          {n}x {n === 1 ? "à vista" : "sem juros no cartão"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
@@ -2233,20 +2229,6 @@ export default function Checkout() {
                           .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
                         setCardCpf(formatted);
                       }} placeholder="000.000.000-00" maxLength={14} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <div id="mp-expiration-date" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <div id="mp-security-code" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
                     </div>
                   </div>
                 </div>
