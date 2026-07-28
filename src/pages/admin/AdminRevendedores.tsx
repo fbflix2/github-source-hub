@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check, LogIn, Wallet } from "lucide-react";
+import { Store, Plus, Pencil, Trash2, Globe, Loader2, Copy, Check, LogIn, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface Reseller {
