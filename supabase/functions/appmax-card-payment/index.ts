@@ -30,18 +30,27 @@ function isProd(): boolean {
   return env === 'production' || env === 'prod'
 }
 
-function resolveApiBase(): string {
-  const raw = (Deno.env.get('APPMAX_API_BASE') || '').replace(/\/+$/, '').replace(/\/api(\/v3)?$/, '')
-  const env = (Deno.env.get('APPMAX_ENV') || '').toLowerCase()
-  if (env === 'production' || env === 'prod') return PROD_BASE
-  if (!raw) return SANDBOX_BASE
-  // Hosts inválidos/legados de sandbox são normalizados para o host de homologação
-  if (/sandbox/i.test(raw)) return SANDBOX_BASE
-  if (/admin\.appmax\.com\.br/i.test(raw)) return PROD_BASE
-  return SANDBOX_BASE
+function normalizeLegacyBase(raw: string | null | undefined): string {
+  return String(raw || '')
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/api(\/v\d+)?$/, '')
 }
 
-const API_BASE = resolveApiBase()
+function getLegacyApiBases(): string[] {
+  const explicit = normalizeLegacyBase(Deno.env.get('APPMAX_API_BASE'))
+  const fallback = isProd() ? PROD_BASE : SANDBOX_BASE
+
+  // APPMAX_API_BASE deve ser respeitado quando configurado, porque a API v3
+  // legada da Appmax pode ser amarrada ao host específico da loja/ambiente.
+  // Em produção também tentamos o host sandbox por último apenas para detectar
+  // token de sandbox salvo por engano e devolver uma mensagem clara, sem seguir
+  // com cobrança real no ambiente errado.
+  return Array.from(new Set([explicit, fallback, SANDBOX_BASE].filter(Boolean)))
+}
+
+const API_BASES = getLegacyApiBases()
+const API_BASE = API_BASES[0]
 
 function resolveModernApiBase(): string {
   return isProd() ? PROD_API_BASE : SANDBOX_API_BASE
@@ -130,11 +139,12 @@ async function getAppBearerToken(): Promise<string | null> {
 }
 
 async function appmaxPost(
+  base: string,
   path: string,
   auth: { bearer: string | null; merchant: string | null },
   payload: Record<string, unknown>,
 ) {
-  const url = `${API_BASE}/api/v3/${path}`
+  const url = `${base}/api/v3/${path}`
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -315,10 +325,10 @@ Deno.serve(async (req) => {
     if (telephone.startsWith('55') && telephone.length > 11) telephone = telephone.slice(2)
     if (telephone.length < 10 || telephone.length > 11) telephone = '11999999999'
 
-    console.log(`[appmax-card-payment] base=${API_BASE} customer=${firstName} tel=${telephone.length}d`)
+    console.log(`[appmax-card-payment] bases=${API_BASES.join(',')} customer=${firstName} tel=${telephone.length}d env=${isProd() ? 'prod' : 'sandbox'}`)
 
     // O endpoint /customer NÃO recebe CPF — ele vai apenas no payload do cartão
-    const customerRes = await appmaxPost('customer', auth, {
+    const customerPayload = {
       firstname: firstName,
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
@@ -332,15 +342,42 @@ Deno.serve(async (req) => {
       address_city: 'Sao Paulo',
       address_state: 'SP',
       ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0',
-    })
-    const customerId = customerRes.data?.data?.id || customerRes.data?.id
+    }
+
+    let selectedBase = API_BASE
+    let customerRes: any = null
+    let customerId: string | number | null = null
+    for (const base of API_BASES) {
+      customerRes = await appmaxPost(base, 'customer', auth, customerPayload)
+      customerId = customerRes.data?.data?.id || customerRes.data?.id || null
+      if (customerRes.ok && customerId) {
+        selectedBase = base
+        break
+      }
+      // Se o erro não for de token/host, não adianta tentar outro host.
+      if (!looksInvalidToken(customerRes.status, customerRes.data)) break
+    }
+
     if (!customerRes.ok || !customerId) {
       console.error('[appmax-card-payment] customer error', customerRes.status, JSON.stringify(customerRes.data))
       await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
-      return json({ error: `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}` }, 502)
+      const invalidToken = looksInvalidToken(customerRes.status, customerRes.data)
+      return json({
+        error: invalidToken
+          ? 'Appmax: token não pertence ao ambiente/loja configurado. Verifique se a chave é da loja de produção correta.'
+          : `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}`,
+      }, 502)
     }
 
-    const orderRes = await appmaxPost('order', auth, {
+    if (isProd() && /sandboxappmax\.com\.br/i.test(selectedBase)) {
+      console.error('[appmax-card-payment] production env with sandbox-only Appmax token/base', selectedBase)
+      await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
+      return json({
+        error: 'Appmax: a chave salva é válida somente no sandbox. Para cartão real, a Appmax precisa liberar/fornecer a chave da loja em produção.',
+      }, 502)
+    }
+
+    const orderRes = await appmaxPost(selectedBase, 'order', auth, {
       customer_id: customerId,
       products: [
         {
@@ -363,7 +400,7 @@ Deno.serve(async (req) => {
       return json({ error: `Appmax: ${orderRes.data?.text || 'não foi possível criar o pedido'}` }, 502)
     }
 
-    const payRes = await appmaxPost('payment/credit-card', auth, {
+    const payRes = await appmaxPost(selectedBase, 'payment/credit-card', auth, {
       cart: { order_id: appmaxOrderId },
       customer: { customer_id: customerId },
       payment: {
