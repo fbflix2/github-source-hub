@@ -13,8 +13,22 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-// Sandbox by default. Set APPMAX_API_BASE to the production host after approval.
-const API_BASE = (Deno.env.get('APPMAX_API_BASE') || 'https://homolog.sandboxappmax.com.br').replace(/\/+$/, '')
+// Appmax hosts: sandbox = homolog.sandboxappmax.com.br | produção = admin.appmax.com.br
+const SANDBOX_BASE = 'https://homolog.sandboxappmax.com.br'
+const PROD_BASE = 'https://admin.appmax.com.br'
+
+function resolveApiBase(): string {
+  const raw = (Deno.env.get('APPMAX_API_BASE') || '').replace(/\/+$/, '').replace(/\/api(\/v3)?$/, '')
+  const env = (Deno.env.get('APPMAX_ENV') || '').toLowerCase()
+  if (env === 'production' || env === 'prod') return PROD_BASE
+  if (!raw) return SANDBOX_BASE
+  // Hosts inválidos/legados de sandbox são normalizados para o host de homologação
+  if (/sandbox/i.test(raw)) return SANDBOX_BASE
+  if (/admin\.appmax\.com\.br/i.test(raw)) return PROD_BASE
+  return SANDBOX_BASE
+}
+
+const API_BASE = resolveApiBase()
 
 // Appmax API v3 does NOT use OAuth. Every request carries the API key
 // as the `access-token` field in the JSON body.
@@ -147,14 +161,19 @@ Deno.serve(async (req) => {
     const fullName = (profile?.full_name || cardName).trim()
     const firstName = fullName.split(' ')[0] || 'Cliente'
     const lastName = fullName.split(' ').slice(1).join(' ') || 'FBFlix'
-    const telephone = phone || onlyDigits(profile?.phone) || '11999999999'
+    // Appmax espera telefone BR com 10 ou 11 dígitos (sem DDI)
+    let telephone = phone || onlyDigits(profile?.phone) || '11999999999'
+    if (telephone.startsWith('55') && telephone.length > 11) telephone = telephone.slice(2)
+    if (telephone.length < 10 || telephone.length > 11) telephone = '11999999999'
 
+    console.log(`[appmax-card-payment] base=${API_BASE} customer=${firstName} tel=${telephone.length}d`)
+
+    // O endpoint /customer NÃO recebe CPF — ele vai apenas no payload do cartão
     const customerRes = await appmaxPost('customer', token, {
       firstname: firstName,
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
       telephone,
-      document_number: docNumber,
       ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0',
     })
     const customerId = customerRes.data?.data?.id || customerRes.data?.id
