@@ -16,35 +16,14 @@ const json = (body: unknown, status = 200) =>
 // Sandbox by default. Set APPMAX_API_BASE to the production host after approval.
 const API_BASE = (Deno.env.get('APPMAX_API_BASE') || 'https://homolog.sandboxappmax.com.br').replace(/\/+$/, '')
 
-let cachedToken: { value: string; expiresAt: number } | null = null
-
-async function getAppmaxToken(): Promise<string> {
-  const direct = Deno.env.get('APPMAX_ACCESS_TOKEN')
-  if (direct) return direct
-
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) return cachedToken.value
-
-  const clientId = Deno.env.get('APPMAX_SANDBOX_CLIENT_ID')
-  const clientSecret = Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET')
-  if (!clientId || !clientSecret) throw new Error('Credenciais Appmax não configuradas')
-
-  const res = await fetch(`${API_BASE}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  })
-  const data = await res.json().catch(() => ({}))
-  const token = data?.access_token || data?.data?.access_token
-  if (!res.ok || !token) {
-    console.error('[appmax-card-payment] token error', res.status)
-    throw new Error('Falha ao autenticar na Appmax')
-  }
-  const ttl = Number(data?.expires_in || 3000) * 1000
-  cachedToken = { value: token, expiresAt: Date.now() + ttl }
+// Appmax API v3 does NOT use OAuth. Every request carries the API key
+// as the `access-token` field in the JSON body.
+function getAppmaxToken(): string {
+  const token =
+    Deno.env.get('APPMAX_ACCESS_TOKEN') ||
+    Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET') ||
+    Deno.env.get('APPMAX_SANDBOX_CLIENT_ID')
+  if (!token) throw new Error('Credenciais Appmax não configuradas')
   return token
 }
 
@@ -54,7 +33,6 @@ async function appmaxPost(path: string, token: string, payload: Record<string, u
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ 'access-token': token, ...payload }),
   })
