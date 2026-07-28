@@ -48,6 +48,9 @@ function getMerchantToken(): string | null {
     Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
+    // Em muitas contas o "client secret" do merchant É o access-token da API v3
+    Deno.env.get('APPMAX_SANDBOX_MERCHANT_CLIENT_SECRET') ||
+    Deno.env.get('APPMAX_MERCHANT_CLIENT_SECRET') ||
     null
   )
 }
@@ -80,28 +83,32 @@ async function getAppBearerToken(): Promise<string | null> {
 
   if (!clientId || !clientSecret) return null
 
-  const url = prod ? PROD_AUTH : SANDBOX_AUTH
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  })
-  const raw = await res.text()
-  if (!res.ok) {
-    console.error(`[appmax-card-payment] oauth HTTP ${res.status} @ ${url} :: ${raw.slice(0, 500)}`)
-    return null
+  // Tenta o host do ambiente e, em caso de invalid_client, o outro host
+  const urls = prod ? [PROD_AUTH, SANDBOX_AUTH] : [SANDBOX_AUTH, PROD_AUTH]
+  for (const url of urls) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+    })
+    const raw = await res.text()
+    if (!res.ok) {
+      console.error(`[appmax-card-payment] oauth HTTP ${res.status} @ ${url} :: ${raw.slice(0, 500)}`)
+      continue
+    }
+    let data: any = {}
+    try { data = JSON.parse(raw) } catch { continue }
+    const token = data?.access_token
+    if (!token) continue
+    cachedBearer = { token, expiresAt: Date.now() + (Number(data.expires_in || 3600) * 1000) }
+    console.log(`[appmax-card-payment] oauth token OK @ ${url}`)
+    return token
   }
-  let data: any = {}
-  try { data = JSON.parse(raw) } catch { return null }
-  const token = data?.access_token
-  if (!token) return null
-  cachedBearer = { token, expiresAt: Date.now() + (Number(data.expires_in || 3600) * 1000) }
-  console.log('[appmax-card-payment] oauth token OK')
-  return token
+  return null
 }
 
 async function appmaxPost(
