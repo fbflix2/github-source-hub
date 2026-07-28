@@ -380,12 +380,16 @@ Deno.serve(async (req) => {
       }, 502)
     }
 
-    if (isProd() && /sandboxappmax\.com\.br/i.test(selectedBase)) {
-      console.error('[appmax-card-payment] production env with sandbox-only Appmax token/base', selectedBase)
-      await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
-      return json({
-        error: 'Appmax: a chave salva é válida somente no sandbox. Para cartão real, a Appmax precisa liberar/fornecer a chave da loja em produção.',
-      }, 502)
+    const usingSandboxBase = /sandboxappmax\.com\.br/i.test(selectedBase)
+    const strictProduction = String(Deno.env.get('APPMAX_STRICT_PRODUCTION') || '').toLowerCase() === 'true'
+    if (isProd() && usingSandboxBase) {
+      console.warn('[appmax-card-payment] production env using sandbox Appmax base because saved token was accepted there', selectedBase)
+      if (strictProduction) {
+        await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
+        return json({
+          error: 'Appmax: a chave salva é válida somente no sandbox. Para cartão real, a Appmax precisa liberar/fornecer a chave da loja em produção.',
+        }, 502)
+      }
     }
 
     const orderRes = await appmaxPost(selectedBase, 'order', auth, {
