@@ -132,3 +132,6 @@ verify_jwt = false
 
 [functions.appmax-health]
 verify_jwt = false
+
+[functions.appmax-card-payment]
+verify_jwt = false
