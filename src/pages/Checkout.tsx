@@ -1535,6 +1535,7 @@ export default function Checkout() {
 
         // Fulfill atomically using DB function
         let fulfillmentFailed = false;
+        const pendingProxyItems: { productId: string; quantity: number }[] = [];
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
@@ -1543,7 +1544,8 @@ export default function Checkout() {
             // or that already have delivery data.
             const { data: itemProd } = await supabase.from("products").select("icon_type").eq("id", oi.product_id).single();
             if (itemProd?.icon_type === 'proxy') {
-              console.log(`[Checkout] Skipping fulfillment for proxy item ${oi.id} as it should be handled via subscriptions`);
+              const { data: itemQtyRow } = await supabase.from("order_items").select("quantity").eq("id", oi.id).maybeSingle();
+              pendingProxyItems.push({ productId: oi.product_id, quantity: itemQtyRow?.quantity || 1 });
               continue;
             }
 
@@ -1630,6 +1632,43 @@ export default function Checkout() {
           // Still debit balance since payment was made - admin will resolve fulfillment
         }
 
+        // ========== PROXY FBFLIX PROVISIONING (saldo, carrinho/bump) ==========
+        // Proxy items are not handled by fulfill_order_item; they must be allocated
+        // through the Webshare pool. Without this, the wallet was debited and the
+        // customer never received the proxy in /subscriptions.
+        let proxyProvisionFailed = false;
+        for (const pending of pendingProxyItems) {
+          try {
+            const { data: allocRes, error: allocErr } = await supabase.functions.invoke("proxyfbflix-api", {
+              body: {
+                action: "allocate-proxy-for-paid-order",
+                order_id: orderId,
+                product_id: pending.productId,
+                quantity: pending.quantity,
+                target_city: targetCity !== "all" ? targetCity : undefined,
+              },
+            });
+            if (allocErr || allocRes?.error) {
+              console.error("[Checkout] Proxy allocation error:", allocErr || allocRes?.error);
+              proxyProvisionFailed = true;
+            }
+          } catch (e) {
+            console.error("[Checkout] Proxy allocation exception:", e);
+            proxyProvisionFailed = true;
+          }
+        }
+
+        if (proxyProvisionFailed) {
+          await supabase.from("orders").update({ status: "pending_fulfillment" }).eq("id", orderId);
+          toast.error("Pagamento confirmado, mas o proxy não pôde ser ativado agora. Nossa equipe foi notificada.");
+          await supabase.from("notifications").insert({
+            title: "Proxy pago sem ativação",
+            message: `Pedido #${orderCode} foi pago no saldo mas o proxy não foi alocado. Alocar manualmente.`,
+            type: "order",
+            global: true,
+          });
+        }
+
         // ========== SAFE BM RENEWAL AUTO-ACTIVATION (saldo) ==========
         try {
           const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
@@ -1699,7 +1738,13 @@ export default function Checkout() {
         localStorage.removeItem("partner_ref_at");
 
         toast.success("Pedido realizado com sucesso!");
-        navigate("/orders");
+        if (pendingProxyItems.length > 0 && !proxyProvisionFailed) {
+          queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+          navigate("/subscriptions");
+        } else {
+          navigate("/orders");
+        }
 
       } else if (paymentMethod === "pix") {
         updateData.status = "processing";
