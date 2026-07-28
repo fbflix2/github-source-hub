@@ -1632,6 +1632,43 @@ export default function Checkout() {
           // Still debit balance since payment was made - admin will resolve fulfillment
         }
 
+        // ========== PROXY FBFLIX PROVISIONING (saldo, carrinho/bump) ==========
+        // Proxy items are not handled by fulfill_order_item; they must be allocated
+        // through the Webshare pool. Without this, the wallet was debited and the
+        // customer never received the proxy in /subscriptions.
+        let proxyProvisionFailed = false;
+        for (const pending of pendingProxyItems) {
+          try {
+            const { data: allocRes, error: allocErr } = await supabase.functions.invoke("proxyfbflix-api", {
+              body: {
+                action: "allocate-proxy-for-paid-order",
+                order_id: orderId,
+                product_id: pending.productId,
+                quantity: pending.quantity,
+                target_city: targetCity !== "all" ? targetCity : undefined,
+              },
+            });
+            if (allocErr || allocRes?.error) {
+              console.error("[Checkout] Proxy allocation error:", allocErr || allocRes?.error);
+              proxyProvisionFailed = true;
+            }
+          } catch (e) {
+            console.error("[Checkout] Proxy allocation exception:", e);
+            proxyProvisionFailed = true;
+          }
+        }
+
+        if (proxyProvisionFailed) {
+          await supabase.from("orders").update({ status: "pending_fulfillment" }).eq("id", orderId);
+          toast.error("Pagamento confirmado, mas o proxy não pôde ser ativado agora. Nossa equipe foi notificada.");
+          await supabase.from("notifications").insert({
+            title: "Proxy pago sem ativação",
+            message: `Pedido #${orderCode} foi pago no saldo mas o proxy não foi alocado. Alocar manualmente.`,
+            type: "order",
+            global: true,
+          });
+        }
+
         // ========== SAFE BM RENEWAL AUTO-ACTIVATION (saldo) ==========
         try {
           const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
