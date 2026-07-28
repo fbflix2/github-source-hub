@@ -687,18 +687,26 @@ export default function SubscriptionManage() {
                         onClick={async () => {
                           setIsBuyingQuota(true);
                           try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) throw new Error("Não autenticado");
-                            const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).single();
-                            const totalCost = customerPrice * 0.5 * extraQuotaQty;
-                            if (!profile || profile.balance < totalCost) { toast.error(`Saldo insuficiente.`); return; }
-                            await supabase.from("profiles").update({ balance: profile.balance - totalCost }).eq("user_id", user.id);
                             const subType = String(sub.type || (isProxyFbflix ? "proxyfbflix" : "proxybr"));
-                            const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
-                            if (subRow) {
-                              const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
-                              const updatedRaw = { ...currentRaw, exchange_quota_pay: (currentRaw.exchange_quota_pay ?? 0) + extraQuotaQty };
-                              await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
+                            let subscriptionId = (sub as any)?.id as string | undefined;
+                            if (!subscriptionId) {
+                              const { data: subRow } = await supabase
+                                .from("subscriptions")
+                                .select("id")
+                                .eq("name", realSubName!)
+                                .eq("type", subType)
+                                .maybeSingle();
+                              subscriptionId = subRow?.id;
+                            }
+                            if (!subscriptionId) throw new Error("Assinatura não encontrada");
+                            const { data: result, error: rpcError } = await supabase.rpc("buy_extra_exchange_quota", {
+                              _subscription_id: subscriptionId,
+                              _qty: extraQuotaQty,
+                            });
+                            if (rpcError) throw new Error(rpcError.message.replace(/^.*?:\s*/, ""));
+                            const charged = Number((result as any)?.charged ?? 0);
+                            if (charged > 0) {
+                              toast.success(`Debitado R$ ${charged.toFixed(2).replace(".", ",")} do seu saldo.`);
                             }
                             queryClient.invalidateQueries({ queryKey: isProxyFbflix ? ["proxyfbflix-subscriptions"] : ["proxybr-subscriptions"] });
                             toast.success(`${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''} adicionada${extraQuotaQty > 1 ? 's' : ''}!`);

@@ -6176,6 +6176,10 @@ export type Database = {
         Args: { _credit_wallet?: boolean; _order_id: string }
         Returns: Json
       }
+      buy_extra_exchange_quota: {
+        Args: { _qty: number; _subscription_id: string }
+        Returns: Json
+      }
       can_access_whatsapp_phone: { Args: { _phone: string }; Returns: boolean }
       check_reseller_checkout_capacity: {
         Args: {
