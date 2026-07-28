@@ -13,10 +13,13 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-// Appmax hosts: sandbox = <loja>.sandboxappmax.com.br | produção = admin.appmax.com.br
-// O token de acesso da loja só é válido no host da própria loja sandbox.
+// Appmax hosts:
+// - API atual/AppStore: https://api.appmax.com.br + OAuth/Bearer
+// - API legada por loja: https://admin.appmax.com.br ou <loja>.sandboxappmax.com.br + access-token no body
 const SANDBOX_BASE = 'https://breakingcode.sandboxappmax.com.br'
 const PROD_BASE = 'https://admin.appmax.com.br'
+const SANDBOX_API_BASE = 'https://api.sandboxappmax.com.br'
+const PROD_API_BASE = 'https://api.appmax.com.br'
 
 // OAuth2 (client_credentials) — https://appmax.readme.io/reference/instalacao-do-aplicativo
 const SANDBOX_AUTH = 'https://auth.sandboxappmax.com.br/oauth2/token'
@@ -40,23 +43,34 @@ function resolveApiBase(): string {
 
 const API_BASE = resolveApiBase()
 
+function resolveModernApiBase(): string {
+  return isProd() ? PROD_API_BASE : SANDBOX_API_BASE
+}
+
+const MODERN_API_BASE = resolveModernApiBase()
+
 // Appmax API v3 does NOT use OAuth. Every request carries the API token
 // as the `access-token` field in the JSON body. Client ID/Secret are app
 // installation credentials and are not accepted by the sales/payment API.
 // Merchant token (API v3 sales) — opcional, enviado no corpo como `access-token`
 function getMerchantToken(): string | null {
   if (isProd()) {
-    return (
+    return trimSecret(
       Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
       Deno.env.get('APPMAX_ACCESS_TOKEN') ||
       null
     )
   }
-  return (
+  return trimSecret(
     Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     null
   )
+}
+
+function trimSecret(value: string | null | undefined): string | null {
+  const cleaned = String(value || '').trim()
+  return cleaned || null
 }
 
 // OAuth2 client_credentials: gera o Bearer token do aplicativo
@@ -144,6 +158,51 @@ async function appmaxPost(
     console.error(`[appmax-card-payment] ${path} HTTP ${res.status} @ ${url} :: ${raw.slice(0, 800)}`)
   }
   return { ok: res.ok && data?.success !== false, status: res.status, data }
+}
+
+async function appmaxPostV1(
+  path: string,
+  bearer: string,
+  payload: Record<string, unknown>,
+) {
+  const url = `${MODERN_API_BASE}/v1/${path.replace(/^\/+/, '')}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${bearer}`,
+    },
+    body: JSON.stringify(payload),
+  })
+  const raw = await res.text()
+  let data: any = {}
+  try {
+    data = raw ? JSON.parse(raw) : {}
+  } catch {
+    data = { raw: raw.slice(0, 500) }
+  }
+  if (!res.ok || data?.success === false) {
+    console.error(`[appmax-card-payment] v1 ${path} HTTP ${res.status} @ ${url} :: ${raw.slice(0, 800)}`)
+  }
+  return { ok: res.ok && data?.success !== false, status: res.status, data }
+}
+
+function cents(value: number): number {
+  return Math.round(Number(value || 0) * 100)
+}
+
+function extractCustomerIdV1(data: any): string | number | null {
+  return data?.data?.customer?.id || data?.data?.id || data?.customer?.id || data?.id || null
+}
+
+function extractOrderIdV1(data: any): string | number | null {
+  return data?.data?.order?.id || data?.data?.id || data?.order?.id || data?.id || null
+}
+
+function looksInvalidToken(status: number, data: any): boolean {
+  const text = String(data?.text || data?.message || data?.error?.message || data?.raw || '').toLowerCase()
+  return status === 401 || status === 403 || text.includes('invalid access token') || text.includes('unauthorized') || text.includes('invalid token')
 }
 
 const onlyDigits = (v: unknown) => String(v ?? '').replace(/\D/g, '')
