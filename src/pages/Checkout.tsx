@@ -537,6 +537,10 @@ export default function Checkout() {
   const [cardName, setCardName] = useState("");
   const [cardCpf, setCardCpf] = useState("");
   const [cardEmail, setCardEmail] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardInstallments, setCardInstallments] = useState(1);
   const [targetCity, setTargetCity] = useState("all");
   const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
