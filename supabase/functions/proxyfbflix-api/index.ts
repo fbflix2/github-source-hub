@@ -1059,9 +1059,154 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ALLOCATE PROXY FOR AN ALREADY-PAID ORDER ==========
+    // Used when the checkout already debited the wallet (mixed carts / bumps).
+    // Does NOT debit balance and does NOT change order totals.
+    if (action === "allocate-proxy-for-paid-order") {
+      const { order_id, product_id: paidProductId, quantity: paidQty, target_city: paidCity } = params as {
+        order_id: string;
+        product_id?: string;
+        quantity?: number;
+        target_city?: string;
+      };
+
+      if (!order_id) throw new Error("order_id é obrigatório");
+      const qty = paidQty && paidQty > 0 ? paidQty : 1;
+
+      const { data: orderRow } = await supabaseAdmin
+        .from("orders")
+        .select("id, user_id, status, reseller_id, code")
+        .eq("id", order_id)
+        .maybeSingle();
+
+      if (!orderRow) throw new Error("Pedido não encontrado");
+
+      const { data: callerIsAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (orderRow.user_id !== user.id && !callerIsAdmin) throw new Error("Acesso negado");
+      if (!["completed", "processing", "pending_fulfillment"].includes(String(orderRow.status))) {
+        throw new Error("Pedido não está pago");
+      }
+
+      // Idempotency: never allocate twice for the same order/product
+      const { data: existingForOrder } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id, name, product_id, raw_data")
+        .eq("user_id", orderRow.user_id)
+        .in("status", ["active", "expiring"]);
+
+      const already = (existingForOrder || []).filter((s: any) => {
+        const raw = (s.raw_data || {}) as Record<string, any>;
+        return String(raw.order_id || "") === String(order_id)
+          && (!paidProductId || s.product_id === paidProductId);
+      });
+      if (already.length >= qty) {
+        return new Response(JSON.stringify({ success: true, already_allocated: true, quantity: already.length }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const missing = qty - already.length;
+
+      let paidCountry: string | null = null;
+      if (paidProductId) {
+        const { data: productData } = await supabaseAdmin
+          .from("products").select("name, tags").eq("id", paidProductId).maybeSingle();
+        if (productData) paidCountry = detectCountryFromProduct(productData as any);
+      }
+
+      const { assignedIds: paidAssigned } = await getAssignedProxyIds(supabaseAdmin);
+
+      const normalizedCity = paidCity && paidCity !== "all" && paidCity !== "all_us"
+        ? paidCity.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "")
+        : null;
+
+      async function collect(country: string | null, city: string | null) {
+        const out: any[] = [];
+        let page = 1;
+        while (out.length < missing) {
+          let url = `/proxy/list/?mode=direct&page=${page}&page_size=250`;
+          if (country) url += `&country_code=${country}`;
+          const resp = await webFetch(url, WEBSHARE_API_KEY);
+          const data = await resp.json();
+          if (!resp.ok) throw new Error("Erro ao buscar proxies");
+          const results = data.results || [];
+          if (results.length === 0) break;
+          for (const p of results) {
+            if (!p.valid || paidAssigned.has(String(p.id))) continue;
+            if (country && p.country_code !== country) continue;
+            if (city) {
+              const pCity = (p.city_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+              if (pCity !== city) continue;
+            }
+            out.push(p);
+            if (out.length >= missing) break;
+          }
+          if (!data.next) break;
+          page++;
+        }
+        return out;
+      }
+
+      let picked = await collect(paidCountry, normalizedCity);
+      if (picked.length < missing && normalizedCity) picked = await collect(paidCountry || "BR", null);
+      if (picked.length < missing) {
+        throw new Error(`Apenas ${picked.length} proxy(s) disponível(is), mas ${missing} necessário(s).`);
+      }
+
+      const allocatedPaid: any[] = [];
+      for (let i = 0; i < missing; i++) {
+        const proxy = picked[i];
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 30);
+        const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i + 1}` : ""}`;
+
+        const { error: insErr } = await supabaseAdmin.from("subscriptions").insert({
+          user_id: orderRow.user_id,
+          name: subName,
+          type: "proxyfbflix",
+          status: "active",
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          product_id: paidProductId || null,
+          auto_renew: false,
+          reseller_id: (orderRow as any).reseller_id ?? null,
+          raw_data: {
+            fbflix_proxy_id: proxy.id,
+            proxy_address: proxy.proxy_address,
+            port: proxy.port,
+            username: proxy.username,
+            password: proxy.password,
+            country_code: proxy.country_code,
+            city_name: proxy.city_name,
+            provider: "proxyfbflix",
+            exchange_quota_free: 2,
+            exchange_quota_pay: 0,
+            order_id: order_id,
+            reseller_id: (orderRow as any).reseller_id ?? null,
+          },
+        });
+        if (insErr) throw new Error(`Erro ao criar assinatura: ${insErr.message}`);
+        paidAssigned.add(String(proxy.id));
+        allocatedPaid.push({ name: subName, ip: proxy.proxy_address, port: proxy.port });
+      }
+
+      if (paidProductId) {
+        const { data: ois } = await supabaseAdmin
+          .from("order_items").select("id").eq("order_id", order_id).eq("product_id", paidProductId);
+        for (const oi of (ois || [])) {
+          await supabaseAdmin.from("order_items").update({
+            delivery_data: { type: "webshare_proxy", fulfilled: true, count: qty },
+          }).eq("id", oi.id);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, allocated: allocatedPaid }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ========== ADMIN ALLOCATE PROXY ==========
     if (action === "admin-allocate-proxy") {
-      // placeholder
       const { target_user_id, quantity: allocQty, product_id: allocProductId, order_id: allocOrderId, country_code: adminCountryCode } = params as {
         target_user_id: string;
         quantity?: number;
