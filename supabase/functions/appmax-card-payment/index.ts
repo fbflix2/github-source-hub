@@ -224,6 +224,10 @@ function looksInvalidToken(status: number, data: any): boolean {
 
 const onlyDigits = (v: unknown) => String(v ?? '').replace(/\D/g, '')
 
+function formatCpf(value: string): string {
+  return value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -270,6 +274,10 @@ Deno.serve(async (req) => {
     if (cardYear.length !== 4) return json({ error: 'Ano de validade inválido' }, 400)
     if (cardName.length < 3 || cardName.length > 60) return json({ error: 'Nome no cartão inválido' }, 400)
     if (docNumber.length !== 11) return json({ error: 'CPF inválido' }, 400)
+
+    const appmaxCardMonth = Number(cardMonth)
+    const appmaxCardYear = Number(cardYear.slice(-2))
+    const appmaxDocumentNumber = formatCpf(docNumber)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -340,7 +348,7 @@ Deno.serve(async (req) => {
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
       telephone,
-      document_number: docNumber,
+      document_number: appmaxDocumentNumber,
       postcode: '01310100',
       address_street: 'Avenida Paulista',
       address_street_number: '1000',
@@ -422,9 +430,9 @@ Deno.serve(async (req) => {
         CreditCard: {
           number: cardNumber,
           cvv: cardCvv,
-          month: Number(cardMonth),
-          year: Number(cardYear),
-          document_number: docNumber,
+          month: appmaxCardMonth,
+          year: appmaxCardYear,
+          document_number: appmaxDocumentNumber,
           name: cardName,
           installments,
           soft_descriptor: 'FBFLIX',
