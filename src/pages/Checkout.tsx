@@ -647,65 +647,6 @@ export default function Checkout() {
     checkFirstPurchase();
   }, []);
 
-  // Initialize MercadoPago secure fields when card payment is selected
-  useEffect(() => {
-    const cleanupFields = () => {
-      cardFieldsRef.current?.cardNumber?.unmount?.();
-      cardFieldsRef.current?.expirationDate?.unmount?.();
-      cardFieldsRef.current?.securityCode?.unmount?.();
-      cardFieldsRef.current = null;
-      fieldsInitializedRef.current = false;
-      mpInstanceRef.current = null;
-    };
-
-    if (paymentMethod !== "cartao") {
-      cleanupFields();
-      return;
-    }
-
-    if (fieldsInitializedRef.current) return;
-
-    const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-    if (!mpPublicKey) {
-      console.error("Mercado Pago public key missing");
-      toast.error("Chave pública do cartão não configurada.");
-      return;
-    }
-
-    if (!(window as any).MercadoPago) {
-      console.error("Mercado Pago SDK not loaded");
-      toast.error("SDK do cartão indisponível no momento.");
-      return;
-    }
-
-    try {
-      const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
-      mpInstanceRef.current = mp;
-
-      const style = {
-        height: "100%",
-        width: "100%",
-        "font-size": "14px",
-        "font-family": "inherit",
-        color: "hsl(0 0% 95%)",
-        "padding-left": "12px",
-      };
-
-      const cardNumber = mp.fields.create("cardNumber", { placeholder: "0000 0000 0000 0000", style }).mount("mp-card-number");
-      const expirationDate = mp.fields.create("expirationDate", { placeholder: "MM/AA", style }).mount("mp-expiration-date");
-      const securityCode = mp.fields.create("securityCode", { placeholder: "123", style }).mount("mp-security-code");
-
-      cardFieldsRef.current = { cardNumber, expirationDate, securityCode };
-      fieldsInitializedRef.current = true;
-    } catch (err) {
-      console.error("MP fields init error:", err);
-      cleanupFields();
-      toast.error("Não foi possível carregar os campos do cartão.");
-    }
-
-    return cleanupFields;
-  }, [paymentMethod]);
-
   // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
     if (isResellerCheckout) {
