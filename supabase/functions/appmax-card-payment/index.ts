@@ -17,6 +17,15 @@ const json = (body: unknown, status = 200) =>
 const SANDBOX_BASE = 'https://homolog.sandboxappmax.com.br'
 const PROD_BASE = 'https://admin.appmax.com.br'
 
+// OAuth2 (client_credentials) — https://appmax.readme.io/reference/instalacao-do-aplicativo
+const SANDBOX_AUTH = 'https://auth.sandboxappmax.com.br/oauth2/token'
+const PROD_AUTH = 'https://auth.appmax.com.br/oauth2/token'
+
+function isProd(): boolean {
+  const env = (Deno.env.get('APPMAX_ENV') || '').toLowerCase()
+  return env === 'production' || env === 'prod'
+}
+
 function resolveApiBase(): string {
   const raw = (Deno.env.get('APPMAX_API_BASE') || '').replace(/\/+$/, '').replace(/\/api(\/v3)?$/, '')
   const env = (Deno.env.get('APPMAX_ENV') || '').toLowerCase()
@@ -33,24 +42,73 @@ const API_BASE = resolveApiBase()
 // Appmax API v3 does NOT use OAuth. Every request carries the API token
 // as the `access-token` field in the JSON body. Client ID/Secret are app
 // installation credentials and are not accepted by the sales/payment API.
-function getAppmaxToken(): string {
-  const token =
+// Merchant token (API v3 sales) — opcional, enviado no corpo como `access-token`
+function getMerchantToken(): string | null {
+  return (
     Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
-    Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN')
-  if (!token) throw new Error('APPMAX_ACCESS_TOKEN não configurado')
+    Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
+    null
+  )
+}
+
+// OAuth2 client_credentials: gera o Bearer token do aplicativo
+let cachedBearer: { token: string; expiresAt: number } | null = null
+
+async function getAppBearerToken(): Promise<string | null> {
+  if (cachedBearer && cachedBearer.expiresAt > Date.now() + 30_000) return cachedBearer.token
+
+  const prod = isProd()
+  const clientId = prod
+    ? Deno.env.get('APPMAX_CLIENT_ID') || Deno.env.get('APPMAX_PRODUCTION_CLIENT_ID')
+    : Deno.env.get('APPMAX_SANDBOX_CLIENT_ID') || Deno.env.get('APPMAX_CLIENT_ID')
+  const clientSecret = prod
+    ? Deno.env.get('APPMAX_CLIENT_SECRET') || Deno.env.get('APPMAX_PRODUCTION_CLIENT_SECRET')
+    : Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET') || Deno.env.get('APPMAX_CLIENT_SECRET')
+
+  if (!clientId || !clientSecret) return null
+
+  const url = prod ? PROD_AUTH : SANDBOX_AUTH
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  })
+  const raw = await res.text()
+  if (!res.ok) {
+    console.error(`[appmax-card-payment] oauth HTTP ${res.status} @ ${url} :: ${raw.slice(0, 500)}`)
+    return null
+  }
+  let data: any = {}
+  try { data = JSON.parse(raw) } catch { return null }
+  const token = data?.access_token
+  if (!token) return null
+  cachedBearer = { token, expiresAt: Date.now() + (Number(data.expires_in || 3600) * 1000) }
+  console.log('[appmax-card-payment] oauth token OK')
   return token
 }
 
-async function appmaxPost(path: string, token: string, payload: Record<string, unknown>) {
+async function appmaxPost(
+  path: string,
+  auth: { bearer: string | null; merchant: string | null },
+  payload: Record<string, unknown>,
+) {
   const url = `${API_BASE}/api/v3/${path}`
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  }
+  if (auth.bearer) headers.Authorization = `Bearer ${auth.bearer}`
+  const body: Record<string, unknown> = { ...payload }
+  if (auth.merchant) body['access-token'] = auth.merchant
   const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ 'access-token': token, ...payload }),
+    headers,
+    body: JSON.stringify(body),
   })
   const raw = await res.text()
   let data: any = {}
@@ -158,7 +216,13 @@ Deno.serve(async (req) => {
     }
 
     // ---- Appmax flow: customer -> order -> credit card ----
-    const token = await getAppmaxToken()
+    const bearer = await getAppBearerToken()
+    const merchant = getMerchantToken()
+    if (!bearer && !merchant) {
+      console.error('[appmax-card-payment] sem credenciais Appmax (client_id/secret ou access-token)')
+      return json({ error: 'Gateway de cartão não configurado' }, 500)
+    }
+    const auth = { bearer, merchant }
     const fullName = (profile?.full_name || cardName).trim()
     const firstName = fullName.split(' ')[0] || 'Cliente'
     const lastName = fullName.split(' ').slice(1).join(' ') || 'FBFlix'
@@ -170,7 +234,7 @@ Deno.serve(async (req) => {
     console.log(`[appmax-card-payment] base=${API_BASE} customer=${firstName} tel=${telephone.length}d`)
 
     // O endpoint /customer NÃO recebe CPF — ele vai apenas no payload do cartão
-    const customerRes = await appmaxPost('customer', token, {
+    const customerRes = await appmaxPost('customer', auth, {
       firstname: firstName,
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
@@ -184,7 +248,7 @@ Deno.serve(async (req) => {
       return json({ error: `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}` }, 502)
     }
 
-    const orderRes = await appmaxPost('order', token, {
+    const orderRes = await appmaxPost('order', auth, {
       customer_id: customerId,
       products: [
         {
@@ -207,7 +271,7 @@ Deno.serve(async (req) => {
       return json({ error: `Appmax: ${orderRes.data?.text || 'não foi possível criar o pedido'}` }, 502)
     }
 
-    const payRes = await appmaxPost('payment/credit-card', token, {
+    const payRes = await appmaxPost('payment/credit-card', auth, {
       cart: { order_id: appmaxOrderId },
       customer: { customer_id: customerId },
       payment: {
