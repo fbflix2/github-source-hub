@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Store, Plus, Pencil, Trash2, Globe, Percent, Coins, Loader2, Copy, Check, LogIn, Wallet } from "lucide-react";
+import { Store, Plus, Pencil, Trash2, Globe, Loader2, Copy, Check, LogIn, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface Reseller {
@@ -347,35 +347,44 @@ export default function AdminRevendedores() {
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {r.model === "percentage" ? (
-                  <Badge variant="outline" className="gap-1">
-                    <Percent className="size-3" /> {r.commission_rate}% comissão
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="gap-1">
-                    <Coins className="size-3" /> R$ {r.proxy_unit_cost}/proxy · Saldo R$ {r.balance_credits.toFixed(2)}
-                  </Badge>
-                )}
-                {r.custom_domain && (
+              {/* Saldo pré-pago em destaque */}
+              <div className="rounded-xl border border-border/40 bg-background/40 p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Wallet className="size-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo pré-pago</p>
+                    <p
+                      className={`font-bold text-lg leading-tight ${
+                        Number(r.balance_credits) > 0 ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      R$ {Number(r.balance_credits).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => openBalance(r)}>
+                  <Plus className="size-3" /> Saldo
+                </Button>
+              </div>
+
+              {r.custom_domain && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
                   <Badge variant="outline" className="gap-1">
                     <Globe className="size-3" /> {r.custom_domain}
                   </Badge>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-center">
                 <div>
-                  <p className="text-[10px] uppercase text-muted-foreground">GMV</p>
-                  <p className="font-bold text-sm">R$ {r.total_gmv.toFixed(0)}</p>
+                  <p className="text-[10px] uppercase text-muted-foreground">Volume vendido</p>
+                  <p className="font-bold text-sm">R$ {r.total_gmv.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase text-muted-foreground">Vendas</p>
                   <p className="font-bold text-sm">{r.total_referrals}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-muted-foreground">Ganho</p>
-                  <p className="font-bold text-sm text-primary">R$ {r.total_commissions_earned.toFixed(0)}</p>
                 </div>
               </div>
 
@@ -391,15 +400,6 @@ export default function AdminRevendedores() {
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => openEdit(r)}>
                   <Pencil className="size-3" /> Editar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1"
-                  onClick={() => openBalance(r)}
-                  title="Ajustar saldo"
-                >
-                  <Wallet className="size-3" />
                 </Button>
                 <Button
                   size="sm"
