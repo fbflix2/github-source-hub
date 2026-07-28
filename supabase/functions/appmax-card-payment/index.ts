@@ -43,7 +43,10 @@ function getLegacyApiBases(): string[] {
 
   // APPMAX_API_BASE deve ser respeitado quando configurado, porque a API v3
   // legada da Appmax pode ser amarrada ao host específico da loja/ambiente.
-  return Array.from(new Set([explicit, fallback].filter(Boolean)))
+  // Em produção também tentamos o host sandbox por último apenas para detectar
+  // token de sandbox salvo por engano e devolver uma mensagem clara, sem seguir
+  // com cobrança real no ambiente errado.
+  return Array.from(new Set([explicit, fallback, SANDBOX_BASE].filter(Boolean)))
 }
 
 const API_BASES = getLegacyApiBases()
@@ -363,6 +366,14 @@ Deno.serve(async (req) => {
         error: invalidToken
           ? 'Appmax: token não pertence ao ambiente/loja configurado. Verifique se a chave é da loja de produção correta.'
           : `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}`,
+      }, 502)
+    }
+
+    if (isProd() && /sandboxappmax\.com\.br/i.test(selectedBase)) {
+      console.error('[appmax-card-payment] production env with sandbox-only Appmax token/base', selectedBase)
+      await admin.from('payments').update({ status: 'failed' }).eq('id', payment.id)
+      return json({
+        error: 'Appmax: a chave salva é válida somente no sandbox. Para cartão real, a Appmax precisa liberar/fornecer a chave da loja em produção.',
       }, 502)
     }
 
