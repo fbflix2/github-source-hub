@@ -603,9 +603,6 @@ export default function Checkout() {
     { value: "Houston", label: "🇺🇸 Houston" },
     { value: "Phoenix", label: "🇺🇸 Phoenix" }
   ];
-  const mpInstanceRef = useRef<any>(null);
-  const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
-  const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
    const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number; payment_link?: string } | null>(null);
