@@ -59,12 +59,24 @@ async function getAppBearerToken(): Promise<string | null> {
   if (cachedBearer && cachedBearer.expiresAt > Date.now() + 30_000) return cachedBearer.token
 
   const prod = isProd()
+  // Credenciais do MERCHANT (loja instalada) têm prioridade — são as aceitas
+  // pela API transacional. As credenciais do aplicativo servem só p/ instalação.
   const clientId = prod
-    ? Deno.env.get('APPMAX_CLIENT_ID') || Deno.env.get('APPMAX_PRODUCTION_CLIENT_ID')
-    : Deno.env.get('APPMAX_SANDBOX_CLIENT_ID') || Deno.env.get('APPMAX_CLIENT_ID')
+    ? Deno.env.get('APPMAX_MERCHANT_CLIENT_ID') ||
+      Deno.env.get('APPMAX_PRODUCTION_MERCHANT_CLIENT_ID') ||
+      Deno.env.get('APPMAX_CLIENT_ID')
+    : Deno.env.get('APPMAX_SANDBOX_MERCHANT_CLIENT_ID') ||
+      Deno.env.get('APPMAX_MERCHANT_CLIENT_ID') ||
+      Deno.env.get('APPMAX_SANDBOX_CLIENT_ID') ||
+      Deno.env.get('APPMAX_CLIENT_ID')
   const clientSecret = prod
-    ? Deno.env.get('APPMAX_CLIENT_SECRET') || Deno.env.get('APPMAX_PRODUCTION_CLIENT_SECRET')
-    : Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET') || Deno.env.get('APPMAX_CLIENT_SECRET')
+    ? Deno.env.get('APPMAX_MERCHANT_CLIENT_SECRET') ||
+      Deno.env.get('APPMAX_PRODUCTION_MERCHANT_CLIENT_SECRET') ||
+      Deno.env.get('APPMAX_CLIENT_SECRET')
+    : Deno.env.get('APPMAX_SANDBOX_MERCHANT_CLIENT_SECRET') ||
+      Deno.env.get('APPMAX_MERCHANT_CLIENT_SECRET') ||
+      Deno.env.get('APPMAX_SANDBOX_CLIENT_SECRET') ||
+      Deno.env.get('APPMAX_CLIENT_SECRET')
 
   if (!clientId || !clientSecret) return null
 
