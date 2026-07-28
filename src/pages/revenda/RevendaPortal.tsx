@@ -50,6 +50,7 @@ import { ResellerBannersManager } from "@/components/revenda/ResellerBannersMana
 import ResellerNotificationBell from "@/components/revenda/ResellerNotificationBell";
 import ResellerMarketing from "@/components/revenda/ResellerMarketing";
 import ResellerPedidos from "@/components/revenda/ResellerPedidos";
+import ResellerSuporte from "@/components/revenda/ResellerSuporte";
 import SiteImageUpload from "@/components/admin/SiteImageUpload";
 import {
   DropdownMenu,
@@ -150,7 +151,7 @@ export default function RevendaPortal() {
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; balance: number } | null>(null);
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners" | "cupons" | "marketing" | "pedidos"
+    "dashboard" | "overview" | "loja" | "vendas" | "manutencao" | "link" | "ajuda" | "dominio" | "identidade" | "central-proxy" | "assinaturas" | "minha-loja" | "pagamentos" | "gateway" | "clientes" | "banners" | "cupons" | "marketing" | "pedidos" | "suporte"
   >("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -352,6 +353,7 @@ export default function RevendaPortal() {
     { id: "cupons", label: "Cupons", icon: Tag },
     { id: "central-proxy", label: "Central Proxy", icon: Globe },
     { id: "assinaturas", label: "Assinaturas", icon: Users },
+    { id: "suporte", label: "Suporte", icon: LifeBuoy },
     { id: "manutencao", label: "Manutenção", icon: Wrench },
     { id: "minha-loja", label: "Minha Loja", icon: ShoppingBag },
     { id: "pagamentos", label: "Pagamentos", icon: CreditCard },
@@ -714,6 +716,12 @@ export default function RevendaPortal() {
             {activeSection === "cupons" && <ResellerCupons resellerId={reseller.id} />}
             {activeSection === "marketing" && <ResellerMarketing />}
     {activeSection === "pedidos" && <ResellerPedidos resellerId={reseller.id} />}
+            {activeSection === "suporte" && (
+              <ResellerSuporte
+                resellerId={reseller.id}
+                brandName={reseller.brand_name || reseller.company_name}
+              />
+            )}
 
             {activeSection === "manutencao" && (
               <ResellerMaintenance
