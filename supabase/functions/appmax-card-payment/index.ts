@@ -45,10 +45,16 @@ const API_BASE = resolveApiBase()
 // installation credentials and are not accepted by the sales/payment API.
 // Merchant token (API v3 sales) — opcional, enviado no corpo como `access-token`
 function getMerchantToken(): string | null {
+  if (isProd()) {
+    return (
+      Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
+      Deno.env.get('APPMAX_ACCESS_TOKEN') ||
+      null
+    )
+  }
   return (
-    Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
-    Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
+    Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     null
   )
 }
