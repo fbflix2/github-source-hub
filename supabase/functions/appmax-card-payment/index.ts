@@ -28,7 +28,8 @@ function getAppmaxToken(): string {
 }
 
 async function appmaxPost(path: string, token: string, payload: Record<string, unknown>) {
-  const res = await fetch(`${API_BASE}/api/v3/${path}`, {
+  const url = `${API_BASE}/api/v3/${path}`
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,7 +37,16 @@ async function appmaxPost(path: string, token: string, payload: Record<string, u
     },
     body: JSON.stringify({ 'access-token': token, ...payload }),
   })
-  const data = await res.json().catch(() => ({}))
+  const raw = await res.text()
+  let data: any = {}
+  try {
+    data = raw ? JSON.parse(raw) : {}
+  } catch {
+    data = { raw: raw.slice(0, 500) }
+  }
+  if (!res.ok) {
+    console.error(`[appmax-card-payment] ${path} HTTP ${res.status} @ ${url} :: ${raw.slice(0, 800)}`)
+  }
   return { ok: res.ok, status: res.status, data }
 }
 
