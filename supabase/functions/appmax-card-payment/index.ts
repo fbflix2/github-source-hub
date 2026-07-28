@@ -13,8 +13,9 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-// Appmax hosts: sandbox = homolog.sandboxappmax.com.br | produção = admin.appmax.com.br
-const SANDBOX_BASE = 'https://homolog.sandboxappmax.com.br'
+// Appmax hosts: sandbox = <loja>.sandboxappmax.com.br | produção = admin.appmax.com.br
+// O token de acesso da loja só é válido no host da própria loja sandbox.
+const SANDBOX_BASE = 'https://breakingcode.sandboxappmax.com.br'
 const PROD_BASE = 'https://admin.appmax.com.br'
 
 // OAuth2 (client_credentials) — https://appmax.readme.io/reference/instalacao-do-aplicativo
