@@ -2196,12 +2196,17 @@ export default function Checkout() {
                       onChange={(e) => setCardInstallments(Number(e.target.value))}
                       className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                       {Array.from({ length: Math.max(1, Math.min(12, Math.floor(total / 5))) }, (_, i) => i + 1).map((n) => (
                         <option key={n} value={n} className="bg-background text-foreground">
                           {n}x {n === 1 ? "à vista" : "sem juros no cartão"}
                         </option>
                       ))}
                     </select>
+                    {total < 5 && (
+                      <p className="text-xs text-destructive">
+                        Pagamento com cartão exige valor mínimo de R$ 5,00. Use Pix ou saldo para este valor.
+                      </p>
+                    )}
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
