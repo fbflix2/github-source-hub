@@ -11,6 +11,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResellerContext } from "@/hooks/useResellerContext";
 import { useResellerBranding } from "@/hooks/useResellerBranding";
+import StripeCardFields, { type StripeCardFieldsHandle } from "@/components/checkout/StripeCardFields";
 import {
   Dialog,
   DialogContent,
