@@ -1738,7 +1738,13 @@ export default function Checkout() {
         localStorage.removeItem("partner_ref_at");
 
         toast.success("Pedido realizado com sucesso!");
-        navigate("/orders");
+        if (pendingProxyItems.length > 0 && !proxyProvisionFailed) {
+          queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+          navigate("/subscriptions");
+        } else {
+          navigate("/orders");
+        }
 
       } else if (paymentMethod === "pix") {
         updateData.status = "processing";
