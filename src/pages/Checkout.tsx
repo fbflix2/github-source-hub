@@ -633,8 +633,8 @@ export default function Checkout() {
         .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city, show_proxy_city_on_checkout")
         .eq("user_id", user.id)
         .single();
-      // Cartão ainda não liberado — força "Em breve" para todos
-      setCardEnabled(false);
+      // Cartão via Appmax: liberado apenas para perfis habilitados
+      setCardEnabled(!!(profile as any)?.card_payment_enabled);
       if (profile?.cpf) setCardCpf(profile.cpf);
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
       setLauthEmail((profile as any)?.lauth_email || null);
