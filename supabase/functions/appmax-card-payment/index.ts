@@ -216,7 +216,13 @@ Deno.serve(async (req) => {
     }
 
     // ---- Appmax flow: customer -> order -> credit card ----
-    const token = await getAppmaxToken()
+    const bearer = await getAppBearerToken()
+    const merchant = getMerchantToken()
+    if (!bearer && !merchant) {
+      console.error('[appmax-card-payment] sem credenciais Appmax (client_id/secret ou access-token)')
+      return json({ error: 'Gateway de cartão não configurado' }, 500)
+    }
+    const auth = { bearer, merchant }
     const fullName = (profile?.full_name || cardName).trim()
     const firstName = fullName.split(' ')[0] || 'Cliente'
     const lastName = fullName.split(' ').slice(1).join(' ') || 'FBFlix'
@@ -228,7 +234,7 @@ Deno.serve(async (req) => {
     console.log(`[appmax-card-payment] base=${API_BASE} customer=${firstName} tel=${telephone.length}d`)
 
     // O endpoint /customer NÃO recebe CPF — ele vai apenas no payload do cartão
-    const customerRes = await appmaxPost('customer', token, {
+    const customerRes = await appmaxPost('customer', auth, {
       firstname: firstName,
       lastname: lastName,
       email: userEmail || `cliente-${userId.slice(0, 8)}@fbflix.com.br`,
@@ -242,7 +248,7 @@ Deno.serve(async (req) => {
       return json({ error: `Appmax: ${customerRes.data?.text || 'não foi possível iniciar o pagamento'}` }, 502)
     }
 
-    const orderRes = await appmaxPost('order', token, {
+    const orderRes = await appmaxPost('order', auth, {
       customer_id: customerId,
       products: [
         {
@@ -265,7 +271,7 @@ Deno.serve(async (req) => {
       return json({ error: `Appmax: ${orderRes.data?.text || 'não foi possível criar o pedido'}` }, 502)
     }
 
-    const payRes = await appmaxPost('payment/credit-card', token, {
+    const payRes = await appmaxPost('payment/credit-card', auth, {
       cart: { order_id: appmaxOrderId },
       customer: { customer_id: customerId },
       payment: {
