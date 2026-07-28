@@ -2150,8 +2150,61 @@ export default function Checkout() {
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
                     <div className="relative">
                       <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                      <div id="mp-card-number" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="cc-number"
+                        value={cardNumber}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 19);
+                          setCardNumber(digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim());
+                        }}
+                        placeholder="0000 0000 0000 0000"
+                        className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                      />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="cc-exp"
+                      value={cardExpiry}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
+                      }}
+                      placeholder="MM/AA"
+                      maxLength={5}
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="cc-csc"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="123"
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parcelas</label>
+                    <select
+                      value={cardInstallments}
+                      onChange={(e) => setCardInstallments(Number(e.target.value))}
+                      className="glass-input w-full rounded-lg py-2.5 px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n} className="bg-background text-foreground">
+                          {n}x {n === 1 ? "à vista" : "sem juros no cartão"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
