@@ -1535,6 +1535,7 @@ export default function Checkout() {
 
         // Fulfill atomically using DB function
         let fulfillmentFailed = false;
+        const pendingProxyItems: { productId: string; quantity: number }[] = [];
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
@@ -1543,7 +1544,8 @@ export default function Checkout() {
             // or that already have delivery data.
             const { data: itemProd } = await supabase.from("products").select("icon_type").eq("id", oi.product_id).single();
             if (itemProd?.icon_type === 'proxy') {
-              console.log(`[Checkout] Skipping fulfillment for proxy item ${oi.id} as it should be handled via subscriptions`);
+              const { data: itemQtyRow } = await supabase.from("order_items").select("quantity").eq("id", oi.id).maybeSingle();
+              pendingProxyItems.push({ productId: oi.product_id, quantity: itemQtyRow?.quantity || 1 });
               continue;
             }
 
