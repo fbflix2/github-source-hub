@@ -48,9 +48,6 @@ function getMerchantToken(): string | null {
     Deno.env.get('APPMAX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_SANDBOX_ACCESS_TOKEN') ||
     Deno.env.get('APPMAX_PRODUCTION_ACCESS_TOKEN') ||
-    // Em muitas contas o "client secret" do merchant É o access-token da API v3
-    Deno.env.get('APPMAX_SANDBOX_MERCHANT_CLIENT_SECRET') ||
-    Deno.env.get('APPMAX_MERCHANT_CLIENT_SECRET') ||
     null
   )
 }
@@ -235,8 +232,10 @@ Deno.serve(async (req) => {
     }
 
     // ---- Appmax flow: customer -> order -> credit card ----
-    const bearer = await getAppBearerToken()
     const merchant = getMerchantToken()
+    // O access-token do painel é a credencial oficial da API v3.
+    // Só tentamos OAuth quando ele não existir.
+    const bearer = merchant ? null : await getAppBearerToken()
     if (!bearer && !merchant) {
       console.error('[appmax-card-payment] sem credenciais Appmax (client_id/secret ou access-token)')
       return json({ error: 'Gateway de cartão não configurado' }, 500)
