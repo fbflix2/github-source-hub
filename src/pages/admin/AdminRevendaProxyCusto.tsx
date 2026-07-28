@@ -30,7 +30,11 @@ export default function AdminRevendaProxyCusto() {
       .eq("icon_type", "proxy")
       .order("name", { ascending: true });
     if (error) toast.error(error.message);
-    setRows((data as ProxyProduct[]) || []);
+    // Proxy Rotativo é uso interno — nunca disponível para revenda
+    const list = ((data as ProxyProduct[]) || []).filter(
+      (p) => !/rotativ/i.test(p.name || "")
+    );
+    setRows(list);
     setLoading(false);
   };
 
