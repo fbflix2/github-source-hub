@@ -1780,6 +1780,10 @@ export default function Checkout() {
           toast.error("CVV inválido.");
           return;
         }
+        if (chargeTotal < 5) {
+          toast.error("Pagamento com cartão exige valor mínimo de R$ 5,00. Use Pix ou saldo.");
+          return;
+        }
 
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
@@ -1791,7 +1795,7 @@ export default function Checkout() {
           amount: chargeTotal,
           order_id: orderId,
           cpf: identificationNumber,
-          installments: cardInstallments,
+          installments: Math.max(1, Math.min(cardInstallments, Math.floor(chargeTotal / 5))),
           card: {
             number: rawCardNumber,
             cvv: rawCvv,
