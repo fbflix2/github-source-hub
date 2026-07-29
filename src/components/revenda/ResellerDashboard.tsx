@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import ResellerTipsBanner from "@/components/revenda/ResellerTipsBanner";
 import {
   TrendingUp,
   DollarSign,
@@ -218,6 +219,9 @@ export default function ResellerDashboard({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Banner de dicas */}
+      <ResellerTipsBanner />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
