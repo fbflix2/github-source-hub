@@ -249,7 +249,7 @@ export default function ResellerNotificationBell({ resellerId }: Props) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-[70]">
       <button
         onClick={() => { setOpen((o) => !o); if (!open) markAllRead(); }}
         className="relative flex items-center justify-center size-9 rounded-full bg-card border border-border/60 hover:border-primary/50 hover:bg-primary/10 transition-all group"
@@ -265,8 +265,8 @@ export default function ResellerNotificationBell({ resellerId }: Props) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-[340px] max-h-[70vh] bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
+          <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 w-[340px] max-h-[70vh] bg-card border border-border rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 className="text-sm font-bold text-foreground">Notificações</h3>
               <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-muted">
