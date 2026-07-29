@@ -116,7 +116,7 @@ export default function AdminDashboard() {
         const PAGE_SIZE = 1000;
         while (true) {
           const { data } = await supabase.from("orders")
-            .select("id, status, total, created_at")
+            .select("id, code, status, total, created_at")
             .order("created_at", { ascending: false })
             .range(from, from + PAGE_SIZE - 1);
           if (!data || data.length === 0) break;
