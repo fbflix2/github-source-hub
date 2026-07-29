@@ -116,7 +116,7 @@ export default function AdminDashboard() {
         const PAGE_SIZE = 1000;
         while (true) {
           const { data } = await supabase.from("orders")
-            .select("id, status, total, created_at")
+            .select("id, code, status, total, created_at")
             .order("created_at", { ascending: false })
             .range(from, from + PAGE_SIZE - 1);
           if (!data || data.length === 0) break;
@@ -241,11 +241,19 @@ export default function AdminDashboard() {
       }));
 
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
+      // Also index by order code (ORD-XXXX) because wallet debits reference the order in the title
+      const activeOrderCodes = new Set(
+        completedOrds.map((o: any) => String(o.code || "").toUpperCase()).filter(Boolean)
+      );
 
       // Wallet debits (proxy renewals + Scale Pro renewals via wallet debit)
-      // Exclude those linked to completed orders to avoid double counting
+      // Exclude those linked to completed orders (by id OR by order code in the title)
       const walletPurchases = fetchedWalletPurchases
         .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
+        .filter((wt: any) => {
+          const match = String(wt.title || "").toUpperCase().match(/ORD-[A-Z0-9]+/);
+          return !match || !activeOrderCodes.has(match[0]);
+        })
         .map((wt: any) => {
           const title = String(wt.title || "").toLowerCase();
           const isScalePro =
@@ -254,11 +262,12 @@ export default function AdminDashboard() {
             title.includes("contingencia") ||
             title.includes("reativação scale") ||
             title.includes("renovação scale");
+          const isProxy = title.includes("proxy") || title.includes("ipv4") || title.includes("ipv6");
           return {
             total: Math.abs(Number(wt.amount)) || 0,
             created_at: wt.created_at as string,
             product_name: wt.title || null,
-            source: isScalePro ? "wallet_ct" : "wallet_proxy",
+            source: isScalePro ? "wallet_ct" : isProxy ? "wallet_proxy" : "wallet_other",
           };
         });
 
