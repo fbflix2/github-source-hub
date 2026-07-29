@@ -218,6 +218,9 @@ export default function ResellerDashboard({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Banner de dicas */}
+      <ResellerTipsBanner />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
