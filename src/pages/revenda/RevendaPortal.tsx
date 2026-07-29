@@ -460,14 +460,23 @@ export default function RevendaPortal() {
 
         {/* Saldo do revendedor */}
         <div className="px-5 pb-4">
-          <div className="rounded-xl border border-border/50 bg-background/40 px-3.5 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Saldo disponível
-            </p>
-            <p className="text-lg font-bold text-primary">
-              R$ {Number(reseller.balance_credits || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
+          <NavLink
+            to="/wallet"
+            title="Adicionar saldo"
+            className="group flex items-center gap-3 rounded-xl border border-border/50 bg-background/40 px-3.5 py-2.5 transition-all hover:border-primary/50 hover:bg-background/60"
+          >
+            <div className="size-9 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center transition-colors group-hover:bg-primary/25">
+              <Wallet className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Saldo disponível
+              </p>
+              <p className="text-lg font-bold text-primary leading-tight">
+                R$ {Number(reseller.balance_credits || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          </NavLink>
         </div>
 
         {/* Nav */}
