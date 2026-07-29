@@ -217,9 +217,9 @@ Deno.serve(async (req) => {
       else if (stage === "d0") {
         eventKey = "proxy_expiring_d0";
         if (isMultiple) {
-          msg = `Olá ${nome} ⚠️\n\n🔴 *Seus ${subs.length} proxies vencem HOJE!*\n\n${proxyLines}\n\n💰 *Valor total: ${totalStr}*\n\nA partir de amanhã, será cobrada uma taxa de reserva de R$ 0,25/dia para manter seus IPs reservados (máximo 2 dias).\n\nRenove agora e evite taxas extras:\n${subLinks}\n\n_Após 4 dias sem renovação, os proxies serão cancelados definitivamente._ 🚫\n\n_${hook}_`;
+          msg = `Olá ${nome} ⚠️\n\n🔴 *Seus ${subs.length} proxies vencem HOJE!*\n\n${proxyLines}\n\n💰 *Valor total: ${totalStr}*\n\nRenove agora para manter seus IPs ativos:\n${subLinks}\n\n_Após 4 dias sem renovação, os proxies serão cancelados definitivamente._ 🚫\n\n_${hook}_`;
         } else {
-          msg = `Olá ${nome} ⚠️\n\n🔴 *Seu proxy vence HOJE!*\n\nProxy: *${firstCode}*\n🌐 IP: ${firstIp}\n💰 Valor: ${totalStr}\n\nA partir de amanhã, será cobrada uma taxa de reserva de R$ 0,25/dia para manter seu IP reservado (máximo 2 dias).\n\nRenove agora e evite taxas extras:\n${renewLink}\n\n_Após 4 dias sem renovação, o proxy será cancelado definitivamente._ 🚫\n\n_${hook}_`;
+          msg = `Olá ${nome} ⚠️\n\n🔴 *Seu proxy vence HOJE!*\n\nProxy: *${firstCode}*\n🌐 IP: ${firstIp}\n💰 Valor: ${totalStr}\n\nRenove agora para manter seu IP ativo:\n${renewLink}\n\n_Após 4 dias sem renovação, o proxy será cancelado definitivamente._ 🚫\n\n_${hook}_`;
         }
         for (const sub of subs) {
           await markStage(sub.id, "d0", (sub.grace_notifications || {}) as Record<string, any>);
@@ -252,11 +252,10 @@ Deno.serve(async (req) => {
       // ======== D+3: Reminder via WhatsApp ========
       else if (stage === "d_plus_3") {
         eventKey = "proxy_grace_d3";
-        const fee = GRACE_FEE_PER_DAY * 2;
         if (isMultiple) {
-          msg = `Olá ${nome} 🚨\n\n*Seus ${subs.length} proxies estão expirados há 3 dias!*\n\n${proxyLines}\n\n💰 Taxa de reserva acumulada: *R$ ${(fee * subs.length).toFixed(2)}* (R$ ${fee.toFixed(2)}/proxy)\n\nVocê tem até *amanhã* para renovar e manter seus IPs.\n\nRenove agora:\n${subLinks}\n\n⚠️ _Após amanhã sem renovação, seus proxies serão cancelados e os IPs perdidos definitivamente._\n\n_${hook}_`;
+          msg = `Olá ${nome} 🚨\n\n*Seus ${subs.length} proxies estão expirados há 3 dias!*\n\n${proxyLines}\n\n💰 *Valor total: ${totalStr}*\n\nVocê tem até *amanhã* para renovar e manter seus IPs.\n\nRenove agora:\n${subLinks}\n\n⚠️ _Após amanhã sem renovação, seus proxies serão cancelados e os IPs perdidos definitivamente._\n\n_${hook}_`;
         } else {
-          msg = `Olá ${nome} 🚨\n\n*Seu proxy está expirado há 3 dias!*\n\nProxy: *${firstCode}*\n🌐 IP: ${firstIp}\n\n💰 Taxa de reserva acumulada: *R$ ${fee.toFixed(2)}*\n\nVocê tem até *amanhã* para renovar e manter seu IP.\n\nRenove agora:\n${renewLink}\n\n⚠️ _Após amanhã sem renovação, seu proxy será cancelado e o IP será perdido definitivamente._\n\n_${hook}_`;
+          msg = `Olá ${nome} 🚨\n\n*Seu proxy está expirado há 3 dias!*\n\nProxy: *${firstCode}*\n🌐 IP: ${firstIp}\n💰 Valor: ${totalStr}\n\nVocê tem até *amanhã* para renovar e manter seu IP.\n\nRenove agora:\n${renewLink}\n\n⚠️ _Após amanhã sem renovação, seu proxy será cancelado e o IP será perdido definitivamente._\n\n_${hook}_`;
         }
         for (const sub of subs) {
           await markStage(sub.id, "d_plus_3", (sub.grace_notifications || {}) as Record<string, any>);
@@ -267,11 +266,10 @@ Deno.serve(async (req) => {
       // ======== D+4: LAST CHANCE ========
       else if (stage === "d_plus_4") {
         eventKey = "proxy_lastchance_d4";
-        const fee = GRACE_FEE_PER_DAY * 2;
         if (isMultiple) {
-          msg = `⛔ *ÚLTIMA CHANCE — ${nome}*\n\nSeus *${subs.length} proxies* serão *cancelados amanhã*!\n\n${proxyLines}\n\n💰 Taxa de reserva: *R$ ${(fee * subs.length).toFixed(2)}*\n\nEsta é a sua última oportunidade de manter esses IPs.\n\nRenove agora:\n${subLinks}\n\n_Amanhã os proxies serão removidos e você perderá o acesso definitivamente._ 🔴\n\n_${hook}_`;
+          msg = `⛔ *ÚLTIMA CHANCE — ${nome}*\n\nSeus *${subs.length} proxies* serão *cancelados amanhã*!\n\n${proxyLines}\n\n💰 *Valor total: ${totalStr}*\n\nEsta é a sua última oportunidade de manter esses IPs.\n\nRenove agora:\n${subLinks}\n\n_Amanhã os proxies serão removidos e você perderá o acesso definitivamente._ 🔴\n\n_${hook}_`;
         } else {
-          msg = `⛔ *ÚLTIMA CHANCE — ${nome}*\n\nSeu proxy *${firstCode}* será *cancelado amanhã*!\n\n🌐 IP: ${firstIp}\n💰 Taxa de reserva: *R$ ${fee.toFixed(2)}*\n\nEsta é a sua última oportunidade de manter este IP.\n\nRenove agora:\n${renewLink}\n\n_Amanhã o proxy será removido e você perderá o acesso ao IP ${firstIp} definitivamente._ 🔴\n\n_${hook}_`;
+          msg = `⛔ *ÚLTIMA CHANCE — ${nome}*\n\nSeu proxy *${firstCode}* será *cancelado amanhã*!\n\n🌐 IP: ${firstIp}\n💰 Valor: ${totalStr}\n\nEsta é a sua última oportunidade de manter este IP.\n\nRenove agora:\n${renewLink}\n\n_Amanhã o proxy será removido e você perderá o acesso ao IP ${firstIp} definitivamente._ 🔴\n\n_${hook}_`;
         }
         for (const sub of subs) {
           await markStage(sub.id, "d_plus_4", (sub.grace_notifications || {}) as Record<string, any>);
