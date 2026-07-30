@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chargeSavedCard } from "../_shared/stripe-offsession.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,6 +116,38 @@ Deno.serve(async (req) => {
         });
         summary.renewed++;
       } else {
+        // Sem saldo -> tenta cobrança automática no cartão salvo (Stripe)
+        const card = await chargeSavedCard(admin, {
+          userId: sub.user_id,
+          amount: price,
+          description: "Renovação Scale Pro",
+          kind: "scale_pro_renewal",
+          referenceId: sub.id,
+        });
+
+        if (card.ok) {
+          const nextBilling = new Date();
+          nextBilling.setDate(nextBilling.getDate() + 30);
+          await admin.from("ct_clients").update({
+            status: "ativo",
+            next_billing: nextBilling.toISOString().slice(0, 10),
+            last_payment_at: now.toISOString(),
+          }).eq("id", sub.id);
+
+          await admin.from("wallet_transactions").insert({
+            user_id: sub.user_id,
+            type: "adjustment",
+            title: "Renovação Scale Pro cobrada no cartão",
+            amount: 0,
+            balance_after: bal,
+            reference_id: sub.id,
+          });
+
+          summary.renewed++;
+          continue;
+        }
+        console.log(`[ct-lifecycle] cartão indisponível para ${sub.user_id}: ${card.reason} ${card.error || ""}`);
+
         // Se já está suspenso, não repete a suspensão nem o alerta
         if (sub.status === "suspenso") continue;
         await admin.from("ct_clients").update({ status: "suspenso" }).eq("id", sub.id);
