@@ -1,4 +1,5 @@
  import { createClient } from "npm:@supabase/supabase-js@2";
+import { chargeSavedCard } from "../_shared/stripe-offsession.ts";
  
  const corsHeaders = {
    "Access-Control-Allow-Origin": "*",
@@ -166,6 +167,51 @@
           }
           results.push({ id: vault.id, status: "covered_by_unused", donor_id: donor.id });
           continue;
+        }
+
+        // Sem saldo e sem doador -> tenta cobrança automática no cartão salvo (Stripe)
+        if (!dryRun) {
+          const card = await chargeSavedCard(admin, {
+            userId,
+            amount: price,
+            description: `Renovação Safe BM: ${vault.bm_name}`,
+            kind: "safe_bm_renewal",
+            referenceId: vault.id,
+          });
+
+          if (card.ok) {
+            const nextBilling = new Date(vault.next_billing_at);
+            nextBilling.setMonth(nextBilling.getMonth() + 1);
+            await admin.from("safe_bm_vaults").update({
+              last_billing_at: new Date().toISOString(),
+              next_billing_at: nextBilling.toISOString(),
+              billing_status: "paid",
+              status: "active",
+              grace_notifications: {},
+            }).eq("id", vault.id);
+
+            await admin.from("wallet_transactions").insert({
+              user_id: userId,
+              type: "adjustment",
+              title: `Renovação Safe BM (${vault.bm_name}) cobrada no cartão`,
+              amount: 0,
+              balance_after: currentBalance,
+              reference_id: vault.id,
+            });
+
+            if (profile.phone) {
+              waQueue.push({
+                phone: normalizePhone(profile.phone),
+                message: `Olá ${profile.full_name || "Cliente"} ✅\n\nA renovação do seu *Safe BM (${vault.bm_name})* foi cobrada automaticamente no seu cartão cadastrado.\n\nValor: R$ ${price.toFixed(2)}\nPróxima cobrança: ${nextBilling.toLocaleDateString("pt-BR")}\n\nfbflix.com.br/safe-bm`,
+                user_id: userId,
+              });
+            }
+
+            results.push({ id: vault.id, status: "paid_card", amount: price });
+            continue;
+          }
+
+          console.log(`[safe-bm-lifecycle] cartão indisponível para ${userId}: ${card.reason} ${card.error || ""}`);
         }
 
         // No donor available -> GRACE PERIOD LOGIC
