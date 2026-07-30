@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
             .from("subscriptions")
             .select("id, name, user_id, product_id, end_date, type, raw_data")
             .eq("auto_renew", true)
-            .in("type", ["proxybr", "webshare"])
+            .in("type", ["proxybr", "webshare", "webshare_rotating", "proxyfbflix", "proxyfbflix_rotating"])
             .in("status", ["active", "expiring", "pending_renewal"])
             .lte("end_date", oneDayFromNow.toISOString())
             .gte("end_date", new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString());
@@ -499,14 +499,13 @@ Deno.serve(async (req) => {
                 }
                 // === /RESELLER GUARD ===
 
-                if (sub.type === "proxybr") {
-                  // Migrate ProxyBR to Webshare on renewal
+                {
+                  // Renewal is handled by proxyfbflix-api (price rules, allocation, debit, notifications)
                   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
                   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
                   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-                  
-                  // Call webshare-api migrate-proxybr-renewal via internal invoke (service role for auth)
-                  const migrateResp = await fetch(`${SUPABASE_URL}/functions/v1/webshare-api`, {
+
+                  const migrateResp = await fetch(`${SUPABASE_URL}/functions/v1/proxyfbflix-api`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
@@ -520,15 +519,16 @@ Deno.serve(async (req) => {
                     }),
                   });
                   
-                  if (!migrateResp.ok) {
-                    const errText = await migrateResp.text().catch(() => "unknown");
-                    console.error(`Auto-renewal MIGRATE FAILED ${sub.name}: ${migrateResp.status} - ${errText.substring(0, 200)}`);
+                  const migrateResult: any = await migrateResp.json().catch(() => ({}));
+                  if (!migrateResp.ok || migrateResult?.error) {
+                    console.error(
+                      `Auto-renewal FAILED ${sub.name} (${sub.type}): ${migrateResp.status} - ${JSON.stringify(migrateResult).substring(0, 200)}`,
+                    );
                     continue;
                   }
-                  
-                  const migrateResult = await migrateResp.json().catch(() => ({}));
-                  console.log(`Auto-renewal MIGRATE SUCCESS ${sub.name} to Webshare: ${JSON.stringify(migrateResult).substring(0, 200)}`);
-                  // Migration handles balance debit and subscription creation internally
+
+                  console.log(`Auto-renewal SUCCESS ${sub.name} (${sub.type}): ${JSON.stringify(migrateResult).substring(0, 200)}`);
+                  // proxyfbflix-api handles balance debit, dates and notifications internally
                   continue;
                 }
 
