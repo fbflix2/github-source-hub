@@ -2171,9 +2171,7 @@ export default function Checkout() {
                     <StripeCardFields
                       ref={stripeCardRef}
                       amount={total}
-                      subscription={/safe\s*bm|scale\s*pro/i.test(
-                        `${product?.name || ""} ${product?.category || ""}`,
-                      )}
+                      subscription={/safe\s*bm|scale\s*pro/i.test(product?.name || "")}
                       description={`FBFLIX - ${product?.name || "Pedido"}`}
                     />
                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
