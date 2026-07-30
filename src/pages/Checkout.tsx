@@ -619,6 +619,11 @@ export default function Checkout() {
   const [lauthEnabled, setLauthEnabled] = useState(false);
   const draftCreatingRef = useRef(false);
 
+  // Cartão: recorrente apenas em Safe BM / Scale Pro; avulso em Perfil e BM
+  const isRecurringCardProduct = /safe\s*bm|scale\s*pro/i.test(product?.name || "");
+  const isOneOffCardProduct = /perfil|business\s*manager|\bbm\b|bms\b/i.test(product?.name || "");
+  const cardAllowedForProduct = isRecurringCardProduct || isOneOffCardProduct;
+
   // Check if first purchase
   useEffect(() => {
     const checkFirstPurchase = async () => {
