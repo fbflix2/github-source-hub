@@ -2140,7 +2140,7 @@ export default function Checkout() {
                   <span className="font-medium text-xs text-foreground">Pix</span>
                 </div>
               </label>
-              {cardEnabled ? (
+              {cardEnabled && cardAllowedForProduct ? (
                 <label className="cursor-pointer group">
                   <input type="radio" name="payment_method" checked={paymentMethod === "cartao"} onChange={() => setPaymentMethod("cartao")} className="peer sr-only" />
                   <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
@@ -2171,9 +2171,14 @@ export default function Checkout() {
                     <StripeCardFields
                       ref={stripeCardRef}
                       amount={total}
-                      subscription={/safe\s*bm|scale\s*pro/i.test(product?.name || "")}
+                      subscription={isRecurringCardProduct}
                       description={`FBFLIX - ${product?.name || "Pedido"}`}
                     />
+                    {!isRecurringCardProduct && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Cobrança avulsa — o cartão não fica salvo e não há renovação automática.
+                      </p>
+                    )}
                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Lock className="w-3 h-3" /> Pagamento processado com criptografia — você continua aqui na FBFLIX.
                     </p>
