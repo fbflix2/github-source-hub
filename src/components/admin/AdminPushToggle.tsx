@@ -126,8 +126,6 @@ export function AdminPushToggle() {
     }
   };
 
-  if (!supported) return null;
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <button
