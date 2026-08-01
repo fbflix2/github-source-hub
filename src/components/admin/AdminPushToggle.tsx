@@ -15,13 +15,11 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function AdminPushToggle() {
-  const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setSupported(false);
       return;
     }
     navigator.serviceWorker.getRegistration("/push-sw.js").then(async (reg) => {
