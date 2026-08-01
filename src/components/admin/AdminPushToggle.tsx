@@ -153,7 +153,7 @@ export function AdminPushToggle() {
         toast.error("Este aparelho não está inscrito. Ative os alertas novamente.");
         return;
       }
-      const endpoint = await saveSubscription(sub, user.id);
+      await saveSubscription(sub, user.id);
       const registration = await getPushRegistration();
       await registration.showNotification("🔔 Teste local FBFLIX", {
         body: "Este aparelho permitiu a exibição dos alertas.",
@@ -162,11 +162,10 @@ export function AdminPushToggle() {
         tag: `admin-local-test-${Date.now()}`,
         data: { url: "/admin" },
       });
-      toast.info("Minimize o app agora: o segundo alerta chegará em 5 segundos");
+      toast.info("Teste enviado para todos os seus dispositivos cadastrados");
       const { data, error } = await supabase.functions.invoke("send-admin-push", {
         body: {
           user_id: user.id,
-          endpoint,
           title: "🔔 Teste de alerta admin",
           body: "Se você recebeu isso, os alertas estão funcionando.",
           url: "/admin",
@@ -175,8 +174,11 @@ export function AdminPushToggle() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.sent > 0 && (data as any)?.attempted === 1) toast.success("Teste local exibido e envio remoto aceito pelo serviço do aparelho");
-      else toast.error((data as any)?.reason || "O servidor não conseguiu entregar ao aparelho atual. Reative os alertas.");
+      if ((data as any)?.sent > 0) {
+        toast.success(`Envio aceito para ${(data as any).sent} de ${(data as any).attempted} dispositivo(s)`);
+      } else {
+        toast.error((data as any)?.reason || "O servidor não conseguiu entregar aos dispositivos cadastrados. Reative os alertas.");
+      }
     } catch (e: any) {
       toast.error(e.message || "Falha ao enviar teste");
     } finally {
