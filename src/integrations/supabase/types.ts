@@ -6256,7 +6256,7 @@ export type Database = {
       is_reseller_owner: { Args: { _reseller_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       notify_admins_push: {
-        Args: { _body: string; _tag?: string; _title: string; _url?: string }
+        Args: { _body?: string; _tag?: string; _title: string; _url?: string }
         Returns: undefined
       }
       partner_campaign_increment_click: {
