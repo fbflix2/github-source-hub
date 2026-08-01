@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationPopup } from "@/components/NotificationBell";
+import { ClientPushToggle } from "@/components/ClientPushToggle";
 import { Ticket, Handshake, Store } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 import { FaturamentoMeter } from "@/components/FaturamentoMeter";
@@ -152,6 +153,8 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Notification Popup Overlay */}
           {!resellerOnly && !hideNotifications && !unauthenticated && <NotificationPopup />}
+
+          {!unauthenticated && <ClientPushToggle compact />}
 
           {/* Tickets Button */}
           {!resellerOnly && !hideTickets && !unauthenticated && <NavLink
