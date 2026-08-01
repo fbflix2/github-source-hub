@@ -15,13 +15,11 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function AdminPushToggle() {
-  const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setSupported(false);
       return;
     }
     navigator.serviceWorker.getRegistration("/push-sw.js").then(async (reg) => {
@@ -34,6 +32,15 @@ export function AdminPushToggle() {
   const enable = async () => {
     setLoading(true);
     try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        toast.error(
+          isIOS
+            ? "No iPhone: toque em Compartilhar → 'Adicionar à Tela de Início' e abra o app por lá para ativar os alertas"
+            : "Este navegador não suporta notificações push. Use Chrome ou Safari atualizado."
+        );
+        return;
+      }
       const inIframe = window.self !== window.top;
       if (inIframe) {
         toast.error("Abra o painel em uma aba própria (fora do preview) para ativar os alertas");
@@ -116,8 +123,6 @@ export function AdminPushToggle() {
       setLoading(false);
     }
   };
-
-  if (!supported) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
