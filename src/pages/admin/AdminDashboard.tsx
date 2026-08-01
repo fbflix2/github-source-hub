@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AdminMobileDashboard } from "@/components/admin/mobile/AdminMobileDashboard";
+import { AdminPushToggle } from "@/components/admin/AdminPushToggle";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -690,6 +691,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-4">
+      {/* Alertas push no celular */}
+      <div className="flex justify-end">
+        <AdminPushToggle />
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
