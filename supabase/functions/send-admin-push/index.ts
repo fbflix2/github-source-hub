@@ -1,12 +1,24 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import webpush from "npm:web-push@3.6.7";
+import { z } from "npm:zod@3.23.8";
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:contato@fbflix.com.br";
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+
+const RequestSchema = z.object({
+  title: z.string().min(1).max(120),
+  body: z.string().max(500).optional(),
+  url: z.string().max(500).optional(),
+  icon: z.string().max(500).optional(),
+  tag: z.string().max(120).optional(),
+  user_id: z.string().uuid().optional(),
+  endpoint: z.string().url().max(3000).optional(),
+  delay_ms: z.number().int().min(0).max(10000).optional(),
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -38,13 +50,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { title, body, url, icon, tag, user_id, endpoint } = await req.json();
-    if (!title) {
-      return new Response(JSON.stringify({ error: "title required" }), {
+    const parsedBody = RequestSchema.safeParse(await req.json());
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ error: parsedBody.error.flatten().fieldErrors }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const { title, body, url, icon, tag, user_id, endpoint, delay_ms } = parsedBody.data;
 
     const supa = createClient(supabaseUrl, serviceRoleKey);
     const { data: callerRole } = await supa
@@ -103,13 +116,17 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     const staleIds: string[] = [];
+    const providerStatuses: number[] = [];
+
+    if (delay_ms) await new Promise((resolve) => setTimeout(resolve, delay_ms));
 
     await Promise.all(subs.map(async (s: any) => {
       try {
-        await webpush.sendNotification(
+        const result = await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload,
         );
+        providerStatuses.push(result.statusCode);
         sent++;
       } catch (e: any) {
         const status = e?.statusCode;
@@ -126,6 +143,7 @@ Deno.serve(async (req) => {
       sent,
       removed: staleIds.length,
       attempted: subs.length,
+      provider_statuses: providerStatuses,
       reason: sent === 0 ? "A entrega foi recusada pelo serviço de notificações deste aparelho" : undefined,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

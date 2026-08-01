@@ -23,6 +23,16 @@ export function AdminPushToggle() {
     return registration?.pushManager.getSubscription() ?? null;
   };
 
+  const getPushRegistration = async () => {
+    const registration = await navigator.serviceWorker.register("/push-sw.js?v=2", {
+      scope: "/",
+      updateViaCache: "none",
+    });
+    await registration.update();
+    await navigator.serviceWorker.ready;
+    return registration;
+  };
+
   const saveSubscription = async (sub: PushSubscription, userId: string) => {
     const json = sub.toJSON();
     const endpoint = json.endpoint;
@@ -97,8 +107,7 @@ export function AdminPushToggle() {
         );
         return;
       }
-      const reg = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
-      await navigator.serviceWorker.ready;
+      const reg = await getPushRegistration();
       const existingSub = await reg.pushManager.getSubscription();
       const sub = existingSub ?? await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -145,6 +154,15 @@ export function AdminPushToggle() {
         return;
       }
       const endpoint = await saveSubscription(sub, user.id);
+      const registration = await getPushRegistration();
+      await registration.showNotification("🔔 Teste local FBFLIX", {
+        body: "Este aparelho permitiu a exibição dos alertas.",
+        icon: "/favicon.png",
+        badge: "/favicon.png",
+        tag: `admin-local-test-${Date.now()}`,
+        data: { url: "/admin" },
+      });
+      toast.info("Minimize o app agora: o segundo alerta chegará em 5 segundos");
       const { data, error } = await supabase.functions.invoke("send-admin-push", {
         body: {
           user_id: user.id,
@@ -152,11 +170,12 @@ export function AdminPushToggle() {
           title: "🔔 Teste de alerta admin",
           body: "Se você recebeu isso, os alertas estão funcionando.",
           url: "/admin",
-          tag: "admin-test",
+          tag: `admin-remote-test-${Date.now()}`,
+          delay_ms: 5000,
         },
       });
       if (error) throw error;
-      if ((data as any)?.sent > 0 && (data as any)?.attempted === 1) toast.success("Teste enviado especificamente para este aparelho");
+      if ((data as any)?.sent > 0 && (data as any)?.attempted === 1) toast.success("Teste local exibido e envio remoto aceito pelo serviço do aparelho");
       else toast.error((data as any)?.reason || "O servidor não conseguiu entregar ao aparelho atual. Reative os alertas.");
     } catch (e: any) {
       toast.error(e.message || "Falha ao enviar teste");

@@ -1,4 +1,7 @@
 // Service Worker for Web Push notifications
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { title: 'FBFlix', body: event.data?.text() || '' }; }
@@ -8,11 +11,19 @@ self.addEventListener('push', (event) => {
     icon: data.icon || '/favicon.ico',
     badge: '/favicon.ico',
     data: { url: data.url || '/' },
-    vibrate: [200, 100, 200],
     tag: data.tag || 'fbflix-push',
     renotify: true,
+    timestamp: Date.now(),
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch(() =>
+      self.registration.showNotification(title, {
+        body: data.body || '',
+        data: { url: data.url || '/' },
+        tag: data.tag || `fbflix-push-${Date.now()}`,
+      })
+    )
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
