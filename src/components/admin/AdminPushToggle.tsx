@@ -18,13 +18,40 @@ export function AdminPushToggle() {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const getCurrentSubscription = async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) return subscription;
+    }
+    return null;
+  };
+
+  const saveSubscription = async (sub: PushSubscription, userId: string) => {
+    const json = sub.toJSON();
+    const endpoint = json.endpoint;
+    const p256dh = json.keys?.p256dh;
+    const auth = json.keys?.auth;
+    if (!endpoint || !p256dh || !auth) throw new Error("Inscrição deste aparelho incompleta. Desative e ative os alertas novamente.");
+
+    const { error } = await supabase.from("push_subscriptions").upsert({
+      user_id: userId,
+      endpoint,
+      p256dh,
+      auth,
+      user_agent: navigator.userAgent,
+      scope: "admin",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "endpoint" });
+    if (error) throw error;
+    return endpoint;
+  };
+
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       return;
     }
-    navigator.serviceWorker.getRegistration("/push-sw.js").then(async (reg) => {
-      if (!reg) return;
-      const sub = await reg.pushManager.getSubscription();
+    getCurrentSubscription().then(async (sub) => {
       setEnabled(!!sub);
     });
   }, []);
@@ -61,18 +88,9 @@ export function AdminPushToggle() {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-      const json: any = sub.toJSON();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Faça login"); return; }
-      const { error } = await supabase.from("push_subscriptions").upsert({
-        user_id: user.id,
-        endpoint: json.endpoint,
-        p256dh: json.keys.p256dh,
-        auth: json.keys.auth,
-        user_agent: navigator.userAgent,
-        scope: "admin",
-      }, { onConflict: "endpoint" });
-      if (error) throw error;
+      await saveSubscription(sub, user.id);
       setEnabled(true);
       toast.success("🔔 Alertas ativados neste dispositivo (funciona com o site fechado)");
     } catch (e: any) {
@@ -85,8 +103,7 @@ export function AdminPushToggle() {
   const disable = async () => {
     setLoading(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/push-sw.js");
-      const sub = await reg?.pushManager.getSubscription();
+      const sub = await getCurrentSubscription();
       if (sub) {
         await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
         await sub.unsubscribe();
@@ -105,9 +122,17 @@ export function AdminPushToggle() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Faça login"); return; }
+      const sub = await getCurrentSubscription();
+      if (!sub) {
+        setEnabled(false);
+        toast.error("Este aparelho não está inscrito. Ative os alertas novamente.");
+        return;
+      }
+      const endpoint = await saveSubscription(sub, user.id);
       const { data, error } = await supabase.functions.invoke("send-admin-push", {
         body: {
           user_id: user.id,
+          endpoint,
           title: "🔔 Teste de alerta admin",
           body: "Se você recebeu isso, os alertas estão funcionando.",
           url: "/admin",
@@ -115,8 +140,8 @@ export function AdminPushToggle() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.sent > 0) toast.success(`Enviado para ${(data as any).sent} dispositivo(s)`);
-      else toast.warning("Nenhum dispositivo inscrito. Ative os alertas primeiro.");
+      if ((data as any)?.sent > 0) toast.success("Teste enviado especificamente para este aparelho");
+      else toast.error((data as any)?.reason || "O servidor não conseguiu entregar ao aparelho atual. Reative os alertas.");
     } catch (e: any) {
       toast.error(e.message || "Falha ao enviar teste");
     } finally {
