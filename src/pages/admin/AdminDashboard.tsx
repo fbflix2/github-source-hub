@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AdminMobileDashboard } from "@/components/admin/mobile/AdminMobileDashboard";
+import { AdminPushToggle } from "@/components/admin/AdminPushToggle";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
