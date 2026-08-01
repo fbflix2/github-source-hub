@@ -1,7 +1,7 @@
 {
-  "name": "FBFLIX Admin",
+  "name": "FBFLIX",
   "short_name": "FBFLIX",
-  "description": "Painel administrativo FBFLIX",
+  "description": "FBFLIX",
   "id": "/admin",
   "start_url": "/admin",
   "scope": "/",
