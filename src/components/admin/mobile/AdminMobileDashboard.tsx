@@ -9,7 +9,6 @@ const periodLabels: Record<RevenuePeriod, string> = {
   "30dias": "30 Dias",
 };
 import { MetaNewsTicker } from "./MetaNewsTicker";
-import { AdminPushToggle } from "@/components/admin/AdminPushToggle";
 
 interface MobileDashboardData {
   totalClients: number;
