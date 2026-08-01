@@ -34,6 +34,15 @@ export function AdminPushToggle() {
   const enable = async () => {
     setLoading(true);
     try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        toast.error(
+          isIOS
+            ? "No iPhone: toque em Compartilhar → 'Adicionar à Tela de Início' e abra o app por lá para ativar os alertas"
+            : "Este navegador não suporta notificações push. Use Chrome ou Safari atualizado."
+        );
+        return;
+      }
       const inIframe = window.self !== window.top;
       if (inIframe) {
         toast.error("Abra o painel em uma aba própria (fora do preview) para ativar os alertas");
