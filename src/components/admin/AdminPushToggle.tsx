@@ -19,12 +19,8 @@ export function AdminPushToggle() {
   const [loading, setLoading] = useState(false);
 
   const getCurrentSubscription = async () => {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-      const subscription = await registration.pushManager.getSubscription();
-      if (subscription) return subscription;
-    }
-    return null;
+    const registration = await navigator.serviceWorker.getRegistration("/");
+    return registration?.pushManager.getSubscription() ?? null;
   };
 
   const saveSubscription = async (sub: PushSubscription, userId: string) => {
@@ -51,9 +47,21 @@ export function AdminPushToggle() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       return;
     }
-    getCurrentSubscription().then(async (sub) => {
-      setEnabled(!!sub);
-    });
+    let active = true;
+    const restoreCurrentDevice = async () => {
+      try {
+        const sub = await getCurrentSubscription();
+        if (!sub) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await saveSubscription(sub, user.id);
+        if (active) setEnabled(true);
+      } catch {
+        if (active) setEnabled(false);
+      }
+    };
+    void restoreCurrentDevice();
+    return () => { active = false; };
   }, []);
 
   const enable = async () => {
@@ -73,6 +81,13 @@ export function AdminPushToggle() {
         toast.error("Abra o painel em uma aba própria (fora do preview) para ativar os alertas");
         return;
       }
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+        ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone === true);
+      if (isIOS && !isStandalone) {
+        toast.error("No iPhone, remova o atalho antigo, adicione o painel novamente à Tela de Início e abra pelo novo ícone");
+        return;
+      }
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
         toast.error(
@@ -82,12 +97,13 @@ export function AdminPushToggle() {
         );
         return;
       }
-      const reg = await navigator.serviceWorker.register("/push-sw.js");
+      const reg = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
       await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+      const existingSub = await reg.pushManager.getSubscription();
+      const sub = existingSub ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Faça login"); return; }
       await saveSubscription(sub, user.id);
@@ -140,7 +156,7 @@ export function AdminPushToggle() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.sent > 0) toast.success("Teste enviado especificamente para este aparelho");
+      if ((data as any)?.sent > 0 && (data as any)?.attempted === 1) toast.success("Teste enviado especificamente para este aparelho");
       else toast.error((data as any)?.reason || "O servidor não conseguiu entregar ao aparelho atual. Reative os alertas.");
     } catch (e: any) {
       toast.error(e.message || "Falha ao enviar teste");
