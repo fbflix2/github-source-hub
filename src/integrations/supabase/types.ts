@@ -6259,6 +6259,16 @@ export type Database = {
         Args: { _body?: string; _tag?: string; _title: string; _url?: string }
         Returns: undefined
       }
+      notify_user_push: {
+        Args: {
+          _body: string
+          _tag?: string
+          _title: string
+          _url?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       partner_campaign_increment_click: {
         Args: { _short_code: string }
         Returns: {
