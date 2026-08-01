@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminMobileSidebar } from "./AdminMobileSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AdminPushToggle } from "@/components/admin/AdminPushToggle";
 
 export function AdminMobileHeader() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export function AdminMobileHeader() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 px-6 h-16 flex items-center justify-between"
+        className="fixed top-0 left-0 right-0 z-50 px-5 h-16 flex items-center justify-between"
         style={{
           backgroundColor: 'rgba(0,0,0,0.9)',
           backdropFilter: 'blur(20px)',
@@ -43,10 +44,9 @@ export function AdminMobileHeader() {
           <span className="material-symbols-outlined">menu</span>
         </button>
 
-        {/* Center Logo */}
-        <div className="flex flex-col items-center">
-           <h1 className="text-xl font-black tracking-tighter text-white">​</h1>
-          <span className="text-[8px] tracking-[0.2em] font-bold -mt-1 uppercase" style={{ color: '#E50914' }}>Admin</span>
+        {/* Push action always visible on mobile */}
+        <div className="absolute left-1/2 -translate-x-1/2 [&_button]:px-2.5 [&_button]:py-2 [&_button]:text-[10px] [&_button]:whitespace-nowrap [&_button:nth-child(2)]:hidden">
+          <AdminPushToggle />
         </div>
 
         {/* Right actions */}
