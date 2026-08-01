@@ -162,6 +162,7 @@ export function AdminPushToggle() {
         tag: `admin-local-test-${Date.now()}`,
         data: { url: "/admin" },
       });
+      toast.info("Minimize o app agora: o segundo alerta chegará em 5 segundos");
       const { data, error } = await supabase.functions.invoke("send-admin-push", {
         body: {
           user_id: user.id,
@@ -170,6 +171,7 @@ export function AdminPushToggle() {
           body: "Se você recebeu isso, os alertas estão funcionando.",
           url: "/admin",
           tag: `admin-remote-test-${Date.now()}`,
+          delay_ms: 5000,
         },
       });
       if (error) throw error;
