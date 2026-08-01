@@ -34,9 +34,18 @@ export function AdminPushToggle() {
   const enable = async () => {
     setLoading(true);
     try {
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        toast.error("Abra o painel em uma aba própria (fora do preview) para ativar os alertas");
+        return;
+      }
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
-        toast.error("Permissão negada pelo navegador");
+        toast.error(
+          Notification.permission === "denied"
+            ? "Notificações bloqueadas: toque no cadeado 🔒 ao lado do endereço → Notificações → Permitir, e tente de novo"
+            : "Permissão não concedida. Tente novamente e escolha 'Permitir'."
+        );
         return;
       }
       const reg = await navigator.serviceWorker.register("/push-sw.js");
