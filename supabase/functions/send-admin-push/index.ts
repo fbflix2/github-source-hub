@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { title, body, url, icon, tag, user_id } = await req.json();
+    const { title, body, url, icon, tag, user_id, endpoint } = await req.json();
     if (!title) {
       return new Response(JSON.stringify({ error: "title required" }), {
         status: 400,
@@ -47,11 +47,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: subs, error } = await supa
+    let subscriptionsQuery = supa
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
       .eq("scope", "admin")
       .in("user_id", targetIds);
+    if (endpoint) subscriptionsQuery = subscriptionsQuery.eq("endpoint", endpoint);
+    const { data: subs, error } = await subscriptionsQuery;
 
     if (error) throw error;
     if (!subs || subs.length === 0) {
@@ -81,7 +83,7 @@ Deno.serve(async (req) => {
       } catch (e: any) {
         const status = e?.statusCode;
         if (status === 404 || status === 410) staleIds.push(s.id);
-        console.error("admin push error:", status, e?.body);
+        console.error("admin push error:", status, e?.body || e?.message);
       }
     }));
 
@@ -89,7 +91,12 @@ Deno.serve(async (req) => {
       await supa.from("push_subscriptions").delete().in("id", staleIds);
     }
 
-    return new Response(JSON.stringify({ sent, removed: staleIds.length }), {
+    return new Response(JSON.stringify({
+      sent,
+      removed: staleIds.length,
+      attempted: subs.length,
+      reason: sent === 0 ? "A entrega foi recusada pelo serviço de notificações deste aparelho" : undefined,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
