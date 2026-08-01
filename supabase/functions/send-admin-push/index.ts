@@ -24,8 +24,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const internalKey = Deno.env.get("PUSH_TRIGGER_KEY");
+    const isInternal = !!internalKey && req.headers.get("x-internal-secret") === internalKey;
     const authorization = req.headers.get("Authorization");
-    if (!authorization) {
+    if (!isInternal && !authorization) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -37,17 +39,20 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error("Configuração Supabase ausente");
 
-    const authClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authorization } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(authorization.replace(/^Bearer\s+/i, ""));
-    const callerId = claimsData?.claims?.sub;
-    if (claimsError || !callerId) {
-      return new Response(JSON.stringify({ error: "Sessão inválida" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let callerId: string | undefined;
+    if (!isInternal) {
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authorization! } },
+        auth: { persistSession: false, autoRefreshToken: false },
       });
+      const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(authorization!.replace(/^Bearer\s+/i, ""));
+      callerId = claimsData?.claims?.sub as string | undefined;
+      if (claimsError || !callerId) {
+        return new Response(JSON.stringify({ error: "Sessão inválida" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const parsedBody = RequestSchema.safeParse(await req.json());
@@ -60,22 +65,24 @@ Deno.serve(async (req) => {
     const { title, body, url, icon, tag, user_id, endpoint, delay_ms } = parsedBody.data;
 
     const supa = createClient(supabaseUrl, serviceRoleKey);
-    const { data: callerRole } = await supa
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", callerId)
-      .in("role", ["admin", "moderator"])
-      .maybeSingle();
-    if (!callerRole || (user_id && user_id !== callerId)) {
-      return new Response(JSON.stringify({ error: "Acesso restrito à equipe" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!isInternal) {
+      const { data: callerRole } = await supa
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", callerId!)
+        .in("role", ["admin", "moderator"])
+        .maybeSingle();
+      if (!callerRole || (user_id && user_id !== callerId)) {
+        return new Response(JSON.stringify({ error: "Acesso restrito à equipe" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     let targetIds: string[] = [];
-    if (user_id) {
-      targetIds = [callerId];
+    if (user_id && !isInternal) {
+      targetIds = [callerId!];
     } else {
       const { data: roles, error: rolesErr } = await supa
         .from("user_roles")
