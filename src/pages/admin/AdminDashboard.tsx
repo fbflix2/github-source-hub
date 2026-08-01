@@ -690,6 +690,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-4">
+      {/* Alertas push no celular */}
+      <div className="flex justify-end">
+        <AdminPushToggle />
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
