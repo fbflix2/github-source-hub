@@ -409,11 +409,6 @@ export function AdminMobileDashboard() {
       {/* META NEWS TICKER - Real news */}
       <MetaNewsTicker />
 
-      {/* Alertas push no celular */}
-      <div className="flex justify-start">
-        <AdminPushToggle />
-      </div>
-
       {/* VISÃO GERAL */}
       <section>
         <div className="flex items-center justify-between mb-4">
