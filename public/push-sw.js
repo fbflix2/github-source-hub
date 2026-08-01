@@ -13,6 +13,9 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || '/' },
     tag: data.tag || 'fbflix-push',
     renotify: true,
+    silent: false,
+    requireInteraction: true,
+    vibrate: [200, 100, 200, 100, 300],
     timestamp: Date.now(),
   };
   event.waitUntil(
