@@ -113,6 +113,18 @@ export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const [avatars, setAvatars] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .not("avatar_url", "is", null)
+      .limit(3)
+      .then(({ data }) => {
+        if (data) setAvatars(data.map((p) => p.avatar_url as string).filter(Boolean));
+      });
+  }, []);
   const [products, setProducts] = useState<LpProduct[]>([]);
   const [cats, setCats] = useState<{ id: string; slug: string | null; name: string }[]>([]);
   const [activeEco, setActiveEco] = useState<string>("Perfis");
@@ -361,13 +373,23 @@ export default function Index() {
         <div className="lp-in max-w-2xl">
           <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] py-1.5 pl-1.5 pr-4 backdrop-blur-md">
             <div className="flex -space-x-2">
-              {["#f472b6", "#a78bfa", "#38bdf8"].map((c) => (
-                <span
-                  key={c}
-                  className="size-6 rounded-full border-2 border-black/70"
-                  style={{ background: `linear-gradient(140deg, ${c}, #1e1b4b)` }}
-                />
-              ))}
+              {["#f472b6", "#a78bfa", "#38bdf8"].map((c, i) =>
+                avatars[i] ? (
+                  <img
+                    key={c}
+                    src={avatars[i]}
+                    alt="Cliente FBFlix"
+                    loading="lazy"
+                    className="size-6 rounded-full border-2 border-black/70 object-cover"
+                  />
+                ) : (
+                  <span
+                    key={c}
+                    className="size-6 rounded-full border-2 border-black/70"
+                    style={{ background: `linear-gradient(140deg, ${c}, #1e1b4b)` }}
+                  />
+                )
+              )}
             </div>
             <span className="text-[12.5px] text-white/75">
               +{clientCount.toLocaleString("pt-BR")} usuários ativos
