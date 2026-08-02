@@ -212,10 +212,83 @@ function timeAgo(iso: string) {
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"home" | "help">("home");
+  const [tab, setTab] = useState<"home" | "help" | "messages">("home");
+  const [threads, setThreads] = useState<{ id: string; title: string; last: string; at: string }[]>([]);
+  const [openThread, setOpenThread] = useState<{ id: string; title: string } | null>(null);
+  const [threadMsgs, setThreadMsgs] = useState<{ id: string; content: string; sender: string; created_at: string }[]>([]);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
   const [openCollection, setOpenCollection] = useState<Collection | null>(null);
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
   const [recent, setRecent] = useState<{ subject: string; body: string; at: string; ticketId: string } | null>(null);
+
+  // Load ticket list for the Mensagens tab
+  useEffect(() => {
+    if (tab !== "messages" || openThread) return;
+    let active = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: tickets } = await supabase
+        .from("tickets")
+        .select("id, title, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (!active || !tickets?.length) { if (active) setThreads([]); return; }
+      const ids = tickets.map((t) => t.id);
+      const { data: msgs } = await supabase
+        .from("ticket_messages")
+        .select("ticket_id, content, created_at")
+        .in("ticket_id", ids)
+        .order("created_at", { ascending: false });
+      if (!active) return;
+      const lastByTicket = new Map<string, { content: string; created_at: string }>();
+      (msgs ?? []).forEach((m: any) => {
+        if (!lastByTicket.has(m.ticket_id)) lastByTicket.set(m.ticket_id, m);
+      });
+      setThreads(
+        tickets.map((t) => ({
+          id: t.id,
+          title: t.title ?? "Chamado de suporte",
+          last: lastByTicket.get(t.id)?.content ?? "Abra para ver a conversa",
+          at: lastByTicket.get(t.id)?.created_at ?? t.updated_at,
+        })),
+      );
+    })();
+    return () => { active = false; };
+  }, [tab, openThread]);
+
+  // Load messages of the opened thread
+  useEffect(() => {
+    if (!openThread) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("ticket_messages")
+        .select("id, content, sender, created_at")
+        .eq("ticket_id", openThread.id)
+        .order("created_at", { ascending: true });
+      if (active) setThreadMsgs((data as any) ?? []);
+    })();
+    return () => { active = false; };
+  }, [openThread]);
+
+  const sendReply = async () => {
+    const text = reply.trim();
+    if (!text || !openThread || sending) return;
+    setSending(true);
+    const { data, error } = await supabase
+      .from("ticket_messages")
+      .insert({ ticket_id: openThread.id, content: text, sender: "user" })
+      .select("id, content, sender, created_at")
+      .single();
+    setSending(false);
+    if (!error && data) {
+      setThreadMsgs((prev) => [...prev, data as any]);
+      setReply("");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -267,7 +340,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         <Home className="size-5" />
         <span className="text-[11px] font-medium">Início</span>
       </button>
-      <button onClick={() => go("/suporte")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+      <button onClick={() => { setTab("messages"); setOpenThread(null); }} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "messages" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
         <MessageSquare className="size-5" />
         <span className="text-[11px] font-medium">Mensagens</span>
       </button>
@@ -285,6 +358,96 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </button>
     </div>
   );
+
+  if (tab === "messages") {
+    return (
+      <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
+          {openThread && (
+            <button onClick={() => setOpenThread(null)} aria-label="Voltar" className="absolute left-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
+          <p className="max-w-[70%] truncate text-lg font-bold text-foreground">{openThread ? openThread.title : "Mensagens"}</p>
+          <button onClick={onClose} aria-label="Fechar" className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {openThread ? (
+          <>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+              {threadMsgs.length === 0 && (
+                <p className="pt-6 text-center text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
+              )}
+              {threadMsgs.map((m) => (
+                <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                    <p className={`mt-1 text-[10px] ${m.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{timeAgo(m.created_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-border p-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-2.5">
+                <input
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
+                  placeholder="Escreva sua mensagem..."
+                  className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+                <button onClick={sendReply} disabled={sending || !reply.trim()} aria-label="Enviar" className="text-primary disabled:opacity-40">
+                  <Send className="size-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {threads.length === 0 ? (
+                <p className="px-6 pt-10 text-center text-sm text-muted-foreground">Você ainda não tem conversas por aqui.</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {threads.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setOpenThread({ id: t.id, title: t.title })}
+                      className="flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/40"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
+                        <Ticket className="size-5 text-primary-foreground" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">{t.title}</p>
+                          <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(t.at)}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.last}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 px-4 pb-4">
+              <button
+                onClick={() => go("/suporte")}
+                className="mx-auto flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Envie uma mensagem
+                <Send className="size-4" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {navBar}
+      </div>
+    );
+  }
 
   if (tab === "help") {
     const q = query.trim().toLowerCase();
@@ -455,7 +618,10 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       {/* Recent message shortcut — always visible above the actions */}
       <div className="shrink-0 px-4 pt-2">
         <button
-          onClick={() => go("/suporte")}
+          onClick={() => {
+            if (recent) { setTab("messages"); setOpenThread({ id: recent.ticketId, title: recent.subject }); }
+            else go("/suporte");
+          }}
           className="relative z-10 min-h-[104px] w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
         >
           <div className="flex items-center justify-between gap-3">
