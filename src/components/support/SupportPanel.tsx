@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight, ChevronLeft } from "lucide-react";
-import logoFbflix from "@/assets/logo-fbflix.webp";
+import logoFbflix from "@/assets/logo-fbflix-white.png";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import agent2 from "@/assets/support-agent-2.jpg";
 import agent3 from "@/assets/support-agent-3.jpg";
