@@ -176,7 +176,20 @@ export default function Index() {
     });
   })();
 
-  const visible = showAll ? results : results.slice(0, 3);
+  const ordered = (() => {
+    if (searching || activeEco !== "Perfis") return results;
+    const rank = (n: string) => {
+      const h = norm(n);
+      const m = h.match(/ca\s*0*(\d+)/);
+      if (h.includes("perfil") && m) return Number(m[1]);
+      return 999;
+    };
+    return [...results].sort(
+      (a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name, "pt-BR", { numeric: true })
+    );
+  })();
+
+  const visible = showAll ? ordered : ordered.slice(0, 3);
   const wordLabel = searching ? "Busca" : meta.word;
 
   const selectEco = (label: string) => {
