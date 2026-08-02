@@ -82,7 +82,13 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
   }, []);
 
   const handleDuvidaRapida = () => {
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`, "_blank");
+    // wa.me redireciona para api.whatsapp.com, que é bloqueado em alguns navegadores/redes.
+    // Em desktop abrimos direto o WhatsApp Web; em mobile usamos o deep link do app.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const url = isMobile
+      ? `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${WHATSAPP_MESSAGE}`
+      : `https://web.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${WHATSAPP_MESSAGE}`;
+    window.open(url, "_blank", "noopener,noreferrer");
     setShowSupportMenu(false);
   };
 
