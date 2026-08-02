@@ -454,6 +454,8 @@ export default function Index() {
       </section>
 
       {/* ══════ COMO FUNCIONA ══════ */}
+      <LpTestimonials />
+
       <section className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
         <h2 className="text-center text-[34px] font-medium leading-[1.1] tracking-[-0.035em] sm:text-[46px]">
           Como funciona
