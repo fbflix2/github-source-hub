@@ -243,7 +243,18 @@ const TASKS_KEY = "fbflix_support_tasks_done";
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"home" | "help" | "messages">("home");
+  const [tab, setTab] = useState<"home" | "help" | "messages" | "tasks">("home");
+  const [openStep, setOpenStep] = useState<number | null>(0);
+  const [doneSteps, setDoneSteps] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem(TASKS_KEY) || "[]"); } catch { return []; }
+  });
+  const toggleDone = (i: number) => {
+    setDoneSteps((prev) => {
+      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+      try { localStorage.setItem(TASKS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [threads, setThreads] = useState<{ id: string; title: string; last: string; at: string }[]>([]);
   const [openThread, setOpenThread] = useState<{ id: string; title: string } | null>(null);
   const [threadMsgs, setThreadMsgs] = useState<{ id: string; content: string; sender: string; created_at: string }[]>([]);
@@ -383,7 +394,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         )}
         <span className="text-[11px] font-medium">Ajuda</span>
       </button>
-      <button onClick={() => go("/orders")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+      <button onClick={() => setTab("tasks")} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "tasks" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
         <CheckSquare className="size-5" />
         <span className="text-[11px] font-medium">Tarefas</span>
       </button>
