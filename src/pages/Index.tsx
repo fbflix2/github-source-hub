@@ -627,7 +627,7 @@ export default function Index() {
                           {p.description}
                         </p>
                       )}
-                      <div className="mt-auto flex items-end justify-between border-t border-white/[0.07] pt-5 [margin-top:1.75rem]">
+                      <div className="mt-7 flex flex-1 items-end justify-between gap-3 border-t border-white/[0.07] pt-5">
                         <p className="text-[26px] font-semibold tracking-[-0.03em] text-white">
                           R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
                         </p>
