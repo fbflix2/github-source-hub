@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket } from "lucide-react";
+import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import agent2 from "@/assets/support-agent-2.jpg";
@@ -27,6 +27,17 @@ const FAQS = [
   { q: "Onde acompanho meus chamados?", to: "/suporte" },
 ];
 
+const COLLECTIONS = [
+  { title: "Primeiros Passos", desc: "Tudo o que você precisa saber para começar na FBFlix", count: 8, to: "/como-funciona" },
+  { title: "Produtos & Recursos", desc: "", count: 39, to: "/loja" },
+  { title: "Assinaturas & Conta", desc: "Gerencie sua conta e suas assinaturas", count: 12, to: "/subscriptions" },
+  { title: "Pagamentos & Cobrança", desc: "", count: 7, to: "/wallet" },
+  { title: "Integrações", desc: "", count: 8, to: "/api-docs" },
+  { title: "Proxies", desc: "Configuração, troca e renovação de proxies", count: 10, to: "/subscriptions" },
+  { title: "Garantia & Reposição", desc: "", count: 6, to: "/termos" },
+  { title: "Segurança", desc: "", count: 5, to: "/termos" },
+];
+
 function timeAgo(iso: string) {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const m = Math.floor(diff / 60000);
@@ -40,6 +51,7 @@ function timeAgo(iso: string) {
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<"home" | "help">("home");
   const [recent, setRecent] = useState<{ subject: string; body: string; at: string; ticketId: string } | null>(null);
 
   useEffect(() => {
@@ -85,6 +97,81 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
     navigate(to);
     onClose();
   };
+
+  const navBar = (
+    <div className="grid grid-cols-4 border-t border-border bg-card">
+      <button onClick={() => setTab("home")} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "home" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+        <Home className="size-5" />
+        <span className="text-[11px] font-medium">Início</span>
+      </button>
+      <button onClick={() => go("/suporte")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+        <MessageSquare className="size-5" />
+        <span className="text-[11px] font-medium">Mensagens</span>
+      </button>
+      <button onClick={() => setTab("help")} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "help" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+        {tab === "help" ? (
+          <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">?</span>
+        ) : (
+          <HelpCircle className="size-5" />
+        )}
+        <span className="text-[11px] font-medium">Ajuda</span>
+      </button>
+      <button onClick={() => go("/orders")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+        <CheckSquare className="size-5" />
+        <span className="text-[11px] font-medium">Tarefas</span>
+      </button>
+    </div>
+  );
+
+  if (tab === "help") {
+    const filtered = query.trim()
+      ? COLLECTIONS.filter((c) => c.title.toLowerCase().includes(query.trim().toLowerCase()))
+      : COLLECTIONS;
+    return (
+      <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
+          <p className="text-lg font-bold text-foreground">Ajuda</p>
+          <button onClick={onClose} aria-label="Fechar" className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="shrink-0 px-4 pt-4">
+          <div className="flex items-center gap-2 rounded-xl bg-muted px-4 py-3">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Qual é a sua dúvida?"
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            <Search className="size-4 text-primary" />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4">
+          <p className="py-4 text-base font-bold text-foreground">{filtered.length} coleções</p>
+          <div className="divide-y divide-border">
+            {filtered.map((c) => (
+              <button
+                key={c.title}
+                onClick={() => go(c.to)}
+                className="flex w-full items-center gap-3 py-4 text-left transition-colors hover:bg-muted/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">{c.title}</p>
+                  {c.desc && <p className="mt-1 text-sm text-muted-foreground">{c.desc}</p>}
+                  <p className="mt-1 text-xs text-muted-foreground">{c.count} artigos</p>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-primary" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {navBar}
+      </div>
+    );
+  }
 
   return (
     <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
@@ -188,24 +275,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Bottom nav */}
-      <div className="grid grid-cols-4 border-t border-border bg-card">
-        <button className="flex flex-col items-center gap-1 py-3 text-primary">
-          <Home className="size-5" />
-          <span className="text-[11px] font-medium">Início</span>
-        </button>
-        <button onClick={() => go("/suporte")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
-          <MessageSquare className="size-5" />
-          <span className="text-[11px] font-medium">Mensagens</span>
-        </button>
-        <button onClick={() => go("/termos")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
-          <HelpCircle className="size-5" />
-          <span className="text-[11px] font-medium">Ajuda</span>
-        </button>
-        <button onClick={() => go("/orders")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
-          <CheckSquare className="size-5" />
-          <span className="text-[11px] font-medium">Tarefas</span>
-        </button>
-      </div>
+      {navBar}
     </div>
   );
 }
