@@ -113,6 +113,18 @@ export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const [avatars, setAvatars] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .not("avatar_url", "is", null)
+      .limit(3)
+      .then(({ data }) => {
+        if (data) setAvatars(data.map((p) => p.avatar_url as string).filter(Boolean));
+      });
+  }, []);
   const [products, setProducts] = useState<LpProduct[]>([]);
   const [cats, setCats] = useState<{ id: string; slug: string | null; name: string }[]>([]);
   const [activeEco, setActiveEco] = useState<string>("Perfis");
