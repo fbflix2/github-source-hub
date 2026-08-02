@@ -212,10 +212,83 @@ function timeAgo(iso: string) {
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"home" | "help">("home");
+  const [tab, setTab] = useState<"home" | "help" | "messages">("home");
+  const [threads, setThreads] = useState<{ id: string; title: string; last: string; at: string }[]>([]);
+  const [openThread, setOpenThread] = useState<{ id: string; title: string } | null>(null);
+  const [threadMsgs, setThreadMsgs] = useState<{ id: string; content: string; sender: string; created_at: string }[]>([]);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
   const [openCollection, setOpenCollection] = useState<Collection | null>(null);
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
   const [recent, setRecent] = useState<{ subject: string; body: string; at: string; ticketId: string } | null>(null);
+
+  // Load ticket list for the Mensagens tab
+  useEffect(() => {
+    if (tab !== "messages" || openThread) return;
+    let active = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: tickets } = await supabase
+        .from("tickets")
+        .select("id, title, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (!active || !tickets?.length) { if (active) setThreads([]); return; }
+      const ids = tickets.map((t) => t.id);
+      const { data: msgs } = await supabase
+        .from("ticket_messages")
+        .select("ticket_id, content, created_at")
+        .in("ticket_id", ids)
+        .order("created_at", { ascending: false });
+      if (!active) return;
+      const lastByTicket = new Map<string, { content: string; created_at: string }>();
+      (msgs ?? []).forEach((m: any) => {
+        if (!lastByTicket.has(m.ticket_id)) lastByTicket.set(m.ticket_id, m);
+      });
+      setThreads(
+        tickets.map((t) => ({
+          id: t.id,
+          title: t.title ?? "Chamado de suporte",
+          last: lastByTicket.get(t.id)?.content ?? "Abra para ver a conversa",
+          at: lastByTicket.get(t.id)?.created_at ?? t.updated_at,
+        })),
+      );
+    })();
+    return () => { active = false; };
+  }, [tab, openThread]);
+
+  // Load messages of the opened thread
+  useEffect(() => {
+    if (!openThread) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("ticket_messages")
+        .select("id, content, sender, created_at")
+        .eq("ticket_id", openThread.id)
+        .order("created_at", { ascending: true });
+      if (active) setThreadMsgs((data as any) ?? []);
+    })();
+    return () => { active = false; };
+  }, [openThread]);
+
+  const sendReply = async () => {
+    const text = reply.trim();
+    if (!text || !openThread || sending) return;
+    setSending(true);
+    const { data, error } = await supabase
+      .from("ticket_messages")
+      .insert({ ticket_id: openThread.id, content: text, sender: "user" })
+      .select("id, content, sender, created_at")
+      .single();
+    setSending(false);
+    if (!error && data) {
+      setThreadMsgs((prev) => [...prev, data as any]);
+      setReply("");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -267,7 +340,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         <Home className="size-5" />
         <span className="text-[11px] font-medium">Início</span>
       </button>
-      <button onClick={() => go("/suporte")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+      <button onClick={() => { setTab("messages"); setOpenThread(null); }} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "messages" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
         <MessageSquare className="size-5" />
         <span className="text-[11px] font-medium">Mensagens</span>
       </button>
