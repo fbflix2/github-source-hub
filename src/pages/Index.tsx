@@ -208,6 +208,31 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* ══════ PARCEIROS — MARQUEE ══════ */}
+      <section className="relative z-10 border-t border-white/[0.06] py-12">
+        <p className="mb-8 text-center text-[12.5px] tracking-[0.01em] text-white/40">
+          Confiado por líderes do mercado
+        </p>
+
+        <div className="lp-marquee relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <div className="lp-marquee-track">
+            {[0, 1].map((dup) => (
+              <div key={dup} className="flex shrink-0 items-center gap-16 pr-16" aria-hidden={dup === 1}>
+                {PARTNERS.map((p) => (
+                  <div
+                    key={p.name}
+                    className="flex items-center gap-2.5 whitespace-nowrap text-white/55 transition-colors duration-300 hover:text-white"
+                  >
+                    {p.mark}
+                    <span className="text-[15px] font-semibold tracking-[-0.02em]">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
