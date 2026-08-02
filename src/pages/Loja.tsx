@@ -508,6 +508,41 @@ export default function Dashboard() {
       )}
 
       {/* Filters & Products */}
+      {/* Busca de produtos */}
+      <section className="space-y-3">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground pointer-events-none">search</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por produto ou finalidade: perfil, black, bm, proxy..."
+            aria-label="Buscar produtos"
+            className="w-full h-12 pl-12 pr-11 rounded-xl glass-panel border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              aria-label="Limpar busca"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {["Perfil", "BM", "Black", "White", "Proxy"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setSearchQuery(s)}
+              className="shrink-0 px-3 py-1 rounded-full text-[11px] font-medium bg-secondary text-muted-foreground border border-border hover:border-primary/50 hover:text-primary transition-all"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Sub-banners (ofertas secundárias) */}
       {subBanners.map((sb) => {
         const accent = sb.accent_color || "#00F0FF";
