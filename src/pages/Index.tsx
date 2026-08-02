@@ -4,7 +4,6 @@ import { ChevronDown, Search, X, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
-import heroImage from "@/assets/hero-bg.png.asset.json";
 import { useClientCount } from "@/hooks/useClientCount";
 
 const NAV = [
@@ -141,6 +140,7 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const onMove = (e: MouseEvent) => {
       setM({
         x: (e.clientX / window.innerWidth - 0.5) * 2,
@@ -206,7 +206,11 @@ export default function Index() {
         {/* imagem de fundo do hero */}
         <div className="absolute inset-x-0 top-0 h-[115vh] overflow-hidden">
           <img
-            src={heroImage.url}
+            src="/hero-bg-1280.jpg"
+            srcSet="/hero-bg-800.jpg 800w, /hero-bg-1280.jpg 1280w"
+            sizes="100vw"
+            fetchPriority="high"
+            decoding="async"
             alt=""
             aria-hidden="true"
             className="h-full w-full scale-105 object-cover opacity-70"
@@ -216,7 +220,7 @@ export default function Index() {
         </div>
 
         <svg
-          className="absolute inset-0 h-full w-full opacity-70 mix-blend-screen"
+          className="absolute inset-0 hidden h-full w-full opacity-70 mix-blend-screen md:block"
           viewBox="0 0 1440 900"
           preserveAspectRatio="xMidYMid slice"
           style={{
@@ -309,12 +313,14 @@ export default function Index() {
           <ellipse cx="1290" cy="470" rx="150" ry="120" fill="url(#lp-core)" />
         </svg>
 
+        {/* fallback leve para mobile (sem filtros SVG) */}
+        <div className="absolute inset-x-0 top-0 h-[100vh] md:hidden bg-[radial-gradient(60%_45%_at_78%_38%,rgba(229,9,20,0.45)_0%,rgba(229,9,20,0.12)_45%,transparent_75%),radial-gradient(50%_35%_at_20%_20%,rgba(185,28,28,0.28)_0%,transparent_70%)]" />
         {/* vignette + bottom fade */}
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_35%,rgba(0,0,0,0.75)_100%)]" />
         <div className="absolute inset-x-0 top-[70vh] h-[70vh] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.55)_35%,rgba(0,0,0,0.9)_70%,#000_100%)]" />
         <div className="absolute inset-x-0 top-[130vh] bottom-0 bg-black" />
         {/* grain */}
-        <div className="lp-grain absolute inset-0 opacity-[0.05] mix-blend-overlay" />
+        <div className="lp-grain absolute inset-0 hidden opacity-[0.05] mix-blend-overlay md:block" />
       </div>
 
       {/* ══════ NAV ══════ */}
