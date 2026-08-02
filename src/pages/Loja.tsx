@@ -20,6 +20,9 @@ interface HeroBanner {
   image_style: string | null;
   background_color: string | null;
   category: string | null;
+  kind?: string | null;
+  badge_text?: string | null;
+  accent_color?: string | null;
 }
 
 interface ProxyImage {
@@ -76,6 +79,7 @@ export default function Dashboard() {
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
+  const [subBanners, setSubBanners] = useState<HeroBanner[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const [totalClients, setTotalClients] = useState(3746);
@@ -135,7 +139,11 @@ export default function Dashboard() {
       setCategories(filteredCats);
     }
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
-    if (bannersRes.data) setHeroBanners(bannersRes.data);
+    if (bannersRes.data) {
+      const all = bannersRes.data as any[];
+      setHeroBanners(all.filter((b) => (b.kind || "hero") !== "sub"));
+      setSubBanners(all.filter((b) => b.kind === "sub"));
+    }
     if (bannerCatsRes.data) {
       const map: Record<string, string> = {};
       bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
@@ -488,30 +496,49 @@ export default function Dashboard() {
       )}
 
       {/* Filters & Products */}
-      {/* Safe BM Combos Promo */}
-      <section
-        onClick={() => navigate("/safe-bm/combos")}
-        className="relative cursor-pointer rounded-2xl overflow-hidden border border-[#BC13FE]/40 bg-gradient-to-r from-[#0A0A0A] via-[#1a0b2e] to-[#0A0A0A] p-5 md:p-6 hover:scale-[1.005] transition-transform"
-      >
-        <div className="absolute -right-10 -top-10 w-60 h-60 bg-[#BC13FE]/20 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute -left-10 -bottom-10 w-60 h-60 bg-[#00F0FF]/15 rounded-full blur-[80px] pointer-events-none" />
-        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <span className="inline-block py-1 px-3 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] text-[10px] font-bold tracking-wider border border-[#00F0FF]/30">
-              NOVO • SAFE BM
-            </span>
-            <h3 className="text-xl md:text-2xl font-extrabold text-white">
-              Combos de Proteção: economize até <span className="text-[#00F0FF]">30%</span>
-            </h3>
-            <p className="text-sm text-gray-400 max-w-2xl">
-              Proteja 10, 25 ou 50 BMs em um único plano. Recuperação rápida, suporte prioritário e desconto progressivo por unidade.
-            </p>
-          </div>
-          <button className="flex-shrink-0 bg-gradient-to-r from-[#BC13FE] to-[#00F0FF] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-[0_0_24px_rgba(188,19,254,0.4)]">
-            Ver combos
-          </button>
-        </div>
-      </section>
+      {/* Sub-banners (ofertas secundárias) */}
+      {subBanners.map((sb) => {
+        const accent = sb.accent_color || "#00F0FF";
+        return (
+          <section
+            key={sb.id}
+            onClick={() => sb.link_url && navigate(sb.link_url)}
+            className="relative cursor-pointer rounded-2xl overflow-hidden border border-[#BC13FE]/40 bg-gradient-to-r from-[#0A0A0A] via-[#1a0b2e] to-[#0A0A0A] p-5 md:p-6 hover:scale-[1.005] transition-transform"
+            style={sb.background_color ? { backgroundColor: sb.background_color, backgroundImage: "none" } : undefined}
+          >
+            {sb.image_url && (
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+                style={{ backgroundImage: `url('${sb.image_url}')` }}
+              />
+            )}
+            <div className="absolute -right-10 -top-10 w-60 h-60 bg-[#BC13FE]/20 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute -left-10 -bottom-10 w-60 h-60 rounded-full blur-[80px] pointer-events-none" style={{ backgroundColor: `${accent}26` }} />
+            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-2">
+                {sb.badge_text && (
+                  <span
+                    className="inline-block py-1 px-3 rounded-full text-[10px] font-bold tracking-wider border"
+                    style={{ color: accent, borderColor: `${accent}4D`, backgroundColor: `${accent}33` }}
+                  >
+                    {sb.badge_text}
+                  </span>
+                )}
+                <h3 className="text-xl md:text-2xl font-extrabold text-white">{sb.title}</h3>
+                {sb.subtitle && <p className="text-sm text-gray-400 max-w-2xl">{sb.subtitle}</p>}
+              </div>
+              {sb.cta_text && (
+                <button
+                  className="flex-shrink-0 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-[0_0_24px_rgba(188,19,254,0.4)]"
+                  style={{ backgroundImage: `linear-gradient(90deg, #BC13FE, ${accent})` }}
+                >
+                  {sb.cta_text}
+                </button>
+              )}
+            </div>
+          </section>
+        );
+      })}
 
       <section className="space-y-6">
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">

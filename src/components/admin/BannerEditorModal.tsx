@@ -30,6 +30,9 @@ interface Banner {
   background_color: string | null;
   image_style: string | null;
   audience?: string | null;
+  kind?: string | null;
+  badge_text?: string | null;
+  accent_color?: string | null;
 }
 
 interface Props {
@@ -37,10 +40,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   banner: Banner | null;
   onSaved: () => void;
+  kind?: "hero" | "sub";
 }
 
 
-export default function BannerEditorModal({ open, onOpenChange, banner, onSaved }: Props) {
+export default function BannerEditorModal({ open, onOpenChange, banner, onSaved, kind = "hero" }: Props) {
+  const isSub = (banner?.kind as string | undefined) ? banner!.kind === "sub" : kind === "sub";
   const [categories, setCategories] = useState<BannerCategory[]>([]);
 
   useEffect(() => {
@@ -59,6 +64,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
   const [backgroundColor, setBackgroundColor] = useState("");
   const [imageStyle, setImageStyle] = useState("contained");
   const [audience, setAudience] = useState<"store" | "reseller">("store");
+  const [badgeText, setBadgeText] = useState("");
+  const [accentColor, setAccentColor] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -75,6 +82,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setBackgroundColor(banner.background_color || "");
       setImageStyle(banner.image_style || "contained");
       setAudience((banner.audience as any) || "store");
+      setBadgeText(banner.badge_text || "");
+      setAccentColor(banner.accent_color || "");
     } else {
       setTitle("");
       setSubtitle("");
@@ -87,6 +96,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setBackgroundColor("");
       setImageStyle("contained");
       setAudience("store");
+      setBadgeText("");
+      setAccentColor("");
     }
   }, [banner, open]);
 
@@ -128,6 +139,9 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         background_color: backgroundColor.trim() || null,
         image_style: imageStyle,
         audience,
+        kind: isSub ? "sub" : "hero",
+        badge_text: badgeText.trim() || null,
+        accent_color: accentColor.trim() || null,
       };
 
       if (banner) {
@@ -152,7 +166,11 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{banner ? "Editar Banner" : "Novo Banner"}</DialogTitle>
+          <DialogTitle>
+            {isSub
+              ? banner ? "Editar Sub-banner" : "Novo Sub-banner"
+              : banner ? "Editar Banner" : "Novo Banner"}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-2">
           <div>
@@ -220,6 +238,22 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
               <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="/promo ou https://..." />
             </div>
           </div>
+
+          {isSub && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Etiqueta (badge)</Label>
+                <Input value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="Ex: NOVO • SAFE BM" />
+              </div>
+              <div>
+                <Label>Cor de destaque</Label>
+                <div className="flex gap-2 items-center">
+                  <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} placeholder="#00F0FF" className="flex-1" />
+                  {accentColor && <div className="w-8 h-8 rounded border border-border shrink-0" style={{ backgroundColor: accentColor }} />}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Image Style */}
           <div>

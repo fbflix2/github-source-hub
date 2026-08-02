@@ -28,6 +28,9 @@ interface Banner {
   background_color: string | null;
   image_style: string | null;
   audience?: string | null;
+  kind?: string | null;
+  badge_text?: string | null;
+  accent_color?: string | null;
 }
 
 interface BannerCategory {
@@ -47,6 +50,7 @@ export default function AdminBanners() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [audienceFilter, setAudienceFilter] = useState<"store" | "reseller">("store");
+  const [kindTab, setKindTab] = useState<"hero" | "sub">("hero");
   const [bannerCategories, setBannerCategories] = useState<BannerCategory[]>([]);
   const [showCatManager, setShowCatManager] = useState(false);
   const [newCatValue, setNewCatValue] = useState("");
@@ -92,7 +96,8 @@ export default function AdminBanners() {
   const filtered = banners
     .filter((b) => b.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .filter((b) => statusFilter === "all" ? true : statusFilter === "active" ? b.active : !b.active)
-    .filter((b) => (b.audience || "store") === audienceFilter);
+    .filter((b) => (b.audience || "store") === audienceFilter)
+    .filter((b) => ((b.kind as string) || "hero") === kindTab);
 
   const categoryLabel = (cat: string | null) => {
     const found = bannerCategories.find((c) => c.value === cat);
@@ -126,16 +131,37 @@ export default function AdminBanners() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground mb-2">Editor de Banners</h1>
-            <p className="text-muted-foreground font-medium text-sm md:text-base">Gerencie as promoções e destaques do FBFLIX</p>
+            <p className="text-muted-foreground font-medium text-sm md:text-base">
+              {kindTab === "sub"
+                ? "Configure os sub-banners menores exibidos abaixo do banner principal"
+                : "Gerencie as promoções e destaques do FBFLIX"}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowCatManager(!showCatManager)} className="flex items-center gap-2 font-bold py-3 px-5 h-auto rounded-xl">
               <Tag className="w-4 h-4" /> Categorias
             </Button>
             <Button onClick={() => { setEditingBanner(null); setEditorOpen(true); }} className="group flex items-center gap-2 font-bold py-3 px-6 h-auto rounded-xl">
-              <Plus className="w-5 h-5" /> Novo Banner
+              <Plus className="w-5 h-5" /> {kindTab === "sub" ? "Novo Sub-banner" : "Novo Banner"}
             </Button>
           </div>
+        </div>
+
+        <div className="flex gap-2 bg-background/40 border border-border rounded-xl p-1 w-full md:w-fit">
+          <button
+            onClick={() => setKindTab("hero")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${kindTab === "hero" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Banner principal
+            <span className="text-[10px] opacity-70">({banners.filter(b => ((b.kind as string) || "hero") === "hero").length})</span>
+          </button>
+          <button
+            onClick={() => setKindTab("sub")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${kindTab === "sub" ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Sub-banners
+            <span className="text-[10px] opacity-70">({banners.filter(b => b.kind === "sub").length})</span>
+          </button>
         </div>
 
         <div className="bg-card/60 backdrop-blur-xl border border-border p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -332,7 +358,7 @@ export default function AdminBanners() {
         </div>
       )}
 
-      <BannerEditorModal open={editorOpen} onOpenChange={setEditorOpen} banner={editingBanner} onSaved={fetchBanners} />
+      <BannerEditorModal open={editorOpen} onOpenChange={setEditorOpen} banner={editingBanner} onSaved={fetchBanners} kind={kindTab} />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
