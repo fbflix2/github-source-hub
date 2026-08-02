@@ -165,10 +165,12 @@ export default function Index() {
         ).includes(q);
       });
     }
+    const bySlug = products.filter((p) => {
+      const slug = norm(catById(p.category_id)?.slug || "");
+      return meta.slugs.some((s) => norm(s) === slug);
+    });
+    if (bySlug.length) return bySlug;
     return products.filter((p) => {
-      const cat = catById(p.category_id);
-      const slug = norm(cat?.slug || "");
-      if (meta.slugs.some((s) => norm(s) === slug)) return true;
       const hay = norm([p.name, ...(p.tags || [])].join(" "));
       return meta.terms.some((t) => hay.includes(norm(t)));
     });
@@ -625,7 +627,7 @@ export default function Index() {
                           {p.description}
                         </p>
                       )}
-                      <div className="mt-7 flex items-end justify-between border-t border-white/[0.07] pt-5">
+                      <div className="mt-auto flex items-end justify-between border-t border-white/[0.07] pt-5 [margin-top:1.75rem]">
                         <p className="text-[26px] font-semibold tracking-[-0.03em] text-white">
                           R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
                         </p>
