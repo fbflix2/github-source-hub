@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, Search, X, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
@@ -113,6 +113,7 @@ export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const navigate = useNavigate();
   const [avatars, setAvatars] = useState<string[]>([]);
 
   useEffect(() => {
@@ -492,6 +493,16 @@ export default function Index() {
                 setShowAll(false);
               }}
               placeholder="Busque um ativo ou finalidade — perfil, BM, proxy, contingência…"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                if (ordered.length > 0) {
+                  navigate(`/loja?product=${ordered[0].id}`);
+                } else {
+                  document
+                    .getElementById("lp-vitrine")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
               className="w-full bg-transparent text-[14px] tracking-[-0.015em] text-white placeholder:text-white/35 outline-none"
             />
             {query && (
@@ -610,8 +621,8 @@ export default function Index() {
                 ))}
               </svg>
 
-              <div className="lp-eco-core relative z-10 grid size-[74px] place-items-center rounded-2xl border border-white/[0.12] bg-[#0b0b0e]">
-                <img src={logoWhite} alt="FBFlix" className="h-8 w-auto" />
+              <div className="lp-eco-core relative z-10 grid size-[112px] place-items-center rounded-full border border-white/[0.12] bg-[#0b0b0e]">
+                <img src={logoWhite} alt="FBFlix" className="h-[68px] w-auto object-contain" />
               </div>
             </div>
 
