@@ -80,6 +80,7 @@ export default function Dashboard() {
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
   const [subBanners, setSubBanners] = useState<HeroBanner[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const [totalClients, setTotalClients] = useState(3746);
