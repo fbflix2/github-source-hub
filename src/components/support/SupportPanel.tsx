@@ -359,10 +359,6 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
     </div>
   );
 
-  if (tab === "help") {
-    // handled below
-  }
-
   if (tab === "messages") {
     return (
       <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
