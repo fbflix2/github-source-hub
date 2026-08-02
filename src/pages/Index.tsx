@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
+import logoWhite from "@/assets/logo-fbflix-white.png";
 
 const NAV = [
   { label: "Soluções", items: true },
