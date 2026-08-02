@@ -367,3 +367,26 @@
   border: 2px solid rgba(255, 255, 255, 0.85);
   animation: lp-node-pulse 3.2s ease-in-out infinite;
 }
+
+/* ══ Ecossistema (diagrama) ══ */
+.lp-eco-dots {
+  background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 50%, #000 20%, transparent 78%);
+}
+@keyframes lp-flow { to { stroke-dashoffset: -240; } }
+.lp-flow {
+  stroke-dasharray: 6 234;
+  animation: lp-flow 3.6s linear infinite;
+}
+@keyframes lp-dot-pulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+.lp-eco-dot { animation: lp-dot-pulse 2.8s ease-in-out infinite; transform-origin: center; }
+@keyframes lp-core-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,9,20,0.35), 0 0 40px rgba(229,9,20,0.35); }
+  50% { box-shadow: 0 0 0 16px rgba(229,9,20,0), 0 0 70px rgba(229,9,20,0.55); }
+}
+.lp-eco-core { animation: lp-core-breathe 4s ease-in-out infinite; }
