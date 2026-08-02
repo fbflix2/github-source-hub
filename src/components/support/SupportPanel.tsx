@@ -126,24 +126,26 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
 
       {/* Body */}
       <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-6 pt-2">
-        {recent && (
-          <button
-            onClick={() => go("/suporte")}
-            className="w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
-          >
-            <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
-            <div className="mt-2 flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
-                <Ticket className="size-5 text-primary-foreground" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{recent.subject}</p>
-                <p className="truncate text-xs text-muted-foreground">{recent.body}</p>
-              </div>
-              <span className="text-xs text-muted-foreground">{timeAgo(recent.at)}</span>
+        <button
+          onClick={() => go("/suporte")}
+          className="w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
+        >
+          <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
+          <div className="mt-3 flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
+              <Ticket className="size-5 text-primary-foreground" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {recent?.subject ?? "Suporte FBFlix"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {recent?.body ?? "Se ainda precisar de ajuda com o problema, fale com a gente"}
+              </p>
             </div>
-          </button>
-        )}
+            <span className="text-xs text-muted-foreground">{recent ? timeAgo(recent.at) : "1m"}</span>
+          </div>
+        </button>
 
         <button
           onClick={onWhatsApp}
