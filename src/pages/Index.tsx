@@ -333,6 +333,129 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* ══════ ECOSSISTEMA ══════ */}
+      <section className="relative z-10 mx-auto max-w-[1240px] px-6 pb-28">
+        <div className="lp-step relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#120306] to-[#08080a] p-6 sm:p-10">
+          <div className="lp-eco-dots pointer-events-none absolute inset-0" />
+
+          <div className="relative grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,1fr)]">
+            {/* coluna esquerda */}
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
+              <div className="flex flex-col gap-3">
+                {ECO_LEFT.map((l) => (
+                  <div
+                    key={l}
+                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                  >
+                    {l}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* núcleo + conexões */}
+            <div className="relative flex min-h-[260px] items-center justify-center">
+              <svg
+                viewBox="0 0 400 260"
+                preserveAspectRatio="none"
+                className="absolute inset-0 hidden h-full w-full md:block"
+              >
+                <defs>
+                  <linearGradient id="lp-eco-l" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#e50914" stopOpacity="0.15" />
+                    <stop offset="60%" stopColor="#ff2d3a" stopOpacity="0.75" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0.9" />
+                  </linearGradient>
+                  <linearGradient id="lp-eco-r" x1="1" y1="0" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#e50914" stopOpacity="0.15" />
+                    <stop offset="60%" stopColor="#ff2d3a" stopOpacity="0.75" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0.9" />
+                  </linearGradient>
+                </defs>
+
+                {ECO_Y.map((y, i) => (
+                  <g key={`l-${y}`}>
+                    <path
+                      d={`M 6 ${y} C 110 ${y}, 140 130, 200 130`}
+                      fill="none"
+                      stroke="url(#lp-eco-l)"
+                      strokeWidth="1.6"
+                    />
+                    <path
+                      d={`M 6 ${y} C 110 ${y}, 140 130, 200 130`}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="2.4"
+                      className="lp-flow"
+                      style={{ animationDelay: `${i * 0.45}s` }}
+                    />
+                  </g>
+                ))}
+                {ECO_Y.map((y, i) => (
+                  <g key={`r-${y}`}>
+                    <path
+                      d={`M 394 ${y} C 290 ${y}, 260 130, 200 130`}
+                      fill="none"
+                      stroke="url(#lp-eco-r)"
+                      strokeWidth="1.6"
+                    />
+                    <path
+                      d={`M 394 ${y} C 290 ${y}, 260 130, 200 130`}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="2.4"
+                      className="lp-flow"
+                      style={{ animationDelay: `${i * 0.45 + 0.22}s` }}
+                    />
+                  </g>
+                ))}
+
+                {ECO_Y.map((y, i) => (
+                  <circle
+                    key={`dl-${y}`}
+                    cx="6"
+                    cy={y}
+                    r="5"
+                    fill="#e50914"
+                    className="lp-eco-dot"
+                    style={{ animationDelay: `${i * 0.3}s` }}
+                  />
+                ))}
+                {ECO_Y.map((y, i) => (
+                  <circle
+                    key={`dr-${y}`}
+                    cx="394"
+                    cy={y}
+                    r="5"
+                    fill="#e50914"
+                    className="lp-eco-dot"
+                    style={{ animationDelay: `${i * 0.3 + 0.15}s` }}
+                  />
+                ))}
+              </svg>
+
+              <div className="lp-eco-core relative z-10 grid size-[74px] place-items-center rounded-2xl border border-white/[0.12] bg-[#0b0b0e]">
+                <img src={logoWhite} alt="FBFlix" className="h-8 w-auto" />
+              </div>
+            </div>
+
+            {/* coluna direita */}
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
+              <div className="flex flex-col gap-3">
+                {ECO_RIGHT.map((l) => (
+                  <div
+                    key={l}
+                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                  >
+                    {l}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
