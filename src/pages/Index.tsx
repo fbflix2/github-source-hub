@@ -613,8 +613,8 @@ export default function Index() {
       <section id="lp-vitrine" className="relative z-10 mx-auto max-w-[1240px] px-6 pb-32">
         <div className="relative">
           {/* palavra ao fundo */}
-          <div className="pointer-events-none absolute inset-x-0 -top-6 flex justify-center overflow-hidden">
-            <span className="lp-word select-none whitespace-nowrap text-[22vw] leading-[0.8] sm:text-[20vw] md:text-[15.5vw] lg:text-[230px]">
+          <div className="pointer-events-none absolute inset-x-0 -top-6 flex justify-center">
+            <span className="lp-word block select-none whitespace-nowrap pb-[0.22em] text-[22vw] leading-[1] sm:text-[20vw] md:text-[15.5vw] lg:text-[230px]">
               {wordLabel}
             </span>
           </div>
