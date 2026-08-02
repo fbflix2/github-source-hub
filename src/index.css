@@ -438,3 +438,30 @@
   border-color: rgba(229,9,20,0.28);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 40px 80px -45px rgba(229,9,20,0.55);
 }
+
+/* ══ Performance mobile: efeitos pesados desligados ══ */
+@media (max-width: 767px) {
+  .lp-drift,
+  .lp-drift-slow,
+  .lp-node,
+  .lp-flow,
+  .lp-eco-dot,
+  .lp-eco-core {
+    animation: none !important;
+  }
+  .lp-glass-search,
+  .lp-shop-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .lp-shop-card {
+    background: rgba(255, 255, 255, 0.035);
+  }
+  .lp-marquee-track { animation-duration: 55s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-drift, .lp-drift-slow, .lp-node, .lp-flow, .lp-eco-dot, .lp-eco-core, .lp-marquee-track {
+    animation: none !important;
+  }
+}
