@@ -610,8 +610,8 @@ export default function Index() {
                 ))}
               </svg>
 
-              <div className="lp-eco-core relative z-10 grid size-[74px] place-items-center rounded-2xl border border-white/[0.12] bg-[#0b0b0e]">
-                <img src={logoWhite} alt="FBFlix" className="h-8 w-auto" />
+              <div className="lp-eco-core relative z-10 grid size-[112px] place-items-center rounded-full border border-white/[0.12] bg-[#0b0b0e]">
+                <img src={logoWhite} alt="FBFlix" className="h-[68px] w-auto object-contain" />
               </div>
             </div>
 
