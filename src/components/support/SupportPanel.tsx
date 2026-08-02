@@ -618,7 +618,10 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       {/* Recent message shortcut — always visible above the actions */}
       <div className="shrink-0 px-4 pt-2">
         <button
-          onClick={() => go("/suporte")}
+          onClick={() => {
+            if (recent) { setTab("messages"); setOpenThread({ id: recent.ticketId, title: recent.subject }); }
+            else go("/suporte");
+          }}
           className="relative z-10 min-h-[104px] w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
         >
           <div className="flex items-center justify-between gap-3">
