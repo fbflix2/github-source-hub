@@ -373,13 +373,23 @@ export default function Index() {
         <div className="lp-in max-w-2xl">
           <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] py-1.5 pl-1.5 pr-4 backdrop-blur-md">
             <div className="flex -space-x-2">
-              {["#f472b6", "#a78bfa", "#38bdf8"].map((c) => (
-                <span
-                  key={c}
-                  className="size-6 rounded-full border-2 border-black/70"
-                  style={{ background: `linear-gradient(140deg, ${c}, #1e1b4b)` }}
-                />
-              ))}
+              {["#f472b6", "#a78bfa", "#38bdf8"].map((c, i) =>
+                avatars[i] ? (
+                  <img
+                    key={c}
+                    src={avatars[i]}
+                    alt="Cliente FBFlix"
+                    loading="lazy"
+                    className="size-6 rounded-full border-2 border-black/70 object-cover"
+                  />
+                ) : (
+                  <span
+                    key={c}
+                    className="size-6 rounded-full border-2 border-black/70"
+                    style={{ background: `linear-gradient(140deg, ${c}, #1e1b4b)` }}
+                  />
+                )
+              )}
             </div>
             <span className="text-[12.5px] text-white/75">
               +{clientCount.toLocaleString("pt-BR")} usuários ativos
