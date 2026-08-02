@@ -20,6 +20,9 @@ interface HeroBanner {
   image_style: string | null;
   background_color: string | null;
   category: string | null;
+  kind?: string | null;
+  badge_text?: string | null;
+  accent_color?: string | null;
 }
 
 interface ProxyImage {
@@ -76,6 +79,7 @@ export default function Dashboard() {
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
+  const [subBanners, setSubBanners] = useState<HeroBanner[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const [totalClients, setTotalClients] = useState(3746);
@@ -135,7 +139,11 @@ export default function Dashboard() {
       setCategories(filteredCats);
     }
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
-    if (bannersRes.data) setHeroBanners(bannersRes.data);
+    if (bannersRes.data) {
+      const all = bannersRes.data as any[];
+      setHeroBanners(all.filter((b) => (b.kind || "hero") !== "sub"));
+      setSubBanners(all.filter((b) => b.kind === "sub"));
+    }
     if (bannerCatsRes.data) {
       const map: Record<string, string> = {};
       bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
