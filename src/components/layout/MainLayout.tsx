@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
-import { MessageCircleQuestion, Ticket } from "lucide-react";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
+import { SupportPanel } from "@/components/support/SupportPanel";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
@@ -86,11 +86,6 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
     setShowSupportMenu(false);
   };
 
-  const handleSuporte = () => {
-    navigate("/suporte");
-    setShowSupportMenu(false);
-  };
-
   const isImpersonating = typeof window !== "undefined" && sessionStorage.getItem("fbflix_impersonation_tab") === "1";
 
   return (
@@ -149,25 +144,13 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
       {/* Floating Help Button with Dropdown - hidden for reseller customers */}
       {!isResellerDomain && (
       <div className="fixed bottom-6 right-6 z-40" ref={supportMenuRef}>
-        {/* Dropdown Menu */}
+        {/* Support panel */}
         {showSupportMenu && (
-          <div className="absolute bottom-16 right-0 mb-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              onClick={handleDuvidaRapida}
-              className="flex items-center gap-3 w-full px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white transition-all text-left"
-            >
-              <MessageCircleQuestion className="size-5 text-green-500" />
-              <span className="text-sm font-medium">Dúvida Rápida</span>
-            </button>
-            <div className="h-px bg-white/10" />
-            <button
-              onClick={handleSuporte}
-              className="flex items-center gap-3 w-full px-4 py-3 text-white/80 hover:bg-white/10 hover:text-white transition-all text-left"
-            >
-              <Ticket className="size-5 text-primary" />
-              <span className="text-sm font-medium">Suporte</span>
-            </button>
-          </div>
+          <SupportPanel
+            userName={userName}
+            onClose={() => setShowSupportMenu(false)}
+            onWhatsApp={handleDuvidaRapida}
+          />
         )}
         
         <button 
