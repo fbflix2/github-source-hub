@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
-import heroVideo from "@/assets/hero-bg.mp4.asset.json";
-import heroPoster from "@/assets/hero-poster.jpg.asset.json";
+import heroImage from "@/assets/hero-bg.png.asset.json";
+import { useClientCount } from "@/hooks/useClientCount";
 
 const NAV = [
   { label: "Soluções", items: true },
@@ -87,6 +87,7 @@ const ECO_Y = [40, 100, 160, 220];
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
+  const clientCount = useClientCount(3850);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -103,18 +104,13 @@ export default function Index() {
     <div ref={ref} className="lp-root relative min-h-screen w-full overflow-hidden bg-black text-white">
       {/* ══════ AURORA BACKGROUND ══════ */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* vídeo de fundo do hero */}
+        {/* imagem de fundo do hero */}
         <div className="absolute inset-x-0 top-0 h-[115vh] overflow-hidden">
-          <video
-            src={heroVideo.url}
-            poster={heroPoster.url}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            disablePictureInPicture
-            className="h-full w-full scale-105 object-cover opacity-70 [will-change:transform]"
+          <img
+            src={heroImage.url}
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full scale-105 object-cover opacity-70"
           />
           <div className="absolute inset-0 bg-black/45" />
           <div className="absolute inset-x-0 bottom-0 h-[45vh] bg-[linear-gradient(to_top,#000_0%,rgba(0,0,0,0.92)_25%,rgba(0,0,0,0.6)_55%,transparent_100%)]" />
@@ -268,7 +264,9 @@ export default function Index() {
                 />
               ))}
             </div>
-            <span className="text-[12.5px] text-white/75">+10 mil operações rodando</span>
+            <span className="text-[12.5px] text-white/75">
+              +{clientCount.toLocaleString("pt-BR")} usuários ativos
+            </span>
           </div>
 
           <h1 className="text-[42px] font-medium leading-[1.06] tracking-[-0.035em] sm:text-[56px] md:text-[64px]">
