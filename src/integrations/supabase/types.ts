@@ -6222,6 +6222,13 @@ export type Database = {
           avatar_url: string
         }[]
       }
+      get_public_client_testimonials: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          full_name: string
+        }[]
+      }
       get_reseller_checkout_prices: {
         Args: { _product_ids: string[]; _slug: string }
         Returns: {
