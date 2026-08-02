@@ -49,7 +49,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       if (!user) return;
       const { data: tickets } = await supabase
         .from("tickets")
-        .select("id, subject, updated_at")
+        .select("id, title, updated_at")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(1);
@@ -57,15 +57,15 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       if (!t || !active) return;
       const { data: msgs } = await supabase
         .from("ticket_messages")
-        .select("message, created_at")
+        .select("content, created_at")
         .eq("ticket_id", t.id)
         .order("created_at", { ascending: false })
         .limit(1);
       const m = msgs?.[0] as any;
       if (!active) return;
       setRecent({
-        subject: t.subject ?? "Chamado de suporte",
-        body: m?.message ?? "Abra para ver a conversa",
+        subject: t.title ?? "Chamado de suporte",
+        body: m?.content ?? "Abra para ver a conversa",
         at: m?.created_at ?? t.updated_at,
         ticketId: t.id,
       });
