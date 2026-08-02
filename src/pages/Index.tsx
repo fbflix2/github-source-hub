@@ -4,7 +4,6 @@ import { ChevronDown, Search, X, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
-import heroImage from "@/assets/hero-bg.png.asset.json";
 import { useClientCount } from "@/hooks/useClientCount";
 
 const NAV = [
