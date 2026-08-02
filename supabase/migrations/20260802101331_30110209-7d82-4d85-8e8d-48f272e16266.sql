@@ -1,0 +1,4 @@
+ALTER TABLE public.banners
+  ADD COLUMN IF NOT EXISTS image_zoom numeric NOT NULL DEFAULT 100,
+  ADD COLUMN IF NOT EXISTS image_pos_x numeric NOT NULL DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS image_pos_y numeric NOT NULL DEFAULT 50;

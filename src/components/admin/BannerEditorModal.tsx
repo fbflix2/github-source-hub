@@ -33,6 +33,9 @@ interface Banner {
   kind?: string | null;
   badge_text?: string | null;
   accent_color?: string | null;
+  image_zoom?: number | null;
+  image_pos_x?: number | null;
+  image_pos_y?: number | null;
 }
 
 interface Props {
@@ -66,6 +69,9 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved,
   const [audience, setAudience] = useState<"store" | "reseller">("store");
   const [badgeText, setBadgeText] = useState("");
   const [accentColor, setAccentColor] = useState("");
+  const [imageZoom, setImageZoom] = useState(100);
+  const [imagePosX, setImagePosX] = useState(50);
+  const [imagePosY, setImagePosY] = useState(50);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -84,6 +90,9 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved,
       setAudience((banner.audience as any) || "store");
       setBadgeText(banner.badge_text || "");
       setAccentColor(banner.accent_color || "");
+      setImageZoom(Number(banner.image_zoom ?? 100));
+      setImagePosX(Number(banner.image_pos_x ?? 50));
+      setImagePosY(Number(banner.image_pos_y ?? 50));
     } else {
       setTitle("");
       setSubtitle("");
@@ -98,6 +107,9 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved,
       setAudience("store");
       setBadgeText("");
       setAccentColor("");
+      setImageZoom(100);
+      setImagePosX(50);
+      setImagePosY(50);
     }
   }, [banner, open]);
 
@@ -142,6 +154,9 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved,
         kind: isSub ? "sub" : "hero",
         badge_text: badgeText.trim() || null,
         accent_color: accentColor.trim() || null,
+        image_zoom: imageZoom,
+        image_pos_x: imagePosX,
+        image_pos_y: imagePosY,
       };
 
       if (banner) {
@@ -309,6 +324,49 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved,
             )}
             <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Ou cole a URL da imagem" className="mt-2" />
           </div>
+
+          {imageUrl && (
+            <div className="rounded-xl border border-border p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Ajuste da imagem</Label>
+                <button
+                  type="button"
+                  onClick={() => { setImageZoom(100); setImagePosX(50); setImagePosY(50); }}
+                  className="text-xs text-primary font-bold uppercase"
+                >
+                  Resetar
+                </button>
+              </div>
+
+              <div
+                className="w-full h-40 rounded-lg border border-border overflow-hidden bg-muted"
+                style={{
+                  backgroundImage: `url('${imageUrl}')`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: `${imageZoom}% auto`,
+                  backgroundPosition: `${imagePosX}% ${imagePosY}%`,
+                }}
+                aria-label="Pré-visualização do enquadramento do banner"
+              />
+              <p className="text-[11px] text-muted-foreground">Pré-visualização do enquadramento exibido na loja.</p>
+
+              <div>
+                <Label className="text-xs">Zoom ({imageZoom}%)</Label>
+                <input type="range" min={50} max={300} step={1} value={imageZoom}
+                  onChange={(e) => setImageZoom(Number(e.target.value))} className="w-full accent-primary" />
+              </div>
+              <div>
+                <Label className="text-xs">Posição horizontal ({imagePosX}%)</Label>
+                <input type="range" min={0} max={100} step={1} value={imagePosX}
+                  onChange={(e) => setImagePosX(Number(e.target.value))} className="w-full accent-primary" />
+              </div>
+              <div>
+                <Label className="text-xs">Posição vertical ({imagePosY}%)</Label>
+                <input type="range" min={0} max={100} step={1} value={imagePosY}
+                  onChange={(e) => setImagePosY(Number(e.target.value))} className="w-full accent-primary" />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 items-end">
             <div>
