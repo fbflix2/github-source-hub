@@ -372,7 +372,18 @@ export default function Dashboard() {
        ? proxyAsProducts
        : filteredProducts
      );
-     return [...base].sort((a, b) => {
+     const q = searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+     const searched = !q ? base : base.filter((p: any) => {
+       const cat = categories.find((c) => c.id === p.category_id);
+       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || [])]
+         .filter(Boolean)
+         .join(" ")
+         .toLowerCase()
+         .normalize("NFD")
+         .replace(/[\u0300-\u036f]/g, "");
+       return q.split(/\s+/).every((term) => haystack.includes(term));
+     });
+     return [...searched].sort((a, b) => {
     // First by priority if in "Todos"
     if (activeFilter === "Todos") {
       const priorityA = getCategoryPriority(a);
@@ -383,9 +394,9 @@ export default function Dashboard() {
     }
     
     // Then by price ascending (cheapest first)
-       return (a.price || 0) - (b.price || 0);
+      return (a.price || 0) - (b.price || 0);
      });
-   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority]);
+   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority, searchQuery, categories]);
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
