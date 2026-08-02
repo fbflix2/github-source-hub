@@ -124,11 +124,11 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6 pt-2">
+      {/* Recent message shortcut — always visible above the actions */}
+      <div className="shrink-0 px-4 pt-2">
         <button
           onClick={() => go("/suporte")}
-          className="relative z-10 min-h-[104px] w-full shrink-0 rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
+          className="relative z-10 min-h-[104px] w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
@@ -149,7 +149,10 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
             <Send className="size-4 shrink-0 text-primary" />
           </div>
         </button>
+      </div>
 
+      {/* Body */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6 pt-2">
         <button
           onClick={onWhatsApp}
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-4 text-left shadow-sm transition-colors hover:bg-muted/50"
