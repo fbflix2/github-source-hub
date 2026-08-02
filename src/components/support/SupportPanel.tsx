@@ -401,10 +401,6 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
     </div>
   );
 
-  if (tab === "messages") {
-    // rendered below
-  }
-
   if (tab === "tasks") {
     const pct = Math.round((doneSteps.length / TASKS.length) * 100);
     return (
