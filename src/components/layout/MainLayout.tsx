@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
-import { MessageCircleQuestion, Ticket } from "lucide-react";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
+import { SupportPanel } from "@/components/support/SupportPanel";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
@@ -83,11 +83,6 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0, f
 
   const handleDuvidaRapida = () => {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`, "_blank");
-    setShowSupportMenu(false);
-  };
-
-  const handleSuporte = () => {
-    navigate("/suporte");
     setShowSupportMenu(false);
   };
 
