@@ -192,7 +192,7 @@ export function PageRequestNotification() {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="size-5 text-primary" />
@@ -200,7 +200,7 @@ export function PageRequestNotification() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             {requests.map((req) => {
               const isSelected = selectedRequest?.id === req.id;
               const email = clientEmails[req.user_id] || "";
