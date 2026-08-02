@@ -6216,6 +6216,12 @@ export type Database = {
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_public_client_avatars: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+        }[]
+      }
       get_reseller_checkout_prices: {
         Args: { _product_ids: string[]; _slug: string }
         Returns: {
