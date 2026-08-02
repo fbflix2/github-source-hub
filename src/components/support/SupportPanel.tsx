@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Send, Search, Ticket, MessageCircleQuestion, LifeBuoy, ChevronRight } from "lucide-react";
+import { X, Send, Search, Ticket, MessageCircleQuestion, ChevronRight } from "lucide-react";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
+import agent2 from "@/assets/support-agent-2.jpg";
+import agent3 from "@/assets/support-agent-3.jpg";
+
+const TEAM = [
+  { src: atendenteAvatar, alt: "Atendente FBFlix" },
+  { src: agent2, alt: "Especialista de suporte" },
+  { src: agent3, alt: "Especialista de contas" },
+];
 
 interface SupportPanelProps {
   userName?: string;
@@ -37,26 +45,32 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
   return (
     <div className="absolute bottom-20 right-0 w-[calc(100vw-3rem)] max-w-[380px] overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
-      <div className="relative bg-gradient-to-br from-primary to-primary/70 px-5 pb-8 pt-5 text-primary-foreground">
+      <div className="relative bg-gradient-to-br from-primary to-primary/70 px-5 pb-7 pt-5 text-primary-foreground">
         <div className="flex items-start justify-between">
-          <LifeBuoy className="size-7 opacity-90" />
-          <div className="flex items-center gap-3">
-            <img
-              src={atendenteAvatar}
-              alt="Atendente FBFlix"
-              className="size-9 rounded-full border-2 border-primary-foreground/40 object-cover object-top"
-            />
-            <button
-              onClick={onClose}
-              aria-label="Fechar"
-              className="rounded-full p-1 transition-colors hover:bg-primary-foreground/15"
-            >
-              <X className="size-5" />
-            </button>
+          {/* Equipe */}
+          <div className="flex -space-x-3">
+            {TEAM.map((m) => (
+              <img
+                key={m.alt}
+                src={m.src}
+                alt={m.alt}
+                loading="lazy"
+                width={512}
+                height={512}
+                className="size-10 rounded-full border-2 border-primary-foreground/60 object-cover object-top shadow-md"
+              />
+            ))}
           </div>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="rounded-full p-1 transition-colors hover:bg-primary-foreground/15"
+          >
+            <X className="size-5" />
+          </button>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-7">
           <p className="text-xl font-semibold opacity-70">
             Olá{firstName ? ` ${firstName}` : ""} 👋
           </p>
@@ -65,7 +79,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Body */}
-      <div className="-mt-4 space-y-3 px-4 pb-5">
+      <div className="space-y-3 p-4">
         <button
           onClick={onWhatsApp}
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3.5 text-left shadow-sm transition-colors hover:bg-muted/50"
