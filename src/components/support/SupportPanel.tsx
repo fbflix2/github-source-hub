@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight, ChevronLeft, ChevronDown, Check } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix-white.png";
 import whatsappIcon from "@/assets/brands/whatsapp.svg";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
@@ -208,6 +208,37 @@ function timeAgo(iso: string) {
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
 }
+
+interface TaskStep {
+  title: string;
+  desc: string;
+  cta: { label: string; to: string };
+}
+
+const TASKS: TaskStep[] = [
+  {
+    title: "Complete seu cadastro",
+    desc: "Preencha nome completo, CPF, data de nascimento e WhatsApp para liberar as compras.",
+    cta: { label: "Completar meus dados", to: "/meus-dados" },
+  },
+  {
+    title: "Adicione saldo na carteira",
+    desc: "Com saldo o checkout fica instantâneo, sem esperar confirmação bancária.",
+    cta: { label: "Abrir carteira", to: "/wallet" },
+  },
+  {
+    title: "Faça sua primeira compra",
+    desc: "Escolha perfis, BMs ou proxies na loja e receba a entrega automática.",
+    cta: { label: "Ir para a loja", to: "/loja" },
+  },
+  {
+    title: "Configure seu proxy",
+    desc: "Copie o endereço IP:PORTA:USUÁRIO:SENHA em Assinaturas e cole no seu antidetect.",
+    cta: { label: "Ver assinaturas", to: "/subscriptions" },
+  },
+];
+
+const TASKS_KEY = "fbflix_support_tasks_done";
 
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
