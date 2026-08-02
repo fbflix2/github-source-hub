@@ -402,6 +402,79 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
   );
 
   if (tab === "messages") {
+    // rendered below
+  }
+
+  if (tab === "tasks") {
+    const pct = Math.round((doneSteps.length / TASKS.length) * 100);
+    return (
+      <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
+          <p className="text-lg font-bold text-foreground">Tarefas</p>
+          <button onClick={onClose} aria-label="Fechar" className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-foreground">Vamos começar!</p>
+            <p className="mt-1 text-sm text-muted-foreground">Alguns passos para você aproveitar tudo na FBFlix</p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{TASKS.length} etapas</span>
+            <span>Cerca de 5 minutos</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {TASKS.map((t, i) => {
+              const done = doneSteps.includes(i);
+              const open = openStep === i;
+              return (
+                <div key={t.title} className="rounded-2xl border border-border bg-background shadow-sm">
+                  <button
+                    onClick={() => setOpenStep(open ? null : i)}
+                    className="flex w-full items-center gap-3 px-4 py-4 text-left"
+                  >
+                    <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${done ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      {done ? <Check className="size-4" /> : i + 1}
+                    </span>
+                    <span className={`min-w-0 flex-1 text-sm font-medium ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>{t.title}</span>
+                    <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+                  </button>
+                  {open && (
+                    <div className="space-y-3 border-t border-border px-4 py-4">
+                      <p className="text-sm leading-relaxed text-muted-foreground">{t.desc}</p>
+                      <button
+                        onClick={() => go(t.cta.to)}
+                        className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                      >
+                        {t.cta.label}
+                      </button>
+                      <button
+                        onClick={() => toggleDone(i)}
+                        className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+                      >
+                        {done ? "Marcar como pendente" : "Marcar como concluída"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {navBar}
+      </div>
+    );
+  }
+
+  if (tab === "messages") {
     return (
       <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
         <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
