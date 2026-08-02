@@ -308,3 +308,36 @@
   0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
   50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.6); }
 }
+
+/* ═══════ LANDING PAGE (isolada do design system) ═══════ */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap');
+
+.lp-root {
+  font-family: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.lp-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes lp-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-14px, 12px, 0); }
+}
+@keyframes lp-drift-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(18px, -10px, 0); }
+}
+.lp-drift { animation: lp-drift 16s ease-in-out infinite; }
+.lp-drift-slow { animation: lp-drift-slow 22s ease-in-out infinite; }
+
+@keyframes lp-in {
+  from { opacity: 0; transform: translateY(22px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.lp-in > * { animation: lp-in 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.lp-in > *:nth-child(1) { animation-delay: 0.05s; }
+.lp-in > *:nth-child(2) { animation-delay: 0.15s; }
+.lp-in > *:nth-child(3) { animation-delay: 0.25s; }
+.lp-in > *:nth-child(4) { animation-delay: 0.35s; }
