@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket, ChevronRight, ChevronLeft, ChevronDown, Check } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix-white.png";
 import whatsappIcon from "@/assets/brands/whatsapp.svg";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
@@ -209,10 +209,52 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d`;
 }
 
+interface TaskStep {
+  title: string;
+  desc: string;
+  cta: { label: string; to: string };
+}
+
+const TASKS: TaskStep[] = [
+  {
+    title: "Complete seu cadastro",
+    desc: "Preencha nome completo, CPF, data de nascimento e WhatsApp para liberar as compras.",
+    cta: { label: "Completar meus dados", to: "/meus-dados" },
+  },
+  {
+    title: "Adicione saldo na carteira",
+    desc: "Com saldo o checkout fica instantâneo, sem esperar confirmação bancária.",
+    cta: { label: "Abrir carteira", to: "/wallet" },
+  },
+  {
+    title: "Faça sua primeira compra",
+    desc: "Escolha perfis, BMs ou proxies na loja e receba a entrega automática.",
+    cta: { label: "Ir para a loja", to: "/loja" },
+  },
+  {
+    title: "Configure seu proxy",
+    desc: "Copie o endereço IP:PORTA:USUÁRIO:SENHA em Assinaturas e cole no seu antidetect.",
+    cta: { label: "Ver assinaturas", to: "/subscriptions" },
+  },
+];
+
+const TASKS_KEY = "fbflix_support_tasks_done";
+
 export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"home" | "help" | "messages">("home");
+  const [tab, setTab] = useState<"home" | "help" | "messages" | "tasks">("home");
+  const [openStep, setOpenStep] = useState<number | null>(0);
+  const [doneSteps, setDoneSteps] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem(TASKS_KEY) || "[]"); } catch { return []; }
+  });
+  const toggleDone = (i: number) => {
+    setDoneSteps((prev) => {
+      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+      try { localStorage.setItem(TASKS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [threads, setThreads] = useState<{ id: string; title: string; last: string; at: string }[]>([]);
   const [openThread, setOpenThread] = useState<{ id: string; title: string } | null>(null);
   const [threadMsgs, setThreadMsgs] = useState<{ id: string; content: string; sender: string; created_at: string }[]>([]);
@@ -352,12 +394,81 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         )}
         <span className="text-[11px] font-medium">Ajuda</span>
       </button>
-      <button onClick={() => go("/orders")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+      <button onClick={() => setTab("tasks")} className={`flex flex-col items-center gap-1 py-3 transition-colors ${tab === "tasks" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
         <CheckSquare className="size-5" />
         <span className="text-[11px] font-medium">Tarefas</span>
       </button>
     </div>
   );
+
+  if (tab === "tasks") {
+    const pct = Math.round((doneSteps.length / TASKS.length) * 100);
+    return (
+      <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
+          <p className="text-lg font-bold text-foreground">Tarefas</p>
+          <button onClick={onClose} aria-label="Fechar" className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-foreground">Vamos começar!</p>
+            <p className="mt-1 text-sm text-muted-foreground">Alguns passos para você aproveitar tudo na FBFlix</p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{TASKS.length} etapas</span>
+            <span>Cerca de 5 minutos</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {TASKS.map((t, i) => {
+              const done = doneSteps.includes(i);
+              const open = openStep === i;
+              return (
+                <div key={t.title} className="rounded-2xl border border-border bg-background shadow-sm">
+                  <button
+                    onClick={() => setOpenStep(open ? null : i)}
+                    className="flex w-full items-center gap-3 px-4 py-4 text-left"
+                  >
+                    <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${done ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                      {done ? <Check className="size-4" /> : i + 1}
+                    </span>
+                    <span className={`min-w-0 flex-1 text-sm font-medium ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>{t.title}</span>
+                    <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+                  </button>
+                  {open && (
+                    <div className="space-y-3 border-t border-border px-4 py-4">
+                      <p className="text-sm leading-relaxed text-muted-foreground">{t.desc}</p>
+                      <button
+                        onClick={() => go(t.cta.to)}
+                        className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                      >
+                        {t.cta.label}
+                      </button>
+                      <button
+                        onClick={() => toggleDone(i)}
+                        className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+                      >
+                        {done ? "Marcar como pendente" : "Marcar como concluída"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {navBar}
+      </div>
+    );
+  }
 
   if (tab === "messages") {
     return (
