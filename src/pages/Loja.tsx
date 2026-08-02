@@ -519,7 +519,6 @@ export default function Dashboard() {
       {/* Busca de produtos */}
       <section className="space-y-3">
         <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 z-20 text-foreground/70 pointer-events-none" strokeWidth={2.5} />
           <input
             type="text"
             value={searchQuery}
@@ -528,11 +527,14 @@ export default function Dashboard() {
             aria-label="Buscar produtos"
             className="relative z-10 w-full h-12 pl-12 pr-11 rounded-xl glass-panel border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
+          <span className="absolute inset-y-0 left-0 z-30 flex w-12 items-center justify-center pointer-events-none" aria-hidden="true">
+            <Search className="h-5 w-5 text-primary" strokeWidth={2.75} />
+          </span>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
               aria-label="Limpar busca"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-3 top-1/2 z-30 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
