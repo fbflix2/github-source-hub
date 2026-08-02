@@ -76,9 +76,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="relative flex items-center justify-center size-12 rounded-xl bg-gradient-to-br from-primary to-red-900 shadow-lg shadow-primary/20">
-            <Play className="text-white size-6" />
-          </div>
+          <img src={logoFbflix} alt="FBFLIX" className="size-14 object-contain" />
           <div className="flex flex-col">
             <h1 className="text-white text-2xl font-bold tracking-tight">
               FBFLIX <span className="text-primary">Admin</span>
