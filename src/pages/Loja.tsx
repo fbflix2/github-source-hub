@@ -80,6 +80,7 @@ export default function Dashboard() {
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
   const [subBanners, setSubBanners] = useState<HeroBanner[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const [totalClients, setTotalClients] = useState(3746);
@@ -372,7 +373,18 @@ export default function Dashboard() {
        ? proxyAsProducts
        : filteredProducts
      );
-     return [...base].sort((a, b) => {
+     const q = searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+     const searched = !q ? base : base.filter((p: any) => {
+       const cat = categories.find((c) => c.id === p.category_id);
+       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || [])]
+         .filter(Boolean)
+         .join(" ")
+         .toLowerCase()
+         .normalize("NFD")
+         .replace(/[\u0300-\u036f]/g, "");
+       return q.split(/\s+/).every((term) => haystack.includes(term));
+     });
+     return [...searched].sort((a, b) => {
     // First by priority if in "Todos"
     if (activeFilter === "Todos") {
       const priorityA = getCategoryPriority(a);
@@ -383,9 +395,9 @@ export default function Dashboard() {
     }
     
     // Then by price ascending (cheapest first)
-       return (a.price || 0) - (b.price || 0);
+      return (a.price || 0) - (b.price || 0);
      });
-   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority]);
+   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority, searchQuery, categories]);
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
@@ -496,6 +508,41 @@ export default function Dashboard() {
       )}
 
       {/* Filters & Products */}
+      {/* Busca de produtos */}
+      <section className="space-y-3">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground pointer-events-none">search</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por produto ou finalidade: perfil, black, bm, proxy..."
+            aria-label="Buscar produtos"
+            className="w-full h-12 pl-12 pr-11 rounded-xl glass-panel border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              aria-label="Limpar busca"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {["Perfil", "BM", "Black", "White", "Proxy"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setSearchQuery(s)}
+              className="shrink-0 px-3 py-1 rounded-full text-[11px] font-medium bg-secondary text-muted-foreground border border-border hover:border-primary/50 hover:text-primary transition-all"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Sub-banners (ofertas secundárias) */}
       {subBanners.map((sb) => {
         const accent = sb.accent_color || "#00F0FF";
