@@ -241,15 +241,18 @@ export type Database = {
       }
       banners: {
         Row: {
+          accent_color: string | null
           active: boolean
           audience: string
           background_color: string | null
+          badge_text: string | null
           category: string | null
           created_at: string
           cta_text: string | null
           id: string
           image_style: string | null
           image_url: string | null
+          kind: string
           link_url: string | null
           position: number
           reseller_id: string | null
@@ -257,15 +260,18 @@ export type Database = {
           title: string
         }
         Insert: {
+          accent_color?: string | null
           active?: boolean
           audience?: string
           background_color?: string | null
+          badge_text?: string | null
           category?: string | null
           created_at?: string
           cta_text?: string | null
           id?: string
           image_style?: string | null
           image_url?: string | null
+          kind?: string
           link_url?: string | null
           position?: number
           reseller_id?: string | null
@@ -273,15 +279,18 @@ export type Database = {
           title: string
         }
         Update: {
+          accent_color?: string | null
           active?: boolean
           audience?: string
           background_color?: string | null
+          badge_text?: string | null
           category?: string | null
           created_at?: string
           cta_text?: string | null
           id?: string
           image_style?: string | null
           image_url?: string | null
+          kind?: string
           link_url?: string | null
           position?: number
           reseller_id?: string | null
