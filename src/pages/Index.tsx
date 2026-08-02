@@ -613,13 +613,13 @@ export default function Index() {
       <section id="lp-vitrine" className="relative z-10 mx-auto max-w-[1240px] px-6 pb-32">
         <div className="relative">
           {/* palavra ao fundo */}
-          <div className="pointer-events-none absolute inset-x-0 -top-2 flex justify-center overflow-hidden">
-            <span className="lp-word select-none whitespace-nowrap text-[15vw] sm:text-[13vw] md:text-[150px]">
+          <div className="pointer-events-none absolute inset-x-0 -top-6 flex justify-center overflow-hidden">
+            <span className="lp-word select-none whitespace-nowrap text-[22vw] leading-[0.8] sm:text-[20vw] md:text-[15.5vw] lg:text-[230px]">
               {wordLabel}
             </span>
           </div>
 
-          <div className="relative pt-[9vw] md:pt-[92px]">
+          <div className="relative pt-[11vw] md:pt-[130px]">
             {results.length === 0 ? (
               <div className="lp-shop-card rounded-2xl px-6 py-14 text-center text-[14px] text-white/50">
                 Nenhum ativo encontrado {searching ? "para essa busca." : "nessa categoria."}
