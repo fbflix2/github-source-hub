@@ -525,7 +525,7 @@ export default function Dashboard() {
       {/* Busca de produtos */}
       <section className="space-y-3">
         <div className="relative w-full md:max-w-md">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground pointer-events-none">search</span>
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
@@ -540,7 +540,7 @@ export default function Dashboard() {
               aria-label="Limpar busca"
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
