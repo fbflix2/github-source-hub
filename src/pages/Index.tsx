@@ -1,453 +1,213 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
-import { supabase } from "@/integrations/supabase/client";
 
-/* ---------- DEFAULT constants (fallback) ---------- */
-const DEFAULTS = {
-    hero: {
-      title: "CONTINGÊNCIA QUE", titleHighlight: "ESCALA",
-      subtitle: "Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento",
-      ctaText: "COMPRAR AGORA", ctaSecondary: "VER PACOTES",
-      liveCounter: "+4.872 contas rodando agora",
-      backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
-      videoUrl: "https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=1&showinfo=0&modestbranding=1&rel=0",
-      whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
-      logoUrl: "",
-      logoHeight: "32",
-      logoHeightHero: "80",
-    },
-  partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
-  steps: [
-    { icon: "shopping_cart", title: "Escolha o produto", desc: "Selecione entre Perfis, Proxies ou BM de acordo com sua estratégia de tráfego." },
-    { icon: "bolt", title: "Receba instantaneamente", desc: "Entrega automatizada via e-mail e painel em menos de 60 segundos após o PIX." },
-    { icon: "rocket_launch", title: "Escala sem banimento", desc: "Aqueça, suba suas campanhas e escale seu ROI com a segurança de IPs residenciais." },
-  ],
-  stepsTitle: "Sua contingência em", stepsTitleHighlight: "3 passos",
-  stepsSubtitle: "Engenharia de alta precisão para afiliados e gestores que buscam o topo.",
-  products: [
-    { title: "Perfis Premium", sub: "Instagram + TikTok", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAe_KntvbU6rPvrronnRaNIEbxUcs-Cqtn_k_YUtg0ShQP1F9xKhw4BFxwRf1SLq070qar43LIP4nMrRD9wVXI4oBANGXhzCUxMI_sTgvR1I9IL8l7CsZTSjp26FnkK6QjptSZ-1PnAAKhCIPFs9RbwHFRc1a1SceBcQUwQIdostfeDpOSIYuvSlBG025IsoFowEKrAI9SvmTC6oS9MUxLGnUEnigAqj19030Q7e2PHwUOA7k84A15dkY65Py4mdLeV2tq7poVAi1ow", features: ["Aquecidos 15+ dias", "Foto e Bio reais", "Cookies inclusos"], price: "47", unit: "/unid", featured: false },
-    { title: "Proxies Residencial", sub: "4G / 5G Mobile", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5ZhArplK1PvXPuC1gMxXEKC7jFymbwp-YmIOYu3WvhhVoIDT4fG8sfpe7bx8kynpzQuBckd3DBWaEayUg4cKCCgwLfOfVf-mQN-35VXRB9z--uH9xfmrlffr7LP3EODJAVFTesuTOg_ur1kYusUW3-1wGQzEDwyBhLicfkMzJsc8TRynBjlQSnufDpsLaHQKzbDt6rrhlgWzTNH5xSkNxY4qJCxJQ23ONSnLY8ISY0KprLLjWz2mnXGBcB6pRnAk8WIQL-FXWgDCs", features: ["IPs de operadoras reais", "Rotação automática", "Zero blacklist"], price: "129", unit: "/mês", featured: false },
-    { title: "Bulk Messaging", sub: "WhatsApp / BM", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDuOpsfJ57lH1sDAzKnHxnS1tmHsCcYVtAMnp3Q6dM5YKrP713ZmmmRMPrIniVJG2OyFiUqsXW4OEE-pKwSpBIi0kTCoQ7y3BWgDhvOtDKEAYGWAPs-ZzMMILSgZMB41E_23Thwtn6juVyQjxpQRoFh1hmG5mG3tg_oAHtAdnIMjmH4GYjyZXlUMKGp8HZRmOSdB45pdcpiLPPgfnbglucGgrlDKjrXkppUlmepJt_jHBNsTbOwSc9LazMZZvxK3yJKcjopvAbikrhs", features: ["API de alta performance", "Delay anti-ban", "Suporte a variáveis"], price: "197", unit: "/camp", featured: false },
-    { title: "Pacote Completo", sub: "Estratégia Full", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDBHtsx0N9hlnapvr_eARhpwUGeQHuJenA6V139WpurnDdc5yh9kvaBUSB1NdXvPKr3Zau62tmkJh3vlBc1KYODu46oD9VhPpbVTb0QfLMMYNdnF6KILOHesHzC5d51amprFa-JVV7Ohlf0_XoPfF5rJRwzgfEn2sFtg1Hh66Sy2JsNdTuUusO2fdZgANaKzwgEEM6Y09DLFQd4c5cxlJ7uT4gtfV8-m5HIEO8KR0VQsoI3X4pg02bYGwy0x5LL8lwpSGItXGlLGFfx", features: ["10 Perfis Premium", "Proxy 5G Ilimitado", "Consultoria de Setup"], price: "497", unit: "/setup", featured: true },
-  ],
-  productsTitle: "Escolha sua arma de", productsTitleHighlight: "contingência",
-  benefits: [
-    { icon: "location_on", title: "IP Residencial Real", desc: "Conexões autênticas que o Facebook confia." },
-    { icon: "timer", title: "Entrega < 60s", desc: "Processamento automático instantâneo." },
-    { icon: "support_agent", title: "Suporte 24h", desc: "Especialistas prontos para te ajudar a escalar." },
-    { icon: "verified_user", title: "Garantia Total", desc: "Reposição imediata em caso de falha técnica." },
-  ],
-   benefitsTitle: "Por que milhares de usuários escolhem a", benefitsTitleHighlight: "​",
-  testimonials: [
-    { name: "Ricardo Mendes", role: "Afiliado Black", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUsS26R4V-9ieauNjiLBM58xWx7-XK2lqjxaxaObILCHd1PajMPL_Cq7wPRVsIJJJ1qIXjqiOV0Vr7bluMSj_Pfk2W7gZCR2X0QqnAIzmvMk3WQuPw7oBw1NR8ypQZW153UeiAGmw7zlR2WZeiM8zEzPv2x1V7LvrTT0U8BYyTQpc3JilicYnzTuWuCafui8WXpJ4JEZoUDfSbYZI-FDJSD8GWv3M2U7xbiE3HXra8HIvyF-p9lo4NSthSn-5EJBDCZ3TEDH2gqQ7X", text: '"Depois que migrei para os proxies da FBFLIX, parei de tomar checkpoint em cascata. Escala garantida."' },
-    { name: "Amanda Souza", role: "Gestora de Tráfego", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5QWtGBu4iTXnpf_eDSnru2VV8RlEWYG7CAspTvbPqafRUit1JuHkR4yIVG7sOVenAa06Mj9etc-mh2uoamzDEOVdpHZlbaNn4u9e2aDbGGxcFedGYJXLyTIo-sf4Gp8HbkJmXf5pk1KxzTSpGLzcTkge1OC4e_bXE5D1zlJSXQc7f_OoQ-fbijzEUC4lagZ2rjkT48sRgyHC-F5NCrn145azBcrtMdjaga0c76Ps5w19LUA_VGL9TSr7H1kTKv9qZmARHwF3P-JBs", text: '"A entrega é surreal de rápida. Em 1 minuto já estava com os perfis logados e subindo campanha."' },
-  ],
-  simulator: {
-    title: "Monte seu pacote e veja o preço na hora",
-    items: [
-      { label: "Quantidade de Perfis", key: "profiles", price: 47, min: 1, max: 50, default: 10 },
-      { label: "Proxies Residenciais", key: "proxies", price: 129, min: 0, max: 10, default: 2 },
-      { label: "Quantidade de Páginas", key: "pages", price: 15, min: 1, max: 20, default: 5 },
-      { label: "Campanhas Bulk BM", key: "bm", price: 197, min: 0, max: 10, default: 1 },
-    ],
-  },
-   footer: {
-     cnpj: "40.122.096/0001-85",
-     description: "© 2026 ​. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.",
-   },
-};
+const NAV = [
+  { label: "Soluções", items: true },
+  { label: "Produtos", items: true },
+  { label: "Empresa", items: true },
+  { label: "Ajuda", items: true },
+  { label: "Docs", items: true },
+  { label: "Preços", items: false },
+];
 
-/* ---------- Scroll reveal hook ---------- */
-function useReveal() {
+export default function Index() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [m, setM] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
-    const handler = () => {
-      document.querySelectorAll(".lp-reveal").forEach((el) => {
-        const top = el.getBoundingClientRect().top;
-        if (top < window.innerHeight - 150) el.classList.add("lp-active");
+    const onMove = (e: MouseEvent) => {
+      setM({
+        x: (e.clientX / window.innerWidth - 0.5) * 2,
+        y: (e.clientY / window.innerHeight - 0.5) * 2,
       });
     };
-    window.addEventListener("scroll", handler, { passive: true });
-    handler();
-    return () => window.removeEventListener("scroll", handler);
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
   }, []);
-}
-
-/* ---------- Component ---------- */
-const Index = () => {
-  const navigate = useNavigate();
-  const [cfg, setCfg] = useState(DEFAULTS);
-  const logoUrl = cfg.hero.logoUrl || logoFbflix;
-  const logoHeight = Number(cfg.hero.logoHeight) || 32;
-  const logoHeightHero = Number(cfg.hero.logoHeightHero) || 80;
-
-  useReveal();
-
-  // Load config from DB
-  useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "landing_page_config")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) {
-          try { setCfg({ ...DEFAULTS, ...JSON.parse(data.value) }); } catch {}
-        }
-      });
-  }, []);
-
-  // Simulator state
-  const [simValues, setSimValues] = useState<Record<string, number>>({});
-  useEffect(() => {
-    const init: Record<string, number> = {};
-    cfg.simulator.items.forEach((item) => { init[item.key] = item.default; });
-    setSimValues(init);
-  }, [cfg.simulator.items]);
-
-  const total = cfg.simulator.items.reduce((sum, item) => sum + (simValues[item.key] || 0) * item.price, 0);
-
-  const goAuth = () => navigate("/auth");
 
   return (
-    <div className="bg-[#050505] text-[#f5f5f5] font-['Inter'] selection:bg-[#ff3131] selection:text-white min-h-screen">
-      {/* ===== NAV ===== */}
-      <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
-        <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeight}px`, marginLeft: `${(cfg.hero as any).logoMarginLeftNavbar || 16}px` }} className="w-auto object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
-          <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
-            <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
-            <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
-            <a href="#produtos" className="text-white/70 hover:text-white transition-colors cursor-pointer">Produtos</a>
-            <a href="#simulador" className="text-white/70 hover:text-white transition-colors cursor-pointer">Simulador</a>
-          </div>
-          <button onClick={goAuth} className="bg-[#ff3131] text-white px-6 py-2 font-['Space_Grotesk'] font-bold uppercase tracking-widest text-xs hover:scale-105 transition-transform duration-300 ease-out hover:shadow-[0_0_25px_rgba(255,49,49,0.6)]">
-            Comprar Agora
-          </button>
-        </div>
-      </nav>
+    <div ref={ref} className="lp-root relative min-h-screen w-full overflow-hidden bg-black text-white">
+      {/* ══════ AURORA BACKGROUND ══════ */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="xMidYMid slice"
+          style={{
+            transform: `translate3d(${m.x * -14}px, ${m.y * -10}px, 0) scale(1.06)`,
+            transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
+          }}
+        >
+          <defs>
+            <linearGradient id="lp-a" x1="0" y1="0" x2="1" y2="0.4">
+              <stop offset="0%" stopColor="#4c1d95" stopOpacity="0" />
+              <stop offset="28%" stopColor="#7c3aed" stopOpacity="0.85" />
+              <stop offset="58%" stopColor="#d946ef" />
+              <stop offset="82%" stopColor="#ff9ae0" />
+              <stop offset="100%" stopColor="#ffffff" />
+            </linearGradient>
+            <linearGradient id="lp-b" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#2e1065" stopOpacity="0" />
+              <stop offset="40%" stopColor="#a21caf" stopOpacity="0.55" />
+              <stop offset="75%" stopColor="#f472b6" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#ffe9f8" />
+            </linearGradient>
+            <linearGradient id="lp-c" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#0b0b0b" stopOpacity="0" />
+              <stop offset="60%" stopColor="#7e5a86" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.7" />
+            </linearGradient>
+            <filter id="lp-blur-lg" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="34" />
+            </filter>
+            <filter id="lp-blur-md" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="16" />
+            </filter>
+            <filter id="lp-blur-sm" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="6" />
+            </filter>
+            <radialGradient id="lp-core" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="35%" stopColor="#ffd7f4" stopOpacity="0.9" />
+              <stop offset="70%" stopColor="#e879f9" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#a21caf" stopOpacity="0" />
+            </radialGradient>
+          </defs>
 
-      {/* ===== HERO ===== */}
-      <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/60 to-[#050505]/90 z-10" />
-          
-          {/* Background Video */}
-          <div className="absolute inset-0 w-full h-full">
-            <iframe
-              className="absolute top-1/2 left-1/2 w-[160%] h-[160%] md:w-[115%] md:h-[115%] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50 grayscale contrast-125 transition-all duration-700"
-              src="https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=0&showinfo=0&modestbranding=1&rel=0&enablejsapi=1"
-              allow="autoplay; encrypted-media"
-              style={{ border: 'none' }}
-            />
-          </div>
+          {/* deep purple wash */}
+          <ellipse cx="820" cy="330" rx="760" ry="330" fill="url(#lp-b)" opacity="0.35" filter="url(#lp-blur-lg)" />
 
-          {/* Smoky bottom transition */}
-          <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent z-[11] pointer-events-none" />
-
-
-
-          <img
-            alt="Digital Network"
-            className="w-full h-full object-cover opacity-10 grayscale contrast-125 hidden"
-            src={cfg.hero.backgroundImage}
-            width={1920}
-            height={1080}
-            loading="eager"
-            fetchPriority="low"
+          {/* wide soft band */}
+          <path
+            d="M -140 120 C 380 120, 700 420, 1120 470 C 1320 494, 1440 470, 1560 430"
+            stroke="url(#lp-c)"
+            strokeWidth="150"
+            fill="none"
+            filter="url(#lp-blur-lg)"
+            opacity="0.75"
           />
-        </div>
 
-        <div className="relative z-20 max-w-7xl mx-auto px-8 w-full text-center">
-          {/* Shield icon */}
-          {logoUrl && (
-            <div className="mb-6 flex justify-center lp-reveal">
-              <img src={logoUrl} alt="FBFLIX" style={{ height: `${logoHeightHero}px`, width: 'auto' }} className="object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
-            </div>
-          )}
+          {/* main sweep */}
+          <path
+            d="M -160 190 C 340 190, 660 430, 1080 470 C 1300 492, 1440 452, 1580 396"
+            stroke="url(#lp-a)"
+            strokeWidth="66"
+            fill="none"
+            filter="url(#lp-blur-md)"
+            opacity="0.95"
+            className="lp-drift"
+          />
 
-          <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
-            {cfg.hero.title} <span className="text-[#ff3131] italic">{cfg.hero.titleHighlight}</span>
-          </h1>
-          <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-3xl mx-auto mb-10 tracking-tight whitespace-nowrap lp-reveal" style={{ transitionDelay: "200ms" }}>
-            {cfg.hero.subtitle}
-          </p>
+          {/* bright hairline */}
+          <path
+            d="M -160 205 C 340 205, 660 442, 1080 480 C 1300 500, 1440 462, 1580 408"
+            stroke="url(#lp-a)"
+            strokeWidth="8"
+            fill="none"
+            filter="url(#lp-blur-sm)"
+          />
 
-          <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-16 lp-reveal" style={{ transitionDelay: "300ms" }}>
-            <button onClick={goAuth} className="bg-[#ff3131] text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:shadow-[0_0_25px_rgba(255,49,49,0.6)] transition-all duration-300">
-              {cfg.hero.ctaText}
-            </button>
-            <button onClick={() => document.getElementById("produtos")?.scrollIntoView({ behavior: "smooth" })} className="border-2 border-white/20 text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:bg-white hover:text-black transition-all duration-300">
-              {cfg.hero.ctaSecondary}
-            </button>
-          </div>
+          {/* secondary lower sweep */}
+          <path
+            d="M -160 470 C 300 470, 620 610, 1040 606 C 1280 604, 1420 560, 1580 500"
+            stroke="url(#lp-b)"
+            strokeWidth="90"
+            fill="none"
+            filter="url(#lp-blur-lg)"
+            opacity="0.7"
+            className="lp-drift-slow"
+          />
 
-          {/* Pulse */}
-          <div className="flex items-center justify-center gap-3 lp-reveal" style={{ transitionDelay: "400ms" }}>
-            <div className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-            </div>
-            <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">{cfg.hero.liveCounter}</span>
-          </div>
+          {/* magenta core */}
+          <ellipse cx="1180" cy="470" rx="330" ry="230" fill="url(#lp-core)" opacity="0.95" />
+          <ellipse cx="1290" cy="470" rx="150" ry="120" fill="url(#lp-core)" />
+        </svg>
 
-          {/* Partners */}
-          <div className="mt-24 pb-12 lp-reveal" style={{ transitionDelay: "600ms" }}>
-            <p className="text-[10px] font-['Space_Grotesk'] font-bold uppercase tracking-[0.4em] text-white/30 text-center mb-10 italic">Parceiros e Clientes que Confiam</p>
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-              {cfg.partners.map((p) => (
-                <div key={p} className="group cursor-pointer">
-                  <span className="font-['Space_Grotesk'] font-bold text-xl md:text-2xl text-white/50 group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,49,49,0.5)] transition-all duration-300">{p}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+        {/* vignette + bottom fade */}
+        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_35%,rgba(0,0,0,0.75)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/70 to-transparent" />
+        {/* grain */}
+        <div className="lp-grain absolute inset-0 opacity-[0.05] mix-blend-overlay" />
+      </div>
 
-      {/* ===== COMO FUNCIONA ===== */}
-      <section id="como-funciona" className="py-24 bg-[#030303]">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-4 lp-reveal">
-            <h2 className="font-['Space_Grotesk'] text-4xl md:text-6xl font-bold tracking-tighter text-white max-w-xl">
-              {cfg.stepsTitle} <span className="text-[#ff3131]">{cfg.stepsTitleHighlight}</span>
-            </h2>
-            <p className="text-[#ebbbb4] font-medium max-w-xs mb-2">{cfg.stepsSubtitle}</p>
-          </div>
+      {/* ══════ NAV ══════ */}
+      <header className="relative z-20">
+        <nav className="mx-auto flex max-w-[1240px] items-center justify-between px-6 py-6">
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logoFbflix} alt="FBFlix" className="h-6 w-auto" />
+            <span className="text-[17px] font-semibold tracking-[-0.02em]">FBFlix</span>
+          </Link>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {cfg.steps.map((s, i) => (
-              <div key={i} className="group bg-[#0a0a0a] p-10 relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border border-white/5 hover:border-[#ff3131]/20 lp-reveal" style={{ transitionDelay: `${(i + 1) * 100}ms` }}>
-                <div className="absolute top-0 right-0 p-4 text-8xl font-black text-white/5 font-['Space_Grotesk']">{String(i + 1).padStart(2, "0")}</div>
-                <span className="material-symbols-outlined text-[#ff3131] text-5xl mb-6 group-hover:scale-110 transition-transform duration-300">{s.icon}</span>
-                <h3 className="font-['Space_Grotesk'] text-2xl font-bold text-white mb-4">{s.title}</h3>
-                <p className="text-[#ebbbb4]">{s.desc}</p>
-              </div>
+          <ul className="hidden items-center gap-7 lg:flex">
+            {NAV.map((n) => (
+              <li key={n.label}>
+                <button className="flex items-center gap-1 text-[13.5px] text-white/65 transition-colors duration-300 hover:text-white">
+                  {n.label}
+                  {n.items && <ChevronDown className="size-3.5 opacity-60" strokeWidth={2} />}
+                </button>
+              </li>
             ))}
+          </ul>
+
+          <div className="flex items-center gap-4">
+            <Link to="/auth" className="text-[13.5px] text-white/70 transition-colors hover:text-white">
+              Entrar
+            </Link>
+            <Link
+              to="/auth"
+              className="rounded-md border border-white/20 bg-white/[0.06] px-4 py-1.5 text-[13.5px] font-medium text-white backdrop-blur-md transition-all duration-300 hover:bg-white/15"
+            >
+              Criar conta
+            </Link>
           </div>
-        </div>
-      </section>
+        </nav>
+      </header>
 
-      {/* ===== PRODUCTS ===== */}
-      <section id="produtos" className="py-24">
-        <div className="max-w-7xl mx-auto px-8">
-          <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold tracking-tighter text-white mb-16 text-center lp-reveal">
-            {cfg.productsTitle} <span className="text-[#ff3131] italic">{cfg.productsTitleHighlight}</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {cfg.products.map((p, i) => (
-              <div
-                key={p.title}
-                className={`${p.featured ? "bg-[#ff3131] shadow-[0_0_40px_rgba(255,49,49,0.15)]" : "bg-[#0d0d0d] border border-white/5 hover:border-[#ff3131]/30"} p-8 flex flex-col h-full relative overflow-hidden transition-all duration-300 group lp-reveal`}
-                style={{ transitionDelay: `${(i + 1) * 100}ms` }}
-              >
-                {p.featured && (
-                  <div className="absolute top-0 right-0 bg-white text-[#ff3131] px-3 py-1 font-bold text-[10px] uppercase tracking-tighter">MAIS VENDIDO</div>
-                )}
-                <h3 className="font-['Space_Grotesk'] font-bold text-white text-xl mb-2">{p.title}</h3>
-                <p className={`text-xs ${p.featured ? "text-white/80" : "text-[#ff3131]"} font-bold uppercase tracking-widest mb-6`}>{p.sub}</p>
-                <div className="mb-8">
-                  <img alt={p.title} className={`w-full h-32 object-cover ${p.featured ? "brightness-110" : "grayscale group-hover:grayscale-0"} transition-all duration-500`} src={p.img} width={400} height={128} loading="lazy" />
-                </div>
-                <ul className={`text-sm ${p.featured ? "text-white font-medium" : "text-[#ebbbb4]"} space-y-3 mb-8 flex-grow`}>
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined ${p.featured ? "text-white" : "text-[#ff3131]"} text-sm`}>{p.featured ? "verified" : "check_circle"}</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className={`pt-6 border-t ${p.featured ? "border-white/20" : "border-white/5"}`}>
-                  <p className="text-2xl font-black text-white mb-4">R$ {p.price}<span className={`text-sm font-normal ${p.featured ? "text-white/70" : "text-[#ebbbb4]"}`}>{p.unit}</span></p>
-                  <button
-                    onClick={goAuth}
-                    className={`w-full py-3 font-['Space_Grotesk'] font-bold text-xs uppercase tracking-widest transition-all duration-300 ${
-                      p.featured
-                        ? "bg-white text-[#ff3131] hover:scale-105"
-                        : "bg-[#111111] text-white hover:bg-[#ff3131] hover:text-white"
-                    }`}
-                  >
-                    {p.featured ? "COMPRAR AGORA" : "COMPRAR"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SOCIAL PROOF ===== */}
-      <section className="py-24 bg-[#030303] overflow-hidden">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-16 items-center">
-            <div className="lp-reveal">
-              <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold tracking-tighter text-white mb-8 leading-tight">
-                {cfg.benefitsTitle} <span className="text-[#ff3131] italic">{cfg.benefitsTitleHighlight}</span>
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                {cfg.benefits.map((b) => (
-                  <div key={b.title} className="flex gap-4">
-                    <span className="material-symbols-outlined text-[#ff3131] text-3xl shrink-0">{b.icon}</span>
-                    <div>
-                      <h3 className="text-white font-bold mb-1">{b.title}</h3>
-                      <p className="text-sm text-[#ebbbb4]">{b.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative lp-reveal" style={{ transitionDelay: "200ms" }}>
-              <div className="absolute -inset-4 bg-[#ff3131]/10 blur-3xl rounded-full" />
-              <div className="relative space-y-4">
-                {cfg.testimonials.map((t, i) => (
-                  <div key={t.name} className={`bg-[#0d0d0d]/70 backdrop-blur-[24px] p-6 border border-white/5 hover:border-[#ff3131]/30 transition-colors duration-300 ${i === 1 ? "translate-x-4" : ""}`}>
-                    <div className="flex items-center gap-4 mb-3">
-                      <img alt={t.name} className="w-12 h-12 rounded-full grayscale hover:grayscale-0 transition-all" src={t.img} width={48} height={48} loading="lazy" />
-                      <div>
-                        <p className="text-white font-bold text-sm">{t.name}</p>
-                        <p className="text-[#ff3131] text-[10px] uppercase font-bold tracking-widest">{t.role}</p>
-                      </div>
-                    </div>
-                    <p className="text-[#ebbbb4] text-sm italic">{t.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SIMULATOR ===== */}
-      <section id="simulador" className="py-24 bg-[#0a0a0a]">
-        <div className="max-w-4xl mx-auto px-8">
-          <div className="bg-[#111111] p-10 md:p-16 border border-[#ff3131]/30 shadow-[0_0_40px_rgba(255,49,49,0.15)] relative lp-reveal">
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#ff3131] text-white px-10 py-3 font-['Space_Grotesk'] font-bold text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,49,49,0.4)]">
-              Simulador de Preço
-            </div>
-
-            <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-white mb-14 text-center">{cfg.simulator.title}</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-              {cfg.simulator.items.map((item) => (
-                <SliderField
-                  key={item.key}
-                  label={item.label}
-                  value={simValues[item.key] || 0}
-                  onChange={(v) => setSimValues((prev) => ({ ...prev, [item.key]: v }))}
-                  min={item.min}
-                  max={item.max}
+      {/* ══════ HERO ══════ */}
+      <section className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-[1240px] flex-col justify-end px-6 pb-24 md:pb-28">
+        <div className="lp-in max-w-2xl">
+          <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] py-1.5 pl-1.5 pr-4 backdrop-blur-md">
+            <div className="flex -space-x-2">
+              {["#f472b6", "#a78bfa", "#38bdf8"].map((c) => (
+                <span
+                  key={c}
+                  className="size-6 rounded-full border-2 border-black/70"
+                  style={{ background: `linear-gradient(140deg, ${c}, #1e1b4b)` }}
                 />
               ))}
             </div>
+            <span className="text-[12.5px] text-white/75">+10 mil operações rodando</span>
+          </div>
 
-            <div className="mt-16 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10">
-              <div className="text-center md:text-left">
-                <p className="text-white/50 text-[10px] uppercase font-bold tracking-[0.3em] mb-2">Total Estimado</p>
-                <p className="text-6xl font-black text-white tracking-tighter">
-                  <span className="text-[#ff3131] mr-2">R$</span>
-                  {total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <button onClick={goAuth} className="bg-[#ff3131] text-white px-16 py-6 font-['Space_Grotesk'] font-bold text-xl uppercase tracking-widest hover:shadow-[0_0_25px_rgba(255,49,49,0.6)] w-full md:w-auto transition-all duration-300 hover:scale-105 active:scale-95">
-                FINALIZAR COMPRA
-              </button>
-            </div>
+          <h1 className="text-[42px] font-medium leading-[1.06] tracking-[-0.035em] sm:text-[56px] md:text-[64px]">
+            Infraestrutura de
+            <br />
+            contingência definitiva
+          </h1>
+
+          <p className="mt-6 max-w-md text-[15.5px] leading-relaxed text-white/55">
+            Perfis, BMs e proxies residenciais de alta confiança para operações
+            que não podem parar.
+          </p>
+
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <Link
+              to="/loja"
+              className="rounded-lg bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,0.6)]"
+            >
+              Começar agora
+            </Link>
+            <a
+              href="#demo"
+              className="rounded-lg border border-white/20 bg-white/[0.04] px-6 py-2.5 text-[14px] font-medium text-white backdrop-blur-md transition-all duration-300 hover:bg-white/12"
+            >
+              Falar com especialista
+            </a>
           </div>
         </div>
       </section>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="bg-[#030303] w-full py-16 px-8 border-t border-[#ff3131]/10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
-          <div className="col-span-1 md:col-span-2">
-             <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">​</span>
-            <p className="text-sm text-white/50 max-w-sm mb-8 leading-relaxed">
-              {cfg.footer.description}
-            </p>
-            <p className="text-xs text-white/50">CNPJ: {cfg.footer.cnpj}</p>
-          </div>
-          <div>
-            <h3 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Links Rápidos</h3>
-            <ul className="space-y-4 text-xs text-white/50">
-              <li><a href="/termos" className="hover:text-[#ff3131] transition-colors">Termos de Uso</a></li>
-              <li><a href="/privacidade" className="hover:text-[#ff3131] transition-colors">Política de Privacidade</a></li>
-              <li><a href="/suporte" className="hover:text-[#ff3131] transition-colors">Suporte ao Cliente</a></li>
-              <li><a href="/parceria" className="hover:text-[#ff3131] transition-colors">Programa de Afiliados</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Segurança</h3>
-            <div className="flex gap-6">
-              <span className="material-symbols-outlined text-white/20 text-5xl">verified</span>
-              <span className="material-symbols-outlined text-white/20 text-5xl">encrypted</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* ===== FLOATING CHAT ===== */}
-      <a
-        href={cfg.hero.whatsappUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-8 right-8 z-[100] bg-[#ff3131] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(255,49,49,0.5)] hover:scale-110 transition-transform duration-300 group"
-      >
-        <span className="material-symbols-outlined text-3xl group-hover:rotate-12 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
-        <span className="absolute right-full mr-4 bg-[#111111] px-4 py-2 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-[#ff3131]/30 pointer-events-none">
-          {cfg.hero.whatsappLabel}
-        </span>
-      </a>
-
-      {/* Reveal CSS */}
-      <style>{`
-        .lp-reveal {
-          opacity: 0;
-          transform: translateY(20px);
-          transition: all 0.8s ease-out;
-        }
-        .lp-reveal.lp-active {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        input[type='range']::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          background: #ff3131;
-          cursor: pointer;
-          border-radius: 50%;
-          box-shadow: 0 0 15px rgba(255, 49, 49, 0.8);
-          border: 2px solid white;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-/* ---------- Slider sub-component ---------- */
-function SliderField({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
-  const id = label.replace(/\s+/g, '-').toLowerCase();
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <label htmlFor={id} className="text-white font-bold uppercase text-[10px] tracking-[0.2em] opacity-70">{label}</label>
-        <span className="text-[#ff3131] font-black text-2xl drop-shadow-[0_0_8px_rgba(255,49,49,0.5)]">{value}</span>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        aria-label={label}
-        className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer"
-      />
     </div>
   );
 }
-
-export default Index;
