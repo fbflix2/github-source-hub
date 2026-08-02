@@ -225,12 +225,12 @@ export function PageRequestNotification() {
                     {email && (
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-16 shrink-0">Email:</span>
-                        <span className="text-foreground">{email}</span>
+                        <span className="text-foreground break-all">{email}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground w-16 shrink-0">Produto:</span>
-                      <span className="text-foreground">{req.product_name}</span>
+                        <span className="text-foreground break-words">{req.product_name}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground w-16 shrink-0">Qtd:</span>
