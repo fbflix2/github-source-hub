@@ -5,6 +5,93 @@ import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
 import { useClientCount } from "@/hooks/useClientCount";
+import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-columns-1";
+import { motion } from "motion/react";
+
+const TESTIMONIAL_TEXTS = [
+  "Migrei toda a operação para a FBFlix e nunca mais tive campanha parada por bloqueio. Estrutura entregue na hora.",
+  "Os perfis chegam prontos e os proxies são estáveis de verdade. Escalei sem medo de perder BM.",
+  "Suporte responde em minutos. Já resolveram troca de perfil no mesmo dia, sem burocracia.",
+  "As BMs aguentam tráfego pesado. Melhor custo-benefício que encontrei no mercado de contingência.",
+  "O Safe BM salvou minha operação. Segurança e reposição garantida fazem toda a diferença.",
+  "Painel simples, entrega automática e proxy residencial de qualidade. Recomendo de olhos fechados.",
+  "Trabalho com volume alto e a FBFlix nunca me deixou na mão. Estrutura sempre disponível.",
+  "Testei vários fornecedores, aqui é o único com padrão de qualidade constante em todo pedido.",
+  "Contratei o Scale Pro e minha operação ficou muito mais previsível. Vale cada centavo.",
+];
+
+const TESTIMONIAL_ROLES = [
+  "Gestor de Tráfego",
+  "Media Buyer",
+  "Infoprodutor",
+  "Afiliado",
+  "E-commerce",
+  "Agência",
+];
+
+function shortName(full: string) {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[1].charAt(0).toUpperCase()}.`;
+}
+
+function LpTestimonials() {
+  const [items, setItems] = useState<Testimonial[]>([]);
+
+  useEffect(() => {
+    supabase.rpc("get_public_client_testimonials", { _limit: 9 }).then(({ data }) => {
+      if (!Array.isArray(data)) return;
+      const rows = data as { full_name: string | null; avatar_url: string | null }[];
+      setItems(
+        rows
+          .filter((r) => r.avatar_url && r.full_name)
+          .map((r, i) => ({
+            text: TESTIMONIAL_TEXTS[i % TESTIMONIAL_TEXTS.length],
+            image: r.avatar_url as string,
+            name: shortName(r.full_name as string),
+            role: TESTIMONIAL_ROLES[i % TESTIMONIAL_ROLES.length],
+          }))
+      );
+    });
+  }, []);
+
+  if (items.length < 3) return null;
+
+  const per = Math.ceil(items.length / 3);
+  const c1 = items.slice(0, per);
+  const c2 = items.slice(per, per * 2);
+  const c3 = items.slice(per * 2);
+
+  return (
+    <section className="relative z-10 my-20 md:my-24">
+      <div className="mx-auto max-w-[1240px] px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto flex max-w-[540px] flex-col items-center"
+        >
+          <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-[12px] text-white/60 backdrop-blur-md">
+            Depoimentos
+          </span>
+          <h2 className="mt-5 text-center text-[34px] font-medium leading-[1.1] tracking-[-0.035em] sm:text-[46px]">
+            O que dizem nossos clientes
+          </h2>
+          <p className="mt-4 text-center text-[14.5px] leading-relaxed text-white/50">
+            Operações reais que escalam com a nossa infraestrutura todos os dias.
+          </p>
+        </motion.div>
+
+        <div className="mt-14 flex max-h-[640px] justify-center gap-6 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_82%,transparent)]">
+          <TestimonialsColumn testimonials={c1} duration={22} />
+          <TestimonialsColumn testimonials={c2} className="hidden md:block" duration={28} />
+          <TestimonialsColumn testimonials={c3} className="hidden lg:block" duration={25} />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const NAV = [
   { label: "Soluções", items: true },
@@ -454,6 +541,8 @@ export default function Index() {
       </section>
 
       {/* ══════ COMO FUNCIONA ══════ */}
+      <LpTestimonials />
+
       <section className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
         <h2 className="text-center text-[34px] font-medium leading-[1.1] tracking-[-0.035em] sm:text-[46px]">
           Como funciona
