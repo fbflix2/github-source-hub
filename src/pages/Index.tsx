@@ -118,12 +118,15 @@ export default function Index() {
 
   useEffect(() => {
     supabase
-      .from("profiles")
-      .select("avatar_url")
-      .not("avatar_url", "is", null)
-      .limit(3)
+      .rpc("get_public_client_avatars", { _limit: 3 })
       .then(({ data }) => {
-        if (data) setAvatars(data.map((p) => p.avatar_url as string).filter(Boolean));
+        if (Array.isArray(data)) {
+          setAvatars(
+            (data as { avatar_url: string | null }[])
+              .map((p) => p.avatar_url as string)
+              .filter(Boolean)
+          );
+        }
       });
   }, []);
   const [products, setProducts] = useState<LpProduct[]>([]);
@@ -370,7 +373,7 @@ export default function Index() {
       </header>
 
       {/* ══════ HERO ══════ */}
-      <section className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-[1240px] flex-col justify-end px-6 pb-24 md:pb-28">
+      <section className="relative z-10 mx-auto flex max-w-[1240px] flex-col justify-center px-6 pb-12 pt-6 md:min-h-[calc(100vh-300px)] md:pb-14">
         <div className="lp-in max-w-2xl">
           <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] py-1.5 pl-1.5 pr-4 backdrop-blur-md">
             <div className="flex -space-x-2">
@@ -426,8 +429,8 @@ export default function Index() {
       </section>
 
       {/* ══════ PARCEIROS — MARQUEE ══════ */}
-      <section className="relative z-10 border-t border-white/[0.06] py-12">
-        <p className="mb-8 text-center text-[12.5px] tracking-[0.01em] text-white/40">
+      <section className="relative z-10 border-t border-white/[0.06] py-8">
+        <p className="mb-6 text-center text-[12.5px] tracking-[0.01em] text-white/40">
           Confiado por líderes do mercado
         </p>
 
