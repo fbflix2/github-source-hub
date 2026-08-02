@@ -360,6 +360,100 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
   );
 
   if (tab === "help") {
+    // handled below
+  }
+
+  if (tab === "messages") {
+    return (
+      <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-4">
+          {openThread && (
+            <button onClick={() => setOpenThread(null)} aria-label="Voltar" className="absolute left-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
+          <p className="max-w-[70%] truncate text-lg font-bold text-foreground">{openThread ? openThread.title : "Mensagens"}</p>
+          <button onClick={onClose} aria-label="Fechar" className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {openThread ? (
+          <>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+              {threadMsgs.length === 0 && (
+                <p className="pt-6 text-center text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
+              )}
+              {threadMsgs.map((m) => (
+                <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                    <p className={`mt-1 text-[10px] ${m.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{timeAgo(m.created_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-border p-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-2.5">
+                <input
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") sendReply(); }}
+                  placeholder="Escreva sua mensagem..."
+                  className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+                <button onClick={sendReply} disabled={sending || !reply.trim()} aria-label="Enviar" className="text-primary disabled:opacity-40">
+                  <Send className="size-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {threads.length === 0 ? (
+                <p className="px-6 pt-10 text-center text-sm text-muted-foreground">Você ainda não tem conversas por aqui.</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {threads.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setOpenThread({ id: t.id, title: t.title })}
+                      className="flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/40"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
+                        <Ticket className="size-5 text-primary-foreground" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-foreground">{t.title}</p>
+                          <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(t.at)}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.last}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 px-4 pb-4">
+              <button
+                onClick={() => go("/suporte")}
+                className="mx-auto flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Envie uma mensagem
+                <Send className="size-4" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {navBar}
+      </div>
+    );
+  }
+
+  if (tab === "help") {
     const q = query.trim().toLowerCase();
     const searching = q.length > 0 && !openArticle;
     const searchHits = searching
