@@ -192,7 +192,7 @@ export function PageRequestNotification() {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="size-5 text-primary" />
@@ -207,7 +207,7 @@ export function PageRequestNotification() {
               return (
                 <div
                   key={req.id}
-                  className={`rounded-lg border p-3 cursor-pointer transition-colors ${
+                  className={`rounded-lg border p-3 cursor-pointer transition-colors min-w-0 ${
                     isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                   }`}
                   onClick={() => setSelectedRequest(req)}
@@ -247,11 +247,11 @@ export function PageRequestNotification() {
                       Links do Perfil
                     </span>
                     {req.profile_links.map((link, i) => (
-                      <div key={i} className="flex items-center gap-1">
+                      <div key={i} className="flex items-center gap-1 min-w-0">
                         <span className="text-[10px] text-muted-foreground w-20 shrink-0">
                           {req.profile_links.length > 1 ? `Página ${i + 1}:` : "Perfil:"}
                         </span>
-                        <code className="flex-1 bg-muted/50 px-2 py-1 rounded text-[11px] font-mono text-foreground truncate">
+                        <code className="flex-1 min-w-0 bg-muted/50 px-2 py-1 rounded text-[11px] font-mono text-foreground truncate">
                           {link}
                         </code>
                         <button
