@@ -4,7 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientCount, applyClientCount } from "@/hooks/useClientCount";
-import { Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { ProductListItem } from "@/components/loja/ProductListItem";
 import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
 import { ProxyProductCard } from "@/components/loja/ProxyProductCard";
@@ -159,12 +159,6 @@ export default function Dashboard() {
     }
     if (profileRes.data) setUserProfile(profileRes.data);
     setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    supabase.from("profiles").select("id", { count: "exact", head: true }).then(({ count }) => {
-      if (count) setTotalClients(count);
-    });
   }, []);
 
   // Refetch every time the page is visited or becomes visible
