@@ -59,6 +59,24 @@ const PARTNERS = [
   },
 ];
 
+const STEPS = [
+  {
+    tag: "Passo 1",
+    title: "Escolha sua estrutura",
+    text: "Perfis, BMs ou proxies residenciais. Catálogo aberto, estoque real e entrega imediata após o pagamento.",
+  },
+  {
+    tag: "Passo 2",
+    title: "Ative em minutos",
+    text: "Credenciais liberadas automaticamente no painel, com tutoriais e checagem de saúde de cada ativo.",
+  },
+  {
+    tag: "Passo 3",
+    title: "Escale com suporte",
+    text: "Reposição garantida, monitoramento contínuo e time técnico acompanhando sua operação sem pausas.",
+  },
+];
+
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
@@ -275,6 +293,36 @@ export default function Index() {
                     <span className="text-[15px] font-semibold tracking-[-0.02em]">{p.name}</span>
                   </div>
                 ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ COMO FUNCIONA ══════ */}
+      <section className="relative z-10 mx-auto max-w-[1240px] px-6 py-24 md:py-32">
+        <h2 className="text-center text-[34px] font-medium leading-[1.1] tracking-[-0.035em] sm:text-[46px]">
+          Como funciona
+        </h2>
+        <p className="mx-auto mt-4 max-w-lg text-center text-[14.5px] leading-relaxed text-white/50">
+          Três passos simples para colocar sua operação de contingência no ar.
+        </p>
+
+        <div className="relative mt-20">
+          {/* linha */}
+          <div className="pointer-events-none absolute left-0 right-0 top-[7px] hidden h-px md:block">
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-[#e50914]/60 to-transparent" />
+          </div>
+
+          <div className="grid gap-14 md:grid-cols-3 md:gap-10">
+            {STEPS.map((s, i) => (
+              <div key={s.tag} className="lp-step relative" style={{ animationDelay: `${i * 0.12}s` }}>
+                <span className="lp-node relative z-10 block size-[15px] rounded-full bg-[#e50914]" />
+                <span className="mt-8 inline-flex rounded-md border border-[#e50914]/35 bg-[#e50914]/10 px-3 py-1 text-[11.5px] font-medium tracking-[-0.01em] text-white/85">
+                  {s.tag}
+                </span>
+                <h3 className="mt-5 text-[19px] font-medium tracking-[-0.025em] text-white">{s.title}</h3>
+                <p className="mt-3 max-w-xs text-[13.5px] leading-relaxed text-white/50">{s.text}</p>
               </div>
             ))}
           </div>
