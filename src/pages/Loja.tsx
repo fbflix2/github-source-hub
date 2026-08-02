@@ -23,6 +23,9 @@ interface HeroBanner {
   kind?: string | null;
   badge_text?: string | null;
   accent_color?: string | null;
+  image_zoom?: number | null;
+  image_pos_x?: number | null;
+  image_pos_y?: number | null;
 }
 
 interface ProxyImage {
@@ -448,8 +451,13 @@ export default function Dashboard() {
           {/* Cover style: full background image */}
           {processedBanners[currentBanner]?.image_style === "cover" && processedBanners[currentBanner]?.image_url && (
             <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style={{ backgroundImage: `url('${processedBanners[currentBanner].image_url}')` }}
+              className="absolute inset-0 transition-transform duration-700 group-hover:scale-105"
+              style={{
+                backgroundImage: `url('${processedBanners[currentBanner].image_url}')`,
+                backgroundRepeat: "no-repeat",
+                backgroundSize: `${Number(processedBanners[currentBanner].image_zoom ?? 100)}% auto`,
+                backgroundPosition: `${Number(processedBanners[currentBanner].image_pos_x ?? 50)}% ${Number(processedBanners[currentBanner].image_pos_y ?? 50)}%`,
+              }}
             />
           )}
           {processedBanners[currentBanner]?.image_style === "cover" && (
@@ -498,8 +506,13 @@ export default function Dashboard() {
               <div className="flex-1 w-full max-w-md relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent z-10 rounded-xl" />
                 <div
-                  className="rounded-xl overflow-hidden shadow-2xl border border-border aspect-video bg-cover bg-center"
-                  style={{ backgroundImage: `url('${processedBanners[currentBanner].image_url}')` }}
+                  className="rounded-xl overflow-hidden shadow-2xl border border-border aspect-video"
+                  style={{
+                    backgroundImage: `url('${processedBanners[currentBanner].image_url}')`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: `${Number(processedBanners[currentBanner].image_zoom ?? 100)}% auto`,
+                    backgroundPosition: `${Number(processedBanners[currentBanner].image_pos_x ?? 50)}% ${Number(processedBanners[currentBanner].image_pos_y ?? 50)}%`,
+                  }}
                 />
               </div>
             )}
