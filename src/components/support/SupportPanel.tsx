@@ -5,12 +5,14 @@ import logoFbflix from "@/assets/logo-fbflix-white.png";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import agent2 from "@/assets/support-agent-2.jpg";
 import agent3 from "@/assets/support-agent-3.jpg";
+import agent4 from "@/assets/support-agent-4.jpg";
 import { supabase } from "@/integrations/supabase/client";
 
 const TEAM = [
   { src: atendenteAvatar, alt: "Atendente FBFlix" },
   { src: agent2, alt: "Especialista de suporte" },
   { src: agent3, alt: "Especialista de contas" },
+  { src: agent4, alt: "Especialista de proxies" },
 ];
 
 interface SupportPanelProps {
