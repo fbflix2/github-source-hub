@@ -510,7 +510,7 @@ export default function Dashboard() {
       {/* Filters & Products */}
       {/* Busca de produtos */}
       <section className="space-y-3">
-        <div className="relative">
+        <div className="relative w-full md:max-w-md">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground pointer-events-none">search</span>
           <input
             type="text"
