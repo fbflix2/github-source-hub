@@ -471,12 +471,17 @@ export default function Index() {
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
               <div className="flex flex-col gap-3">
                 {ECO_LEFT.map((l) => (
-                  <div
+                  <button
                     key={l}
-                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                    onClick={() => selectEco(l)}
+                    className={`rounded-lg border px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white ${
+                      !searching && activeEco === l
+                        ? "border-[#e50914]/55 bg-[#e50914]/10 text-white"
+                        : "border-white/[0.09] bg-[#0d0d10] text-white/85"
+                    }`}
                   >
                     {l}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -571,12 +576,17 @@ export default function Index() {
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
               <div className="flex flex-col gap-3">
                 {ECO_RIGHT.map((l) => (
-                  <div
+                  <button
                     key={l}
-                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                    onClick={() => selectEco(l)}
+                    className={`rounded-lg border px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white ${
+                      !searching && activeEco === l
+                        ? "border-[#e50914]/55 bg-[#e50914]/10 text-white"
+                        : "border-white/[0.09] bg-[#0d0d10] text-white/85"
+                    }`}
                   >
                     {l}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
