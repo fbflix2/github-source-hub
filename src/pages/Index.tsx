@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X, ArrowUpRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
 import heroImage from "@/assets/hero-bg.png.asset.json";
@@ -84,10 +85,60 @@ const ECO_LEFT = ["Perfis", "BM", "Páginas", "Instagram"];
 const ECO_RIGHT = ["Proxies", "Safe BM", "Scale Pro", "Meta Box"];
 const ECO_Y = [40, 100, 160, 220];
 
+/* rótulo da vitrine + como casar com o catálogo */
+const ECO_MAP: Record<string, { word: string; slugs: string[]; terms: string[] }> = {
+  Perfis: { word: "Perfis", slugs: ["perfis"], terms: ["perfil"] },
+  BM: { word: "BM's", slugs: ["bm"], terms: ["bm", "business manager"] },
+  Páginas: { word: "Páginas", slugs: ["página", "pagina"], terms: ["página", "pagina", "fanpage"] },
+  Instagram: { word: "Instagram", slugs: ["instagram"], terms: ["instagram", "ig"] },
+  Proxies: { word: "Proxies", slugs: ["proxy"], terms: ["proxy", "proxies"] },
+  "Safe BM": { word: "Safe BM", slugs: ["safe-bm"], terms: ["safe bm", "safebm"] },
+  "Scale Pro": { word: "Scale Pro", slugs: [], terms: ["scale pro", "scalepro", "scale"] },
+  "Meta Box": { word: "Meta Box", slugs: [], terms: ["meta box", "metabox"] },
+};
+
+const norm = (s: string) =>
+  (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+interface LpProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  category_id: string | null;
+  tags: string[] | null;
+}
+
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const [products, setProducts] = useState<LpProduct[]>([]);
+  const [cats, setCats] = useState<{ id: string; slug: string | null; name: string }[]>([]);
+  const [activeEco, setActiveEco] = useState<string>("Perfis");
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [p, c] = await Promise.all([
+        supabase
+          .from("products")
+          .select("id,name,description,price,image_url,category_id,tags")
+          .eq("status", "active")
+          .order("created_at", { ascending: false }),
+        supabase.from("product_categories").select("id,slug,name"),
+      ]);
+      if (!alive) return;
+      if (p.data) setProducts(p.data as LpProduct[]);
+      if (c.data) setCats(c.data as any);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -99,6 +150,39 @@ export default function Index() {
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
+
+  const meta = ECO_MAP[activeEco] ?? ECO_MAP.Perfis;
+  const catById = (id: string | null) => cats.find((c) => c.id === id);
+
+  const searching = query.trim().length > 1;
+  const results = (() => {
+    if (searching) {
+      const q = norm(query);
+      return products.filter((p) => {
+        const cat = catById(p.category_id);
+        return norm(
+          [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || [])].join(" ")
+        ).includes(q);
+      });
+    }
+    return products.filter((p) => {
+      const cat = catById(p.category_id);
+      const slug = norm(cat?.slug || "");
+      if (meta.slugs.some((s) => norm(s) === slug)) return true;
+      const hay = norm([p.name, ...(p.tags || [])].join(" "));
+      return meta.terms.some((t) => hay.includes(norm(t)));
+    });
+  })();
+
+  const visible = showAll ? results : results.slice(0, 3);
+  const wordLabel = searching ? "Busca" : meta.word;
+
+  const selectEco = (label: string) => {
+    setQuery("");
+    setShowAll(false);
+    setActiveEco(label);
+    document.getElementById("lp-vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div ref={ref} className="lp-root relative min-h-screen w-full overflow-hidden bg-black text-white">
