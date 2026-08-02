@@ -78,6 +78,10 @@ const STEPS = [
   },
 ];
 
+const ECO_LEFT = ["Perfis", "BM", "Páginas", "Instagram"];
+const ECO_RIGHT = ["Proxies", "Safe BM", "Scale Pro", "Meta Box"];
+const ECO_Y = [40, 100, 160, 220];
+
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
