@@ -519,14 +519,14 @@ export default function Dashboard() {
       {/* Busca de produtos */}
       <section className="space-y-3">
         <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 z-20 text-foreground/70 pointer-events-none" strokeWidth={2.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por produto ou finalidade: perfil, black, bm, proxy..."
             aria-label="Buscar produtos"
-            className="w-full h-12 pl-12 pr-11 rounded-xl glass-panel border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
+            className="relative z-10 w-full h-12 pl-12 pr-11 rounded-xl glass-panel border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-all"
           />
           {searchQuery && (
             <button
