@@ -125,13 +125,16 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Body */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-6 pt-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6 pt-2">
         <button
           onClick={() => go("/suporte")}
-          className="w-full rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
+          className="relative z-10 min-h-[104px] w-full shrink-0 rounded-2xl border border-border bg-background p-4 text-left shadow-2xl transition-colors hover:bg-muted/50"
         >
-          <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
-          <div className="mt-3 flex items-start gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
+            <span className="text-xs text-muted-foreground">{recent ? timeAgo(recent.at) : "agora"}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
               <Ticket className="size-5 text-primary-foreground" />
             </span>
@@ -143,7 +146,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
                 {recent?.body ?? "Se ainda precisar de ajuda com o problema, fale com a gente"}
               </p>
             </div>
-            <span className="text-xs text-muted-foreground">{recent ? timeAgo(recent.at) : "1m"}</span>
+            <Send className="size-4 shrink-0 text-primary" />
           </div>
         </button>
 
