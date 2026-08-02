@@ -85,7 +85,6 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
       bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
       setBannerLabels(map);
     }
-    if (countRes.count) setTotalClients(countRes.count);
     setLoading(false);
   }, [resellerId]);
 
