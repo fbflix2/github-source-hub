@@ -117,7 +117,7 @@ export default function Index() {
             className="h-full w-full scale-105 object-cover opacity-70 [will-change:transform]"
           />
           <div className="absolute inset-0 bg-black/45" />
-          <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-[45vh] bg-[linear-gradient(to_top,#000_0%,rgba(0,0,0,0.92)_25%,rgba(0,0,0,0.6)_55%,transparent_100%)]" />
         </div>
 
         <svg
@@ -131,22 +131,22 @@ export default function Index() {
         >
           <defs>
             <linearGradient id="lp-a" x1="0" y1="0" x2="1" y2="0.4">
-              <stop offset="0%" stopColor="#4c1d95" stopOpacity="0" />
-              <stop offset="28%" stopColor="#7c3aed" stopOpacity="0.85" />
-              <stop offset="58%" stopColor="#d946ef" />
-              <stop offset="82%" stopColor="#ff9ae0" />
+              <stop offset="0%" stopColor="#450a0a" stopOpacity="0" />
+              <stop offset="28%" stopColor="#991b1b" stopOpacity="0.85" />
+              <stop offset="58%" stopColor="#e50914" />
+              <stop offset="82%" stopColor="#ff8a8a" />
               <stop offset="100%" stopColor="#ffffff" />
             </linearGradient>
             <linearGradient id="lp-b" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#2e1065" stopOpacity="0" />
-              <stop offset="40%" stopColor="#a21caf" stopOpacity="0.55" />
-              <stop offset="75%" stopColor="#f472b6" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#ffe9f8" />
+              <stop offset="0%" stopColor="#310505" stopOpacity="0" />
+              <stop offset="40%" stopColor="#b91c1c" stopOpacity="0.55" />
+              <stop offset="75%" stopColor="#f87171" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#ffe9e9" />
             </linearGradient>
             <linearGradient id="lp-c" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#0b0b0b" stopOpacity="0" />
-              <stop offset="60%" stopColor="#7e5a86" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.7" />
+              <stop offset="60%" stopColor="#865a5a" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#ffd5d5" stopOpacity="0.7" />
             </linearGradient>
             <filter id="lp-blur-lg" x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur stdDeviation="34" />
@@ -159,9 +159,9 @@ export default function Index() {
             </filter>
             <radialGradient id="lp-core" cx="0.5" cy="0.5" r="0.5">
               <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="35%" stopColor="#ffd7f4" stopOpacity="0.9" />
-              <stop offset="70%" stopColor="#e879f9" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#a21caf" stopOpacity="0" />
+              <stop offset="35%" stopColor="#ffd7d7" stopOpacity="0.9" />
+              <stop offset="70%" stopColor="#f95a5a" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#a21c1c" stopOpacity="0" />
             </radialGradient>
           </defs>
 
@@ -216,7 +216,8 @@ export default function Index() {
 
         {/* vignette + bottom fade */}
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_35%,rgba(0,0,0,0.75)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/70 to-transparent" />
+        <div className="absolute inset-x-0 top-[70vh] h-[70vh] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.55)_35%,rgba(0,0,0,0.9)_70%,#000_100%)]" />
+        <div className="absolute inset-x-0 top-[130vh] bottom-0 bg-black" />
         {/* grain */}
         <div className="lp-grain absolute inset-0 opacity-[0.05] mix-blend-overlay" />
       </div>
