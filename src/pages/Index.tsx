@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X, ArrowUpRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
 import heroImage from "@/assets/hero-bg.png.asset.json";
@@ -84,10 +85,60 @@ const ECO_LEFT = ["Perfis", "BM", "Páginas", "Instagram"];
 const ECO_RIGHT = ["Proxies", "Safe BM", "Scale Pro", "Meta Box"];
 const ECO_Y = [40, 100, 160, 220];
 
+/* rótulo da vitrine + como casar com o catálogo */
+const ECO_MAP: Record<string, { word: string; slugs: string[]; terms: string[] }> = {
+  Perfis: { word: "Perfis", slugs: ["perfis"], terms: ["perfil"] },
+  BM: { word: "BM's", slugs: ["bm"], terms: ["bm", "business manager"] },
+  Páginas: { word: "Páginas", slugs: ["página", "pagina"], terms: ["página", "pagina", "fanpage"] },
+  Instagram: { word: "Instagram", slugs: ["instagram"], terms: ["instagram", "ig"] },
+  Proxies: { word: "Proxies", slugs: ["proxy"], terms: ["proxy", "proxies"] },
+  "Safe BM": { word: "Safe BM", slugs: ["safe-bm"], terms: ["safe bm", "safebm"] },
+  "Scale Pro": { word: "Scale Pro", slugs: [], terms: ["scale pro", "scalepro", "scale"] },
+  "Meta Box": { word: "Meta Box", slugs: [], terms: ["meta box", "metabox"] },
+};
+
+const norm = (s: string) =>
+  (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+interface LpProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  category_id: string | null;
+  tags: string[] | null;
+}
+
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const [products, setProducts] = useState<LpProduct[]>([]);
+  const [cats, setCats] = useState<{ id: string; slug: string | null; name: string }[]>([]);
+  const [activeEco, setActiveEco] = useState<string>("Perfis");
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [p, c] = await Promise.all([
+        supabase
+          .from("products")
+          .select("id,name,description,price,image_url,category_id,tags")
+          .eq("status", "active")
+          .order("created_at", { ascending: false }),
+        supabase.from("product_categories").select("id,slug,name"),
+      ]);
+      if (!alive) return;
+      if (p.data) setProducts(p.data as LpProduct[]);
+      if (c.data) setCats(c.data as any);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -99,6 +150,41 @@ export default function Index() {
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
+
+  const meta = ECO_MAP[activeEco] ?? ECO_MAP.Perfis;
+  const catById = (id: string | null) => cats.find((c) => c.id === id);
+
+  const searching = query.trim().length > 1;
+  const results = (() => {
+    if (searching) {
+      const q = norm(query);
+      return products.filter((p) => {
+        const cat = catById(p.category_id);
+        return norm(
+          [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || [])].join(" ")
+        ).includes(q);
+      });
+    }
+    const bySlug = products.filter((p) => {
+      const slug = norm(catById(p.category_id)?.slug || "");
+      return meta.slugs.some((s) => norm(s) === slug);
+    });
+    if (bySlug.length) return bySlug;
+    return products.filter((p) => {
+      const hay = norm([p.name, ...(p.tags || [])].join(" "));
+      return meta.terms.some((t) => hay.includes(norm(t)));
+    });
+  })();
+
+  const visible = showAll ? results : results.slice(0, 3);
+  const wordLabel = searching ? "Busca" : meta.word;
+
+  const selectEco = (label: string) => {
+    setQuery("");
+    setShowAll(false);
+    setActiveEco(label);
+    document.getElementById("lp-vitrine")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div ref={ref} className="lp-root relative min-h-screen w-full overflow-hidden bg-black text-white">
@@ -354,6 +440,31 @@ export default function Index() {
 
       {/* ══════ ECOSSISTEMA ══════ */}
       <section className="relative z-10 mx-auto max-w-[1240px] px-6 pb-28">
+        {/* busca liquid glass */}
+        <div className="mx-auto mb-10 max-w-[680px]">
+          <div className="lp-glass-search flex items-center gap-3 rounded-full px-5 py-3.5">
+            <Search className="size-[18px] shrink-0 text-white/60" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowAll(false);
+              }}
+              placeholder="Busque um ativo ou finalidade — perfil, BM, proxy, contingência…"
+              className="w-full bg-transparent text-[14px] tracking-[-0.015em] text-white placeholder:text-white/35 outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="grid size-6 shrink-0 place-items-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Limpar busca"
+              >
+                <X className="size-[14px]" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="lp-step relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#120306] to-[#08080a] p-6 sm:p-10">
           <div className="lp-eco-dots pointer-events-none absolute inset-0" />
 
@@ -362,12 +473,17 @@ export default function Index() {
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
               <div className="flex flex-col gap-3">
                 {ECO_LEFT.map((l) => (
-                  <div
+                  <button
                     key={l}
-                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                    onClick={() => selectEco(l)}
+                    className={`rounded-lg border px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white ${
+                      !searching && activeEco === l
+                        ? "border-[#e50914]/55 bg-[#e50914]/10 text-white"
+                        : "border-white/[0.09] bg-[#0d0d10] text-white/85"
+                    }`}
                   >
                     {l}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -462,15 +578,86 @@ export default function Index() {
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 backdrop-blur-sm">
               <div className="flex flex-col gap-3">
                 {ECO_RIGHT.map((l) => (
-                  <div
+                  <button
                     key={l}
-                    className="rounded-lg border border-white/[0.09] bg-[#0d0d10] px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] text-white/85 shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white"
+                    onClick={() => selectEco(l)}
+                    className={`rounded-lg border px-4 py-2.5 text-center text-[13.5px] font-medium tracking-[-0.015em] shadow-[0_6px_24px_-14px_rgba(229,9,20,0.9)] transition-colors duration-300 hover:border-[#e50914]/40 hover:text-white ${
+                      !searching && activeEco === l
+                        ? "border-[#e50914]/55 bg-[#e50914]/10 text-white"
+                        : "border-white/[0.09] bg-[#0d0d10] text-white/85"
+                    }`}
                   >
                     {l}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ VITRINE ══════ */}
+      <section id="lp-vitrine" className="relative z-10 mx-auto max-w-[1240px] px-6 pb-32">
+        <div className="relative">
+          {/* palavra ao fundo */}
+          <div className="pointer-events-none absolute inset-x-0 -top-2 flex justify-center overflow-hidden">
+            <span className="lp-word select-none whitespace-nowrap text-[15vw] sm:text-[13vw] md:text-[150px]">
+              {wordLabel}
+            </span>
+          </div>
+
+          <div className="relative pt-[9vw] md:pt-[92px]">
+            {results.length === 0 ? (
+              <div className="lp-shop-card rounded-2xl px-6 py-14 text-center text-[14px] text-white/50">
+                Nenhum ativo encontrado {searching ? "para essa busca." : "nessa categoria."}
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {visible.map((p) => (
+                    <article key={p.id} className="lp-shop-card flex flex-col rounded-2xl p-6">
+                      <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium tracking-[-0.01em] text-white/60">
+                        {catById(p.category_id)?.name || wordLabel}
+                      </span>
+                      <h3 className="mt-5 text-[19px] font-medium leading-tight tracking-[-0.025em] text-white">
+                        {p.name}
+                      </h3>
+                      {p.description && (
+                        <p className="mt-3 line-clamp-3 text-[13.5px] leading-relaxed text-white/45">
+                          {p.description}
+                        </p>
+                      )}
+                      <div className="mt-7 flex flex-1 items-end justify-between gap-3 border-t border-white/[0.07] pt-5">
+                        <p className="text-[26px] font-semibold tracking-[-0.03em] text-white">
+                          R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
+                        </p>
+                        <Link
+                          to={`/loja?product=${p.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[12.5px] font-medium tracking-[-0.01em] text-black transition-transform duration-300 hover:scale-[1.04]"
+                        >
+                          Comprar
+                          <ArrowUpRight className="size-[14px]" />
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {results.length > 3 && (
+                  <div className="mt-10 flex justify-center">
+                    <button
+                      onClick={() => setShowAll((v) => !v)}
+                      className="lp-glass-search inline-flex items-center gap-2 rounded-full px-6 py-3 text-[13px] font-medium tracking-[-0.015em] text-white/85 transition-colors hover:text-white"
+                    >
+                      {showAll ? "Ver menos" : `Ver mais (${results.length - 3})`}
+                      <ChevronDown
+                        className={`size-[15px] transition-transform duration-300 ${showAll ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </section>
