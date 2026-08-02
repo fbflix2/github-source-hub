@@ -484,8 +484,10 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
           onClick={onWhatsApp}
           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-4 text-left shadow-sm transition-colors hover:bg-muted/50"
         >
-          <p className="text-sm font-semibold text-foreground">Envie uma mensagem</p>
-          <Send className="size-5 fill-primary text-primary" />
+          <p className="text-sm font-semibold text-foreground">Dúvida rápida</p>
+          <span className="flex size-8 items-center justify-center rounded-full bg-[#25D366]">
+            <img src={whatsappIcon} alt="WhatsApp" className="size-5" />
+          </span>
         </button>
 
         <div className="rounded-2xl border border-border bg-background shadow-sm">
