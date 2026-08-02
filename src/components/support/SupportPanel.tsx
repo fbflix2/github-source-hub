@@ -89,9 +89,9 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
   return (
     <div className="absolute bottom-20 right-0 flex h-[560px] max-h-[calc(100vh-8rem)] w-[calc(100vw-3rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
-      <div className="relative shrink-0 bg-gradient-to-br from-primary to-primary/70 px-6 pb-7 pt-6 text-primary-foreground">
+      <div className="relative shrink-0 bg-gradient-to-br from-primary to-primary/70 px-6 pb-8 pt-6 text-primary-foreground">
         <div className="flex items-start justify-between">
-          <img src={logoFbflix} alt="FBFlix" className="h-9 w-auto object-contain drop-shadow" />
+          <img src={logoFbflix} alt="FBFlix" className="h-11 w-auto object-contain drop-shadow" />
           <div className="flex items-center gap-2">
             <div className="flex -space-x-3">
               {TEAM.map((m) => (
@@ -123,7 +123,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Body */}
-      <div className="-mt-5 flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4">
         {recent && (
           <button
             onClick={() => go("/suporte")}
