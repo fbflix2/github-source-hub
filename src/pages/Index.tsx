@@ -12,6 +12,53 @@ const NAV = [
   { label: "Preços", items: false },
 ];
 
+const PARTNERS = [
+  {
+    name: "Echo Valley",
+    mark: (
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor">
+        <path d="M3 3l7 9-7 9h4l5-6.5L17 21h4l-7-9 7-9h-4l-5 6.5L7 3H3z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Celestial",
+    mark: (
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor">
+        <path d="M12 1l1.7 6.1L19 4l-3.1 5.3L22 11l-6.1 1.7L19 18l-5.3-3.1L12 21l-1.7-6.1L5 18l3.1-5.3L2 11l6.1-1.7L5 4l5.3 3.1L12 1z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Acme Corp",
+    mark: (
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor">
+        <path d="M12 2l10 20H2L12 2zm0 6L7 18h10L12 8z" />
+      </svg>
+    ),
+  },
+  {
+    name: "Quantum",
+    mark: (
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor">
+        <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-3.2 6.8a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4zm6.4 0a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4zM12 14.5a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z" />
+      </svg>
+    ),
+  },
+  {
+    name: "2TWICE",
+    mark: null,
+  },
+  {
+    name: "Northwind",
+    mark: (
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="currentColor">
+        <path d="M4 20V4h3l10 11V4h3v16h-3L7 9v11H4z" />
+      </svg>
+    ),
+  },
+];
+
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
@@ -205,6 +252,31 @@ export default function Index() {
             >
               Falar com especialista
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ PARCEIROS — MARQUEE ══════ */}
+      <section className="relative z-10 border-t border-white/[0.06] py-12">
+        <p className="mb-8 text-center text-[12.5px] tracking-[0.01em] text-white/40">
+          Confiado por líderes do mercado
+        </p>
+
+        <div className="lp-marquee relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <div className="lp-marquee-track">
+            {[0, 1].map((dup) => (
+              <div key={dup} className="flex shrink-0 items-center gap-16 pr-16" aria-hidden={dup === 1}>
+                {PARTNERS.map((p) => (
+                  <div
+                    key={p.name}
+                    className="flex items-center gap-2.5 whitespace-nowrap text-white/55 transition-colors duration-300 hover:text-white"
+                  >
+                    {p.mark}
+                    <span className="text-[15px] font-semibold tracking-[-0.02em]">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </section>
