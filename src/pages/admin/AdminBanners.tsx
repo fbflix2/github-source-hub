@@ -358,7 +358,7 @@ export default function AdminBanners() {
         </div>
       )}
 
-      <BannerEditorModal open={editorOpen} onOpenChange={setEditorOpen} banner={editingBanner} onSaved={fetchBanners} />
+      <BannerEditorModal open={editorOpen} onOpenChange={setEditorOpen} banner={editingBanner} onSaved={fetchBanners} kind={kindTab} />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
