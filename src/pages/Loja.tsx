@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useClientCount, applyClientCount } from "@/hooks/useClientCount";
 import { Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductListItem } from "@/components/loja/ProductListItem";
 import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
@@ -86,7 +87,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
-  const [totalClients, setTotalClients] = useState(3746);
+  const totalClients = useClientCount(3746);
 
   useEffect(() => {
     let cancelled = false;
@@ -427,7 +428,7 @@ export default function Dashboard() {
   const processedBanners = useMemo(() => {
     return heroBanners.map(banner => ({
       ...banner,
-      subtitle: banner.subtitle?.replace(/3\.581/g, totalClients.toLocaleString("pt-BR")) || null
+      subtitle: applyClientCount(banner.subtitle, totalClients)
     }));
   }, [heroBanners, totalClients]);
 
