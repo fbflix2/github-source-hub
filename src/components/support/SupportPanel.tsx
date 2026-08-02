@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Send, Search, ChevronRight, Home, MessageSquare, HelpCircle, Ticket } from "lucide-react";
+import { X, Send, Search, Home, MessageSquare, HelpCircle, CheckSquare, Ticket } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import agent2 from "@/assets/support-agent-2.jpg";
@@ -123,16 +123,16 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Body */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4">
+      <div className="-mt-5 flex-1 space-y-3 overflow-y-auto px-4 pb-4">
         {recent && (
           <button
             onClick={() => go("/suporte")}
-            className="w-full rounded-2xl border border-border bg-background p-4 text-left shadow-lg transition-colors hover:bg-muted/50"
+            className="w-full rounded-2xl border border-border bg-background p-4 text-left shadow-xl transition-colors hover:bg-muted/50"
           >
             <p className="text-sm font-semibold text-foreground">Mensagem recente</p>
             <div className="mt-2 flex items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-                <Ticket className="size-4 text-primary" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary">
+                <Ticket className="size-5 text-primary-foreground" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{recent.subject}</p>
@@ -152,17 +152,6 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
             <p className="text-xs text-muted-foreground">Dúvida rápida no WhatsApp</p>
           </div>
           <Send className="size-4 text-primary" />
-        </button>
-
-        <button
-          onClick={() => go("/suporte")}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-4 text-left shadow-sm transition-colors hover:bg-muted/50"
-        >
-          <div>
-            <p className="text-sm font-semibold text-foreground">Abrir chamado de suporte</p>
-            <p className="text-xs text-muted-foreground">Acompanhe seus tickets</p>
-          </div>
-          <ChevronRight className="size-4 text-muted-foreground" />
         </button>
 
         <div className="rounded-2xl border border-border bg-background shadow-sm">
@@ -192,7 +181,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Bottom nav */}
-      <div className="grid grid-cols-3 border-t border-border bg-card">
+      <div className="grid grid-cols-4 border-t border-border bg-card">
         <button className="flex flex-col items-center gap-1 py-3 text-primary">
           <Home className="size-5" />
           <span className="text-[11px] font-medium">Início</span>
@@ -204,6 +193,10 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
         <button onClick={() => go("/termos")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
           <HelpCircle className="size-5" />
           <span className="text-[11px] font-medium">Ajuda</span>
+        </button>
+        <button onClick={() => go("/orders")} className="flex flex-col items-center gap-1 py-3 text-muted-foreground transition-colors hover:text-foreground">
+          <CheckSquare className="size-5" />
+          <span className="text-[11px] font-medium">Tarefas</span>
         </button>
       </div>
     </div>
