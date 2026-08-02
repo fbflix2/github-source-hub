@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap');
 /* Fonts loaded via index.html with preload for performance */
 
 @tailwind base;
@@ -310,7 +311,6 @@
 }
 
 /* ═══════ LANDING PAGE (isolada do design system) ═══════ */
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap');
 
 .lp-root {
   font-family: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
