@@ -113,6 +113,7 @@ export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ x: 0, y: 0 });
   const clientCount = useClientCount(3850);
+  const navigate = useNavigate();
   const [avatars, setAvatars] = useState<string[]>([]);
 
   useEffect(() => {
