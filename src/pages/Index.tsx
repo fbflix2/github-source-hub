@@ -492,6 +492,16 @@ export default function Index() {
                 setShowAll(false);
               }}
               placeholder="Busque um ativo ou finalidade — perfil, BM, proxy, contingência…"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                if (ordered.length > 0) {
+                  navigate(`/loja?product=${ordered[0].id}`);
+                } else {
+                  document
+                    .getElementById("lp-vitrine")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
               className="w-full bg-transparent text-[14px] tracking-[-0.015em] text-white placeholder:text-white/35 outline-none"
             />
             {query && (
