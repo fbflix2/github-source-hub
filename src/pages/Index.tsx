@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import logoWhite from "@/assets/logo-fbflix-white.png";
 import heroVideo from "@/assets/hero-bg.mp4.asset.json";
+import heroPoster from "@/assets/hero-poster.jpg.asset.json";
 
 const NAV = [
   { label: "Soluções", items: true },
@@ -106,16 +107,14 @@ export default function Index() {
         <div className="absolute inset-x-0 top-0 h-[115vh] overflow-hidden">
           <video
             src={heroVideo.url}
+            poster={heroPoster.url}
             autoPlay
             muted
             loop
             playsInline
-            preload="auto"
-            className="h-full w-full object-cover opacity-70"
-            style={{
-              transform: `translate3d(${m.x * -10}px, ${m.y * -8}px, 0) scale(1.08)`,
-              transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
-            }}
+            preload="metadata"
+            disablePictureInPicture
+            className="h-full w-full scale-105 object-cover opacity-70 [will-change:transform]"
           />
           <div className="absolute inset-0 bg-black/45" />
           <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black to-transparent" />
