@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useClientCount, applyClientCount } from "@/hooks/useClientCount";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/contexts/CartContext";
@@ -57,7 +58,7 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [totalClients, setTotalClients] = useState(3746);
+  const totalClients = useClientCount(3746);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -109,7 +110,7 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
 
   const processedBanners = useMemo(() => banners.map(b => ({
     ...b,
-    subtitle: b.subtitle?.replace(/3\.581/g, totalClients.toLocaleString("pt-BR")) || null,
+    subtitle: applyClientCount(b.subtitle, totalClients),
   })), [banners, totalClients]);
 
   const getQty = (id: string) => quantities[id] || 1;
