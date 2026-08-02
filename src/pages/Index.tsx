@@ -438,6 +438,31 @@ export default function Index() {
 
       {/* ══════ ECOSSISTEMA ══════ */}
       <section className="relative z-10 mx-auto max-w-[1240px] px-6 pb-28">
+        {/* busca liquid glass */}
+        <div className="mx-auto mb-10 max-w-[680px]">
+          <div className="lp-glass-search flex items-center gap-3 rounded-full px-5 py-3.5">
+            <Search className="size-[18px] shrink-0 text-white/60" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowAll(false);
+              }}
+              placeholder="Busque um ativo ou finalidade — perfil, BM, proxy, contingência…"
+              className="w-full bg-transparent text-[14px] tracking-[-0.015em] text-white placeholder:text-white/35 outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="grid size-6 shrink-0 place-items-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Limpar busca"
+              >
+                <X className="size-[14px]" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="lp-step relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#120306] to-[#08080a] p-6 sm:p-10">
           <div className="lp-eco-dots pointer-events-none absolute inset-0" />
 
