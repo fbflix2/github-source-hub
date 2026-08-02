@@ -87,10 +87,9 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
   };
 
   return (
-    <div className="absolute bottom-20 right-0 flex h-[560px] max-h-[calc(100vh-8rem)] w-[calc(100vw-3rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div className="absolute bottom-20 right-0 flex h-[660px] max-h-[calc(100vh-7rem)] w-[calc(100vw-3rem)] max-w-[430px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
-      <div className="relative shrink-0 bg-gradient-to-br from-primary via-primary/80 to-primary/40 px-6 pb-14 pt-6 text-primary-foreground">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-card" />
+      <div className="relative shrink-0 bg-gradient-to-b from-primary via-primary/75 to-card px-6 pb-10 pt-6 text-primary-foreground">
         <div className="relative">
         <div className="flex items-start justify-between">
           <img src={logoFbflix} alt="FBFlix" className="h-11 w-auto object-contain drop-shadow" />
@@ -116,7 +115,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-10">
           <p className="text-2xl font-semibold opacity-70">
             Olá{firstName ? ` ${firstName}` : ""} 👋
           </p>
@@ -126,7 +125,7 @@ export function SupportPanel({ userName, onClose, onWhatsApp }: SupportPanelProp
       </div>
 
       {/* Body */}
-      <div className="-mt-10 flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-6 pt-2">
         {recent && (
           <button
             onClick={() => go("/suporte")}
