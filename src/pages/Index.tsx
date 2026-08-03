@@ -510,7 +510,9 @@ export default function Index() {
               Começar agora
             </Link>
             <a
-              href="#demo"
+              href="https://wa.me/5519989411105?text=Oi%20vim%20pelo%20site%20da%20fbflix"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-lg border border-white/20 bg-white/[0.04] px-6 py-2.5 text-[14px] font-medium text-white backdrop-blur-md transition-all duration-300 hover:bg-white/12"
             >
               Falar com especialista
