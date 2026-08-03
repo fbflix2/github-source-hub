@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch {}
     const dryRun = body?.dry_run === true;
     const resetFirst = body?.reset_and_run === true;
+    const onlyNames: string[] | null = Array.isArray(body?.only_names) && body.only_names.length ? body.only_names : null;
 
     // If reset_and_run, clear grace_notifications for non-cancelled subs
     if (resetFirst) {
@@ -83,12 +84,14 @@ Deno.serve(async (req) => {
     const GRACE_FEE_PER_DAY = 0.25;
 
     // ======== FETCH ALL PROXY SUBSCRIPTIONS (Webshare + ProxyBR) ========
-    const { data: allSubs, error: subsErr } = await admin
+    let subsQuery = admin
       .from("subscriptions")
       .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew, notifications_enabled")
          .in("type", ["webshare", "webshare_rotating", "proxybr", "proxyfbflix", "proxyfbflix_rotating"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
+    if (onlyNames) subsQuery = subsQuery.in("name", onlyNames);
+    const { data: allSubs, error: subsErr } = await subsQuery;
 
     if (subsErr) throw new Error("Erro ao buscar assinaturas: " + subsErr.message);
     if (!allSubs?.length) return ok({ success: true, message: "Nenhuma assinatura para processar", processed: 0 });
