@@ -2484,11 +2484,12 @@ Deno.serve(async (req) => {
 
     // ========== MIGRATE PROXYBR RENEWAL → WEBSHARE ==========
     if (action === "migrate-proxybr-renewal") {
-      const { subscription_name, proxy_index, total_proxies, auto_renew_user_id } = params as {
+      const { subscription_name, proxy_index, total_proxies, auto_renew_user_id, skip_whatsapp } = params as {
         subscription_name: string;
         proxy_index?: number;
         total_proxies?: number;
         auto_renew_user_id?: string;
+        skip_whatsapp?: boolean;
       };
       if (!subscription_name) throw new Error("subscription_name é obrigatório");
 
@@ -2824,8 +2825,8 @@ Deno.serve(async (req) => {
         console.error(`[migrate-proxybr] push error: ${pushErr?.message}`);
       }
 
-       // 10. WhatsApp confirmation to client
-       if (profile?.phone) {
+        // 10. WhatsApp confirmation to client (skipped on batch auto-renew: lifecycle sends a single summary)
+        if (profile?.phone && !skip_whatsapp) {
          try {
            const { data: tpl } = await supabaseAdmin
              .from("whatsapp_templates")

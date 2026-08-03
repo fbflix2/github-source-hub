@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
               action: "migrate-proxybr-renewal",
               subscription_name: sub.name,
               auto_renew_user_id: sub.user_id,
+              skip_whatsapp: true,
             }),
           });
           let resp: any = {};
