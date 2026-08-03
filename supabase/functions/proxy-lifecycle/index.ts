@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           }
 
           autoRenewedIds.add(sub.id);
-          const price = Number(resp?.price ?? resp?.renewal_price ?? buildPriceGuess(sub));
+          const price = Number(resp?.price ?? resp?.renewal_price ?? buildProxyLine(sub).price);
           balances[sub.user_id] = Math.max(0, balances[sub.user_id] - (Number.isFinite(price) ? price : 0));
 
           // Clear pending grace stages so no warning is ever sent for this cycle
@@ -450,7 +450,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[proxy-lifecycle] Processed ${results.length} subscriptions, queued ${waQueue.length} WA messages`);
-    return ok({ success: true, processed: results.length, wa_queued: waQueue.length, details: results, dry_run: dryRun });
+    return ok({ success: true, processed: results.length + autoRenewResults.length, wa_queued: waQueue.length, auto_renewed: autoRenewResults.length, details: [...autoRenewResults, ...results], dry_run: dryRun });
   } catch (error: any) {
     console.error("[proxy-lifecycle] Error:", error.message);
     return err(error.message, 500);
