@@ -45,6 +45,10 @@ function LpTestimonials() {
       setItems(
         rows
           .filter((r) => r.avatar_url && r.full_name)
+          .filter(
+            (r) =>
+              !/^fabr[íi]cio\b/i.test((r.full_name as string).trim())
+          )
           .map((r, i) => ({
             text: TESTIMONIAL_TEXTS[i % TESTIMONIAL_TEXTS.length],
             image: r.avatar_url as string,
