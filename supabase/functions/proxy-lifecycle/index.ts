@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
     // Collect user IDs for profile lookups
     const userIds = [...new Set(allSubs.map(s => s.user_id))];
-    const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds);
+    const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
     const profileMap: Record<string, any> = {};
     for (const p of profiles || []) profileMap[p.user_id] = p;
 
@@ -132,9 +132,69 @@ Deno.serve(async (req) => {
 
     if (!subsWithStage.length) return ok({ success: true, message: "Nenhuma assinatura pendente de ação", processed: 0 });
 
+    // ======== AUTO-RENEW FIRST (clients with auto_renew + wallet balance) ========
+    // These must NEVER receive an expiration warning: we renew and thank them.
+    const autoRenewResults: any[] = [];
+    const autoRenewedIds = new Set<string>();
+    const autoRenewThanks: Array<{ userId: string; codes: string[]; total: number; endDate: string }> = [];
+
+    if (!dryRun) {
+      const balances: Record<string, number> = {};
+      for (const uid of userIds) balances[uid] = Number(profileMap[uid]?.balance || 0);
+
+      const eligible = subsWithStage.filter(
+        (s) => s.auto_renew === true && s.stage !== "d_plus_5_cancelled" && balances[s.user_id] > 0
+      );
+
+      for (const sub of eligible) {
+        try {
+          const { data: resp, error: invErr } = await admin.functions.invoke("proxyfbflix-api", {
+            body: {
+              action: "migrate-proxybr-renewal",
+              subscription_name: sub.name,
+              auto_renew_user_id: sub.user_id,
+            },
+          });
+          const okRenew = !invErr && resp?.success !== false && !resp?.error;
+          if (!okRenew) {
+            console.log(`[proxy-lifecycle] auto-renew failed ${sub.name}: ${invErr?.message || resp?.error}`);
+            autoRenewResults.push({ sub: sub.name, action: "auto_renew_failed", reason: invErr?.message || resp?.error });
+            continue;
+          }
+
+          autoRenewedIds.add(sub.id);
+          const price = Number(resp?.price ?? resp?.renewal_price ?? buildPriceGuess(sub));
+          balances[sub.user_id] = Math.max(0, balances[sub.user_id] - (Number.isFinite(price) ? price : 0));
+
+          // Clear pending grace stages so no warning is ever sent for this cycle
+          await admin.from("subscriptions").update({ grace_notifications: {} }).eq("id", sub.id);
+
+          const { data: fresh } = await admin
+            .from("subscriptions").select("end_date").eq("id", sub.id).maybeSingle();
+
+          let entry = autoRenewThanks.find((t) => t.userId === sub.user_id);
+          if (!entry) {
+            entry = { userId: sub.user_id, codes: [], total: 0, endDate: fresh?.end_date || "" };
+            autoRenewThanks.push(entry);
+          }
+          entry.codes.push(sub.name || sub.id.slice(0, 8));
+          entry.total += Number.isFinite(price) ? price : 0;
+          if (fresh?.end_date) entry.endDate = fresh.end_date;
+
+          autoRenewResults.push({ sub: sub.name, action: "auto_renewed", price });
+        } catch (e: any) {
+          console.error(`[proxy-lifecycle] auto-renew error ${sub.name}: ${e.message}`);
+          autoRenewResults.push({ sub: sub.name, action: "auto_renew_error", reason: e.message });
+        }
+      }
+    }
+
+    // Remove auto-renewed subs from the notification pipeline
+    const pendingSubs = subsWithStage.filter((s) => !autoRenewedIds.has(s.id));
+
     // Group by user_id + stage for consolidated WhatsApp messages
     const userStageGroups: Record<string, SubWithStage[]> = {};
-    for (const sub of subsWithStage) {
+    for (const sub of pendingSubs) {
       const key = `${sub.user_id}::${sub.stage}`;
       if (!userStageGroups[key]) userStageGroups[key] = [];
       userStageGroups[key].push(sub);
@@ -143,6 +203,25 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     // Queue for delayed sending
     const waQueue: Array<{ phone: string; message: string; user_id: string; event_key: string; metadata: any }> = [];
+
+    // Thank-you messages for auto-renewals (sent first, no expiration warning)
+    for (const t of autoRenewThanks) {
+      const p = profileMap[t.userId];
+      if (!p?.phone) continue;
+      const nomeAR = p.full_name || "Cliente";
+      const venc = t.endDate ? new Date(t.endDate).toLocaleDateString("pt-BR") : "";
+      const lista = t.codes.map((c) => `• ${c}`).join("\n");
+      const msgAR = t.codes.length > 1
+        ? `Olá ${nomeAR} ✅\n\n*Renovação automática concluída!*\n\nRenovamos seus ${t.codes.length} proxies usando seu saldo:\n\n${lista}\n\n💰 Total: R$ ${t.total.toFixed(2)}${venc ? `\n📅 Próximo vencimento: ${venc}` : ""}\n\nObrigado por continuar com a gente! 🙏`
+        : `Olá ${nomeAR} ✅\n\n*Renovação automática concluída!*\n\nSeu proxy *${t.codes[0]}* foi renovado com o seu saldo.\n\n💰 Valor: R$ ${t.total.toFixed(2)}${venc ? `\n📅 Próximo vencimento: ${venc}` : ""}\n\nObrigado por continuar com a gente! 🙏`;
+      waQueue.push({
+        phone: normalizePhone(p.phone),
+        message: msgAR,
+        user_id: t.userId,
+        event_key: "proxy_auto_renewed",
+        metadata: { codes: t.codes, total: t.total },
+      });
+    }
 
     // Helper to build proxy line for a sub
     function buildProxyLine(sub: SubWithStage): { line: string; price: number; ip: string; code: string } {
