@@ -2802,6 +2802,28 @@ Deno.serve(async (req) => {
         global: true,
       });
 
+      // 9b. Web push to admins (renewal = sale)
+      try {
+        const pushKey = Deno.env.get("PUSH_TRIGGER_KEY");
+        if (pushKey) {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-internal-secret": pushKey,
+            },
+            body: JSON.stringify({
+              title: `🔄 Renovação: Proxy ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''}`,
+              body: `R$ ${renewalPrice.toFixed(2)} • saldo em carteira • ${clientName}`,
+              url: "/admin/assinaturas",
+              tag: `renew-${existingSub.id}`,
+            }),
+          });
+        }
+      } catch (pushErr: any) {
+        console.error(`[migrate-proxybr] push error: ${pushErr?.message}`);
+      }
+
        // 10. WhatsApp confirmation to client
        if (profile?.phone) {
          try {
