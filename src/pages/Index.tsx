@@ -202,7 +202,7 @@ interface LpProduct {
 
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
-  const [m, setM] = useState({ x: 0, y: 0 });
+  const auroraRef = useRef<HTMLDivElement>(null);
   const clientCount = useClientCount(3850);
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -248,14 +248,25 @@ export default function Index() {
 
   useEffect(() => {
     if (window.matchMedia("(pointer: coarse)").matches) return;
+    let raf = 0;
+    let tx = 0;
+    let ty = 0;
     const onMove = (e: MouseEvent) => {
-      setM({
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2,
+      tx = (e.clientX / window.innerWidth - 0.5) * 2 * -14;
+      ty = (e.clientY / window.innerHeight - 0.5) * 2 * -10;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (auroraRef.current) {
+          auroraRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        }
       });
     };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   const meta = ECO_MAP[activeEco] ?? ECO_MAP.Perfis;
