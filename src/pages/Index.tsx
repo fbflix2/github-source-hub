@@ -442,7 +442,7 @@ export default function Index() {
         <div className="absolute inset-x-0 top-[70vh] h-[70vh] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.55)_35%,rgba(0,0,0,0.9)_70%,#000_100%)]" />
         <div className="absolute inset-x-0 top-[130vh] bottom-0 bg-black" />
         {/* grain */}
-        <div className="lp-grain absolute inset-0 hidden opacity-[0.05] mix-blend-overlay md:block" />
+        <div className="lp-grain absolute inset-x-0 top-0 hidden h-[115vh] opacity-[0.05] mix-blend-overlay md:block" />
       </div>
 
       {/* ══════ NAV ══════ */}
