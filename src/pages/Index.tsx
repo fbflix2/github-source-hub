@@ -202,7 +202,7 @@ interface LpProduct {
 
 export default function Index() {
   const ref = useRef<HTMLDivElement>(null);
-  const [m, setM] = useState({ x: 0, y: 0 });
+  const auroraRef = useRef<HTMLDivElement>(null);
   const clientCount = useClientCount(3850);
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -248,14 +248,25 @@ export default function Index() {
 
   useEffect(() => {
     if (window.matchMedia("(pointer: coarse)").matches) return;
+    let raf = 0;
+    let tx = 0;
+    let ty = 0;
     const onMove = (e: MouseEvent) => {
-      setM({
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2,
+      tx = (e.clientX / window.innerWidth - 0.5) * 2 * -14;
+      ty = (e.clientY / window.innerHeight - 0.5) * 2 * -10;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (auroraRef.current) {
+          auroraRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        }
       });
     };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   const meta = ECO_MAP[activeEco] ?? ECO_MAP.Perfis;
@@ -326,14 +337,19 @@ export default function Index() {
           <div className="absolute inset-x-0 bottom-0 h-[45vh] bg-[linear-gradient(to_top,#000_0%,rgba(0,0,0,0.92)_25%,rgba(0,0,0,0.6)_55%,transparent_100%)]" />
         </div>
 
+        <div
+          ref={auroraRef}
+          className="absolute inset-x-0 top-0 hidden h-[115vh] md:block"
+          style={{
+            transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
+            willChange: "transform",
+            contain: "paint",
+          }}
+        >
         <svg
-          className="absolute inset-0 hidden h-full w-full opacity-70 mix-blend-screen md:block"
+          className="h-full w-full scale-[1.06] opacity-70 mix-blend-screen"
           viewBox="0 0 1440 900"
           preserveAspectRatio="xMidYMid slice"
-          style={{
-            transform: `translate3d(${m.x * -14}px, ${m.y * -10}px, 0) scale(1.06)`,
-            transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
-          }}
         >
           <defs>
             <linearGradient id="lp-a" x1="0" y1="0" x2="1" y2="0.4">
@@ -392,7 +408,6 @@ export default function Index() {
             fill="none"
             filter="url(#lp-blur-md)"
             opacity="0.95"
-            className="lp-drift"
           />
 
           {/* bright hairline */}
@@ -412,13 +427,13 @@ export default function Index() {
             fill="none"
             filter="url(#lp-blur-lg)"
             opacity="0.7"
-            className="lp-drift-slow"
           />
 
           {/* magenta core */}
           <ellipse cx="1180" cy="470" rx="330" ry="230" fill="url(#lp-core)" opacity="0.95" />
           <ellipse cx="1290" cy="470" rx="150" ry="120" fill="url(#lp-core)" />
         </svg>
+        </div>
 
         {/* fallback leve para mobile (sem filtros SVG) */}
         <div className="absolute inset-x-0 top-0 h-[100vh] md:hidden bg-[radial-gradient(60%_45%_at_78%_38%,rgba(229,9,20,0.45)_0%,rgba(229,9,20,0.12)_45%,transparent_75%),radial-gradient(50%_35%_at_20%_20%,rgba(185,28,28,0.28)_0%,transparent_70%)]" />
@@ -427,7 +442,7 @@ export default function Index() {
         <div className="absolute inset-x-0 top-[70vh] h-[70vh] bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.55)_35%,rgba(0,0,0,0.9)_70%,#000_100%)]" />
         <div className="absolute inset-x-0 top-[130vh] bottom-0 bg-black" />
         {/* grain */}
-        <div className="lp-grain absolute inset-0 hidden opacity-[0.05] mix-blend-overlay md:block" />
+        <div className="lp-grain absolute inset-x-0 top-0 hidden h-[115vh] opacity-[0.05] mix-blend-overlay md:block" />
       </div>
 
       {/* ══════ NAV ══════ */}
