@@ -337,14 +337,19 @@ export default function Index() {
           <div className="absolute inset-x-0 bottom-0 h-[45vh] bg-[linear-gradient(to_top,#000_0%,rgba(0,0,0,0.92)_25%,rgba(0,0,0,0.6)_55%,transparent_100%)]" />
         </div>
 
+        <div
+          ref={auroraRef}
+          className="absolute inset-x-0 top-0 hidden h-[115vh] md:block"
+          style={{
+            transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
+            willChange: "transform",
+            contain: "paint",
+          }}
+        >
         <svg
-          className="absolute inset-0 hidden h-full w-full opacity-70 mix-blend-screen md:block"
+          className="h-full w-full scale-[1.06] opacity-70 mix-blend-screen"
           viewBox="0 0 1440 900"
           preserveAspectRatio="xMidYMid slice"
-          style={{
-            transform: `translate3d(${m.x * -14}px, ${m.y * -10}px, 0) scale(1.06)`,
-            transition: "transform 900ms cubic-bezier(0.16,1,0.3,1)",
-          }}
         >
           <defs>
             <linearGradient id="lp-a" x1="0" y1="0" x2="1" y2="0.4">
