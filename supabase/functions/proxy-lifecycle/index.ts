@@ -148,17 +148,26 @@ Deno.serve(async (req) => {
 
       for (const sub of eligible) {
         try {
-          const { data: resp, error: invErr } = await admin.functions.invoke("proxyfbflix-api", {
-            body: {
+          const rawResp = await fetch(`${SUPABASE_URL}/functions/v1/proxyfbflix-api`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+            },
+            body: JSON.stringify({
               action: "migrate-proxybr-renewal",
               subscription_name: sub.name,
               auto_renew_user_id: sub.user_id,
-            },
+            }),
           });
-          const okRenew = !invErr && resp?.success !== false && !resp?.error;
+          let resp: any = {};
+          try { resp = await rawResp.json(); } catch {}
+          const okRenew = rawResp.ok && resp?.success !== false && !resp?.error;
           if (!okRenew) {
-            console.log(`[proxy-lifecycle] auto-renew failed ${sub.name}: ${invErr?.message || resp?.error}`);
-            autoRenewResults.push({ sub: sub.name, action: "auto_renew_failed", reason: invErr?.message || resp?.error });
+            const reason = resp?.error || `HTTP ${rawResp.status}`;
+            console.log(`[proxy-lifecycle] auto-renew failed ${sub.name}: ${reason}`);
+            autoRenewResults.push({ sub: sub.name, action: "auto_renew_failed", reason });
             continue;
           }
 
