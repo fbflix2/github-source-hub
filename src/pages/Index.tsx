@@ -408,7 +408,6 @@ export default function Index() {
             fill="none"
             filter="url(#lp-blur-md)"
             opacity="0.95"
-            className="lp-drift"
           />
 
           {/* bright hairline */}
@@ -428,13 +427,13 @@ export default function Index() {
             fill="none"
             filter="url(#lp-blur-lg)"
             opacity="0.7"
-            className="lp-drift-slow"
           />
 
           {/* magenta core */}
           <ellipse cx="1180" cy="470" rx="330" ry="230" fill="url(#lp-core)" opacity="0.95" />
           <ellipse cx="1290" cy="470" rx="150" ry="120" fill="url(#lp-core)" />
         </svg>
+        </div>
 
         {/* fallback leve para mobile (sem filtros SVG) */}
         <div className="absolute inset-x-0 top-0 h-[100vh] md:hidden bg-[radial-gradient(60%_45%_at_78%_38%,rgba(229,9,20,0.45)_0%,rgba(229,9,20,0.12)_45%,transparent_75%),radial-gradient(50%_35%_at_20%_20%,rgba(185,28,28,0.28)_0%,transparent_70%)]" />
