@@ -8,8 +8,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'FBFlix';
   const options = {
     body: data.body || '',
-    icon: data.icon || '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: data.icon || '/notif-icon.png',
+    badge: '/notif-icon.png',
     data: { url: data.url || '/' },
     tag: data.tag || 'fbflix-push',
     renotify: true,
