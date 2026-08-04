@@ -58,6 +58,7 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [tagOverrides, setTagOverrides] = useState<Record<string, string[]>>({});
   const totalClients = useClientCount(3746);
 
   useEffect(() => {
@@ -68,16 +69,22 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, countRes] = await Promise.all([
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, countRes, tagsRes] = await Promise.all([
       supabase.from("products").select("*, product_categories!inner(slug)").eq("status", "active").eq("product_categories.slug", "proxy"),
       supabase.from("product_categories").select("id, slug"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
       supabase.from("banners").select("*").eq("active", true).eq("reseller_id", resellerId).order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
       supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("reseller_product_tags").select("product_id, tags").eq("reseller_id", resellerId),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data as any);
+    if (tagsRes.data) {
+      const tmap: Record<string, string[]> = {};
+      (tagsRes.data as any[]).forEach((t) => { tmap[t.product_id] = (t.tags as string[]) || []; });
+      setTagOverrides(tmap);
+    }
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
     if (bannersRes.data) setBanners(bannersRes.data as any);
     if (bannerCatsRes.data) {
@@ -95,8 +102,9 @@ export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, pr
   const priced = useMemo(() => products.map(p => ({
     ...p,
     price: proxyFixedPrice !== null ? proxyFixedPrice : Number(p.price || 0) * proxyMultiplier,
+    tags: tagOverrides[p.id] ?? p.tags,
     image_url: p.image_url || getProxyImage(p.name),
-  })), [products, proxyMultiplier, proxyFixedPrice, proxyImages]);
+  })), [products, proxyMultiplier, proxyFixedPrice, proxyImages, tagOverrides]);
 
   const filtered = useMemo(() => {
     if (activePurpose === "Todos") return priced;
