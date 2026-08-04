@@ -30,6 +30,9 @@ interface Props {
   model: "percentage" | "credit";
   proxyUnitCost: number;
   commissionRate: number;
+  proxyPriceMultiplier?: number;
+  proxyFixedPrice?: number | null;
+  proxyPriceMode?: string;
 }
 
 interface ProxyProduct {
