@@ -908,6 +908,7 @@ export default function AdminBackupFb() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <BackupCredentialsModal file={credsFile} onClose={() => setCredsFile(null)} />
       </div>
     );
   }
