@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import {
   FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X,
 } from "lucide-react";
+import { KeyRound } from "lucide-react";
+import { BackupCredentialsModal, BackupCredFile } from "@/components/admin/BackupCredentialsModal";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -147,6 +149,7 @@ export default function AdminBackupFb() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [createDragActive, setCreateDragActive] = useState(false);
   const createFileInputRef = useRef<HTMLInputElement>(null);
+  const [credsFile, setCredsFile] = useState<BackupCredFile | null>(null);
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
