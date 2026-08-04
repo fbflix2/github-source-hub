@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Package,
   Server,
@@ -18,6 +19,9 @@ import {
   EyeOff,
   TrendingUp,
   Coins,
+  Tag,
+  X,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +43,7 @@ interface ProxyProduct {
   available: boolean;
   image_url: string | null;
   reseller_cost: number | null;
+  tags: string[] | null;
 }
 
 interface Override {
@@ -49,6 +54,19 @@ interface Override {
 }
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const MAX_TAGS = 5;
+const SUGGESTED_TAGS = [
+  "Contingência",
+  "Web Scraping",
+  "Tráfego Pago",
+  "Automação",
+  "Redes Sociais",
+  "Alta Velocidade",
+  "IP Dedicado",
+  "Residencial",
+  "Promoção",
+];
 
 export default function ResellerCatalogoPrecos({
   resellerId,
@@ -65,17 +83,23 @@ export default function ResellerCatalogoPrecos({
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
+  const [tagOverrides, setTagOverrides] = useState<Record<string, string[]>>({});
+  const [tagEditing, setTagEditing] = useState<ProxyProduct | null>(null);
+  const [tagDraft, setTagDraft] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [tagSaving, setTagSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prods }, { data: ovs }] = await Promise.all([
+    const [{ data: prods }, { data: ovs }, { data: tagRows }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, status, available, image_url, reseller_cost, product_categories!inner(slug)")
+        .select("id, name, price, status, available, image_url, reseller_cost, tags, product_categories!inner(slug)")
         .eq("status", "active")
         .eq("product_categories.slug", "proxy")
         .order("name", { ascending: true }),
       supabase.from("reseller_price_overrides").select("*").eq("reseller_id", resellerId),
+      supabase.from("reseller_product_tags").select("product_id, tags").eq("reseller_id", resellerId),
     ]);
     // Proxy Rotativo é uso interno — nunca disponível para revenda
     setProducts((((prods as any[]) || []).filter((p) => !/rotativ/i.test(p.name || "")) as any));
@@ -87,6 +111,11 @@ export default function ResellerCatalogoPrecos({
     });
     setOverrides(oMap);
     setDrafts(dMap);
+    const tMap: Record<string, string[]> = {};
+    ((tagRows as any[]) || []).forEach((r) => {
+      tMap[r.product_id] = (r.tags as string[]) || [];
+    });
+    setTagOverrides(tMap);
     setLoading(false);
   };
 
@@ -185,6 +214,75 @@ export default function ResellerCatalogoPrecos({
     toast.success(next ? "Item ativado na loja" : "Item ocultado da loja");
   };
 
+  const effectiveTags = (p: ProxyProduct): string[] =>
+    tagOverrides[p.id] ?? ((p.tags || []).filter((t) => t.toLowerCase() !== "proxyfbflix"));
+
+  const openTagEditor = (p: ProxyProduct) => {
+    setTagEditing(p);
+    setTagDraft(effectiveTags(p).slice(0, MAX_TAGS));
+    setTagInput("");
+  };
+
+  const addTag = (raw: string) => {
+    const tag = raw.trim();
+    if (!tag) return;
+    if (tagDraft.length >= MAX_TAGS) {
+      toast.error(`Máximo de ${MAX_TAGS} tags por produto`);
+      return;
+    }
+    if (tagDraft.some((t) => t.toLowerCase() === tag.toLowerCase())) {
+      toast.error("Tag já adicionada");
+      return;
+    }
+    setTagDraft((d) => [...d, tag]);
+    setTagInput("");
+  };
+
+  const saveTags = async () => {
+    if (!tagEditing) return;
+    setTagSaving(true);
+    try {
+      const { error } = await supabase
+        .from("reseller_product_tags")
+        .upsert(
+          { reseller_id: resellerId, product_id: tagEditing.id, tags: tagDraft },
+          { onConflict: "reseller_id,product_id" }
+        );
+      if (error) throw error;
+      setTagOverrides((m) => ({ ...m, [tagEditing.id]: tagDraft }));
+      toast.success("Tags atualizadas na sua loja");
+      setTagEditing(null);
+    } catch (e: any) {
+      toast.error("Erro ao salvar tags: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setTagSaving(false);
+    }
+  };
+
+  const resetTags = async () => {
+    if (!tagEditing) return;
+    setTagSaving(true);
+    try {
+      const { error } = await supabase
+        .from("reseller_product_tags")
+        .delete()
+        .eq("reseller_id", resellerId)
+        .eq("product_id", tagEditing.id);
+      if (error) throw error;
+      setTagOverrides((m) => {
+        const next = { ...m };
+        delete next[tagEditing.id];
+        return next;
+      });
+      toast.success("Tags padrão restauradas");
+      setTagEditing(null);
+    } catch (e: any) {
+      toast.error("Erro ao restaurar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setTagSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -256,6 +354,7 @@ export default function ResellerCatalogoPrecos({
             <thead className="bg-muted/20 text-muted-foreground text-[11px] uppercase tracking-wider">
               <tr>
                 <th className="text-left px-5 py-3">Proxy</th>
+                <th className="text-left px-4 py-3">Tags na sua loja</th>
                 <th className="text-right px-4 py-3">
                   <span className="inline-flex items-center gap-1">
                     <Coins className="size-3" /> Custo
@@ -270,7 +369,7 @@ export default function ResellerCatalogoPrecos({
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
                     Nenhum proxy encontrado.
                   </td>
                 </tr>
@@ -323,6 +422,30 @@ export default function ResellerCatalogoPrecos({
                           </p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-[240px]">
+                      <button
+                        type="button"
+                        onClick={() => openTagEditor(p)}
+                        className="group flex flex-wrap items-center gap-1.5 text-left"
+                      >
+                        {effectiveTags(p).length === 0 ? (
+                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                            <Plus className="size-3" /> adicionar tags
+                          </span>
+                        ) : (
+                          effectiveTags(p).slice(0, MAX_TAGS).map((t) => (
+                            <Badge
+                              key={t}
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 border-primary/30 text-primary bg-primary/5"
+                            >
+                              {t}
+                            </Badge>
+                          ))
+                        )}
+                        <Tag className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
                     </td>
                     <td className="text-right px-4 py-3 font-mono text-muted-foreground">
                       {BRL(cost)}
@@ -410,6 +533,83 @@ export default function ResellerCatalogoPrecos({
         controlar quais proxies seus clientes podem comprar no seu domínio. Itens desativados ficam
         ocultos automaticamente.
       </p>
+
+      {/* Tag editor */}
+      <Dialog open={!!tagEditing} onOpenChange={(o) => !o && setTagEditing(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="size-4 text-primary" /> Tags · {tagEditing?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Estas tags aparecem apenas na <span className="text-foreground font-medium">sua loja</span>.
+              Máximo de {MAX_TAGS} tags por produto.
+            </p>
+            <div className="flex flex-wrap gap-2 min-h-8">
+              {tagDraft.length === 0 && (
+                <span className="text-xs text-muted-foreground">Nenhuma tag</span>
+              )}
+              {tagDraft.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-medium"
+                >
+                  {t}
+                  <button onClick={() => setTagDraft((d) => d.filter((x) => x !== t))}>
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTag(tagInput);
+                  }
+                }}
+                placeholder="Nova tag e Enter..."
+                maxLength={24}
+                className="bg-background/60"
+              />
+              <Button type="button" variant="outline" onClick={() => addTag(tagInput)}>
+                <Plus className="size-4" />
+              </Button>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-2">Sugestões</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SUGGESTED_TAGS.filter(
+                  (s) => !tagDraft.some((t) => t.toLowerCase() === s.toLowerCase())
+                ).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addTag(s)}
+                    className="px-2 py-1 rounded-md text-[11px] bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={resetTags} disabled={tagSaving}>
+              Restaurar padrão
+            </Button>
+            <Button onClick={saveTags} disabled={tagSaving} className="gap-1.5">
+              {tagSaving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
