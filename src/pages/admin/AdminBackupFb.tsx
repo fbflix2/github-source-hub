@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import {
   FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X,
 } from "lucide-react";
+import { KeyRound } from "lucide-react";
+import { BackupCredentialsModal, BackupCredFile } from "@/components/admin/BackupCredentialsModal";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -147,6 +149,7 @@ export default function AdminBackupFb() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [createDragActive, setCreateDragActive] = useState(false);
   const createFileInputRef = useRef<HTMLInputElement>(null);
+  const [credsFile, setCredsFile] = useState<BackupCredFile | null>(null);
 
   const fetchFolders = useCallback(async () => {
     setLoading(true);
@@ -870,6 +873,15 @@ export default function AdminBackupFb() {
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCredsFile({ id: f.id, file_name: f.file_name, storage_path: f.storage_path, fb_id: f.fb_id })}
+                      className="gap-1.5 text-primary"
+                      title="Ver credenciais"
+                    >
+                      <KeyRound className="size-3.5" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => setFileToDelete(f)} className="text-destructive">
                       <Trash2 className="size-3.5" />
                     </Button>
@@ -896,6 +908,7 @@ export default function AdminBackupFb() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <BackupCredentialsModal file={credsFile} onClose={() => setCredsFile(null)} />
       </div>
     );
   }
