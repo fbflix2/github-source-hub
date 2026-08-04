@@ -2583,6 +2583,7 @@ export type Database = {
           payment_expiry: string | null
           payment_last4: string | null
           payment_method: string | null
+          push_notified_at: string | null
           reseller_id: string | null
           status: string
           subtotal: number
@@ -2600,6 +2601,7 @@ export type Database = {
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
+          push_notified_at?: string | null
           reseller_id?: string | null
           status?: string
           subtotal?: number
@@ -2617,6 +2619,7 @@ export type Database = {
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
+          push_notified_at?: string | null
           reseller_id?: string | null
           status?: string
           subtotal?: number
@@ -6290,6 +6293,7 @@ export type Database = {
         Args: { _body?: string; _tag?: string; _title: string; _url?: string }
         Returns: undefined
       }
+      notify_order_sale: { Args: { _order_id: string }; Returns: undefined }
       notify_user_push: {
         Args: {
           _body: string
@@ -6317,6 +6321,7 @@ export type Database = {
         Args: { _user_id: string; _visitor_id: string }
         Returns: number
       }
+      pay_method_label: { Args: { _m: string }; Returns: string }
       process_whatsapp_queue: { Args: never; Returns: undefined }
       release_partner_commissions: { Args: never; Returns: number }
       release_reseller_commissions: { Args: never; Returns: number }
