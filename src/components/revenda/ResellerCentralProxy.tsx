@@ -22,8 +22,10 @@ import {
   ArrowDownRight,
   Sparkles,
   ShieldCheck,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 
 interface Props {
   resellerId: string;
