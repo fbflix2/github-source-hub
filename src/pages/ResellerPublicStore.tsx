@@ -64,6 +64,7 @@ export default function ResellerPublicStore() {
   const [banners, setBanners] = useState<HeroBanner[]>([]);
   const [proxyImages, setProxyImages] = useState<{ name: string; url: string }[]>([]);
   const [overrides, setOverrides] = useState<Record<string, { custom_price: number; enabled: boolean }>>({});
+  const [tagOverrides, setTagOverrides] = useState<Record<string, string[]>>({});
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
