@@ -677,6 +677,19 @@ export function ResellerCentralProxy({
             </div>
           </Card>
         </TabsContent>
+
+        {/* Catálogo & Preços */}
+        <TabsContent value="catalogo">
+          <ResellerCatalogoPrecos
+            resellerId={resellerId}
+            model={model}
+            proxyUnitCost={proxyUnitCost}
+            commissionRate={commissionRate}
+            proxyPriceMultiplier={proxyPriceMultiplier ?? 1.5}
+            proxyFixedPrice={proxyFixedPrice ?? null}
+            proxyPriceMode={proxyPriceMode ?? "multiplier"}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
