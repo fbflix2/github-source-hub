@@ -193,4 +193,27 @@ export function BackupCredentialsModal({
 
             {parsed.extras.length > 0 && (
               <div className="space-y-3 pt-2 border-t border-border">
-                {parsed.extras.slice(0, 12).
+                {parsed.extras.slice(0, 12).map((x, i) => (
+                  <Field key={i} label={x.label} value={x.value} mono />
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-border">
+              <Button variant="ghost" size="sm" onClick={() => setShowRaw((s) => !s)} className="text-xs">
+                {showRaw ? "Ocultar conteúdo bruto" : "Ver conteúdo bruto"}
+              </Button>
+              {showRaw && (
+                <pre className="mt-2 text-[10px] p-2 rounded bg-black/40 border border-border max-h-64 overflow-auto whitespace-pre-wrap break-all">
+                  {text}
+                </pre>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">Sem dados</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
