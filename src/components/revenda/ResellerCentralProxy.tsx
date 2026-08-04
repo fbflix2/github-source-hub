@@ -22,14 +22,19 @@ import {
   ArrowDownRight,
   Sparkles,
   ShieldCheck,
+  Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ResellerCatalogoPrecos from "@/components/revenda/ResellerCatalogoPrecos";
 
 interface Props {
   resellerId: string;
   model: "percentage" | "credit";
   proxyUnitCost: number;
   commissionRate: number;
+  proxyPriceMultiplier?: number;
+  proxyFixedPrice?: number | null;
+  proxyPriceMode?: string;
 }
 
 interface ProxyProduct {
@@ -97,6 +102,9 @@ export function ResellerCentralProxy({
   model,
   proxyUnitCost,
   commissionRate,
+  proxyPriceMultiplier,
+  proxyFixedPrice,
+  proxyPriceMode,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -376,6 +384,9 @@ export function ResellerCentralProxy({
         <TabsList className="bg-card/60 border border-border/40 backdrop-blur-xl">
           <TabsTrigger value="precos">
             <Percent className="size-4 mr-1.5" /> Preços & Margem
+          </TabsTrigger>
+          <TabsTrigger value="catalogo">
+            <Tags className="size-4 mr-1.5" /> Catálogo & Preços
           </TabsTrigger>
           <TabsTrigger value="vendas">
             <ShoppingCart className="size-4 mr-1.5" /> Novas Vendas
@@ -665,6 +676,19 @@ export function ResellerCentralProxy({
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* Catálogo & Preços */}
+        <TabsContent value="catalogo">
+          <ResellerCatalogoPrecos
+            resellerId={resellerId}
+            model={model}
+            proxyUnitCost={proxyUnitCost}
+            commissionRate={commissionRate}
+            proxyPriceMultiplier={proxyPriceMultiplier ?? 1.5}
+            proxyFixedPrice={proxyFixedPrice ?? null}
+            proxyPriceMode={proxyPriceMode ?? "multiplier"}
+          />
         </TabsContent>
       </Tabs>
     </div>

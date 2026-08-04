@@ -710,6 +710,9 @@ export default function RevendaPortal() {
                 model={reseller.model}
                 proxyUnitCost={Number(reseller.proxy_unit_cost || 0)}
                 commissionRate={Number(reseller.commission_rate || 0)}
+                proxyPriceMultiplier={reseller.proxy_price_multiplier ?? 1.5}
+                proxyFixedPrice={reseller.proxy_fixed_price ?? null}
+                proxyPriceMode={reseller.proxy_price_mode ?? "multiplier"}
               />
             )}
 
