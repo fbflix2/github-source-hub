@@ -100,6 +100,9 @@ export function ResellerCentralProxy({
   model,
   proxyUnitCost,
   commissionRate,
+  proxyPriceMultiplier,
+  proxyFixedPrice,
+  proxyPriceMode,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -379,6 +382,9 @@ export function ResellerCentralProxy({
         <TabsList className="bg-card/60 border border-border/40 backdrop-blur-xl">
           <TabsTrigger value="precos">
             <Percent className="size-4 mr-1.5" /> Preços & Margem
+          </TabsTrigger>
+          <TabsTrigger value="catalogo">
+            <Tags className="size-4 mr-1.5" /> Catálogo & Preços
           </TabsTrigger>
           <TabsTrigger value="vendas">
             <ShoppingCart className="size-4 mr-1.5" /> Novas Vendas
