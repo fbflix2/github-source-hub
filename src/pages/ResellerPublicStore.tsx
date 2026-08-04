@@ -64,6 +64,7 @@ export default function ResellerPublicStore() {
   const [banners, setBanners] = useState<HeroBanner[]>([]);
   const [proxyImages, setProxyImages] = useState<{ name: string; url: string }[]>([]);
   const [overrides, setOverrides] = useState<Record<string, { custom_price: number; enabled: boolean }>>({});
+  const [tagOverrides, setTagOverrides] = useState<Record<string, string[]>>({});
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activePurpose, setActivePurpose] = useState("Todos");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -138,6 +139,18 @@ export default function ResellerPublicStore() {
           .eq("reseller_id", r.id),
       ]);
 
+      const tagsRes = await supabase
+        .from("reseller_product_tags")
+        .select("product_id, tags")
+        .eq("reseller_id", r.id);
+      if (tagsRes.data) {
+        const tmap: Record<string, string[]> = {};
+        (tagsRes.data as any[]).forEach((t) => {
+          tmap[t.product_id] = (t.tags as string[]) || [];
+        });
+        setTagOverrides(tmap);
+      }
+
       if (productsRes.data)
         setProducts(
           (productsRes.data as any[]).filter((p) => !/rotativ/i.test(p.name || "")) as any
@@ -182,10 +195,11 @@ export default function ResellerPublicStore() {
         return {
           ...p,
           price: newPrice,
+          tags: tagOverrides[p.id] ?? p.tags,
           image_url: p.image_url || getProxyImage(p.name),
         };
       });
-  }, [products, reseller, proxyImages, overrides]);
+  }, [products, reseller, proxyImages, overrides, tagOverrides]);
 
   const filtered = useMemo(() => {
     if (activePurpose === "Todos") return priced;
