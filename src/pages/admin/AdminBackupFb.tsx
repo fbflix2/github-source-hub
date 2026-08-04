@@ -873,6 +873,15 @@ export default function AdminBackupFb() {
                     <Button variant="ghost" size="sm" onClick={() => handleDownload(f)} className="gap-1.5">
                       <Download className="size-3.5" /> Baixar
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCredsFile({ id: f.id, file_name: f.file_name, storage_path: f.storage_path, fb_id: f.fb_id })}
+                      className="gap-1.5 text-primary"
+                      title="Ver credenciais"
+                    >
+                      <KeyRound className="size-3.5" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => setFileToDelete(f)} className="text-destructive">
                       <Trash2 className="size-3.5" />
                     </Button>
