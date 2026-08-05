@@ -4,7 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Eye, EyeOff, Loader2, KeyRound } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, Loader2, IdCard, KeyRound, Mail, Lock, AtSign, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "fb-backups";
@@ -99,36 +99,39 @@ function parseCredentials(text: string, fallbackId?: string | null): Parsed {
   return out;
 }
 
-function Field({
-  label, value, secret, mono,
-}: { label: string; value?: string; secret?: boolean; mono?: boolean }) {
+function Row({
+  icon, label, value, secret,
+}: { icon: React.ReactNode; label: string; value?: string; secret?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [show, setShow] = useState(!secret);
-  if (!value) return null;
+  const has = !!value;
+  const display = !has ? "—" : show ? value! : "••••••••••••";
   const copy = () => {
-    navigator.clipboard.writeText(value);
+    if (!has) return;
+    navigator.clipboard.writeText(value!);
     setCopied(true);
     toast.success(`${label} copiado`);
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <div className="space-y-1">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="flex items-start gap-1.5">
-        <code
-          className={`flex-1 min-w-0 px-2 py-1.5 rounded border border-border bg-muted/30 text-xs ${mono ? "font-mono" : ""} break-all max-h-24 overflow-y-auto`}
-        >
-          {show ? value : "••••••••••••"}
-        </code>
-        {secret && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setShow((s) => !s)}>
-            {show ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-          </Button>
-        )}
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={copy}>
-          {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
-        </Button>
-      </div>
+    <div className="flex items-center gap-2 py-1.5">
+      <span className="shrink-0 text-primary/80">{icon}</span>
+      <span className="shrink-0 text-xs text-muted-foreground w-28">{label}:</span>
+      <span className={`flex-1 min-w-0 truncate text-xs font-mono ${has ? "text-foreground" : "text-muted-foreground"}`}>
+        {display}
+      </span>
+      {secret && has && (
+        <button className="shrink-0 text-muted-foreground hover:text-foreground" onClick={() => setShow((s) => !s)}>
+          {show ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+        </button>
+      )}
+      <button
+        disabled={!has}
+        className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+        onClick={copy}
+      >
+        {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      </button>
     </div>
   );
 }
@@ -179,27 +182,55 @@ export function BackupCredentialsModal({
           </div>
         ) : parsed ? (
           <div className="space-y-3">
-            <Field label="ID do perfil" value={parsed.id} mono />
-            <Field label="Nome" value={parsed.name} />
-            <Field label="E-mail" value={parsed.email} mono />
-            <Field label="E-mail alternativo" value={parsed.emailAlt} mono />
-            <Field label="Senha do Facebook" value={parsed.password} secret mono />
-            <Field label="Senha do e-mail" value={parsed.emailPassword} secret mono />
-            <Field label="Token 2FA" value={parsed.token2fa} secret mono />
-            <Field label="Access Token" value={parsed.accessToken} secret mono />
-            <Field label="Cookies" value={parsed.cookies} secret mono />
-            <Field label="User Agent" value={parsed.userAgent} />
-            <Field label="Data de nascimento" value={parsed.birthday} />
-
-            {parsed.extras.length > 0 && (
-              <div className="space-y-3 pt-2 border-t border-border">
-                {parsed.extras.slice(0, 12).map((x, i) => (
-                  <Field key={i} label={x.label} value={x.value} mono />
-                ))}
+            <div className="rounded-2xl border border-border bg-card/60 p-4">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-base font-bold font-mono truncate">{parsed.id || parsed.name || file?.file_name}</p>
               </div>
-            )}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                <Facebook className="size-3.5 text-blue-500" />
+                <span>{parsed.name || "Facebook"}</span>
+              </div>
 
-            <div className="pt-2 border-t border-border">
+              <div className="divide-y divide-border/60">
+                <Row icon={<IdCard className="size-3.5" />} label="ID da conta" value={parsed.id} />
+                <Row icon={<KeyRound className="size-3.5" />} label="Senha FB" value={parsed.password} secret />
+                <Row icon={<Mail className="size-3.5" />} label="Email principal" value={parsed.email} />
+                <Row icon={<Lock className="size-3.5" />} label="Senha do email" value={parsed.emailPassword} secret />
+                <Row icon={<AtSign className="size-3.5" />} label="Email alternativo" value={parsed.emailAlt} />
+                {parsed.token2fa && <Row icon={<KeyRound className="size-3.5" />} label="Token 2FA" value={parsed.token2fa} secret />}
+                {parsed.accessToken && <Row icon={<KeyRound className="size-3.5" />} label="Access Token" value={parsed.accessToken} secret />}
+                {parsed.cookies && <Row icon={<KeyRound className="size-3.5" />} label="Cookies" value={parsed.cookies} secret />}
+                {parsed.birthday && <Row icon={<IdCard className="size-3.5" />} label="Nascimento" value={parsed.birthday} />}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-border flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => {
+                    const lines = [
+                      parsed.id && `ID: ${parsed.id}`,
+                      parsed.name && `Nome: ${parsed.name}`,
+                      parsed.email && `Email: ${parsed.email}`,
+                      parsed.password && `Senha FB: ${parsed.password}`,
+                      parsed.emailPassword && `Senha email: ${parsed.emailPassword}`,
+                      parsed.emailAlt && `Email alternativo: ${parsed.emailAlt}`,
+                      parsed.token2fa && `2FA: ${parsed.token2fa}`,
+                      parsed.accessToken && `Access Token: ${parsed.accessToken}`,
+                      parsed.cookies && `Cookies: ${parsed.cookies}`,
+                      parsed.birthday && `Nascimento: ${parsed.birthday}`,
+                    ].filter(Boolean).join("\n");
+                    navigator.clipboard.writeText(lines);
+                    toast.success("Credenciais copiadas");
+                  }}
+                >
+                  <Copy className="size-3.5" /> Copiar Tudo
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-1">
               <Button variant="ghost" size="sm" onClick={() => setShowRaw((s) => !s)} className="text-xs">
                 {showRaw ? "Ocultar conteúdo bruto" : "Ver conteúdo bruto"}
               </Button>
