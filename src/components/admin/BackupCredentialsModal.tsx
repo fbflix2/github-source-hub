@@ -4,7 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Eye, EyeOff, Loader2, IdCard, KeyRound, Mail, Lock, AtSign, Facebook } from "lucide-react";
+import { Copy, Check, Eye, EyeOff, Loader2, IdCard, KeyRound, Mail, Lock, AtSign, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "fb-backups";
@@ -187,7 +187,7 @@ export function BackupCredentialsModal({
                 <p className="text-base font-bold font-mono truncate">{parsed.id || parsed.name || file?.file_name}</p>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                <Facebook className="size-3.5 text-blue-500" />
+                <UserCircle2 className="size-3.5 text-blue-500" />
                 <span>{parsed.name || "Facebook"}</span>
               </div>
 
