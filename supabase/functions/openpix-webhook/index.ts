@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
         .eq("payment_id", paymentId);
       await supabase.from("notifications").insert({
         title: "Cobrança Paga",
-        message: `Cobrança ${metadataObj.invoice_code || ""} de R$ ${amount.toFixed(2)} paga via OpenPix.`,
+        message: `Cobrança ${metadataObj.invoice_code || ""} de R$ ${amount.toFixed(2)} paga via PIX.`,
         type: "payment", global: true,
       });
     } else if (isCtSubscription) {
@@ -521,7 +521,7 @@ Deno.serve(async (req) => {
       const newBalance = (profile?.balance || 0) + amount;
       await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", userId);
       await supabase.from("wallet_transactions").insert({
-        user_id: userId, type: "deposit", title: "Recarga via PIX (OpenPix)",
+        user_id: userId, type: "deposit", title: "Recarga via PIX",
         amount, balance_after: newBalance, reference_id: paymentId,
       });
       await supabase.from("notifications").insert({
@@ -556,7 +556,7 @@ Deno.serve(async (req) => {
       }
       await supabase.from("notifications").insert({
         title: resellerId ? "Pedido Pago (Revendedor)" : "Pedido Pago",
-        message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via OpenPix.${resellerLabel}`,
+        message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via PIX.${resellerLabel}`,
         type: "order", global: true,
       });
     }
