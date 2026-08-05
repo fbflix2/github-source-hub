@@ -75,7 +75,7 @@ function getGatewayDisplay(gateway: string) {
     case "mercadopago":
       return { icon: <CreditCard className="size-4 text-blue-300" />, label: "Mercado Pago" };
     case "openpix":
-      return { icon: <QrCode className="size-4 text-emerald-400" />, label: "OpenPix" };
+      return { icon: <QrCode className="size-4 text-emerald-400" />, label: "PIX" };
     case "saldo":
       return { icon: <Wallet className="size-4 text-purple-400" />, label: "Saldo" };
     default:
@@ -305,7 +305,7 @@ export default function ResellerPagamentos({ resellerId }: Props) {
             <SelectContent>
               <SelectItem value="todos">Gateway: Todos</SelectItem>
               <SelectItem value="mercadopago">Mercado Pago</SelectItem>
-              <SelectItem value="openpix">OpenPix</SelectItem>
+              <SelectItem value="openpix">PIX</SelectItem>
               <SelectItem value="saldo">Saldo</SelectItem>
             </SelectContent>
           </Select>
