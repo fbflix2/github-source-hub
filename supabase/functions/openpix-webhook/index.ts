@@ -529,6 +529,27 @@ Deno.serve(async (req) => {
         message: `Cliente recarregou R$ ${amount.toFixed(2)} via PIX. Novo saldo: R$ ${newBalance.toFixed(2)}`,
         type: "wallet", global: true,
       });
+
+      // Se o usuário for revendedor, converte automaticamente em créditos de revenda
+      const { data: resellerRow } = await supabase
+        .from("resellers")
+        .select("id, balance_credits, status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (resellerRow && ["active", "warning"].includes(resellerRow.status)) {
+        const newCredits = Number(resellerRow.balance_credits || 0) + amount;
+        await supabase.from("resellers").update({ balance_credits: newCredits, updated_at: new Date().toISOString() }).eq("id", resellerRow.id);
+        await supabase.from("reseller_credit_ledger").insert({
+          reseller_id: resellerRow.id, type: "recharge", amount,
+          balance_after: newCredits, reference_id: paymentId,
+          description: "Recarga PIX convertida em créditos de revenda",
+        });
+        await supabase.from("profiles").update({ balance: newBalance - amount }).eq("user_id", userId);
+        await supabase.from("wallet_transactions").insert({
+          user_id: userId, type: "debit", title: "Conversão em créditos de revenda",
+          amount, balance_after: newBalance - amount, reference_id: paymentId,
+        });
+      }
     } else if (orderId) {
       const { data: orderData } = await supabase
         .from("orders")
