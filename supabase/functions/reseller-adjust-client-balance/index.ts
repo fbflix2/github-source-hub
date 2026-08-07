@@ -67,14 +67,14 @@ Deno.serve(async (req) => {
     const resellerBalance = Number(reseller.balance_credits ?? 0);
     const clientBalance = Number(profile.balance ?? 0);
 
-    if (operation === "credit") {
-      if (resellerBalance < amount) throw new Error("Saldo insuficiente na sua carteira de revenda");
-    } else {
+    if (operation === "debit") {
       if (clientBalance < amount) throw new Error("Cliente não possui saldo suficiente para debitar");
     }
 
     const newClientBalance = operation === "credit" ? clientBalance + amount : clientBalance - amount;
-    const newResellerBalance = operation === "credit" ? resellerBalance - amount : resellerBalance + amount;
+    // Créditos de revenda NÃO são debitados aqui: o custo FBFlix é cobrado
+    // apenas quando o pedido do cliente é concluído (process_reseller_commission).
+    const newResellerBalance = resellerBalance;
 
     // Update client wallet
     const { error: upErr } = await admin
@@ -82,12 +82,6 @@ Deno.serve(async (req) => {
       .update({ balance: newClientBalance })
       .eq("user_id", target_user_id);
     if (upErr) throw upErr;
-
-    // Update reseller wallet
-    await admin
-      .from("resellers")
-      .update({ balance_credits: newResellerBalance })
-      .eq("id", reseller.id);
 
     // Log wallet transaction on client side
     const title = operation === "credit"
@@ -101,17 +95,6 @@ Deno.serve(async (req) => {
       amount,
       balance_after: newClientBalance,
       reference_id: String(reseller.id),
-    });
-
-    // Log reseller ledger
-    await admin.from("reseller_credit_ledger").insert({
-      reseller_id: reseller.id,
-      type: operation === "credit" ? "debit" : "credit",
-      amount,
-      balance_after: newResellerBalance,
-      description: operation === "credit"
-        ? `Crédito enviado ao cliente ${profile.full_name || target_user_id}${note ? ` — ${note}` : ""}`
-        : `Débito recebido do cliente ${profile.full_name || target_user_id}${note ? ` — ${note}` : ""}`,
     });
 
     return new Response(
