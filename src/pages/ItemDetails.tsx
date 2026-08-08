@@ -95,6 +95,8 @@ export default function ItemDetails() {
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
+  const [pageLinkInvalid, setPageLinkInvalid] = useState(false);
+  const [pageLinkInvalidReason, setPageLinkInvalidReason] = useState<string | null>(null);
   const [pageConfirmedByAdmin, setPageConfirmedByAdmin] = useState(false);
   const [pageName, setPageName] = useState<string | null>(null);
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
@@ -166,6 +168,12 @@ export default function ItemDetails() {
           if (orderItemDeliveryData.pageProfileLinks) setProfileLinks(orderItemDeliveryData.pageProfileLinks);
           if (orderItemDeliveryData.allOnOneProfile) setAllOnOneProfile(orderItemDeliveryData.allOnOneProfile);
         }
+        if (orderItemDeliveryData.pageLinkInvalid) {
+          setPageRequested(false);
+          setPageLinkInvalid(true);
+          setPageLinkInvalidReason(orderItemDeliveryData.pageLinkInvalidReason || null);
+          if (orderItemDeliveryData.pageProfileLinks) setProfileLinks(orderItemDeliveryData.pageProfileLinks);
+        }
         if (orderItemDeliveryData.pageConfirmedAt) {
           setPageConfirmedByAdmin(true);
           if (orderItemDeliveryData.pageName) setPageName(orderItemDeliveryData.pageName);
@@ -204,7 +212,12 @@ export default function ItemDetails() {
         .eq("order_item_id", itemId)
         .limit(1);
       if (existingReq && existingReq.length > 0) {
-        setPageRequested(true);
+        if (existingReq[0].status === 'invalid_link') {
+          setPageRequested(false);
+          setPageLinkInvalid(true);
+        } else {
+          setPageRequested(true);
+        }
         if (existingReq[0].status === 'confirmed') {
           setPageConfirmedByAdmin(true);
         }
