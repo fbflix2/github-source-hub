@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell } from "lucide-react";
+import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell, LinkIcon, Link2Off } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PageRequest {
@@ -29,6 +29,7 @@ export function PageRequestNotification() {
   const [open, setOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PageRequest | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [flagging, setFlagging] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [clientEmails, setClientEmails] = useState<Record<string, string>>({});
   const [pageNames, setPageNames] = useState<Record<string, string>>({});
@@ -166,6 +167,60 @@ export function PageRequestNotification() {
       toast({ title: "Erro ao confirmar", variant: "destructive" });
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const copyLink = (link: string, key: string) => {
+
+  const handleInvalidLink = async (req: PageRequest) => {
+    setFlagging(req.id);
+    try {
+      await supabase
+        .from("page_requests")
+        .update({ status: "invalid_link" })
+        .eq("id", req.id);
+
+      const { data: item } = await supabase
+        .from("order_items")
+        .select("delivery_data")
+        .eq("id", req.order_item_id)
+        .single();
+
+      if (item) {
+        const dd: any = { ...((item.delivery_data as any) || {}) };
+        delete dd.pageRequestedAt;
+        await supabase
+          .from("order_items")
+          .update({
+            delivery_data: {
+              ...dd,
+              pageLinkInvalid: true,
+              pageLinkInvalidAt: new Date().toISOString(),
+              pageLinkInvalidReason:
+                "O link do perfil informado está incorreto ou inacessível. Por favor, confira e envie o link correto para recebermos sua página.",
+            },
+          })
+          .eq("id", req.order_item_id);
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: req.user_id,
+        title: "⚠️ Link do perfil inválido",
+        message: `O link enviado para receber a página "${req.product_name}" está incorreto. Acesse o pedido e informe o link correto do seu perfil.`,
+        type: "warning",
+        global: false,
+      });
+
+      toast({
+        title: "Cliente notificado",
+        description: "Ele poderá corrigir o link do perfil.",
+      });
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      setSelectedRequest(null);
+    } catch {
+      toast({ title: "Erro ao notificar cliente", variant: "destructive" });
+    } finally {
+      setFlagging(null);
     }
   };
 
