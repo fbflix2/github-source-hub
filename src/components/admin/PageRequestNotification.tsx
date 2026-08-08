@@ -170,8 +170,6 @@ export function PageRequestNotification() {
     }
   };
 
-  const copyLink = (link: string, key: string) => {
-
   const handleInvalidLink = async (req: PageRequest) => {
     setFlagging(req.id);
     try {
