@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell } from "lucide-react";
+import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell, Link2Off } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PageRequest {
@@ -29,6 +29,7 @@ export function PageRequestNotification() {
   const [open, setOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PageRequest | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [flagging, setFlagging] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [clientEmails, setClientEmails] = useState<Record<string, string>>({});
   const [pageNames, setPageNames] = useState<Record<string, string>>({});
@@ -169,6 +170,58 @@ export function PageRequestNotification() {
     }
   };
 
+  const handleInvalidLink = async (req: PageRequest) => {
+    setFlagging(req.id);
+    try {
+      await supabase
+        .from("page_requests")
+        .update({ status: "invalid_link" })
+        .eq("id", req.id);
+
+      const { data: item } = await supabase
+        .from("order_items")
+        .select("delivery_data")
+        .eq("id", req.order_item_id)
+        .single();
+
+      if (item) {
+        const dd: any = { ...((item.delivery_data as any) || {}) };
+        delete dd.pageRequestedAt;
+        await supabase
+          .from("order_items")
+          .update({
+            delivery_data: {
+              ...dd,
+              pageLinkInvalid: true,
+              pageLinkInvalidAt: new Date().toISOString(),
+              pageLinkInvalidReason:
+                "O link do perfil informado está incorreto ou inacessível. Por favor, confira e envie o link correto para recebermos sua página.",
+            },
+          })
+          .eq("id", req.order_item_id);
+      }
+
+      await supabase.from("notifications").insert({
+        user_id: req.user_id,
+        title: "⚠️ Link do perfil inválido",
+        message: `O link enviado para receber a página "${req.product_name}" está incorreto. Acesse o pedido e informe o link correto do seu perfil.`,
+        type: "warning",
+        global: false,
+      });
+
+      toast({
+        title: "Cliente notificado",
+        description: "Ele poderá corrigir o link do perfil.",
+      });
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      setSelectedRequest(null);
+    } catch {
+      toast({ title: "Erro ao notificar cliente", variant: "destructive" });
+    } finally {
+      setFlagging(null);
+    }
+  };
+
   const copyLink = (link: string, key: string) => {
     navigator.clipboard.writeText(link);
     setCopied(key);
@@ -214,7 +267,17 @@ export function PageRequestNotification() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-primary">{req.order_code}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatDate(req.created_at)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{formatDate(req.created_at)}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleInvalidLink(req); }}
+                        disabled={flagging === req.id}
+                        title="Link do perfil inválido — pedir correção ao cliente"
+                        className="p-1.5 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                      >
+                        {flagging === req.id ? <Loader2 className="size-3.5 animate-spin" /> : <Link2Off className="size-3.5" />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 text-xs">

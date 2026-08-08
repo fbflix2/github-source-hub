@@ -95,6 +95,8 @@ export default function ItemDetails() {
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
+  const [pageLinkInvalid, setPageLinkInvalid] = useState(false);
+  const [pageLinkInvalidReason, setPageLinkInvalidReason] = useState<string | null>(null);
   const [pageConfirmedByAdmin, setPageConfirmedByAdmin] = useState(false);
   const [pageName, setPageName] = useState<string | null>(null);
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
@@ -166,6 +168,12 @@ export default function ItemDetails() {
           if (orderItemDeliveryData.pageProfileLinks) setProfileLinks(orderItemDeliveryData.pageProfileLinks);
           if (orderItemDeliveryData.allOnOneProfile) setAllOnOneProfile(orderItemDeliveryData.allOnOneProfile);
         }
+        if (orderItemDeliveryData.pageLinkInvalid) {
+          setPageRequested(false);
+          setPageLinkInvalid(true);
+          setPageLinkInvalidReason(orderItemDeliveryData.pageLinkInvalidReason || null);
+          if (orderItemDeliveryData.pageProfileLinks) setProfileLinks(orderItemDeliveryData.pageProfileLinks);
+        }
         if (orderItemDeliveryData.pageConfirmedAt) {
           setPageConfirmedByAdmin(true);
           if (orderItemDeliveryData.pageName) setPageName(orderItemDeliveryData.pageName);
@@ -204,7 +212,12 @@ export default function ItemDetails() {
         .eq("order_item_id", itemId)
         .limit(1);
       if (existingReq && existingReq.length > 0) {
-        setPageRequested(true);
+        if (existingReq[0].status === 'invalid_link') {
+          setPageRequested(false);
+          setPageLinkInvalid(true);
+        } else {
+          setPageRequested(true);
+        }
         if (existingReq[0].status === 'confirmed') {
           setPageConfirmedByAdmin(true);
         }
@@ -1094,6 +1107,19 @@ export default function ItemDetails() {
                       )
                     ) : (
                       <>
+                        {pageLinkInvalid && (
+                          <div className="mb-3 p-2.5 rounded-lg bg-destructive/10 border border-destructive/30">
+                            <div className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-destructive text-[18px] mt-0.5 shrink-0">link_off</span>
+                              <div>
+                                <h3 className="text-xs font-bold text-destructive mb-1">Link do perfil inválido</h3>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {pageLinkInvalidReason || "Nossa equipe não conseguiu localizar o perfil informado. Confira o link e envie novamente para receber sua página."}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         {/* Tutorial */}
                         <div className="mb-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
                           <div className="flex items-start gap-2">
@@ -1161,6 +1187,8 @@ export default function ItemDetails() {
                                 pageProfileLinks: links,
                                 allOnOneProfile,
                                 pageRequestedAt: new Date().toISOString(),
+                                pageLinkInvalid: false,
+                                pageLinkInvalidReason: null,
                               };
                               await supabase.from("order_items").update({ delivery_data: deliveryUpdate }).eq("id", itemId);
 
@@ -1176,18 +1204,37 @@ export default function ItemDetails() {
                                 clientName = profile?.full_name || null;
                               }
 
-                              // Create page request for admin notification
-                              await supabase.from("page_requests" as any).insert({
-                                order_item_id: itemId,
-                                order_code: order.code,
-                                user_id: user?.id,
-                                client_name: clientName,
-                                product_name: itemName,
-                                profile_links: links,
-                                all_on_one_profile: allOnOneProfile,
-                                quantity: itemQuantity,
-                              });
+                              // Reuse an existing invalid request (client corrected the link) or create a new one
+                              const { data: prevReq } = await supabase
+                                .from("page_requests")
+                                .select("id, status")
+                                .eq("order_item_id", itemId)
+                                .limit(1);
 
+                              if (prevReq && prevReq.length > 0) {
+                                await supabase
+                                  .from("page_requests")
+                                  .update({
+                                    profile_links: links,
+                                    all_on_one_profile: allOnOneProfile,
+                                    status: "pending",
+                                  })
+                                  .eq("id", prevReq[0].id);
+                              } else {
+                                await supabase.from("page_requests" as any).insert({
+                                  order_item_id: itemId,
+                                  order_code: order.code,
+                                  user_id: user?.id,
+                                  client_name: clientName,
+                                  product_name: itemName,
+                                  profile_links: links,
+                                  all_on_one_profile: allOnOneProfile,
+                                  quantity: itemQuantity,
+                                });
+                              }
+
+                              setPageLinkInvalid(false);
+                              setPageLinkInvalidReason(null);
                               setPageRequested(true);
                             } catch (err) {
                               console.error("Error requesting page:", err);
