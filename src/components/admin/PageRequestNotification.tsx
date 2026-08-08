@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell, LinkIcon, Link2Off } from "lucide-react";
+import { FileText, Check, Copy, ExternalLink, Loader2, X, Bell, Link2Off } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PageRequest {
