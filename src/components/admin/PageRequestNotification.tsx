@@ -267,7 +267,17 @@ export function PageRequestNotification() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-primary">{req.order_code}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatDate(req.created_at)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{formatDate(req.created_at)}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleInvalidLink(req); }}
+                        disabled={flagging === req.id}
+                        title="Link do perfil inválido — pedir correção ao cliente"
+                        className="p-1.5 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                      >
+                        {flagging === req.id ? <Loader2 className="size-3.5 animate-spin" /> : <Link2Off className="size-3.5" />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 text-xs">
