@@ -354,11 +354,8 @@ export default function ItemDetails() {
               if (name && !nameByUrl.get(url)) nameByUrl.set(url, name);
             };
 
-            // Fetch all items for the order to aggregate links
-            const { data: allOrderItems } = await supabase
-              .from("order_items")
-              .select("id, delivery_data")
-              .eq("order_id", orderData.id);
+            // Only aggregate links belonging to THIS order item (not the whole order)
+            const allOrderItems: any[] = [{ id: itemData.id, delivery_data: itemData.delivery_data }];
 
             if (allOrderItems?.length) {
               const itemIds = allOrderItems.map((oi: any) => oi.id);
