@@ -203,6 +203,27 @@ export default function AdminBackupFb() {
     if (selectedFolder) fetchFiles(selectedFolder.id);
   }, [selectedFolder, fetchFiles]);
 
+  // Sincroniza os TXT dos pedidos entregues para as pastas dos clientes
+  const handleSyncOrders = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("backup-orders-sync", {
+        body: { limit: 1000 },
+      });
+      if (error) throw error;
+      const created = (data as any)?.created ?? 0;
+      const skipped = (data as any)?.skipped ?? 0;
+      if (created > 0) toast.success(`${created} arquivo(s) de pedido salvos no backup`);
+      else toast.info("Nenhum pedido novo para salvar", { description: `${skipped} já estavam no backup` });
+      fetchFolders();
+      if (selectedFolder) fetchFiles(selectedFolder.id);
+    } catch (e: any) {
+      toast.error("Falha na sincronização: " + (e?.message || e));
+    } finally {
+      setSyncing(false);
+    }
+  }, [fetchFolders, fetchFiles, selectedFolder]);
+
   // Realtime: refresh totals when files or folders change
   useEffect(() => {
     const channel = supabase
