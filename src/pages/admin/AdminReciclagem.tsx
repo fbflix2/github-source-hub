@@ -79,7 +79,7 @@ const mergeLinkedBms = (...groups: LinkedBm[][]): LinkedBm[] => {
 export default function AdminReciclagem() {
   const [items, setItems] = useState<BlockedItem[]>([]);
   const [recycledRaw, setRecycledRaw] = useState<{ price: number; recycledAt: string | null }[]>([]);
-  const [period, setPeriod] = useState<"all" | "week" | "month" | "year">("all");
+  const [period, setPeriod] = useState<"all" | "today" | "week" | "month" | "year">("all");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
