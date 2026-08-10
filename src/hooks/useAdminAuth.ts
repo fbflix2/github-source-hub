@@ -1,5 +1,5 @@
 // Admin auth hook - supports admin and moderator roles
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,7 +18,6 @@ export function useAdminAuth() {
     role: null,
   });
   const navigate = useNavigate();
-  const checkedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,10 +92,7 @@ export function useAdminAuth() {
       }
     };
 
-    if (!checkedRef.current) {
-      checkedRef.current = true;
-      checkAdmin();
-    }
+    checkAdmin();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
