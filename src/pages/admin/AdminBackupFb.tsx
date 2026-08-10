@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X,
+  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X, RefreshCw,
 } from "lucide-react";
 import { KeyRound } from "lucide-react";
 import { BackupCredentialsModal, BackupCredFile } from "@/components/admin/BackupCredentialsModal";
@@ -133,6 +133,7 @@ export default function AdminBackupFb() {
   const [newUnitPrice, setNewUnitPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<BackupFolder | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [files, setFiles] = useState<BackupFile[]>([]);
