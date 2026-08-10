@@ -7,6 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { createClient } from "@supabase/supabase-js";
+
+const ADMIN_AUTH_STORAGE_KEY = "sb-mxnlerkeygfvdnznoxld-auth-token";
+
+const clearStaleAdminSession = () => {
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token"))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    console.warn("[AdminLogin] não foi possível limpar a sessão antiga:", error);
+  }
+};
+
+const createFreshAdminAuthClient = () => createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      storage: localStorage,
+      storageKey: ADMIN_AUTH_STORAGE_KEY,
+      persistSession: true,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      lock: async (_name, _timeout, fn) => fn(),
+    },
+  },
+);
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -26,17 +54,12 @@ export default function AdminLogin() {
       // Save remember me preference
       localStorage.setItem("admin_remember_me", rememberMe ? "true" : "false");
 
-      // Clear stale auth lock (outra aba/sessão travada no LockManager)
-      try {
-        await supabase.auth.signOut({ scope: "local" });
-      } catch {}
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith("sb-") && k.endsWith("-auth-token"))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch {}
+      // Do not call signOut here: when a stale refresh token is timing out,
+      // signOut waits for the same blocked auth initialization indefinitely.
+      clearStaleAdminSession();
+      const loginClient = createFreshAdminAuthClient();
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await loginClient.auth.signInWithPassword({
         email,
         password,
       });
@@ -47,17 +70,18 @@ export default function AdminLogin() {
       }
 
       // Check if user has admin or moderator role
-      const { data: isStaff, error: roleError } = await supabase
+      const { data: isStaff, error: roleError } = await loginClient
         .rpc('is_staff', { _user_id: data.user.id });
 
       if (roleError || !isStaff) {
-        await supabase.auth.signOut();
+        clearStaleAdminSession();
         toast.error("Acesso negado. Você não tem permissão de administrador ou moderador.");
         return;
       }
 
       toast.success("Login realizado com sucesso!");
-      navigate("/admin");
+      // Reload so the app-wide Supabase client starts from the new clean session.
+      window.location.assign("/admin");
     } catch (error: any) {
       console.error("[AdminLogin] erro inesperado:", error);
       toast.error(`Erro ao fazer login: ${error?.message || error}`);
