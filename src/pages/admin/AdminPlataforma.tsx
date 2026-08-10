@@ -71,6 +71,9 @@ export default function AdminPlataforma() {
   const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo" | "layout">("tags");
   const [storeLayoutV2, setStoreLayoutV2] = useState(false);
   const [savingLayout, setSavingLayout] = useState(false);
+  const [headlineText, setHeadlineText] = useState("Ativos prontos para escalar");
+  const [headlineVisible, setHeadlineVisible] = useState(true);
+  const [savingHeadline, setSavingHeadline] = useState(false);
 
   useEffect(() => {
     (supabase.from("site_settings" as any) as any)
@@ -79,6 +82,40 @@ export default function AdminPlataforma() {
       .maybeSingle()
       .then(({ data }: any) => setStoreLayoutV2(String(data?.value ?? "") === "1"));
   }, []);
+
+  useEffect(() => {
+    (supabase.from("site_settings" as any) as any)
+      .select("key,value")
+      .in("key", ["store_v2_headline", "store_v2_headline_visible"])
+      .then(({ data }: any) => {
+        if (!Array.isArray(data)) return;
+        const map: Record<string, string> = {};
+        data.forEach((r: any) => { map[r.key] = String(r.value ?? ""); });
+        if (map["store_v2_headline"]) setHeadlineText(map["store_v2_headline"]);
+        setHeadlineVisible(map["store_v2_headline_visible"] !== "0");
+      });
+  }, []);
+
+  const upsertSetting = async (key: string, value: string) => {
+    const { data: existing } = await (supabase.from("site_settings" as any) as any)
+      .select("id").eq("key", key).maybeSingle();
+    return existing
+      ? await (supabase.from("site_settings" as any) as any).update({ value }).eq("key", key)
+      : await (supabase.from("site_settings" as any) as any).insert({ key, value });
+  };
+
+  const saveHeadline = async () => {
+    setSavingHeadline(true);
+    const r1 = await upsertSetting("store_v2_headline", headlineText.trim());
+    const r2 = await upsertSetting("store_v2_headline_visible", headlineVisible ? "1" : "0");
+    setSavingHeadline(false);
+    if (r1?.error || r2?.error) { toast.error("Erro ao salvar título"); return; }
+    try {
+      localStorage.setItem("store_v2_headline", headlineText.trim());
+      localStorage.setItem("store_v2_headline_visible", headlineVisible ? "1" : "0");
+    } catch { /* noop */ }
+    toast.success("Título da loja atualizado");
+  };
 
   const saveStoreLayout = async (enabled: boolean) => {
     setSavingLayout(true);
