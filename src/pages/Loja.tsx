@@ -90,7 +90,7 @@ export default function Dashboard() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const totalClients = useClientCount(3746);
-  const { layoutV2 } = useStoreLayoutV2();
+  const { layoutV2, headline, headlineVisible } = useStoreLayoutV2();
   const [legacyLayout, setLegacyLayout] = useState<boolean>(() => {
     try { return localStorage.getItem("store_layout_legacy") === "1"; } catch { return false; }
   });
@@ -526,6 +526,8 @@ export default function Dashboard() {
       <>
         <LojaLayoutV2
           banner={heroBannerNode}
+          headline={headline}
+          headlineVisible={headlineVisible}
           products={allProducts as any}
           categoryName={(id) => categories.find((c) => c.id === id)?.name}
           filters={filters}
