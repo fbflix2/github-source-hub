@@ -157,10 +157,12 @@ Deno.serve(async (req) => {
       for (const p of profs || []) nameByUser.set(p.user_id, (p.full_name || "").trim() || "Cliente sem nome");
     }
 
+    const startedAt = Date.now();
     let created = 0, skipped = 0;
     const folderCache = new Map<string, string>();
 
     for (const r of rows as any[]) {
+      if (Date.now() - startedAt > 100_000) break; // limite de tempo por execução
       const order = r.orders;
       const fileName = `PEDIDO_${order.code || order.id.slice(0, 8)}_${String(r.id).slice(0, 8)}.txt`;
 
