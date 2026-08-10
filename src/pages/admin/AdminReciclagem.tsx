@@ -450,6 +450,7 @@ export default function AdminReciclagem() {
 
   const periodStart = (() => {
     const now = new Date();
+    if (period === "today") return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (period === "week") { const d = new Date(now); d.setDate(d.getDate() - 7); return d; }
     if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
     if (period === "year") return new Date(now.getFullYear(), 0, 1);
@@ -506,6 +507,7 @@ export default function AdminReciclagem() {
         <span className="text-xs text-muted-foreground">Período:</span>
         {([
           { k: "all", l: "Tudo" },
+          { k: "today", l: "Hoje" },
           { k: "week", l: "Semana" },
           { k: "month", l: "Mês" },
           { k: "year", l: "Ano" },
