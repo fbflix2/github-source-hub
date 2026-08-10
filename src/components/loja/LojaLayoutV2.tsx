@@ -28,6 +28,7 @@ interface Props {
   onAddToCart: (p: V2Product, quantity: number) => void;
   onBuy: (p: V2Product, quantity: number) => void;
   onDetail: (p: V2Product) => void;
+  onUseLegacy?: () => void;
 }
 
 export function LojaLayoutV2({
@@ -45,6 +46,7 @@ export function LojaLayoutV2({
   onAddToCart,
   onBuy,
   onDetail,
+  onUseLegacy,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -60,16 +62,22 @@ export function LojaLayoutV2({
         {banner && <div className="mb-10">{banner}</div>}
         {/* header + busca */}
         <div className="flex flex-col items-center text-center">
-          <span className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md">
-            Catálogo FBFlix
-          </span>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md">
+              Nova experiência de layout!
+            </span>
+            {onUseLegacy && (
+              <button
+                onClick={onUseLegacy}
+                className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md transition-colors hover:border-foreground/30 hover:text-foreground"
+              >
+                Usar versão antiga
+              </button>
+            )}
+          </div>
           <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground md:text-[46px]">
             Ativos prontos para escalar
           </h1>
-          <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-muted-foreground">
-            Perfis, BMs e proxies verificados — compra imediata e entrega automática.
-          </p>
-
           <div className="lp-glass-search mt-8 flex w-full max-w-xl items-center gap-3 rounded-full px-5 py-3.5">
             <Search className="size-[17px] shrink-0 text-white/45" />
             <input
