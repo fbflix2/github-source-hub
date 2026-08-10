@@ -71,6 +71,9 @@ export default function AdminPlataforma() {
   const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo" | "layout">("tags");
   const [storeLayoutV2, setStoreLayoutV2] = useState(false);
   const [savingLayout, setSavingLayout] = useState(false);
+  const [headlineText, setHeadlineText] = useState("Ativos prontos para escalar");
+  const [headlineVisible, setHeadlineVisible] = useState(true);
+  const [savingHeadline, setSavingHeadline] = useState(false);
 
   useEffect(() => {
     (supabase.from("site_settings" as any) as any)
@@ -79,6 +82,40 @@ export default function AdminPlataforma() {
       .maybeSingle()
       .then(({ data }: any) => setStoreLayoutV2(String(data?.value ?? "") === "1"));
   }, []);
+
+  useEffect(() => {
+    (supabase.from("site_settings" as any) as any)
+      .select("key,value")
+      .in("key", ["store_v2_headline", "store_v2_headline_visible"])
+      .then(({ data }: any) => {
+        if (!Array.isArray(data)) return;
+        const map: Record<string, string> = {};
+        data.forEach((r: any) => { map[r.key] = String(r.value ?? ""); });
+        if (map["store_v2_headline"]) setHeadlineText(map["store_v2_headline"]);
+        setHeadlineVisible(map["store_v2_headline_visible"] !== "0");
+      });
+  }, []);
+
+  const upsertSetting = async (key: string, value: string) => {
+    const { data: existing } = await (supabase.from("site_settings" as any) as any)
+      .select("id").eq("key", key).maybeSingle();
+    return existing
+      ? await (supabase.from("site_settings" as any) as any).update({ value }).eq("key", key)
+      : await (supabase.from("site_settings" as any) as any).insert({ key, value });
+  };
+
+  const saveHeadline = async () => {
+    setSavingHeadline(true);
+    const r1 = await upsertSetting("store_v2_headline", headlineText.trim());
+    const r2 = await upsertSetting("store_v2_headline_visible", headlineVisible ? "1" : "0");
+    setSavingHeadline(false);
+    if (r1?.error || r2?.error) { toast.error("Erro ao salvar título"); return; }
+    try {
+      localStorage.setItem("store_v2_headline", headlineText.trim());
+      localStorage.setItem("store_v2_headline_visible", headlineVisible ? "1" : "0");
+    } catch { /* noop */ }
+    toast.success("Título da loja atualizado");
+  };
 
   const saveStoreLayout = async (enabled: boolean) => {
     setSavingLayout(true);
@@ -761,6 +798,35 @@ export default function AdminPlataforma() {
           {savingLayout && (
             <p className="text-gray-400 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</p>
           )}
+
+          <div className="rounded-2xl border border-white/10 p-5 space-y-4">
+            <div>
+              <p className="text-white font-bold">Título da loja (Layout 2)</p>
+              <p className="text-gray-400 text-sm mt-1">Frase exibida acima da busca. Você pode editar ou ocultar.</p>
+            </div>
+            <input
+              value={headlineText}
+              onChange={(e) => setHeadlineText(e.target.value)}
+              placeholder="Ativos prontos para escalar"
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 text-white outline-none focus:border-primary/50"
+            />
+            <label className="flex items-center gap-3 text-sm text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={headlineVisible}
+                onChange={(e) => setHeadlineVisible(e.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Exibir título na loja
+            </label>
+            <button
+              onClick={saveHeadline}
+              disabled={savingHeadline}
+              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {savingHeadline ? "Salvando..." : "Salvar título"}
+            </button>
+          </div>
         </section>
       )}
 

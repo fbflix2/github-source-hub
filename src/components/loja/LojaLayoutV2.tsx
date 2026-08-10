@@ -15,6 +15,8 @@ interface V2Product {
 
 interface Props {
   banner?: ReactNode;
+  headline?: string;
+  headlineVisible?: boolean;
   products: V2Product[];
   categoryName: (id: string | null) => string | undefined;
   filters: string[];
@@ -33,6 +35,8 @@ interface Props {
 
 export function LojaLayoutV2({
   banner,
+  headline = "Ativos prontos para escalar",
+  headlineVisible = true,
   products,
   categoryName,
   filters,
@@ -75,9 +79,11 @@ export function LojaLayoutV2({
               </button>
             )}
           </div>
-          <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground md:text-[46px]">
-            Ativos prontos para escalar
-          </h1>
+          {headlineVisible && headline?.trim() && (
+            <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground md:text-[46px]">
+              {headline}
+            </h1>
+          )}
           <div className="lp-glass-search mt-8 flex w-full max-w-xl items-center gap-3 rounded-full px-5 py-3.5">
             <Search className="size-[17px] shrink-0 text-white/45" />
             <input
