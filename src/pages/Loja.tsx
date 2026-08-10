@@ -10,6 +10,8 @@ import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
 import { ProxyProductCard } from "@/components/loja/ProxyProductCard";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LojaLayoutV2 } from "@/components/loja/LojaLayoutV2";
+import { useStoreLayoutV2 } from "@/hooks/useStoreLayout";
 
 interface HeroBanner {
   id: string;
@@ -88,6 +90,7 @@ export default function Dashboard() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const totalClients = useClientCount(3746);
+  const { layoutV2 } = useStoreLayoutV2();
 
   useEffect(() => {
     let cancelled = false;
@@ -431,6 +434,45 @@ export default function Dashboard() {
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 text-primary animate-spin" />
       </div>
+    );
+  }
+
+  if (layoutV2) {
+    return (
+      <>
+        <LojaLayoutV2
+          products={allProducts as any}
+          categoryName={(id) => categories.find((c) => c.id === id)?.name}
+          filters={filters}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          purposes={allPurposes}
+          activePurpose={activePurpose}
+          onPurposeChange={setActivePurpose}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onAddToCart={(p: any) => {
+            addItem({
+              productId: p.id,
+              name: p.name,
+              price: p.price,
+              quantity: 1,
+              image: p.image_url || "/placeholder.svg",
+              isProxy: p.category_id === proxyCategoryId,
+            });
+            toast.success(`${p.name} adicionado ao carrinho!`);
+          }}
+          onBuy={(p: any) => navigate(`/checkout?product=${p.id}&qty=1`)}
+          onDetail={(p: any) => setDetailProduct(p)}
+        />
+        <ProductDetailModal
+          product={detailProduct}
+          open={!!detailProduct}
+          onOpenChange={(open) => { if (!open) setDetailProduct(null); }}
+          quantity={detailProduct ? getQuantity(detailProduct.id) : 1}
+          onQuantityChange={updateQuantity}
+        />
+      </>
     );
   }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, ArrowRight, type LucideIcon } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, ArrowRight, LayoutTemplate, type LucideIcon } from "lucide-react";
 import ProductDefaultsTab from "@/components/admin/ProductDefaultsTab";
 import NavMenuVisibilityManager from "@/components/admin/NavMenuVisibilityManager";
 import NotificationSoundsTab from "@/components/admin/NotificationSoundsTab";
@@ -68,7 +68,32 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo" | "layout">("tags");
+  const [storeLayoutV2, setStoreLayoutV2] = useState(false);
+  const [savingLayout, setSavingLayout] = useState(false);
+
+  useEffect(() => {
+    (supabase.from("site_settings" as any) as any)
+      .select("value")
+      .eq("key", "store_layout_v2")
+      .maybeSingle()
+      .then(({ data }: any) => setStoreLayoutV2(String(data?.value ?? "") === "1"));
+  }, []);
+
+  const saveStoreLayout = async (enabled: boolean) => {
+    setSavingLayout(true);
+    const value = enabled ? "1" : "0";
+    const { data: existing } = await (supabase.from("site_settings" as any) as any)
+      .select("id").eq("key", "store_layout_v2").maybeSingle();
+    const { error } = existing
+      ? await (supabase.from("site_settings" as any) as any).update({ value }).eq("key", "store_layout_v2")
+      : await (supabase.from("site_settings" as any) as any).insert({ key: "store_layout_v2", value });
+    setSavingLayout(false);
+    if (error) { toast.error("Erro ao salvar layout"); return; }
+    setStoreLayoutV2(enabled);
+    try { localStorage.setItem("store_layout_v2", value); } catch { /* noop */ }
+    toast.success(enabled ? "Layout 2 ativado na loja" : "Layout padrão restaurado");
+  };
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -218,6 +243,7 @@ export default function AdminPlataforma() {
     { key: "padroes" as const, label: "Padrão Produtos", icon: PackageOpen },
     { key: "menu" as const, label: "Menu do Cliente", icon: Menu },
     { key: "sons" as const, label: "Sons de Notificação", icon: Volume2 },
+    { key: "layout" as const, label: "Layout da Loja", icon: LayoutTemplate },
   ];
 
   const handleOpenCreate = (type: "status" | "product") => {
@@ -697,6 +723,46 @@ export default function AdminPlataforma() {
 
       {/* Notification Sounds Tab */}
       {activeTab === "sons" && <NotificationSoundsTab />}
+
+      {activeTab === "layout" && (
+        <section className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 md:p-8 space-y-6">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+              <LayoutTemplate className="w-5 h-5 text-primary" />
+              Layout da Loja (painel do cliente)
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              Alterne entre o layout atual e o novo layout premium (mesmo design da landing page).
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <button
+              onClick={() => saveStoreLayout(false)}
+              disabled={savingLayout}
+              className={`text-left rounded-2xl border p-5 transition-all ${!storeLayoutV2 ? "border-primary/50 bg-primary/10" : "border-white/10 hover:border-white/25"}`}
+            >
+              <p className="text-white font-bold">Layout 1 — Atual</p>
+              <p className="text-gray-400 text-sm mt-1">Banners, sub-banners, filtros e grade/lista de produtos.</p>
+              {!storeLayoutV2 && <span className="inline-block mt-3 text-[11px] font-bold text-primary">ATIVO</span>}
+            </button>
+
+            <button
+              onClick={() => saveStoreLayout(true)}
+              disabled={savingLayout}
+              className={`text-left rounded-2xl border p-5 transition-all ${storeLayoutV2 ? "border-primary/50 bg-primary/10" : "border-white/10 hover:border-white/25"}`}
+            >
+              <p className="text-white font-bold">Layout 2 — Premium (novo)</p>
+              <p className="text-gray-400 text-sm mt-1">Cards de vidro, tipografia gigante desfocada ao fundo e visual enxuto.</p>
+              {storeLayoutV2 && <span className="inline-block mt-3 text-[11px] font-bold text-primary">ATIVO</span>}
+            </button>
+          </div>
+
+          {savingLayout && (
+            <p className="text-gray-400 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</p>
+          )}
+        </section>
+      )}
 
       {/* Tag Create/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
