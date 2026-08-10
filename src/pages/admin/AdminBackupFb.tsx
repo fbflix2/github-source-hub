@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X,
+  FolderArchive, Plus, ArrowLeft, Upload, Download, Trash2, FileText, Search, HardDrive, Pencil, Check, X, RefreshCw,
 } from "lucide-react";
 import { KeyRound } from "lucide-react";
 import { BackupCredentialsModal, BackupCredFile } from "@/components/admin/BackupCredentialsModal";
@@ -133,6 +133,7 @@ export default function AdminBackupFb() {
   const [newUnitPrice, setNewUnitPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<BackupFolder | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [files, setFiles] = useState<BackupFile[]>([]);
@@ -201,6 +202,27 @@ export default function AdminBackupFb() {
   useEffect(() => {
     if (selectedFolder) fetchFiles(selectedFolder.id);
   }, [selectedFolder, fetchFiles]);
+
+  // Sincroniza os TXT dos pedidos entregues para as pastas dos clientes
+  const handleSyncOrders = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("backup-orders-sync", {
+        body: { limit: 1000 },
+      });
+      if (error) throw error;
+      const created = (data as any)?.created ?? 0;
+      const skipped = (data as any)?.skipped ?? 0;
+      if (created > 0) toast.success(`${created} arquivo(s) de pedido salvos no backup`);
+      else toast.info("Nenhum pedido novo para salvar", { description: `${skipped} já estavam no backup` });
+      fetchFolders();
+      if (selectedFolder) fetchFiles(selectedFolder.id);
+    } catch (e: any) {
+      toast.error("Falha na sincronização: " + (e?.message || e));
+    } finally {
+      setSyncing(false);
+    }
+  }, [fetchFolders, fetchFiles, selectedFolder]);
 
   // Realtime: refresh totals when files or folders change
   useEffect(() => {
@@ -926,6 +948,15 @@ export default function AdminBackupFb() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSyncOrders}
+            disabled={syncing}
+            className="gap-2"
+          >
+            <RefreshCw className={`size-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Sincronizar pedidos"}
+          </Button>
           <Button
             variant="outline"
             onClick={handleDownloadAllZip}
