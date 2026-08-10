@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { ArrowUpRight, ChevronDown, Search, ShoppingCart, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Minus, Plus, Search, ShoppingCart, X } from "lucide-react";
 
 interface V2Product {
   id: string;
@@ -25,8 +25,8 @@ interface Props {
   onPurposeChange?: (p: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  onAddToCart: (p: V2Product) => void;
-  onBuy: (p: V2Product) => void;
+  onAddToCart: (p: V2Product, quantity: number) => void;
+  onBuy: (p: V2Product, quantity: number) => void;
   onDetail: (p: V2Product) => void;
 }
 
@@ -47,6 +47,10 @@ export function LojaLayoutV2({
   onDetail,
 }: Props) {
   const [showAll, setShowAll] = useState(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const qtyOf = (id: string) => quantities[id] ?? 1;
+  const setQty = (id: string, next: number) =>
+    setQuantities((prev) => ({ ...prev, [id]: Math.max(1, next) }));
   const wordLabel = activeFilter === "Todos" ? "Loja" : activeFilter;
   const visible = showAll ? products : products.slice(0, 6);
 
@@ -165,7 +169,7 @@ export function LojaLayoutV2({
 
                         <button
                           onClick={() => onDetail(p)}
-                          className="mt-3 w-fit text-[12.5px] text-white/45 underline-offset-4 transition-colors hover:text-white hover:underline"
+                          className="mt-4 w-fit rounded-lg border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[12.5px] font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white"
                         >
                           Ver detalhes
                         </button>
@@ -174,14 +178,37 @@ export function LojaLayoutV2({
                           {soldOut ? "Sem estoque" : `${p.stock} em estoque`}
                         </p>
 
-                        <div className="mt-6 flex flex-1 items-end justify-between gap-3 border-t border-white/[0.07] pt-5">
+                        {!soldOut && (
+                          <div className="mt-4 flex items-center gap-3">
+                            <span className="text-[11.5px] text-white/40">Quantidade</span>
+                            <div className="flex items-center gap-1 rounded-full border border-white/12 bg-white/[0.03] px-1 py-1">
+                              <button
+                                onClick={() => setQty(p.id, qtyOf(p.id) - 1)}
+                                aria-label="Diminuir quantidade"
+                                className="grid size-6 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                              >
+                                <Minus className="size-[13px]" />
+                              </button>
+                              <span className="w-6 text-center text-[13px] font-medium text-white">{qtyOf(p.id)}</span>
+                              <button
+                                onClick={() => setQty(p.id, qtyOf(p.id) + 1)}
+                                aria-label="Aumentar quantidade"
+                                className="grid size-6 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                              >
+                                <Plus className="size-[13px]" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-5 flex flex-1 items-end justify-between gap-3 border-t border-white/[0.07] pt-5">
                           <p className="text-[26px] font-semibold tracking-[-0.03em] text-white">
                             R$ {Number(p.price || 0).toFixed(2).replace(".", ",")}
                           </p>
                           <div className="flex items-center gap-2">
                             {!soldOut && (
                               <button
-                                onClick={() => onAddToCart(p)}
+                                onClick={() => onAddToCart(p, qtyOf(p.id))}
                                 title="Adicionar ao carrinho"
                                 className="grid size-9 place-items-center rounded-full border border-white/12 bg-white/[0.04] text-white/70 transition-colors hover:border-[#e50914]/40 hover:text-white"
                               >
@@ -189,7 +216,7 @@ export function LojaLayoutV2({
                               </button>
                             )}
                             <button
-                              onClick={() => onBuy(p)}
+                              onClick={() => onBuy(p, qtyOf(p.id))}
                               disabled={soldOut}
                               className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[12.5px] font-medium tracking-[-0.01em] text-black transition-transform duration-300 hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                             >

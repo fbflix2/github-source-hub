@@ -528,18 +528,18 @@ export default function Dashboard() {
           onPurposeChange={setActivePurpose}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onAddToCart={(p: any) => {
+          onAddToCart={(p: any, qty: number = 1) => {
             addItem({
               productId: p.id,
               name: p.name,
               price: p.price,
-              quantity: 1,
+              quantity: qty,
               image: p.image_url || "/placeholder.svg",
               isProxy: p.category_id === proxyCategoryId,
             });
             toast.success(`${p.name} adicionado ao carrinho!`);
           }}
-          onBuy={(p: any) => navigate(`/checkout?product=${p.id}&qty=1`)}
+          onBuy={(p: any, qty: number = 1) => navigate(`/checkout?product=${p.id}&qty=${qty}`)}
           onDetail={(p: any) => setDetailProduct(p)}
         />
         <ProductDetailModal
