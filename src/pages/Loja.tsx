@@ -91,6 +91,9 @@ export default function Dashboard() {
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const totalClients = useClientCount(3746);
   const { layoutV2 } = useStoreLayoutV2();
+  const [legacyLayout, setLegacyLayout] = useState<boolean>(() => {
+    try { return localStorage.getItem("store_layout_legacy") === "1"; } catch { return false; }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -513,7 +516,7 @@ export default function Dashboard() {
     );
   }
 
-  if (layoutV2) {
+  if (layoutV2 && !legacyLayout) {
     return (
       <>
         <LojaLayoutV2
@@ -541,6 +544,10 @@ export default function Dashboard() {
           }}
           onBuy={(p: any, qty: number = 1) => navigate(`/checkout?product=${p.id}&qty=${qty}`)}
           onDetail={(p: any) => setDetailProduct(p)}
+          onUseLegacy={() => {
+            try { localStorage.setItem("store_layout_legacy", "1"); } catch { /* noop */ }
+            setLegacyLayout(true);
+          }}
         />
         <ProductDetailModal
           product={detailProduct}
