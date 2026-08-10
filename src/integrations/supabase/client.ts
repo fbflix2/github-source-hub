@@ -43,12 +43,18 @@ const storageKey = isImpersonationTab
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Navigator LockManager can deadlock (a hung /auth/v1/user fetch keeps the
+// lock held, so every getSession() times out after 10s and the UI freezes).
+// We run auth operations without the cross-tab lock instead.
+const noopLock = async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => fn();
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: authStorage,
     storageKey,
     persistSession: true,
     autoRefreshToken: true,
+    lock: noopLock,
   }
 });
 
