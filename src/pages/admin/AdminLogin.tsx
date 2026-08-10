@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { createClient } from "@supabase/supabase-js";
-
-const ADMIN_AUTH_STORAGE_KEY = "sb-mxnlerkeygfvdnznoxld-auth-token";
+import { supabase } from "@/integrations/supabase/client";
 
 const clearStaleAdminSession = () => {
   try {
@@ -19,20 +17,18 @@ const clearStaleAdminSession = () => {
   }
 };
 
-const createFreshAdminAuthClient = () => createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      storage: localStorage,
-      storageKey: ADMIN_AUTH_STORAGE_KEY,
-      persistSession: true,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      lock: async (_name, _timeout, fn) => fn(),
-    },
-  },
-);
+const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([Promise.resolve(promise), timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -54,34 +50,62 @@ export default function AdminLogin() {
       // Do not call signOut here: when a stale refresh token is timing out,
       // signOut waits for the same blocked auth initialization indefinitely.
       clearStaleAdminSession();
-      const loginClient = createFreshAdminAuthClient();
 
-      const { data, error } = await loginClient.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email: email.trim(), password }),
+        20000,
+        "O servidor demorou para responder. Tente novamente.",
+      );
 
       if (error) {
         toast.error("Credenciais inválidas");
         return;
       }
 
-      // Check if user has admin or moderator role
-      const { data: isStaff, error: roleError } = await loginClient
-        .rpc('is_staff', { _user_id: data.user.id });
+      const { data: validatedUser, error: userError } = await withTimeout(
+        supabase.auth.getUser(),
+        15000,
+        "Não foi possível validar a sessão. Tente novamente.",
+      );
+
+      if (userError || !validatedUser.user || validatedUser.user.id !== data.user.id) {
+        toast.error("Não foi possível validar a sessão administrativa.");
+        return;
+      }
+
+      // Use the same role checks as the admin guard, avoiding divergence between login and layout.
+      const adminResult = await withTimeout(
+        supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" as const }),
+        15000,
+        "A validação de acesso demorou para responder. Tente novamente.",
+      );
+
+      let isStaff = adminResult.data === true;
+      let roleError = adminResult.error;
+
+      if (!isStaff && !roleError) {
+        const moderatorResult = await withTimeout(
+          supabase.rpc("has_role", { _user_id: data.user.id, _role: "moderator" as const }),
+          15000,
+          "A validação de acesso demorou para responder. Tente novamente.",
+        );
+        isStaff = moderatorResult.data === true;
+        roleError = moderatorResult.error;
+      }
 
       if (roleError || !isStaff) {
-        clearStaleAdminSession();
-        toast.error("Acesso negado. Você não tem permissão de administrador ou moderador.");
+        if (!roleError) clearStaleAdminSession();
+        toast.error(roleError
+          ? "Não foi possível consultar sua permissão. Tente novamente."
+          : "Acesso negado. Você não tem permissão de administrador ou moderador.");
         return;
       }
 
       toast.success("Login realizado com sucesso!");
-      // Reload so the app-wide Supabase client starts from the new clean session.
-      window.location.assign("/admin");
-    } catch (error: any) {
+      window.location.replace("/admin");
+    } catch (error: unknown) {
       console.error("[AdminLogin] erro inesperado:", error);
-      toast.error(`Erro ao fazer login: ${error?.message || error}`);
+      toast.error(error instanceof Error ? error.message : "Erro ao fazer login. Tente novamente.");
     } finally {
       setLoading(false);
     }

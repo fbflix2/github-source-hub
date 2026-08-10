@@ -1,5 +1,5 @@
 // Admin auth hook - supports admin and moderator roles
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,22 +18,23 @@ export function useAdminAuth() {
     role: null,
   });
   const navigate = useNavigate();
-  const checkedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const verifyRole = async (userId: string): Promise<AdminRole> => {
-      const { data: isAdminRole } = await supabase.rpc('has_role', {
+      const { data: isAdminRole, error: adminError } = await supabase.rpc('has_role', {
         _user_id: userId,
         _role: 'admin' as const,
       });
+      if (adminError) throw adminError;
       if (isAdminRole) return "admin";
 
-      const { data: isModRole } = await supabase.rpc('has_role', {
+      const { data: isModRole, error: moderatorError } = await supabase.rpc('has_role', {
         _user_id: userId,
         _role: 'moderator' as const,
       });
+      if (moderatorError) throw moderatorError;
       if (isModRole) return "moderator";
 
       return null;
@@ -59,13 +60,18 @@ export function useAdminAuth() {
           return;
         }
 
-        const role = await verifyRole(session.user.id);
+        const { data: validated, error: validationError } = await supabase.auth.getUser();
+        if (validationError || !validated.user) {
+          throw validationError ?? new Error("Sessão administrativa inválida");
+        }
+
+        const role = await verifyRole(validated.user.id);
         if (cancelled) return;
 
         if (role) {
           setState({ isAdmin: true, loading: false, role });
         } else {
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: "local" });
           navigate("/admin/login");
         }
       } catch (err) {
@@ -86,10 +92,7 @@ export function useAdminAuth() {
       }
     };
 
-    if (!checkedRef.current) {
-      checkedRef.current = true;
-      checkAdmin();
-    }
+    checkAdmin();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
