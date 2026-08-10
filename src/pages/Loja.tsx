@@ -389,6 +389,11 @@ export default function Dashboard() {
        return q.split(/\s+/).every((term) => haystack.includes(term));
      });
      return [...searched].sort((a, b) => {
+    // Sold out items always go last
+    const outA = !a.available || (a.stock || 0) === 0 ? 1 : 0;
+    const outB = !b.available || (b.stock || 0) === 0 ? 1 : 0;
+    if (outA !== outB) return outA - outB;
+
     // First by priority if in "Todos"
     if (activeFilter === "Todos") {
       const priorityA = getCategoryPriority(a);
