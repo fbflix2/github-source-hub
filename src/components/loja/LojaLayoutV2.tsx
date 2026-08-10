@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { ArrowUpRight, ChevronDown, Search, ShoppingCart, X } from "lucide-react";
 
 interface V2Product {
@@ -14,6 +14,7 @@ interface V2Product {
 }
 
 interface Props {
+  banner?: ReactNode;
   products: V2Product[];
   categoryName: (id: string | null) => string | undefined;
   filters: string[];
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function LojaLayoutV2({
+  banner,
   products,
   categoryName,
   filters,
@@ -49,21 +51,18 @@ export function LojaLayoutV2({
   const visible = showAll ? products : products.slice(0, 6);
 
   return (
-    <div className="relative -mx-6 overflow-hidden rounded-none bg-[#08080a] px-6 pb-24 pt-10 text-white md:mx-0 md:rounded-3xl md:px-10">
-      {/* aurora */}
-      <div className="pointer-events-none absolute -right-32 -top-32 size-[520px] rounded-full bg-[#e50914]/20 blur-[140px]" />
-      <div className="pointer-events-none absolute -left-40 top-1/3 size-[420px] rounded-full bg-[#e50914]/10 blur-[150px]" />
-
+    <div className="relative overflow-hidden pb-24 pt-2">
       <div className="relative z-10 mx-auto max-w-[1240px]">
+        {banner && <div className="mb-10">{banner}</div>}
         {/* header + busca */}
         <div className="flex flex-col items-center text-center">
-          <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-[12px] text-white/60 backdrop-blur-md">
+          <span className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md">
             Catálogo FBFlix
           </span>
-          <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] md:text-[46px]">
+          <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground md:text-[46px]">
             Ativos prontos para escalar
           </h1>
-          <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-white/50">
+          <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-muted-foreground">
             Perfis, BMs e proxies verificados — compra imediata e entrega automática.
           </p>
 
