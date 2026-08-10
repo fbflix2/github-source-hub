@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, ArrowRight, type LucideIcon } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, ArrowRight, LayoutTemplate, type LucideIcon } from "lucide-react";
 import ProductDefaultsTab from "@/components/admin/ProductDefaultsTab";
 import NavMenuVisibilityManager from "@/components/admin/NavMenuVisibilityManager";
 import NotificationSoundsTab from "@/components/admin/NotificationSoundsTab";
@@ -68,7 +68,32 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo" | "layout">("tags");
+  const [storeLayoutV2, setStoreLayoutV2] = useState(false);
+  const [savingLayout, setSavingLayout] = useState(false);
+
+  useEffect(() => {
+    (supabase.from("site_settings" as any) as any)
+      .select("value")
+      .eq("key", "store_layout_v2")
+      .maybeSingle()
+      .then(({ data }: any) => setStoreLayoutV2(String(data?.value ?? "") === "1"));
+  }, []);
+
+  const saveStoreLayout = async (enabled: boolean) => {
+    setSavingLayout(true);
+    const value = enabled ? "1" : "0";
+    const { data: existing } = await (supabase.from("site_settings" as any) as any)
+      .select("id").eq("key", "store_layout_v2").maybeSingle();
+    const { error } = existing
+      ? await (supabase.from("site_settings" as any) as any).update({ value }).eq("key", "store_layout_v2")
+      : await (supabase.from("site_settings" as any) as any).insert({ key: "store_layout_v2", value });
+    setSavingLayout(false);
+    if (error) { toast.error("Erro ao salvar layout"); return; }
+    setStoreLayoutV2(enabled);
+    try { localStorage.setItem("store_layout_v2", value); } catch { /* noop */ }
+    toast.success(enabled ? "Layout 2 ativado na loja" : "Layout padrão restaurado");
+  };
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -218,6 +243,7 @@ export default function AdminPlataforma() {
     { key: "padroes" as const, label: "Padrão Produtos", icon: PackageOpen },
     { key: "menu" as const, label: "Menu do Cliente", icon: Menu },
     { key: "sons" as const, label: "Sons de Notificação", icon: Volume2 },
+    { key: "layout" as const, label: "Layout da Loja", icon: LayoutTemplate },
   ];
 
   const handleOpenCreate = (type: "status" | "product") => {
