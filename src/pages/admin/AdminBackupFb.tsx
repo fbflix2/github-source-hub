@@ -928,6 +928,15 @@ export default function AdminBackupFb() {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={handleSyncOrders}
+            disabled={syncing}
+            className="gap-2"
+          >
+            <RefreshCw className={`size-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Sincronizar pedidos"}
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleDownloadAllZip}
             disabled={zipping || folders.length === 0}
             className="gap-2"
