@@ -5,6 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Emergency circuit breaker: W-API can redeliver the same events in bursts.
+// While enabled, acknowledge immediately without touching Postgres or Storage,
+// preventing webhook traffic from exhausting the connections used by the app.
+const WEBHOOK_PROTECTION_MODE = true;
+
 // Ensure the storage bucket exists only ONCE per isolate (was running on every
 // request, flooding Postgres with duplicate-key errors on buckets_pkey).
 
@@ -22,6 +27,13 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 20000)
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  if (WEBHOOK_PROTECTION_MODE) {
+    return new Response(JSON.stringify({ ok: true, deferred: "protection_mode" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
