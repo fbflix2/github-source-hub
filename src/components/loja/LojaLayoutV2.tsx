@@ -174,9 +174,8 @@ export function LojaLayoutV2({
                           </span>
                         </div>
 
-                        {(p.badge_text || (p.tags && p.tags.length > 0)) && (
+                        {p.badge_text && (
                           <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                            {p.badge_text && (
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10.5px] font-bold ${
                                   p.badge_color || "border-white/15 bg-white/[0.06] text-white"
@@ -187,15 +186,6 @@ export function LojaLayoutV2({
                                 )}
                                 {p.badge_text}
                               </span>
-                            )}
-                            {p.tags?.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full bg-white px-2.5 py-0.5 text-[10.5px] font-medium text-black"
-                              >
-                                {tag}
-                              </span>
-                            ))}
                           </div>
                         )}
 
