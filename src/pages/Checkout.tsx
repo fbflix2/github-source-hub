@@ -1333,12 +1333,53 @@ export default function Checkout() {
         }
       }
 
+      // Ensure every extra cart item exists as an order_item. The draft order is
+      // created as soon as the product loads, which can happen before the cart
+      // finishes hydrating — in that case only the main item was persisted and
+      // the charged amount would ignore the rest of the cart.
+      if (extraCartItems.length > 0) {
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const existingIds = new Set(
+          (orderItemsToCheck || []).map((oi: any) => oi.product_id).filter(Boolean)
+        );
+        const missing = extraCartItems
+          .filter((ci) => !existingIds.has(ci.productId))
+          .map((ci) => ({
+            order_id: orderId,
+            product_id: uuidRe.test(ci.productId) ? ci.productId : null,
+            name: ci.name,
+            price: isResellerCheckout ? Number(resellerItemPrices[ci.productId] ?? ci.price) : ci.price,
+            quantity: ci.quantity,
+            delivery_data: null,
+          }));
+        if (missing.length > 0) {
+          const { error: missingErr } = await supabase.from("order_items").insert(missing);
+          if (missingErr) throw missingErr;
+        }
+      }
+
+      // Add bump order items if any (before totals are recomputed)
+      const extraItems: any[] = [];
+      if (!isResellerCheckout) {
+        selectedBumps.forEach(bumpId => {
+          const bump = bumpProducts.find(b => b.id === bumpId);
+          if (bump) {
+            const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
+            extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
+          }
+        });
+      }
+      if (extraItems.length > 0) {
+        const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
+        if (extraItemsError) throw extraItemsError;
+      }
+
       // Recompute totals from the actual order_items in DB after any reseller
       // price enforcement. The in-memory totals can be stale while pricing RPCs
       // finish, so the amount charged must follow the persisted line items.
       let chargeSubtotal = subtotal;
       let chargeTotal = total;
-      if (orderItemsToCheck && orderItemsToCheck.length > 0) {
+      {
         const { data: priced } = await supabase
           .from("order_items")
           .select("price, quantity")
@@ -1378,22 +1419,6 @@ export default function Checkout() {
           await supabase.from("order_items").update({ delivery_data: newDeliveryData }).eq("id", mainItem.id);
         }
       }
-
-      // Add bump order items if any
-      const extraItems: any[] = [];
-      if (!isResellerCheckout) {
-        selectedBumps.forEach(bumpId => {
-          const bump = bumpProducts.find(b => b.id === bumpId);
-          if (bump) {
-            const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
-            extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
-          }
-        });
-      }
-        if (extraItems.length > 0) {
-          const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
-          if (extraItemsError) throw extraItemsError;
-        }
 
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance, proxy_fixed_price, full_name").eq("user_id", user.id).maybeSingle();
