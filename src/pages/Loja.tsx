@@ -570,6 +570,22 @@ export default function Dashboard() {
   return (
     <>
     <div className="space-y-10 animate-fade-in">
+      {layoutV2 && legacyLayout && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md">
+            Você está na versão antiga da loja
+          </span>
+          <button
+            onClick={() => {
+              try { localStorage.setItem("store_layout_legacy", "0"); } catch { /* noop */ }
+              setLegacyLayout(false);
+            }}
+            className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            Usar nova experiência
+          </button>
+        </div>
+      )}
       {/* Dynamic Hero Banners */}
       {heroBannerNode}
 
