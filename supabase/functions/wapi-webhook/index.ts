@@ -8,7 +8,7 @@ const corsHeaders = {
 // Emergency circuit breaker: W-API can redeliver the same events in bursts.
 // While enabled, acknowledge immediately without touching Postgres or Storage,
 // preventing webhook traffic from exhausting the connections used by the app.
-const WEBHOOK_PROTECTION_MODE = true;
+const WEBHOOK_PROTECTION_MODE = false;
 
 // Ensure the storage bucket exists only ONCE per isolate (was running on every
 // request, flooding Postgres with duplicate-key errors on buckets_pkey).
