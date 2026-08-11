@@ -90,10 +90,22 @@ export default function Dashboard() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
   const totalClients = useClientCount(3746);
-  const { layoutV2, headline, headlineVisible } = useStoreLayoutV2();
+  const { layoutV2, headline, headlineVisible, layoutRev } = useStoreLayoutV2();
   const [legacyLayout, setLegacyLayout] = useState<boolean>(() => {
     try { return localStorage.getItem("store_layout_legacy") === "1"; } catch { return false; }
   });
+
+  // Quando o admin altera o layout, a preferência local antiga é descartada
+  useEffect(() => {
+    try {
+      const savedRev = localStorage.getItem("store_layout_legacy_rev") || "0";
+      if (savedRev !== layoutRev) {
+        localStorage.setItem("store_layout_legacy", "0");
+        localStorage.setItem("store_layout_legacy_rev", layoutRev);
+        setLegacyLayout(false);
+      }
+    } catch { /* noop */ }
+  }, [layoutRev]);
 
   useEffect(() => {
     let cancelled = false;
@@ -552,7 +564,10 @@ export default function Dashboard() {
           onBuy={(p: any, qty: number = 1) => navigate(`/checkout?product=${p.id}&qty=${qty}`)}
           onDetail={(p: any) => setDetailProduct(p)}
           onUseLegacy={() => {
-            try { localStorage.setItem("store_layout_legacy", "1"); } catch { /* noop */ }
+            try {
+              localStorage.setItem("store_layout_legacy", "1");
+              localStorage.setItem("store_layout_legacy_rev", layoutRev);
+            } catch { /* noop */ }
             setLegacyLayout(true);
           }}
         />
@@ -577,7 +592,10 @@ export default function Dashboard() {
           </span>
           <button
             onClick={() => {
-              try { localStorage.setItem("store_layout_legacy", "0"); } catch { /* noop */ }
+              try {
+                localStorage.setItem("store_layout_legacy", "0");
+                localStorage.setItem("store_layout_legacy_rev", layoutRev);
+              } catch { /* noop */ }
               setLegacyLayout(false);
             }}
             className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md transition-colors hover:border-primary/50 hover:text-foreground"

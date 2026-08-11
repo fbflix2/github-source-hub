@@ -127,6 +127,8 @@ export default function AdminPlataforma() {
       : await (supabase.from("site_settings" as any) as any).insert({ key: "store_layout_v2", value });
     setSavingLayout(false);
     if (error) { toast.error("Erro ao salvar layout"); return; }
+    // Nova revisão: força todos os clientes a voltarem para o layout definido pelo admin
+    await upsertSetting("store_layout_rev", String(Date.now()));
     setStoreLayoutV2(enabled);
     try { localStorage.setItem("store_layout_v2", value); } catch { /* noop */ }
     toast.success(enabled ? "Layout 2 ativado na loja" : "Layout padrão restaurado");
