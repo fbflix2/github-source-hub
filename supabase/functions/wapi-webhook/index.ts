@@ -5,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Ensure the storage bucket exists only ONCE per isolate (was running on every
+// request, flooding Postgres with duplicate-key errors on buckets_pkey).
+let bucketEnsured = false;
+
+// Fetch with hard timeout so a hung external call can't keep the function
+// alive until the 150s gateway timeout (504).
+async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -15,21 +31,24 @@ Deno.serve(async (req) => {
   const WAPI_INSTANCE_ID = Deno.env.get("WAPI_INSTANCE_ID");
   const WAPI_BASE = "https://api.w-api.app/v1";
 
-  // Ensure storage bucket exists (idempotent, cheap on hot starts)
-  try {
-    await admin.storage.createBucket("whatsapp-media", { public: true });
-  } catch (_) { /* already exists */ }
+  // Ensure storage bucket exists (once per isolate)
+  if (!bucketEnsured) {
+    bucketEnsured = true;
+    try {
+      await admin.storage.createBucket("whatsapp-media", { public: true });
+    } catch (_) { /* already exists */ }
+  }
 
   // Try W-API native download endpoint; returns { fileLink } or base64
   async function wapiDownloadMedia(payload: Record<string, any>): Promise<string | null> {
     if (!WAPI_TOKEN || !WAPI_INSTANCE_ID) return null;
     try {
       const url = `${WAPI_BASE}/message/download-media?instanceId=${WAPI_INSTANCE_ID}`;
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${WAPI_TOKEN}` },
         body: JSON.stringify(payload),
-      });
+      }, 20000);
       const txt = await res.text();
       let data: any = null;
       try { data = JSON.parse(txt); } catch { return null; }
@@ -59,7 +78,7 @@ Deno.serve(async (req) => {
         bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       } else {
-        const r = await fetch(srcUrl);
+        const r = await fetchWithTimeout(srcUrl, {}, 20000);
         if (!r.ok) return null;
         contentType = r.headers.get("content-type") || contentType;
         bytes = new Uint8Array(await r.arrayBuffer());
