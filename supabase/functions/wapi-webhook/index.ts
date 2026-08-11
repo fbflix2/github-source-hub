@@ -7,7 +7,6 @@ const corsHeaders = {
 
 // Ensure the storage bucket exists only ONCE per isolate (was running on every
 // request, flooding Postgres with duplicate-key errors on buckets_pkey).
-let bucketEnsured = false;
 
 // Fetch with hard timeout so a hung external call can't keep the function
 // alive until the 150s gateway timeout (504).
@@ -31,13 +30,7 @@ Deno.serve(async (req) => {
   const WAPI_INSTANCE_ID = Deno.env.get("WAPI_INSTANCE_ID");
   const WAPI_BASE = "https://api.w-api.app/v1";
 
-  // Ensure storage bucket exists (once per isolate)
-  if (!bucketEnsured) {
-    bucketEnsured = true;
-    try {
-      await admin.storage.createBucket("whatsapp-media", { public: true });
-    } catch (_) { /* already exists */ }
-  }
+  // Bucket "whatsapp-media" já existe — não criar em runtime (causava contenção no Postgres)
 
   // Try W-API native download endpoint; returns { fileLink } or base64
   async function wapiDownloadMedia(payload: Record<string, any>): Promise<string | null> {

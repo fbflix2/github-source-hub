@@ -32,9 +32,7 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const WAPI_BASE = "https://api.w-api.app/v1";
 
-  try {
-    await admin.storage.createBucket("whatsapp-media", { public: true });
-  } catch (_) { /* already exists */ }
+  // Bucket "whatsapp-media" já existe — não criar em runtime (causava contenção no Postgres)
 
   async function wapiGet(path: string, params: Record<string, string | number | boolean> = {}) {
     const qs = new URLSearchParams({ instanceId: WAPI_INSTANCE_ID!, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
