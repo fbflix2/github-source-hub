@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const STORE_LAYOUT_KEY = "store_layout_v2";
 export const STORE_HEADLINE_KEY = "store_v2_headline";
 export const STORE_HEADLINE_VISIBLE_KEY = "store_v2_headline_visible";
+export const STORE_LAYOUT_REV_KEY = "store_layout_rev";
 export const DEFAULT_STORE_HEADLINE = "Ativos prontos para escalar";
 
 /** Lê a flag global de layout da loja (layout 1 padrão / layout 2 premium). */
@@ -16,6 +17,9 @@ export function useStoreLayoutV2() {
   );
   const [headlineVisible, setHeadlineVisible] = useState<boolean>(
     typeof window !== "undefined" ? localStorage.getItem(STORE_HEADLINE_VISIBLE_KEY) !== "0" : true
+  );
+  const [layoutRev, setLayoutRev] = useState<string>(
+    (typeof window !== "undefined" && localStorage.getItem(STORE_LAYOUT_REV_KEY)) || "0"
   );
 
   useEffect(() => {
@@ -34,22 +38,25 @@ export function useStoreLayoutV2() {
 
     (supabase.from("site_settings" as any) as any)
       .select("key,value")
-      .in("key", [STORE_HEADLINE_KEY, STORE_HEADLINE_VISIBLE_KEY])
+      .in("key", [STORE_HEADLINE_KEY, STORE_HEADLINE_VISIBLE_KEY, STORE_LAYOUT_REV_KEY])
       .then(({ data }: any) => {
         if (cancelled || !Array.isArray(data)) return;
         const map: Record<string, string> = {};
         data.forEach((r: any) => { map[r.key] = String(r.value ?? ""); });
         const text = map[STORE_HEADLINE_KEY] || DEFAULT_STORE_HEADLINE;
         const visible = map[STORE_HEADLINE_VISIBLE_KEY] !== "0";
+        const rev = map[STORE_LAYOUT_REV_KEY] || "0";
         setHeadline(text);
         setHeadlineVisible(visible);
+        setLayoutRev(rev);
         try {
           localStorage.setItem(STORE_HEADLINE_KEY, text);
           localStorage.setItem(STORE_HEADLINE_VISIBLE_KEY, visible ? "1" : "0");
+          localStorage.setItem(STORE_LAYOUT_REV_KEY, rev);
         } catch { /* noop */ }
       });
     return () => { cancelled = true; };
   }, []);
 
-  return { layoutV2: enabled, loaded, headline, headlineVisible };
+  return { layoutV2: enabled, loaded, headline, headlineVisible, layoutRev };
 }
