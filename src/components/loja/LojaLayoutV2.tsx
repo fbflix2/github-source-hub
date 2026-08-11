@@ -174,23 +174,20 @@ export function LojaLayoutV2({
                           </span>
                         </div>
 
-                        {p.badge_text && (
-                          <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10.5px] font-bold ${
-                                  p.badge_color || "border-white/15 bg-white/[0.06] text-white"
-                                }`}
-                              >
-                                {p.badge_icon && (
-                                  <span className="material-symbols-outlined text-[11px]">{p.badge_icon}</span>
-                                )}
-                                {p.badge_text}
-                              </span>
-                          </div>
-                        )}
-
-                        <h3 className="mt-4 text-[19px] font-medium leading-tight tracking-[-0.025em] text-white">
-                          {p.name}
+                        <h3 className="mt-4 flex flex-wrap items-center gap-2 text-[19px] font-medium leading-tight tracking-[-0.025em] text-white">
+                          <span>{p.name}</span>
+                          {p.badge_text && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10.5px] font-bold ${
+                                p.badge_color || "border-white/15 bg-white/[0.06] text-white"
+                              }`}
+                            >
+                              {p.badge_icon && (
+                                <span className="material-symbols-outlined text-[11px]">{p.badge_icon}</span>
+                              )}
+                              {p.badge_text}
+                            </span>
+                          )}
                         </h3>
 
                         {p.description && (
