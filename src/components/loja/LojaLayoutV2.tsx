@@ -178,12 +178,12 @@ export function LojaLayoutV2({
                           <span>{p.name}</span>
                           {p.badge_text && (
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10.5px] font-bold ${
+                              className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-[1px] text-[8.5px] font-bold leading-none ${
                                 p.badge_color || "border-white/15 bg-white/[0.06] text-white"
                               }`}
                             >
                               {p.badge_icon && (
-                                <span className="material-symbols-outlined text-[11px]">{p.badge_icon}</span>
+                                <span className="material-symbols-outlined text-[9px] leading-none">{p.badge_icon}</span>
                               )}
                               {p.badge_text}
                             </span>
