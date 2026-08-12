@@ -384,7 +384,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Nome Completo</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">badge</span>
-                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Nome completo" className="input-field pl-10 h-10 text-sm" />
+                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Nome completo" className="input-field pl-10 h-10 text-sm" required />
                   </div>
                 </div>
 
@@ -393,7 +393,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">CPF</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">fingerprint</span>
-                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="CPF" className="input-field pl-10 h-10 text-sm" maxLength={14} />
+                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="CPF" className="input-field pl-10 h-10 text-sm" maxLength={14} required />
                   </div>
                 </div>
 
@@ -411,7 +411,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Rua</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_on</span>
-                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-10 text-sm" />
+                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-10 text-sm" required />
                   </div>
                 </div>
 
@@ -420,7 +420,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Número</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">pin</span>
-                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-10 text-sm" />
+                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-10 text-sm" required />
                   </div>
                 </div>
 
@@ -428,7 +428,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Bairro</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">holiday_village</span>
-                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-10 text-sm" />
+                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-10 text-sm" required />
                   </div>
                 </div>
 
@@ -437,7 +437,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Cidade</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_city</span>
-                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-10 text-sm" />
+                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-10 text-sm" required />
                   </div>
                 </div>
 
@@ -445,7 +445,7 @@ export default function Profile() {
                   <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Estado</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">map</span>
-                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-10 text-sm" maxLength={2} />
+                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-10 text-sm" maxLength={2} required />
                   </div>
                 </div>
 
@@ -466,7 +466,7 @@ export default function Profile() {
                       }} 
                       placeholder="00000-000" 
                       className="input-field pl-10 h-10 text-sm" 
-                    />
+                    required />
                   </div>
                 </div>
 
