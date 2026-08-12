@@ -38,6 +38,8 @@ interface Product {
   price_label: string | null;
   created_at: string;
   external_id: string | null;
+  included_proxy_product_id?: string | null;
+  included_proxy_qty?: number | null;
 }
 
 interface Category {
@@ -87,6 +89,8 @@ export default function AdminProducts() {
   const [formBadgeText, setFormBadgeText] = useState("");
   const [formBadgeIcon, setFormBadgeIcon] = useState("");
   const [formBadgeColor, setFormBadgeColor] = useState("");
+  const [formIncludedProxyId, setFormIncludedProxyId] = useState("");
+  const [formIncludedProxyQty, setFormIncludedProxyQty] = useState("0");
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState("");
@@ -243,6 +247,7 @@ export default function AdminProducts() {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
     setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
+    setFormIncludedProxyId(""); setFormIncludedProxyQty("0");
     setAiImagePrompt("");
     setEditingProduct(null);
   };
@@ -285,6 +290,8 @@ export default function AdminProducts() {
     setFormBadgeText(product.badge_text ?? "");
     setFormBadgeIcon(product.badge_icon ?? "");
     setFormBadgeColor(product.badge_color ?? "");
+    setFormIncludedProxyId((product as any).included_proxy_product_id ?? "");
+    setFormIncludedProxyQty(String((product as any).included_proxy_qty ?? 0));
     setShowForm(true);
   };
 
@@ -306,6 +313,8 @@ export default function AdminProducts() {
       badge_text: formBadgeText || null,
       badge_icon: formBadgeIcon || null,
       badge_color: formBadgeColor || null,
+      included_proxy_product_id: formIncludedProxyId || null,
+      included_proxy_qty: formIncludedProxyId ? (parseInt(formIncludedProxyQty) || 1) : 0,
     };
 
     let error;
@@ -645,6 +654,48 @@ export default function AdminProducts() {
                 </div>
               )}
             </div>
+
+            {/* Proxy incluso — 1º mês grátis */}
+            {formIcon !== "proxy" && (
+              <div className="space-y-3 p-4 rounded-xl border border-zinc-700/50 bg-zinc-900/30">
+                <div>
+                  <label className="text-sm text-zinc-300 font-medium">Proxy incluso (1º mês grátis)</label>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    O proxy é entregue junto com o produto sem cobrança extra. No mês seguinte vira assinatura normal, com o preço de tabela do proxy escolhido.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <span className="text-[11px] text-zinc-500">Produto de proxy</span>
+                    <select
+                      value={formIncludedProxyId}
+                      onChange={(e) => setFormIncludedProxyId(e.target.value)}
+                      className="w-full h-10 rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-white px-3"
+                    >
+                      <option value="">Nenhum</option>
+                      {products
+                        .filter((p) => p.icon_type === "proxy")
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — R$ {Number(p.price || 0).toFixed(2)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] text-zinc-500">Qtd. por unidade</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={formIncludedProxyQty}
+                      onChange={(e) => setFormIncludedProxyQty(e.target.value)}
+                      disabled={!formIncludedProxyId}
+                      className="w-full h-10 rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-white px-3 disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Image selector */}
             <div className="space-y-3">

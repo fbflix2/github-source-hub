@@ -418,6 +418,132 @@ Deno.serve(async (req) => {
     }
 
     // ========== INTERNAL: UPDATE SUBSCRIPTION (no user JWT needed) ==========
+    if (bodyClone.action === "internal-allocate-included-proxy") {
+      const supabaseInternal = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const incOrderId = bodyClone.order_id as string;
+      if (!incOrderId) throw new Error("order_id é obrigatório");
+
+      const { data: incOrder } = await supabaseInternal
+        .from("orders")
+        .select("id, user_id, reseller_id, status")
+        .eq("id", incOrderId)
+        .maybeSingle();
+      if (!incOrder) throw new Error("Pedido não encontrado");
+
+      const { data: incItems } = await supabaseInternal
+        .from("order_items")
+        .select("id, quantity, product_id, products:product_id(name, included_proxy_product_id, included_proxy_qty)")
+        .eq("order_id", incOrderId);
+
+      const results: any[] = [];
+
+      for (const oi of (incItems || []) as any[]) {
+        const prod = oi.products;
+        const bundleProductId = prod?.included_proxy_product_id;
+        const perUnit = Number(prod?.included_proxy_qty || 0);
+        if (!bundleProductId || perUnit <= 0) continue;
+
+        const needed = perUnit * Math.max(1, Number(oi.quantity || 1));
+
+        // Idempotency: count subscriptions already created for this order item
+        const { data: existingSubs } = await supabaseInternal
+          .from("subscriptions")
+          .select("id, raw_data")
+          .eq("user_id", incOrder.user_id)
+          .in("status", ["active", "expiring"]);
+        const alreadyCount = (existingSubs || []).filter(
+          (s: any) => String((s.raw_data || {}).included_order_item_id || "") === String(oi.id)
+        ).length;
+        const missingCount = needed - alreadyCount;
+        if (missingCount <= 0) continue;
+
+        const { data: bundleProduct } = await supabaseInternal
+          .from("products").select("id, name, tags").eq("id", bundleProductId).maybeSingle();
+        const bundleCountry = bundleProduct ? detectCountryFromProduct(bundleProduct as any) : "BR";
+
+        const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseInternal, incOrder.user_id);
+
+        const pool: any[] = [];
+        let pageIdx = 1;
+        while (pool.length < missingCount) {
+          let url = `/proxy/list/?mode=direct&page=${pageIdx}&page_size=250`;
+          if (bundleCountry) url += `&country_code=${bundleCountry}`;
+          const resp = await webFetch(url, WEBSHARE_API_KEY);
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+          const results0 = data.results || [];
+          if (results0.length === 0) break;
+          for (const p of results0) {
+            if (!p.valid) continue;
+            if (assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address))) continue;
+            if (userIPs.has(String(p.proxy_address))) continue;
+            pool.push(p);
+            assignedIds.add(String(p.id));
+            assignedIPs.add(String(p.proxy_address));
+            if (pool.length >= missingCount) break;
+          }
+          if (!data.next) break;
+          pageIdx++;
+        }
+
+        for (let i = 0; i < Math.min(missingCount, pool.length); i++) {
+          const proxy = pool[i];
+          const startDate = new Date();
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 30);
+          const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i + 1}` : ""}`;
+
+          await supabaseInternal.from("subscriptions").insert({
+            user_id: incOrder.user_id,
+            name: subName,
+            type: "proxyfbflix",
+            status: "active",
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            // product_id do proxy => renovação usa o preço de tabela normal do proxy
+            product_id: bundleProductId,
+            auto_renew: false,
+            reseller_id: (incOrder as any).reseller_id ?? null,
+            raw_data: {
+              fbflix_proxy_id: proxy.id,
+              proxy_address: proxy.proxy_address,
+              port: proxy.port,
+              username: proxy.username,
+              password: proxy.password,
+              country_code: proxy.country_code,
+              city_name: proxy.city_name,
+              provider: "proxyfbflix",
+              exchange_quota_free: 2,
+              exchange_quota_pay: 0,
+              order_id: incOrderId,
+              included_order_item_id: oi.id,
+              included_in_product_id: oi.product_id,
+              included_free_first_month: true,
+              reseller_id: (incOrder as any).reseller_id ?? null,
+            },
+          });
+          results.push({ name: subName, ip: proxy.proxy_address, port: proxy.port });
+        }
+
+        if (pool.length < missingCount) {
+          await supabaseInternal.from("notifications").insert({
+            title: "Proxy incluso pendente",
+            message: `Faltam ${missingCount - pool.length} proxy(s) ${bundleCountry} para o pedido ${incOrderId} (produto ${prod?.name || ""}).`,
+            type: "system",
+            global: true,
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, allocated: results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (bodyClone.action === "internal-update-subscription") {
       const supabaseInternal = createClient(
         Deno.env.get("SUPABASE_URL")!,
