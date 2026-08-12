@@ -159,6 +159,28 @@ export default function Profile() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
+
+    // Dados fiscais obrigatórios para emissão automática de NFS-e
+    const cpfDigits = formData.cpf.replace(/\D/g, "");
+    const cepDigits = formData.cep.replace(/\D/g, "");
+    const missing: string[] = [];
+    if (!formData.full_name.trim()) missing.push("Nome completo");
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) missing.push("CPF/CNPJ válido");
+    if (!formData.rua.trim()) missing.push("Rua");
+    if (!formData.numero.trim()) missing.push("Número");
+    if (!formData.bairro.trim()) missing.push("Bairro");
+    if (!formData.cidade.trim()) missing.push("Cidade");
+    if (formData.estado.trim().length !== 2) missing.push("Estado (UF)");
+    if (cepDigits.length !== 8) missing.push("CEP");
+    if (missing.length > 0) {
+      toast({
+        title: "Dados fiscais incompletos",
+        description: `Preencha para emitirmos sua nota fiscal: ${missing.join(", ")}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     const shouldVerify = isProfileComplete() && !verified;
