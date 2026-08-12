@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildWooviCustomer } from "../_shared/woovi-customer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,6 +95,11 @@ Deno.serve(async (req) => {
       throw new Error("Erro ao criar pagamento");
     }
 
+    const wooviCustomer = await buildWooviCustomer(supabaseAdmin as any, client_user_id);
+    if (!wooviCustomer) {
+      console.warn("[create-invoice-link] Cliente sem dados fiscais completos — NFS-e automática indisponível");
+    }
+
     // Create OpenPix Charge
     const openPixResponse = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
@@ -105,6 +111,7 @@ Deno.serve(async (req) => {
         correlationID: payment.id,
         value: Math.round(Number(amount) * 100), // Em centavos
         comment: openPixComment,
+        ...(wooviCustomer ? { customer: wooviCustomer } : {}),
       }),
     });
 
