@@ -3558,6 +3558,8 @@ export type Database = {
           icon_type: string | null
           id: string
           image_url: string | null
+          included_proxy_product_id: string | null
+          included_proxy_qty: number
           name: string
           price: number
           price_label: string | null
@@ -3581,6 +3583,8 @@ export type Database = {
           icon_type?: string | null
           id?: string
           image_url?: string | null
+          included_proxy_product_id?: string | null
+          included_proxy_qty?: number
           name: string
           price?: number
           price_label?: string | null
@@ -3604,6 +3608,8 @@ export type Database = {
           icon_type?: string | null
           id?: string
           image_url?: string | null
+          included_proxy_product_id?: string | null
+          included_proxy_qty?: number
           name?: string
           price?: number
           price_label?: string | null
@@ -3621,6 +3627,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_included_proxy_product_id_fkey"
+            columns: ["included_proxy_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
