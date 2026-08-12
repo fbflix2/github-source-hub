@@ -655,6 +655,48 @@ export default function AdminProducts() {
               )}
             </div>
 
+            {/* Proxy incluso — 1º mês grátis */}
+            {formIcon !== "proxy" && (
+              <div className="space-y-3 p-4 rounded-xl border border-zinc-700/50 bg-zinc-900/30">
+                <div>
+                  <label className="text-sm text-zinc-300 font-medium">Proxy incluso (1º mês grátis)</label>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    O proxy é entregue junto com o produto sem cobrança extra. No mês seguinte vira assinatura normal, com o preço de tabela do proxy escolhido.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <span className="text-[11px] text-zinc-500">Produto de proxy</span>
+                    <select
+                      value={formIncludedProxyId}
+                      onChange={(e) => setFormIncludedProxyId(e.target.value)}
+                      className="w-full h-10 rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-white px-3"
+                    >
+                      <option value="">Nenhum</option>
+                      {products
+                        .filter((p) => p.icon_type === "proxy")
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — R$ {Number(p.price || 0).toFixed(2)}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] text-zinc-500">Qtd. por unidade</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={formIncludedProxyQty}
+                      onChange={(e) => setFormIncludedProxyQty(e.target.value)}
+                      disabled={!formIncludedProxyId}
+                      className="w-full h-10 rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-white px-3 disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Image selector */}
             <div className="space-y-3">
               <label className="text-sm text-zinc-400">Foto do Produto</label>
