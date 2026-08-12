@@ -219,6 +219,10 @@ Deno.serve(async (req) => {
     await admin.from("ct_clients").update({ last_payment_id: payment.id }).eq("id", ctClient.id);
 
     // Create OpenPix charge
+    const wooviCustomer = await buildWooviCustomer(admin as any, userId);
+    if (!wooviCustomer) {
+      console.warn("[ct-subscribe] Perfil sem dados fiscais completos — NFS-e automática indisponível");
+    }
     const chargeRes = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
       headers: { Authorization: OPENPIX_APP_ID, "Content-Type": "application/json" },
@@ -227,6 +231,7 @@ Deno.serve(async (req) => {
         value: Math.round(price * 100),
         comment: `Scale Pro - ${plan.name}`.replace(/[^\x20-\x7E]/g, ""),
         expiresIn: 60 * 60 * 24, // 24h
+        ...(wooviCustomer ? { customer: wooviCustomer } : {}),
       }),
     });
     const opData = await chargeRes.json();
