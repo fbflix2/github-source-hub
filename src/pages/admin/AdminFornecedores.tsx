@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Users, Plus, Loader2, Copy, RefreshCw, Power, Search, ExternalLink } from "lucide-react";
+import { Users, Plus, Loader2, Copy, RefreshCw, Power, Search, ExternalLink, CheckCircle2, Send, Rocket } from "lucide-react";
 
 interface Supplier {
   id: string;
@@ -19,6 +20,17 @@ interface Supplier {
 const PORTAL_URL = `${window.location.origin}/fornecedor/portal`;
 const genToken = () => Math.random().toString(36).substring(2, 10).toUpperCase();
 
+const onboardingMessage = (name: string, token: string) =>
+`Olá ${name}! Seu acesso de fornecedor parceiro FBFLIX está liberado 🚀
+
+1) Acesse: ${PORTAL_URL}
+2) Token de acesso: ${token}
+3) Cadastre sua forma de pagamento (PIX ou conta bancária) na aba Pagamentos.
+4) Envie seus itens (perfil, BM ou página) na aba Estoque → Cadastrar item, informando o valor combinado.
+5) Nossa equipe revisa cada item. Aprovado, ele entra no estoque da loja e você acompanha vendas e valores a receber pelo próprio painel.
+
+Guarde o token com segurança: ele é a sua senha de acesso.`;
+
 export default function AdminFornecedores() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +38,7 @@ export default function AdminFornecedores() {
   const [newName, setNewName] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [search, setSearch] = useState("");
+  const [onboarding, setOnboarding] = useState<Supplier | null>(null);
 
   const fetchSuppliers = async () => {
     const { data, error } = await supabase
@@ -42,16 +55,18 @@ export default function AdminFornecedores() {
   const handleCreate = async () => {
     if (!newName.trim()) return toast.error("Informe o nome do fornecedor");
     setCreating(true);
-    const { error } = await supabase.from("suppliers").insert({
+    const token = genToken();
+    const { data, error } = await supabase.from("suppliers").insert({
       name: newName.trim(),
       notes: newNotes.trim() || null,
-      access_token: genToken(),
+      access_token: token,
       status: "active",
-    });
+    }).select().single();
     setCreating(false);
     if (error) return toast.error("Erro ao criar: " + error.message);
     toast.success("Fornecedor criado com sucesso!");
     setNewName(""); setNewNotes("");
+    if (data) setOnboarding(data as Supplier);
     fetchSuppliers();
   };
 
@@ -167,6 +182,9 @@ export default function AdminFornecedores() {
                     <Button size="sm" variant={s.status === "active" ? "destructive" : "default"} onClick={() => toggleStatus(s)}>
                       <Power className="h-4 w-4 mr-1" /> {s.status === "active" ? "Desativar" : "Ativar"}
                     </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setOnboarding(s)}>
+                      <Rocket className="h-4 w-4 mr-1" /> Onboarding
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -174,6 +192,60 @@ export default function AdminFornecedores() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!onboarding} onOpenChange={(o) => !o && setOnboarding(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-primary" /> Onboarding do fornecedor
+            </DialogTitle>
+            <DialogDescription>
+              Envie estas instruções para {onboarding?.name} começar a cadastrar itens.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 space-y-2 bg-muted/40">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Link do portal</span>
+                <Button size="sm" variant="ghost" onClick={() => copy(PORTAL_URL, "Link")}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <code className="text-xs break-all">{PORTAL_URL}</code>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                <span className="text-xs text-muted-foreground">Token de acesso</span>
+                <Button size="sm" variant="ghost" onClick={() => copy(onboarding?.access_token || "", "Token")}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <code className="text-sm font-mono tracking-widest">{onboarding?.access_token || "SEM TOKEN"}</code>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Checklist do parceiro</p>
+              {[
+                "Entrar no portal usando o token (funciona sem e-mail e sem senha).",
+                "Cadastrar a forma de pagamento na aba Pagamentos (PIX ou conta bancária).",
+                "Cadastrar o primeiro item na aba Estoque → Cadastrar item.",
+                "Informar o valor combinado por item para o repasse.",
+                "Acompanhar aprovação, vendas e valores a receber pelo painel.",
+              ].map((t) => (
+                <div key={t} className="flex gap-2 items-start text-sm text-muted-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" /> {t}
+                </div>
+              ))}
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={() => copy(onboardingMessage(onboarding?.name || "", onboarding?.access_token || ""), "Mensagem de boas-vindas")}
+            >
+              <Send className="h-4 w-4 mr-2" /> Copiar mensagem de boas-vindas
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
