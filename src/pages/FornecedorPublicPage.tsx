@@ -12,6 +12,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SupplierStockPanel } from "@/components/fornecedor/SupplierStockPanel";
 
 export default function FornecedorPublicPage() {
   const [token, setToken] = useState(localStorage.getItem("supplier_token") || "");
@@ -357,6 +358,7 @@ export default function FornecedorPublicPage() {
         <nav className="flex flex-col gap-2 flex-1">
           <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Início</Button>
           <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Demandas de Compra</Button>
+          <Button variant={activeTab === 'estoque' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('estoque')}><PackagePlus className="h-5 w-5"/> Cadastrar Estoque</Button>
           <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Painel de Reposição</Button>
           <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Ofertar Estoque</Button>
           <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Minhas Contas</Button>
@@ -374,6 +376,11 @@ export default function FornecedorPublicPage() {
           </div>
         </div>
         <div className="p-6">
+          {activeTab === 'estoque' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <SupplierStockPanel callPortal={(action, payload) => callPortal(action, payload)} />
+            </div>
+          )}
           {activeTab === 'dashboard' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
