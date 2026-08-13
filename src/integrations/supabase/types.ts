@@ -5271,6 +5271,91 @@ export type Database = {
           },
         ]
       }
+      supplier_submissions: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          data: Json
+          id: string
+          identification: string | null
+          identification_link: string | null
+          name: string
+          paid_at: string | null
+          payout_amount: number
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sold_at: string | null
+          status: string
+          stock_item_id: string | null
+          supplier_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          identification?: string | null
+          identification_link?: string | null
+          name: string
+          paid_at?: string | null
+          payout_amount?: number
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sold_at?: string | null
+          status?: string
+          stock_item_id?: string | null
+          supplier_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          identification?: string | null
+          identification_link?: string | null
+          name?: string
+          paid_at?: string | null
+          payout_amount?: number
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sold_at?: string | null
+          status?: string
+          stock_item_id?: string | null
+          supplier_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_submissions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_submissions_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_submissions_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           access_token: string | null
