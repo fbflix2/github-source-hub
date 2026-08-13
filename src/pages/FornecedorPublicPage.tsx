@@ -323,7 +323,7 @@ export default function FornecedorPublicPage() {
         <Card className="w-full max-w-md bg-[#0a0a0a] border-zinc-800 shadow-2xl p-6">
           <CardHeader className="text-center pb-8">
             <div className="flex justify-center mb-4">
-              <img src={logoFbflix} alt="FBFLIX" className="h-16 w-16 object-contain" />
+              <img src={logoFbflix} alt="FBFLIX" className="h-28 w-28 md:h-32 md:w-32 object-contain drop-shadow-[0_0_40px_hsl(var(--primary)/0.35)]" />
             </div>
             <CardTitle className="text-xl font-bold text-white">Portal do Fornecedor</CardTitle>
             <p className="text-zinc-500 text-sm">Autenticação obrigatória para acessar pedidos.</p>
@@ -368,36 +368,75 @@ export default function FornecedorPublicPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
-      <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 p-6 flex flex-col gap-10">
-         <div className="text-2xl font-black text-primary tracking-tighter">​ <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
-        <nav className="flex flex-col gap-2 flex-1">
-          <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Início</Button>
-          <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Demandas de Compra</Button>
-          <Button variant={activeTab === 'estoque' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('estoque')}><PackagePlus className="h-5 w-5"/> Cadastrar Estoque</Button>
-          <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Painel de Reposição</Button>
-          <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Ofertar Estoque</Button>
-          <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Minhas Contas</Button>
+      <aside className="hidden lg:flex w-56 shrink-0 bg-[#0a0a0a] border-r border-zinc-900 p-4 flex-col gap-8 sticky top-0 h-screen">
+        <div className="flex items-center gap-2.5 px-1 pt-1">
+          <img src={logoFbflix} alt="FBFLIX" className="h-8 w-8 object-contain" />
+          <div className="leading-none">
+            <p className="text-[11px] font-black tracking-tight text-white">FBFLIX</p>
+            <p className="text-[9px] uppercase tracking-widest text-zinc-500 mt-1">Fornecedor</p>
+          </div>
+        </div>
+        <nav className="flex flex-col gap-1 flex-1">
+          {[
+            { k: 'dashboard', icon: LayoutDashboard, label: 'Início' },
+            { k: 'compras', icon: ShoppingBag, label: 'Demandas' },
+            { k: 'estoque', icon: PackagePlus, label: 'Cadastrar estoque' },
+            { k: 'reposicoes', icon: Inbox, label: 'Reposições' },
+            { k: 'vendas', icon: BriefcaseBusiness, label: 'Ofertar estoque' },
+            { k: 'financeiro', icon: CreditCard, label: 'Minhas contas' },
+          ].map(({ k, icon: Icon, label }) => (
+            <button
+              key={k}
+              onClick={() => setActiveTab(k)}
+              className={`flex items-center gap-2.5 rounded-lg px-3 h-9 text-xs font-semibold transition-colors ${
+                activeTab === k ? 'bg-primary/10 text-primary' : 'text-zinc-500 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" /> {label}
+            </button>
+          ))}
         </nav>
-        <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => {
+        <Button variant="ghost" size="sm" className="justify-start text-xs text-zinc-600 hover:text-red-400" onClick={() => {
           localStorage.removeItem("supplier_token");
           setIsAuth(false);
         }}>Sair</Button>
       </aside>
-      <main className="flex-1 bg-[#09090b]">
-        <div className="h-20 border-b border-zinc-800 flex items-center px-10 justify-between">
-          <h2 className="text-xl font-bold uppercase tracking-wider">{activeTab}</h2>
-          <div className="flex items-center gap-3">
-            <Badge className="bg-zinc-800 text-white border-zinc-700">{supplier.name}</Badge>
+      <main className="flex-1 min-w-0 bg-[#09090b]">
+        <div className="h-14 border-b border-zinc-900 flex items-center px-4 md:px-6 justify-between sticky top-0 bg-[#09090b]/90 backdrop-blur z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src={logoFbflix} alt="FBFLIX" className="h-7 w-7 object-contain lg:hidden" />
+            <h2 className="text-sm font-bold uppercase tracking-widest truncate">{activeTab}</h2>
           </div>
+          <Badge className="bg-zinc-900 text-zinc-300 border-zinc-800 text-[10px] font-semibold">{supplier.name}</Badge>
         </div>
-        <div className="p-6">
+        <nav className="lg:hidden flex gap-1.5 overflow-x-auto px-3 py-2 border-b border-zinc-900 no-scrollbar">
+          {[
+            { k: 'dashboard', label: 'Início' },
+            { k: 'compras', label: 'Demandas' },
+            { k: 'estoque', label: 'Estoque' },
+            { k: 'reposicoes', label: 'Reposições' },
+            { k: 'vendas', label: 'Ofertar' },
+            { k: 'financeiro', label: 'Contas' },
+          ].map(({ k, label }) => (
+            <button
+              key={k}
+              onClick={() => setActiveTab(k)}
+              className={`shrink-0 rounded-full px-3 h-7 text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+                activeTab === k ? 'bg-primary/15 text-primary border-primary/30' : 'text-zinc-500 border-zinc-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-4 md:p-6 max-w-[1180px] mx-auto w-full">
           {activeTab === 'estoque' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <SupplierStockPanel callPortal={(action, payload) => callPortal(action, payload)} />
             </div>
           )}
           {activeTab === 'dashboard' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-4">
               {(() => {
                 const steps = [
                   { done: !!supplier?.name, label: "Cadastro aprovado pela FBFLIX", hint: "Seu token de acesso já está ativo." },
@@ -408,7 +447,7 @@ export default function FornecedorPublicPage() {
                 const doneCount = steps.filter((s) => s.done).length;
                 if (doneCount === steps.length) return null;
                 return (
-                  <Card className="bg-[#0a0a0a] border-primary/20 p-5 space-y-4">
+                  <Card className="bg-[#0a0a0a] border-zinc-900 p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div>
                         <CardTitle className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
@@ -418,19 +457,19 @@ export default function FornecedorPublicPage() {
                           {doneCount} de {steps.length} concluídos
                         </p>
                       </div>
-                      <div className="h-1.5 w-40 bg-zinc-900 rounded-full overflow-hidden">
+                      <div className="h-1 w-24 bg-zinc-900 rounded-full overflow-hidden">
                         <div className="h-full bg-primary transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {steps.map((s) => (
-                        <div key={s.label} className={`flex gap-3 rounded-xl border p-3 ${s.done ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-black/30"}`}>
+                        <div key={s.label} className={`flex gap-2.5 rounded-lg border p-2.5 ${s.done ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-900 bg-black/30"}`}>
                           {s.done
-                            ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-                            : <Clock className="h-4 w-4 text-zinc-600 mt-0.5 shrink-0" />}
+                            ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                            : <Clock className="h-3.5 w-3.5 text-zinc-600 mt-0.5 shrink-0" />}
                           <div className="min-w-0">
-                            <p className={`text-xs font-bold ${s.done ? "text-emerald-400 line-through" : "text-white"}`}>{s.label}</p>
-                            <p className="text-[10px] text-zinc-500 mt-0.5">{s.hint}</p>
+                            <p className={`text-[11px] font-bold leading-tight ${s.done ? "text-emerald-400 line-through" : "text-white"}`}>{s.label}</p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5 leading-snug">{s.hint}</p>
                           </div>
                         </div>
                       ))}
@@ -438,99 +477,95 @@ export default function FornecedorPublicPage() {
                   </Card>
                 );
               })()}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
-                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><DollarSign className="h-6 w-6 text-primary/20"/></div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Card className="bg-[#0a0a0a] border-zinc-900 p-3.5 flex flex-col gap-2 relative overflow-hidden group">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-emerald-500/10 rounded-lg"><TrendingUp className="h-3.5 w-3.5 text-emerald-500"/></div>
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Saldo a Receber</span>
+                    <div className="p-1 bg-emerald-500/10 rounded-md"><TrendingUp className="h-3 w-3 text-emerald-500"/></div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Saldo a receber</span>
                   </div>
                    <div className="space-y-0.5">
-                     <span className="text-xl font-black text-white">R$ {Number(metrics?.totalDue ?? 0).toFixed(2)}</span>
-                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">
+                     <span className="text-lg font-black text-white tabular-nums block">R$ {Number(metrics?.totalDue ?? 0).toFixed(2)}</span>
+                     <div className="text-[9px] text-zinc-600 font-semibold">
                        Já pago: R$ {Number(metrics?.totalPaid ?? 0).toFixed(2)}
                      </div>
                    </div>
                 </Card>
                 
-                <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
-                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><Activity className="h-6 w-6 text-primary/20"/></div>
+                <Card className="bg-[#0a0a0a] border-zinc-900 p-3.5 flex flex-col gap-2 relative overflow-hidden group">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary/10 rounded-lg"><Clock className="h-3.5 w-3.5 text-primary"/></div>
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Aguardando Reposição</span>
+                    <div className="p-1 bg-primary/10 rounded-md"><Clock className="h-3 w-3 text-primary"/></div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Aguardando reposição</span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-xl font-black text-white">{requests.filter(r => r.status === 'pending_replenishment').length}</span>
-                    <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">Média: 4h</div>
+                    <span className="text-lg font-black text-white tabular-nums block">{requests.filter(r => r.status === 'pending_replenishment').length}</span>
+                    <div className="text-[9px] text-zinc-600 font-semibold">Média: 4h</div>
                   </div>
                 </Card>
 
-                <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
-                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><PackagePlus className="h-6 w-6 text-primary/20"/></div>
+                <Card className="bg-[#0a0a0a] border-zinc-900 p-3.5 flex flex-col gap-2 relative overflow-hidden group">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-500/10 rounded-lg"><Send className="h-3.5 w-3.5 text-blue-500"/></div>
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Total Enviado</span>
+                    <div className="p-1 bg-blue-500/10 rounded-md"><Send className="h-3 w-3 text-blue-500"/></div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total enviado</span>
                   </div>
                    <div className="space-y-0.5">
-                     <span className="text-xl font-black text-white">{metrics?.sent ?? 0}</span>
-                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">
+                     <span className="text-lg font-black text-white tabular-nums block">{metrics?.sent ?? 0}</span>
+                     <div className="text-[9px] text-zinc-600 font-semibold">
                        {metrics?.inStock ?? 0} na loja · {metrics?.sold ?? 0} vendidos
                      </div>
                    </div>
                 </Card>
 
-                <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
-                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><BriefcaseBusiness className="h-6 w-6 text-primary/20"/></div>
+                <Card className="bg-[#0a0a0a] border-zinc-900 p-3.5 flex flex-col gap-2 relative overflow-hidden group">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-zinc-800 rounded-lg"><Activity className="h-3.5 w-3.5 text-zinc-400"/></div>
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Taxa de Aprovação</span>
+                    <div className="p-1 bg-zinc-800 rounded-md"><Activity className="h-3 w-3 text-zinc-400"/></div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Taxa de aprovação</span>
                   </div>
                    <div className="space-y-1">
-                     <span className="text-xl font-black text-white">
+                     <span className="text-lg font-black text-white tabular-nums block">
                        {(metrics?.sent ?? 0) > 0 ? `${metrics?.approvalRate ?? 0}%` : "—"}
                      </span>
-                     <div className="flex items-center gap-1 w-20">
+                     <div className="flex items-center gap-1 w-16">
                        {[1,2,3,4,5].map(i => (
-                         <div key={i} className={`h-1 flex-1 rounded-full ${((metrics?.approvalRate ?? 0) / 20) >= i ? "bg-primary" : "bg-zinc-800"}`} />
+                         <div key={i} className={`h-0.5 flex-1 rounded-full ${((metrics?.approvalRate ?? 0) / 20) >= i ? "bg-primary" : "bg-zinc-800"}`} />
                        ))}
                      </div>
-                     <p className="text-[9px] text-zinc-600 font-bold italic">
+                     <p className="text-[9px] text-zinc-600 font-semibold">
                        {metrics?.rejected ?? 0} recusados de {metrics?.sent ?? 0} envios
                      </p>
                    </div>
                 </Card>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 bg-[#0a0a0a] border-zinc-800 p-6 shadow-2xl">
-                  <div className="flex items-center justify-between mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <Card className="lg:col-span-2 bg-[#0a0a0a] border-zinc-900 p-4">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
-                      <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4"/> Performance de Vendas
+                      <CardTitle className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                        <TrendingUp className="h-3.5 w-3.5"/> Performance de vendas
                       </CardTitle>
-                      <p className="text-[10px] text-zinc-600 font-bold uppercase">Volume de faturamento nos últimos 7 dias</p>
+                      <p className="text-[10px] text-zinc-600 font-semibold">Faturamento nos últimos 7 dias</p>
                     </div>
                   </div>
-                   <div className="h-[240px] w-full flex items-center justify-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/20">
+                   <div className="h-[180px] w-full flex items-center justify-center border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
                      <div className="text-center space-y-2">
-                       <Activity className="h-8 w-8 text-zinc-800 mx-auto" />
-                       <p className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Sem dados de performance no momento</p>
+                       <Activity className="h-6 w-6 text-zinc-800 mx-auto" />
+                       <p className="text-[10px] font-bold text-zinc-700 uppercase tracking-widest">Sem dados por enquanto</p>
                      </div>
                    </div>
                 </Card>
 
-                <div className="space-y-6">
-                  <Card className="bg-[#0a0a0a] border-zinc-800 p-6 shadow-2xl flex flex-col h-full">
-                    <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center justify-between">
-                      Reposições Pendentes
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] uppercase font-black animate-pulse">Live</Badge>
+                <div>
+                  <Card className="bg-[#0a0a0a] border-zinc-900 p-4 flex flex-col h-full">
+                    <CardTitle className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-4 flex items-center justify-between">
+                      Reposições pendentes
+                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] uppercase font-black">Live</Badge>
                     </CardTitle>
                     
-                    <div className="flex-1 space-y-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                    <div className="flex-1 space-y-2 overflow-y-auto max-h-[200px] pr-1 custom-scrollbar">
                       {requests.filter(r => r.type === 'purchase' && r.status !== 'completed').length === 0 ? (
-                        <div className="text-center py-10 opacity-40">
-                          <ShoppingBag className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum pedido de compra pendente</p>
+                        <div className="text-center py-8 opacity-40">
+                          <ShoppingBag className="h-6 w-6 mx-auto mb-2" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum pedido pendente</p>
                         </div>
                       ) : (
                         requests
@@ -555,13 +590,14 @@ export default function FornecedorPublicPage() {
                       )}
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-zinc-800/50">
+                    <div className="mt-4 pt-3 border-t border-zinc-900">
                       <Button 
                         variant="ghost" 
+                        size="sm"
                         className="w-full text-[9px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/5"
                         onClick={() => setActiveTab('compras')}
                       >
-                        Ver todos os pedidos de compra
+                        Ver todos os pedidos
                       </Button>
                     </div>
                   </Card>
