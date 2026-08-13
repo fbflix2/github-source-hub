@@ -36,6 +36,7 @@ import {
   Recycle,
   Star,
   RefreshCw,
+  PackageCheck,
   ArrowRightLeft,
   Briefcase,
   Coins,
