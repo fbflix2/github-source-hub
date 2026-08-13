@@ -115,8 +115,8 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
     return submissions.filter((s) => s.status === filter);
   }, [submissions, filter]);
 
-  const Field = ({ label, k, placeholder, type: t = "text" }: any) => (
-    <div className="space-y-1.5">
+  const field = (label: string, k: string, placeholder?: string, t = "text") => (
+    <div key={k} className="space-y-1.5">
       <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{label}</label>
       <Input
         type={t}
@@ -183,18 +183,18 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label={type === "bm" ? "Nome da BM" : type === "pagina" ? "Nome da página" : "Nome do perfil"} k="nomePerfil" placeholder="Ex: João Silva" />
-            <Field label={type === "perfil" ? "Link do perfil" : "Link"} k="linkPerfil" placeholder="https://facebook.com/..." />
+            {field(type === "bm" ? "Nome da BM" : type === "pagina" ? "Nome da página" : "Nome do perfil", "nomePerfil", "Ex: João Silva")}
+            {field(type === "perfil" ? "Link do perfil" : "Link", "linkPerfil", "https://facebook.com/...")}
 
             {type === "perfil" && (
               <>
-                <Field label="ID do perfil" k="idPerfil" placeholder="1000123456789" />
-                <Field label="Login / E-mail" k="emailAcesso" placeholder="email@dominio.com" />
-                <Field label="Senha do Facebook" k="senha" placeholder="Senha FB" />
-                <Field label="E-mail alternativo" k="emailAlternativo" placeholder="alternativo@dominio.com" />
-                <Field label="Senha do e-mail" k="senhaEmail" placeholder="Senha do e-mail" />
-                <Field label="Token 2FA" k="token2fa" placeholder="Chave 2FA" />
-                <Field label="Data de nascimento" k="dataNascimento" placeholder="01/01/1990" />
+                {field("ID do perfil", "idPerfil", "1000123456789")}
+                {field("Login / E-mail", "emailAcesso", "email@dominio.com")}
+                {field("Senha do Facebook", "senha", "Senha FB")}
+                {field("E-mail alternativo", "emailAlternativo", "alternativo@dominio.com")}
+                {field("Senha do e-mail", "senhaEmail", "Senha do e-mail")}
+                {field("Token 2FA", "token2fa", "Chave 2FA")}
+                {field("Data de nascimento", "dataNascimento", "01/01/1990")}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Gênero</label>
                   <select value={form.genero} onChange={(e) => set("genero", e.target.value)}
@@ -226,10 +226,10 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
             )}
 
             {type === "bm" && (
-              <Field label="Perfil matriz (link)" k="perfilMatriz" placeholder="Perfil que administra a BM" />
+              {field("Perfil matriz (link)", "perfilMatriz", "Perfil que administra a BM")}
             )}
 
-            <Field label="Valor combinado (R$)" k="payout" placeholder="0,00" />
+            {field("Valor combinado (R$)", "payout", "0,00")}
           </div>
 
           {type === "perfil" && (
