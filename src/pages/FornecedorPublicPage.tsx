@@ -41,6 +41,7 @@ export default function FornecedorPublicPage() {
    const [replenishItemContent, setReplenishItemContent] = useState<Record<string, string>>({});
    const [selectedRequest, setSelectedRequest] = useState<any>(null);
    const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
+   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("supplier_token");
@@ -59,6 +60,15 @@ export default function FornecedorPublicPage() {
     return data;
   };
 
+  const fetchMetrics = async () => {
+    try {
+      const data = await callPortal("list-submissions");
+      setMetrics(data?.metrics || null);
+    } catch (err) {
+      console.error("Error fetching metrics", err);
+    }
+  };
+
   const autoAuth = async (tokenToUse: string) => {
     setLoading(true);
     try {
@@ -69,6 +79,7 @@ export default function FornecedorPublicPage() {
         fetchRequests(data.supplier.id);
         fetchPaymentMethods(data.supplier.id);
         fetchPurchaseRequests();
+        fetchMetrics();
       }
     } catch (err) {
       console.error("Auto-auth failed");
@@ -96,6 +107,7 @@ export default function FornecedorPublicPage() {
       fetchRequests(data.supplier.id);
       fetchPaymentMethods(data.supplier.id);
       fetchPurchaseRequests();
+      fetchMetrics();
 
       if (rememberMe) localStorage.setItem("supplier_token", token);
       else localStorage.removeItem("supplier_token");
@@ -386,6 +398,46 @@ export default function FornecedorPublicPage() {
           )}
           {activeTab === 'dashboard' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6">
+              {(() => {
+                const steps = [
+                  { done: !!supplier?.name, label: "Cadastro aprovado pela FBFLIX", hint: "Seu token de acesso já está ativo." },
+                  { done: paymentMethods.length > 0, label: "Cadastrar forma de pagamento", hint: "Aba Pagamentos → adicione sua chave PIX ou conta bancária." },
+                  { done: (metrics?.sent ?? 0) > 0, label: "Enviar o primeiro item", hint: "Aba Estoque → Cadastrar item (perfil, BM ou página)." },
+                  { done: (metrics?.inStock ?? 0) > 0 || (metrics?.sold ?? 0) > 0, label: "Item aprovado e publicado na loja", hint: "Após nossa revisão o item entra no estoque da FBFLIX." },
+                ];
+                const doneCount = steps.filter((s) => s.done).length;
+                if (doneCount === steps.length) return null;
+                return (
+                  <Card className="bg-[#0a0a0a] border-primary/20 p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <CardTitle className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                          <Award className="h-4 w-4 text-primary" /> Primeiros passos
+                        </CardTitle>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">
+                          {doneCount} de {steps.length} concluídos
+                        </p>
+                      </div>
+                      <div className="h-1.5 w-40 bg-zinc-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {steps.map((s) => (
+                        <div key={s.label} className={`flex gap-3 rounded-xl border p-3 ${s.done ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-black/30"}`}>
+                          {s.done
+                            ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                            : <Clock className="h-4 w-4 text-zinc-600 mt-0.5 shrink-0" />}
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold ${s.done ? "text-emerald-400 line-through" : "text-white"}`}>{s.label}</p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5">{s.hint}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                );
+              })()}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
                   <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><DollarSign className="h-6 w-6 text-primary/20"/></div>
@@ -394,8 +446,10 @@ export default function FornecedorPublicPage() {
                     <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Saldo a Receber</span>
                   </div>
                    <div className="space-y-0.5">
-                     <span className="text-xl font-black text-white">R$ 0,00</span>
-                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">Processando...</div>
+                     <span className="text-xl font-black text-white">R$ {Number(metrics?.totalDue ?? 0).toFixed(2)}</span>
+                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">
+                       Já pago: R$ {Number(metrics?.totalPaid ?? 0).toFixed(2)}
+                     </div>
                    </div>
                 </Card>
                 
@@ -418,8 +472,10 @@ export default function FornecedorPublicPage() {
                     <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Total Enviado</span>
                   </div>
                    <div className="space-y-0.5">
-                     <span className="text-xl font-black text-white">0</span>
-                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">Aguardando envios</div>
+                     <span className="text-xl font-black text-white">{metrics?.sent ?? 0}</span>
+                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">
+                       {metrics?.inStock ?? 0} na loja · {metrics?.sold ?? 0} vendidos
+                     </div>
                    </div>
                 </Card>
 
@@ -427,13 +483,20 @@ export default function FornecedorPublicPage() {
                   <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-6 transition-transform group-hover:scale-110"><BriefcaseBusiness className="h-6 w-6 text-primary/20"/></div>
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-zinc-800 rounded-lg"><Activity className="h-3.5 w-3.5 text-zinc-400"/></div>
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Health Score</span>
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Taxa de Aprovação</span>
                   </div>
                    <div className="space-y-1">
-                     <span className="text-xl font-black text-zinc-500">N/A</span>
+                     <span className="text-xl font-black text-white">
+                       {(metrics?.sent ?? 0) > 0 ? `${metrics?.approvalRate ?? 0}%` : "—"}
+                     </span>
                      <div className="flex items-center gap-1 w-20">
-                       {[1,2,3,4,5].map(i => <div key={i} className="h-1 flex-1 bg-zinc-800 rounded-full"/>)}
+                       {[1,2,3,4,5].map(i => (
+                         <div key={i} className={`h-1 flex-1 rounded-full ${((metrics?.approvalRate ?? 0) / 20) >= i ? "bg-primary" : "bg-zinc-800"}`} />
+                       ))}
                      </div>
+                     <p className="text-[9px] text-zinc-600 font-bold italic">
+                       {metrics?.rejected ?? 0} recusados de {metrics?.sent ?? 0} envios
+                     </p>
                    </div>
                 </Card>
               </div>
