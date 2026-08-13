@@ -100,7 +100,8 @@ const allMenuItems: MenuItem[] = [
   { title: "Scale Pro", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Pool Scale Pro", icon: ShieldAlert, path: "/admin/scale-pro-pool" },
   { title: "Combos Scale Pro", icon: ShieldAlert, path: "/admin/scale-pro-combos" },
-  { title: "Fornecedores", icon: PackageCheck, path: "/admin/fornecedor-revisao", subItems: [
+  { title: "Fornecedores", icon: PackageCheck, path: "/admin/fornecedores", subItems: [
+    { title: "Gerenciar Fornecedores", icon: Users, path: "/admin/fornecedores" },
     { title: "Revisão de Envios", icon: PackageCheck, path: "/admin/fornecedor-revisao" },
     { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
     { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
