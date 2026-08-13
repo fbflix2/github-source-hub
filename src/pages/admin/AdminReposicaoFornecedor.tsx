@@ -25,7 +25,10 @@ interface ReplacementRecord {
   account_count?: number;
 }
 
+import { useNavigate } from "react-router-dom";
+
 export default function AdminReposicaoFornecedor() {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
   const [loading, setLoading] = useState(true);
