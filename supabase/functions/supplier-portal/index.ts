@@ -222,6 +222,17 @@ Deno.serve(async (req) => {
         product: r.stock_item?.product_id ? products[r.stock_item.product_id] || null : null,
       }));
 
+      // backfill sold_at for items already sold in stock
+      const newlySold = enriched.filter((r) => !r.sold_at && r.stock_item?.status === "vendido");
+      if (newlySold.length > 0) {
+        const nowIso = new Date().toISOString();
+        await admin
+          .from("supplier_submissions")
+          .update({ sold_at: nowIso })
+          .in("id", newlySold.map((r) => r.id));
+        for (const r of newlySold) r.sold_at = nowIso;
+      }
+
       // ---- metrics ----
       const sent = enriched.length;
       const approved = enriched.filter((r) => r.status === "approved").length;
