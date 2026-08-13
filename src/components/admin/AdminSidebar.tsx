@@ -36,6 +36,7 @@ import {
   Recycle,
   Star,
   RefreshCw,
+  PackageCheck,
   ArrowRightLeft,
   Briefcase,
   Coins,
@@ -115,6 +116,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
     { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
+    { title: "Revisão Fornecedor", icon: PackageCheck, path: "/admin/fornecedor-revisao" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},

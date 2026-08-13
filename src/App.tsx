@@ -138,6 +138,7 @@ import AdminScaleProCombos from "./pages/admin/AdminScaleProCombos";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
+import AdminFornecedorRevisao from "./pages/admin/AdminFornecedorRevisao";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
@@ -633,6 +634,7 @@ const App = () => {
                   <Route path="scale-pro-combos" element={<AdminScaleProCombos />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                   <Route path="reposicao-fornecedor" element={<AdminReposicaoFornecedor />} />
+                  <Route path="fornecedor-revisao" element={<AdminFornecedorRevisao />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
                   <Route path="whatsapp" element={<AdminWhatsApp />} />
                   <Route path="whatsapp-crm" element={<AdminWhatsAppCRM />} />
