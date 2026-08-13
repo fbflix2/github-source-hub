@@ -368,29 +368,68 @@ export default function FornecedorPublicPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
-      <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 p-6 flex flex-col gap-10">
-         <div className="text-2xl font-black text-primary tracking-tighter">​ <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
-        <nav className="flex flex-col gap-2 flex-1">
-          <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Início</Button>
-          <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Demandas de Compra</Button>
-          <Button variant={activeTab === 'estoque' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('estoque')}><PackagePlus className="h-5 w-5"/> Cadastrar Estoque</Button>
-          <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Painel de Reposição</Button>
-          <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Ofertar Estoque</Button>
-          <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Minhas Contas</Button>
+      <aside className="hidden lg:flex w-56 shrink-0 bg-[#0a0a0a] border-r border-zinc-900 p-4 flex-col gap-8 sticky top-0 h-screen">
+        <div className="flex items-center gap-2.5 px-1 pt-1">
+          <img src={logoFbflix} alt="FBFLIX" className="h-8 w-8 object-contain" />
+          <div className="leading-none">
+            <p className="text-[11px] font-black tracking-tight text-white">FBFLIX</p>
+            <p className="text-[9px] uppercase tracking-widest text-zinc-500 mt-1">Fornecedor</p>
+          </div>
+        </div>
+        <nav className="flex flex-col gap-1 flex-1">
+          {[
+            { k: 'dashboard', icon: LayoutDashboard, label: 'Início' },
+            { k: 'compras', icon: ShoppingBag, label: 'Demandas' },
+            { k: 'estoque', icon: PackagePlus, label: 'Cadastrar estoque' },
+            { k: 'reposicoes', icon: Inbox, label: 'Reposições' },
+            { k: 'vendas', icon: BriefcaseBusiness, label: 'Ofertar estoque' },
+            { k: 'financeiro', icon: CreditCard, label: 'Minhas contas' },
+          ].map(({ k, icon: Icon, label }) => (
+            <button
+              key={k}
+              onClick={() => setActiveTab(k)}
+              className={`flex items-center gap-2.5 rounded-lg px-3 h-9 text-xs font-semibold transition-colors ${
+                activeTab === k ? 'bg-primary/10 text-primary' : 'text-zinc-500 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" /> {label}
+            </button>
+          ))}
         </nav>
-        <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => {
+        <Button variant="ghost" size="sm" className="justify-start text-xs text-zinc-600 hover:text-red-400" onClick={() => {
           localStorage.removeItem("supplier_token");
           setIsAuth(false);
         }}>Sair</Button>
       </aside>
-      <main className="flex-1 bg-[#09090b]">
-        <div className="h-20 border-b border-zinc-800 flex items-center px-10 justify-between">
-          <h2 className="text-xl font-bold uppercase tracking-wider">{activeTab}</h2>
-          <div className="flex items-center gap-3">
-            <Badge className="bg-zinc-800 text-white border-zinc-700">{supplier.name}</Badge>
+      <main className="flex-1 min-w-0 bg-[#09090b]">
+        <div className="h-14 border-b border-zinc-900 flex items-center px-4 md:px-6 justify-between sticky top-0 bg-[#09090b]/90 backdrop-blur z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src={logoFbflix} alt="FBFLIX" className="h-7 w-7 object-contain lg:hidden" />
+            <h2 className="text-sm font-bold uppercase tracking-widest truncate">{activeTab}</h2>
           </div>
+          <Badge className="bg-zinc-900 text-zinc-300 border-zinc-800 text-[10px] font-semibold">{supplier.name}</Badge>
         </div>
-        <div className="p-6">
+        <nav className="lg:hidden flex gap-1.5 overflow-x-auto px-3 py-2 border-b border-zinc-900 no-scrollbar">
+          {[
+            { k: 'dashboard', label: 'Início' },
+            { k: 'compras', label: 'Demandas' },
+            { k: 'estoque', label: 'Estoque' },
+            { k: 'reposicoes', label: 'Reposições' },
+            { k: 'vendas', label: 'Ofertar' },
+            { k: 'financeiro', label: 'Contas' },
+          ].map(({ k, label }) => (
+            <button
+              key={k}
+              onClick={() => setActiveTab(k)}
+              className={`shrink-0 rounded-full px-3 h-7 text-[10px] font-bold uppercase tracking-wider border transition-colors ${
+                activeTab === k ? 'bg-primary/15 text-primary border-primary/30' : 'text-zinc-500 border-zinc-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-4 md:p-6 max-w-[1180px] mx-auto w-full">
           {activeTab === 'estoque' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <SupplierStockPanel callPortal={(action, payload) => callPortal(action, payload)} />
