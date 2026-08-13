@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SupplierStockPanel } from "@/components/fornecedor/SupplierStockPanel";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 export default function FornecedorPublicPage() {
   const [token, setToken] = useState(localStorage.getItem("supplier_token") || "");
