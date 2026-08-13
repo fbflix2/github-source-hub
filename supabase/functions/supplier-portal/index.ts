@@ -164,6 +164,108 @@ Deno.serve(async (req) => {
       return ok({ success: true });
     }
 
+    // ===== SUBMIT STOCK ITEM (goes to review queue) =====
+    if (action === "submit-stock-item") {
+      const { type, name, identification, identification_link, data, payout_amount } = body;
+      const allowed = ["perfil", "bm", "pagina"];
+      if (!allowed.includes(type)) return err("Tipo inválido");
+      if (!name || typeof name !== "string" || name.trim().length < 2) {
+        return err("Nome do item é obrigatório");
+      }
+      if (data && (typeof data !== "object" || Array.isArray(data))) return err("data inválido");
+      const payload = JSON.stringify(data || {});
+      if (payload.length > 20000) return err("Dados muito grandes");
+
+      const { data: row, error } = await admin
+        .from("supplier_submissions")
+        .insert({
+          supplier_id: supplierId,
+          type,
+          name: String(name).slice(0, 200),
+          identification: identification ? String(identification).slice(0, 200) : null,
+          identification_link: identification_link ? String(identification_link).slice(0, 500) : null,
+          data: data || {},
+          payout_amount: Number(payout_amount) > 0 ? Number(payout_amount) : 0,
+          status: "pending",
+        })
+        .select()
+        .single();
+      if (error) return err(error.message, 500);
+      return ok({ submission: row });
+    }
+
+    // ===== LIST SUBMISSIONS (supplier's own items + stock status) =====
+    if (action === "list-submissions") {
+      const { data, error } = await admin
+        .from("supplier_submissions")
+        .select("*, stock_item:stock_items(id, status, product_id, name)")
+        .eq("supplier_id", supplierId)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) return err(error.message, 500);
+
+      const rows = (data || []) as any[];
+      const productIds = [
+        ...new Set(rows.map((r) => r.stock_item?.product_id).filter(Boolean)),
+      ];
+      let products: Record<string, any> = {};
+      if (productIds.length > 0) {
+        const { data: prods } = await admin
+          .from("products")
+          .select("id, name, price, stock, available, image_url")
+          .in("id", productIds);
+        for (const p of prods || []) products[p.id] = p;
+      }
+
+      const enriched = rows.map((r) => ({
+        ...r,
+        product: r.stock_item?.product_id ? products[r.stock_item.product_id] || null : null,
+      }));
+
+      // ---- metrics ----
+      const sent = enriched.length;
+      const approved = enriched.filter((r) => r.status === "approved").length;
+      const rejected = enriched.filter((r) => r.status === "rejected").length;
+      const pending = enriched.filter((r) => r.status === "pending").length;
+      const sold = enriched.filter((r) => r.sold_at || r.stock_item?.status === "vendido").length;
+      const inStock = enriched.filter(
+        (r) => r.status === "approved" && r.stock_item && r.stock_item.status !== "vendido",
+      ).length;
+      const totalDue = enriched
+        .filter((r) => r.status === "approved" && !r.paid_at)
+        .reduce((s, r) => s + Number(r.payout_amount || 0), 0);
+      const totalPaid = enriched
+        .filter((r) => r.paid_at)
+        .reduce((s, r) => s + Number(r.payout_amount || 0), 0);
+      const soldRows = enriched.filter((r) => r.sold_at);
+      const avgDaysToSell = soldRows.length
+        ? soldRows.reduce(
+            (s, r) =>
+              s +
+              (new Date(r.sold_at).getTime() -
+                new Date(r.reviewed_at || r.created_at).getTime()) /
+                86400000,
+            0,
+          ) / soldRows.length
+        : 0;
+
+      return ok({
+        submissions: enriched,
+        metrics: {
+          sent,
+          approved,
+          rejected,
+          pending,
+          sold,
+          inStock,
+          totalDue,
+          totalPaid,
+          avgDaysToSell: Math.round(avgDaysToSell * 10) / 10,
+          approvalRate: sent ? Math.round((approved / sent) * 100) : 0,
+        },
+      });
+    }
+
     return err(`Ação desconhecida: ${action}`);
   } catch (e: any) {
     console.error("[supplier-portal] error", e?.message);
