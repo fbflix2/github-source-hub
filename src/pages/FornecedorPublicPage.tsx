@@ -323,7 +323,7 @@ export default function FornecedorPublicPage() {
         <Card className="w-full max-w-md bg-[#0a0a0a] border-zinc-800 shadow-2xl p-6">
           <CardHeader className="text-center pb-8">
             <div className="flex justify-center mb-4">
-              <img src={logoFbflix} alt="FBFLIX" className="h-16 w-16 object-contain" />
+              <img src={logoFbflix} alt="FBFLIX" className="h-28 w-28 md:h-32 md:w-32 object-contain drop-shadow-[0_0_40px_hsl(var(--primary)/0.35)]" />
             </div>
             <CardTitle className="text-xl font-bold text-white">Portal do Fornecedor</CardTitle>
             <p className="text-zinc-500 text-sm">Autenticação obrigatória para acessar pedidos.</p>
