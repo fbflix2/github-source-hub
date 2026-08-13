@@ -24,7 +24,7 @@ const emptyForm = {
   nomePerfil: "", idPerfil: "", linkPerfil: "", emailAcesso: "", senha: "",
   emailAlternativo: "", senhaEmail: "", token2fa: "", dataNascimento: "",
   genero: "masculino", tempoPlataforma: "3-meses", statusAtual: "aquecido",
-  cookies: "", descricao: "", perfilMatriz: "", payout: "",
+  cookies: "", descricao: "", perfilMatriz: "", perfilBackup: "", linkDocumento: "", payout: "",
 };
 
 const statusBadge: Record<string, { label: string; cls: string; icon: any }> = {
@@ -96,6 +96,8 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
           cookies: form.cookies,
           descricao: form.descricao,
           perfilMatriz: form.perfilMatriz,
+          perfilBackup: form.perfilBackup,
+          linkDocumento: form.linkDocumento,
         },
       });
       toast.success("Item enviado para revisão!");
@@ -226,8 +228,13 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
             )}
 
             {type === "bm" && (
-              {field("Perfil matriz (link)", "perfilMatriz", "Perfil que administra a BM")}
+              <>
+                {field("Perfil matriz (link)", "perfilMatriz", "Perfil que administra a BM")}
+                {field("Perfil backup admin", "perfilBackup", "Nome ou link do perfil backup")}
+              </>
             )}
+
+            {type === "pagina" && field("Link do documento (opcional)", "linkDocumento", "https://drive.google.com/...")}
 
             {field("Valor combinado (R$)", "payout", "0,00")}
           </div>
