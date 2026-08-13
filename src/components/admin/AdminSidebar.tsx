@@ -100,8 +100,12 @@ const allMenuItems: MenuItem[] = [
   { title: "Scale Pro", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Pool Scale Pro", icon: ShieldAlert, path: "/admin/scale-pro-pool" },
   { title: "Combos Scale Pro", icon: ShieldAlert, path: "/admin/scale-pro-combos" },
-  { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
-  { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
+  { title: "Fornecedores", icon: PackageCheck, path: "/admin/fornecedor-revisao", subItems: [
+    { title: "Revisão de Envios", icon: PackageCheck, path: "/admin/fornecedor-revisao" },
+    { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
+    { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
+    { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
+  ]},
   { title: "Solicitações de Amizade", icon: Users, path: "/admin/solicitacoes-amizade" },
   { title: "Backup Fb", icon: HardDrive, path: "/admin/backup-fb" },
   { title: "Saldo OpenPix", icon: Wallet, path: "/admin/openpix" },
@@ -115,8 +119,6 @@ const allMenuItems: MenuItem[] = [
   { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia", operatorOnly: true },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
-    { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
-    { title: "Revisão Fornecedor", icon: PackageCheck, path: "/admin/fornecedor-revisao" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},
