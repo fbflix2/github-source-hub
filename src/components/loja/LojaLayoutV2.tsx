@@ -1,5 +1,23 @@
 import { ReactNode, useState } from "react";
-import { ArrowUpRight, ChevronDown, Minus, Plus, Search, ShoppingCart, X } from "lucide-react";
+import { ArrowUpRight, BellRing, ChevronDown, Minus, Plus, Search, ShoppingCart, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+async function notifyMe(productId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    toast.error("Faça login para ser avisado");
+    return;
+  }
+  const { error } = await supabase.from("product_waitlist" as any).insert({ user_id: user.id, product_id: productId } as any);
+  if (error && (error as any).code === "23505") {
+    toast.info("Você já será notificado quando este produto chegar!");
+  } else if (error) {
+    toast.error("Erro ao registrar interesse");
+  } else {
+    toast.success("Você será notificado quando este produto estiver disponível!");
+  }
+}
 
 interface V2Product {
   id: string;
@@ -242,6 +260,15 @@ export function LojaLayoutV2({
                                 className="grid size-9 place-items-center rounded-full border border-white/12 bg-white/[0.04] text-white/70 transition-colors hover:border-[#e50914]/40 hover:text-white"
                               >
                                 <ShoppingCart className="size-[15px]" />
+                              </button>
+                            )}
+                            {soldOut && (
+                              <button
+                                onClick={() => notifyMe(p.id)}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[12.5px] font-medium tracking-[-0.01em] text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white"
+                              >
+                                <BellRing className="size-[14px]" />
+                                Avise-me
                               </button>
                             )}
                             <button
