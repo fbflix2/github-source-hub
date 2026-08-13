@@ -7,6 +7,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { WapiDisconnectedAlert } from "./WapiDisconnectedAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
 import { PendingSafeBMPopup } from "./PendingSafeBMPopup";
+import { AdminSupportDock } from "./AdminSupportDock";
 import { Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -91,6 +92,7 @@ export function AdminLayout() {
         <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
+        <AdminSupportDock />
       </div>
     );
   }
@@ -118,6 +120,7 @@ export function AdminLayout() {
         <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
+        <AdminSupportDock />
       </main>
     </div>
   );
