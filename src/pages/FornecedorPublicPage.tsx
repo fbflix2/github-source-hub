@@ -41,6 +41,7 @@ export default function FornecedorPublicPage() {
    const [replenishItemContent, setReplenishItemContent] = useState<Record<string, string>>({});
    const [selectedRequest, setSelectedRequest] = useState<any>(null);
    const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
+   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("supplier_token");
@@ -59,6 +60,15 @@ export default function FornecedorPublicPage() {
     return data;
   };
 
+  const fetchMetrics = async () => {
+    try {
+      const data = await callPortal("list-submissions");
+      setMetrics(data?.metrics || null);
+    } catch (err) {
+      console.error("Error fetching metrics", err);
+    }
+  };
+
   const autoAuth = async (tokenToUse: string) => {
     setLoading(true);
     try {
@@ -69,6 +79,7 @@ export default function FornecedorPublicPage() {
         fetchRequests(data.supplier.id);
         fetchPaymentMethods(data.supplier.id);
         fetchPurchaseRequests();
+        fetchMetrics();
       }
     } catch (err) {
       console.error("Auto-auth failed");
@@ -96,6 +107,7 @@ export default function FornecedorPublicPage() {
       fetchRequests(data.supplier.id);
       fetchPaymentMethods(data.supplier.id);
       fetchPurchaseRequests();
+      fetchMetrics();
 
       if (rememberMe) localStorage.setItem("supplier_token", token);
       else localStorage.removeItem("supplier_token");
