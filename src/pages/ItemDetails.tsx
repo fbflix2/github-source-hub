@@ -354,8 +354,17 @@ export default function ItemDetails() {
               if (name && !nameByUrl.get(url)) nameByUrl.set(url, name);
             };
 
-            // Only aggregate links belonging to THIS order item (not the whole order)
-            const allOrderItems: any[] = [{ id: itemData.id, delivery_data: itemData.delivery_data }];
+            // Aggregate BM links from all items of THIS order that share the same product
+            let allOrderItems: any[] = [{ id: itemData.id, delivery_data: itemData.delivery_data }];
+            const { data: siblingItems } = await supabase
+              .from("order_items")
+              .select("id, product_id, delivery_data, created_at")
+              .eq("order_id", orderData.id)
+              .eq("product_id", itemData.product_id)
+              .order("created_at", { ascending: true });
+            if (siblingItems?.length) {
+              allOrderItems = siblingItems;
+            }
 
             if (allOrderItems?.length) {
               const itemIds = allOrderItems.map((oi: any) => oi.id);
