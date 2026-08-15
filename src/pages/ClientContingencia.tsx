@@ -23,6 +23,9 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
+import StripeCardFields, { type StripeCardFieldsHandle } from "@/components/checkout/StripeCardFields";
+import { useRef } from "react";
+
 function PayNowButton({
   ctClientId,
   monthlyValue,
@@ -36,6 +39,9 @@ function PayNowButton({
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [method, setMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
+  const [pix, setPix] = useState<{ payment_id: string; qr_code: string; qr_code_base64: string | null } | null>(null);
+  const cardRef = useRef<StripeCardFieldsHandle>(null);
 
   const { data: balance } = useQuery({
     queryKey: ["wallet-balance-for-ct"],
@@ -49,6 +55,65 @@ function PayNowButton({
   });
 
   const insufficient = (balance ?? 0) < monthlyValue;
+
+  const confirmRenewal = async (paymentId: string) => {
+    for (let i = 0; i < 15; i++) {
+      const { data } = await supabase.functions.invoke("ct-renew-pay", {
+        body: { action: "confirm", ct_client_id: ctClientId, payment_id: paymentId },
+      });
+      if ((data as any)?.ok) return true;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    return false;
+  };
+
+  const startPix = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ct-renew-pay", {
+        body: { action: "pix", ct_client_id: ctClientId },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      setPix({
+        payment_id: (data as any).payment_id,
+        qr_code: (data as any).qr_code,
+        qr_code_base64: (data as any).qr_code_base64,
+      });
+      confirmRenewal((data as any).payment_id).then((okPaid) => {
+        if (okPaid) {
+          toast({ title: "Pagamento confirmado ✅", description: "Sua assinatura foi renovada." });
+          setOpen(false);
+          qc.invalidateQueries();
+        }
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PIX", description: String(e?.message || e), variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const payCard = async () => {
+    setLoading(true);
+    try {
+      const res = await cardRef.current?.confirm();
+      if (!res?.ok) {
+        toast({ title: "Pagamento recusado", description: res?.error || "Tente outro cartão.", variant: "destructive" });
+        return;
+      }
+      const okPaid = res.paymentId ? await confirmRenewal(res.paymentId) : false;
+      toast({
+        title: okPaid ? "Pagamento confirmado ✅" : "Pagamento em processamento",
+        description: okPaid ? "Sua assinatura foi renovada." : "Assim que o cartão for compensado a assinatura será liberada.",
+      });
+      setOpen(false);
+      await qc.invalidateQueries();
+    } catch (e: any) {
+      toast({ title: "Erro", description: String(e?.message || e), variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const pay = async () => {
     setLoading(true);
@@ -79,18 +144,43 @@ function PayNowButton({
       <Button
         size="sm"
         className="bg-red-500 hover:bg-red-600 text-white shrink-0"
-        onClick={() => setOpen(true)}
+        onClick={() => { setPix(null); setMethod("saldo"); setOpen(true); }}
       >
         {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Pagar mensalidade com saldo</DialogTitle>
+            <DialogTitle>Pagar mensalidade</DialogTitle>
             <DialogDescription>
-              O valor será debitado da sua carteira FBFlix.
+              Escolha como deseja pagar R$ {monthlyValue.toFixed(2).replace(".", ",")}.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { key: "saldo", label: "Saldo", icon: Wallet },
+              { key: "pix", label: "PIX", icon: Zap },
+              { key: "cartao", label: "Cartão", icon: CreditCard },
+            ] as const).map((m) => {
+              const Icon = m.icon;
+              const activeM = method === m.key;
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => setMethod(m.key)}
+                  className={`rounded-lg border px-3 py-3 text-xs font-medium flex flex-col items-center gap-1.5 transition-colors ${
+                    activeM ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300" : "border-border/60 bg-card/40 text-muted-foreground hover:border-border"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {method === "saldo" && (
           <div className="space-y-3 py-2">
             <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-4 py-3">
               <span className="text-sm text-muted-foreground">Mensalidade</span>
@@ -108,6 +198,56 @@ function PayNowButton({
               </div>
             )}
           </div>
+          )}
+
+          {method === "pix" && (
+            <div className="space-y-3 py-2 text-center">
+              {!pix ? (
+                <Button onClick={startPix} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                  {loading ? "Gerando PIX…" : "Gerar QR Code PIX"}
+                </Button>
+              ) : (
+                <>
+                  {pix.qr_code_base64 && (
+                    <img
+                      src={pix.qr_code_base64.startsWith("http") ? pix.qr_code_base64 : `data:image/png;base64,${pix.qr_code_base64}`}
+                      alt="QR Code PIX da mensalidade Scale Pro"
+                      className="mx-auto h-48 w-48 rounded-lg bg-white p-2"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground break-all bg-card/40 border border-border/60 rounded-lg p-2">
+                    {pix.qr_code}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { navigator.clipboard.writeText(pix.qr_code); toast({ title: "Código copiado" }); }}
+                  >
+                    Copiar código PIX
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">
+                    Assim que o pagamento for confirmado sua assinatura é renovada automaticamente.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {method === "cartao" && (
+            <div className="space-y-3 py-2">
+              <StripeCardFields
+                ref={cardRef}
+                amount={monthlyValue}
+                subscription
+                description="Mensalidade Scale Pro"
+              />
+              <Button onClick={payCard} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                {loading ? "Processando…" : `Pagar R$ ${monthlyValue.toFixed(2).replace(".", ",")}`}
+              </Button>
+            </div>
+          )}
+
+          {method === "saldo" && (
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
             {insufficient ? (
@@ -120,6 +260,7 @@ function PayNowButton({
               </Button>
             )}
           </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </>
