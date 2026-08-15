@@ -505,7 +505,9 @@ export default function ClientContingencia() {
         .from("ct_clients")
         .select("*, ct_plans(*)")
         .eq("user_id", user.id)
-        .eq("status", "ativo")
+        .in("status", ["ativo", "suspenso", "pendente", "inadimplente"])
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
