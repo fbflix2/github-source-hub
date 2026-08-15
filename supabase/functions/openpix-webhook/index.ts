@@ -438,7 +438,8 @@ Deno.serve(async (req) => {
     const metadataObj: any = (typeof existingPayment.metadata === "object" && existingPayment.metadata) || {};
     const isInvoiceLink = metadataObj.type === "invoice_link";
     const isCtSubscription = metadataObj.type === "ct_subscription";
-    const isWalletRecharge = !orderId && !isInvoiceLink && !isCtSubscription;
+    const isCtRenewal = metadataObj.type === "ct_renewal";
+    const isWalletRecharge = !orderId && !isInvoiceLink && !isCtSubscription && !isCtRenewal;
 
     if (isInvoiceLink) {
       await supabase.from("invoice_links")
@@ -449,6 +450,32 @@ Deno.serve(async (req) => {
         message: `Cobrança ${metadataObj.invoice_code || ""} de R$ ${amount.toFixed(2)} paga via PIX.`,
         type: "payment", global: true,
       });
+    } else if (isCtRenewal) {
+      const ctClientId = metadataObj.ct_client_id;
+      if (ctClientId) {
+        const { data: ctRow } = await supabase
+          .from("ct_clients").select("id, status, next_billing, last_payment_id").eq("id", ctClientId).maybeSingle();
+        if (ctRow && ctRow.last_payment_id !== paymentId) {
+          const base = new Date();
+          if (ctRow.next_billing) {
+            const cur = new Date(ctRow.next_billing);
+            if (cur.getTime() > base.getTime()) base.setTime(cur.getTime());
+          }
+          base.setDate(base.getDate() + 30);
+          const nextBilling = base.toISOString().slice(0, 10);
+          await supabase.from("ct_clients").update({
+            status: "ativo",
+            next_billing: nextBilling,
+            last_payment_id: paymentId,
+            last_payment_at: new Date().toISOString(),
+          }).eq("id", ctClientId);
+          await supabase.from("notifications").insert({
+            title: "Mensalidade Scale Pro paga",
+            message: `Renovação de R$ ${amount.toFixed(2)} via PIX confirmada. Próxima cobrança: ${nextBilling}.`,
+            type: "subscription", global: true,
+          });
+        }
+      }
     } else if (isCtSubscription) {
       const ctClientId = metadataObj.ct_client_id;
       const planName = metadataObj.plan_name || "Scale Pro";

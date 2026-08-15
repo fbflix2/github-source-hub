@@ -141,3 +141,6 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.ct-renew-pay]
+verify_jwt = false
