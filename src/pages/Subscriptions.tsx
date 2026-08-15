@@ -867,7 +867,7 @@ function ContingenciaPanel() {
           .from("ct_clients")
           .select("*, ct_plans:plan_id(*)")
           .eq("user_id", user.id)
-          .eq("status", "ativo")
+          .in("status", ["ativo", "suspenso", "pendente", "inadimplente"])
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -1077,6 +1077,26 @@ function ContingenciaPanel() {
 
   return (
     <div className="space-y-6">
+      {client.status !== "ativo" && (
+        <a
+          href="/contingencia"
+          className="block w-full rounded-xl border border-red-500/30 bg-red-500/5 p-5 hover:border-red-500/60 transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-red-400 text-2xl">error</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-foreground">Mensalidade pendente</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {plan?.name || "Scale Pro"} · R$ {Number(client.monthly_value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                {client.next_billing ? ` · Vencimento ${format(parseISO(client.next_billing), "dd/MM/yyyy")}` : ""}
+              </p>
+              <p className="text-xs text-red-400 mt-2 font-semibold">Pagar agora com saldo da carteira →</p>
+            </div>
+          </div>
+        </a>
+      )}
       {/* Compact summary + entry to the full panel (single source of truth) */}
       <a
         href="/contingencia"
