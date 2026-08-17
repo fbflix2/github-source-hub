@@ -174,7 +174,19 @@ export default function SafeBMClient() {
 
   return (
     <>
-    <div className="p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
+    {/* Ambient background so the frosted glass has something to blur */}
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="absolute -top-40 -left-32 w-[520px] h-[520px] rounded-full bg-[#ffb4aa]/[0.14] blur-[140px]" />
+      <div className="absolute top-1/3 -right-40 w-[560px] h-[560px] rounded-full bg-[#68d3fc]/[0.10] blur-[150px]" />
+      <div className="absolute bottom-[-160px] left-1/3 w-[480px] h-[480px] rounded-full bg-emerald-500/[0.08] blur-[150px]" />
+      <div
+        className="absolute top-24 left-1/2 -translate-x-1/2 select-none font-black tracking-tighter text-white/[0.025] text-[22vw] leading-none"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+      >
+        COFRE
+      </div>
+    </div>
+    <div className="relative p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Show config UI if some vaults are unconfigured */}
       {unconfiguredVaults.length > 0 && (
