@@ -184,7 +184,7 @@ export default function SafeBMClient() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
 
         {/* Main Status Card */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-[#262a30]/40 border border-[#5d3f3b]/15 p-4 backdrop-blur-md">
+        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/10 p-4 backdrop-blur-xl">
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
@@ -211,7 +211,7 @@ export default function SafeBMClient() {
         </div>
 
         {/* Alerts Panel */}
-        <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-3 space-y-2">
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 space-y-2 backdrop-blur-xl">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Alertas Críticos</h4>
             <MaterialIcon name="security" className="text-[#ffb4aa] !text-base" />
@@ -219,7 +219,7 @@ export default function SafeBMClient() {
           <div className="space-y-1.5">
             {expiringVaults.length > 0 ? (
               expiringVaults.slice(0, 2).map(v => (
-                <div key={v.id} className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
+                <div key={v.id} className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#ffb4aa]">
                   <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">RENOVAÇÃO PRÓXIMA</p>
                   <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                     Sua BM "{v.bm_name}" expira em {getVaultProtectionWindow(v).daysRemaining} dias.
@@ -227,7 +227,7 @@ export default function SafeBMClient() {
                 </div>
               ))
             ) : (
-              <div className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
+              <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#ffb4aa]">
                 <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">TUDO EM ORDEM</p>
                 <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                   Todas as suas BMs estão protegidas e seguras.
@@ -236,7 +236,7 @@ export default function SafeBMClient() {
             )}
 
             {vaults.some(v => v.link_regenerations > 0) && (
-              <div className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#68d3fc]/50">
+              <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#68d3fc]/50">
                 <p className="text-[10px] font-bold text-[#68d3fc] mb-0.5">BACKUP CONCLUÍDO</p>
                 <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                   Snapshot do cofre gerado com sucesso.
@@ -251,7 +251,7 @@ export default function SafeBMClient() {
       </section>
 
       <section className={`grid grid-cols-1 ${activeVaults.length > 0 ? 'md:grid-cols-2' : ''} gap-2.5`} style={{ minHeight: 180 }}>
-        <div className="rounded-xl bg-[#1C2025] border border-[#5d3f3b]/15 p-4 flex items-center gap-4" style={{ minHeight: 180 }}>
+        <div className="lp-shop-card rounded-xl p-4 flex items-center gap-4" style={{ minHeight: 180 }}>
           <div className="flex-1 space-y-0.5">
             <h4 className="font-bold text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Precisa de mais proteção?</h4>
             <p className="text-[11px] text-[#c6c6c7]/60 leading-relaxed">
@@ -312,12 +312,12 @@ export default function SafeBMClient() {
             return (
               <div
                 key={v.id}
-                className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300`}
+                className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} lp-shop-card p-0 flex flex-col transition-all duration-300 hover:border-[#ffb4aa]/40`}
               >
                 {/* Vault door silhouette */}
                   <div className="relative flex items-center justify-center pt-5 pb-3">
-                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
-                    <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
+                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-black/20 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
+                    <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-white/[0.03] backdrop-blur-sm">
                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpired ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
                          <MaterialIcon name={isExpired ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
                       </div>
@@ -334,18 +334,18 @@ export default function SafeBMClient() {
                 {/* Card content */}
                 <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
                   <div>
-                     <div className="flex justify-between items-start mb-1.5">
-                       <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
-                       <div className="flex items-center gap-1.5 shrink-0">
-                         {isActive && (
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
-                             className="p-1 rounded-full bg-[#1c2025]/60 hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
-                             title="Reportar problema"
-                           >
-                             <MaterialIcon name="report_problem" className="!text-[12px]" />
-                           </button>
-                         )}
+                      <div className="flex justify-between items-start mb-1.5">
+                        <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isActive && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
+                              className="p-1 rounded-full bg-white/[0.05] hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
+                              title="Reportar problema"
+                            >
+                              <MaterialIcon name="report_problem" className="!text-[12px]" />
+                            </button>
+                          )}
                          {isRenewing ? (
                            <div className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[9px] font-bold uppercase tracking-wider animate-pulse">
                              Renovando
@@ -378,7 +378,7 @@ export default function SafeBMClient() {
                            {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
                          </span>
                       </div>
-                      <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
+                      <div className="w-full bg-black/30 h-1 rounded-full overflow-hidden">
                         <div
                            className={`h-full ${isExpired ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
                           style={{ width: `${progressPercent}%` }}
