@@ -57,10 +57,7 @@ function UptimeVault() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div>
-      <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Uptime Vault</p>
-      <p className="text-lg font-bold text-[#68d3fc]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
-    </div>
+    <p className="text-xl font-bold text-emerald-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
   );
 }
 
