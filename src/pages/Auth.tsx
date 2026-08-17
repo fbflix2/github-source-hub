@@ -58,7 +58,6 @@ export default function Auth() {
 
   // Register state
   const [registerName, setRegisterName] = useState("");
-  const [registerCpf, setRegisterCpf] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -68,31 +67,6 @@ export default function Auth() {
     if (mode === "signup") setIsLogin(false);
     if (mode === "login") setIsLogin(true);
   }, [location.search]);
-
-  // CPF mask helper
-  const formatCpf = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    return digits
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  };
-
-  const validateCpf = (cpf: string) => {
-    const digits = cpf.replace(/\D/g, "");
-    if (digits.length !== 11) return false;
-    if (/^(\d)\1+$/.test(digits)) return false;
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(digits[i]) * (10 - i);
-    let rest = (sum * 10) % 11;
-    if (rest === 10) rest = 0;
-    if (rest !== parseInt(digits[9])) return false;
-    sum = 0;
-    for (let i = 0; i < 10; i++) sum += parseInt(digits[i]) * (11 - i);
-    rest = (sum * 10) % 11;
-    if (rest === 10) rest = 0;
-    return rest === parseInt(digits[10]);
-  };
 
   const validateFullName = (name: string) => {
     const parts = name.trim().split(/\s+/);
