@@ -57,10 +57,7 @@ function UptimeVault() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div>
-      <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Uptime Vault</p>
-      <p className="text-lg font-bold text-[#68d3fc]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
-    </div>
+    <p className="text-xl font-bold text-emerald-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
   );
 }
 
@@ -175,56 +172,98 @@ export default function SafeBMClient() {
   return (
     <>
     <div className="relative isolate p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Ambient background so the frosted glass has something to blur */}
-      <div className="pointer-events-none absolute inset-0 -top-24 -bottom-24 z-0 overflow-hidden">
-        <div className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full bg-[#ffb4aa]/25 blur-[130px]" />
-        <div className="absolute top-1/4 -right-32 w-[560px] h-[560px] rounded-full bg-[#68d3fc]/20 blur-[140px]" />
-        <div className="absolute bottom-0 left-1/3 w-[480px] h-[480px] rounded-full bg-emerald-500/[0.14] blur-[140px]" />
-        <div
-          className="absolute top-10 left-1/2 -translate-x-1/2 select-none font-black tracking-tighter text-white/[0.04] text-[20vw] leading-none whitespace-nowrap"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        >
-          COFRE
-        </div>
-      </div>
       <div className="relative z-10 space-y-2.5">
 
       {/* Show config UI if some vaults are unconfigured */}
       {unconfiguredVaults.length > 0 && (
         <SafeBMVaultConfig vaults={unconfiguredVaults} onConfigured={fetchVaults} />
       )}
-      {/* ───── HERO STATUS SECTION ───── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
-
-        {/* Main Status Card */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-white/[0.07] border border-white/15 p-4 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.45)]">
-          <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold tracking-widest uppercase mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                Cofre Ativo
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-[#e0e2ea] leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Segurança Total em <span className="text-[#ffb4aa]">Tempo Real</span>
-              </h3>
+      {/* ───── HERO STATUS SECTION (Obsidian Emerald) ───── */}
+      <section className="grid grid-cols-1 gap-2.5">
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-[#06100c]/80 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+          {/* watermark + glow */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none font-black tracking-tighter text-emerald-400/[0.06] text-[15vw] leading-none whitespace-nowrap"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              COFRE
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-3">
-              <div>
-                <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Ativos Protegidos</p>
-                <p className="text-lg font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{allExpired ? 0 : activeVaults.length}</p>
+            <div className="absolute -left-24 -top-24 w-[380px] h-[380px] rounded-full bg-emerald-500/10 blur-[120px]" />
+            <div className="absolute right-1/3 -bottom-32 w-[420px] h-[420px] rounded-full bg-emerald-400/10 blur-[130px]" />
+          </div>
+
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.15fr_auto_0.9fr] gap-5 p-5 md:p-6 items-center">
+            {/* Left: title + metrics */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold tracking-[0.18em] uppercase mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Proteção Ativa
               </div>
-              <div>
-                <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Alertas Hoje</p>
-                <p className="text-lg font-bold text-[#ffb4aa]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{String(expiringVaults.length).padStart(2, '0')}</p>
+              <h3 className="text-2xl md:text-3xl font-black text-white leading-[1.1]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Segurança Total<br />em <span className="text-emerald-400">Tempo Real</span>
+              </h3>
+              <p className="text-[11px] md:text-xs text-white/50 mt-2 leading-relaxed max-w-sm">
+                Monitoramento contínuo e proteção avançada para todos os seus ativos críticos.
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {[
+                  { icon: "shield", label: "Ativos Protegidos", value: String(allExpired ? 0 : activeVaults.length), accent: "text-white" },
+                  { icon: "notifications_active", label: "Alertas Hoje", value: String(expiringVaults.length).padStart(2, "0"), accent: "text-emerald-300" },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-xl border border-emerald-500/15 bg-white/[0.03] px-3 py-2.5 backdrop-blur-sm">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <MaterialIcon name={m.icon} className="!text-[13px] text-emerald-400" />
+                      <p className="text-[9px] uppercase tracking-wider text-white/45 font-semibold">{m.label}</p>
+                    </div>
+                    <p className={`text-xl font-bold ${m.accent}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{m.value}</p>
+                  </div>
+                ))}
+                <div className="rounded-xl border border-emerald-500/15 bg-white/[0.03] px-3 py-2.5 backdrop-blur-sm">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <MaterialIcon name="monitoring" className="!text-[13px] text-emerald-400" />
+                    <p className="text-[9px] uppercase tracking-wider text-white/45 font-semibold">Uptime Vault</p>
+                  </div>
+                  <UptimeVault />
+                </div>
               </div>
-              <UptimeVault />
+            </div>
+
+            {/* Center: vault emblem */}
+            <div className="hidden lg:flex items-center justify-center">
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-[spin_18s_linear_infinite]" />
+                <div className="absolute inset-4 rounded-full border border-dashed border-emerald-400/25" />
+                <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-2xl" />
+                <div className="relative w-24 h-24 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.25)]">
+                  <MaterialIcon name="lock" className="!text-[42px] text-emerald-300" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right: status checklist */}
+            <div className="rounded-xl border border-emerald-500/15 bg-white/[0.03] p-3 space-y-1.5 backdrop-blur-sm">
+              {[
+                { label: "Criptografia Ativa", value: "AES-256" },
+                { label: "Monitoramento", value: "24/7" },
+                { label: "Backups seguros", value: "Ativos" },
+                { label: "Compliance", value: "LGPD • ISO 27001" },
+              ].map((r) => (
+                <div key={r.label} className="flex items-center justify-between gap-3 py-1">
+                  <span className="flex items-center gap-2 text-[11px] text-white/70">
+                    <MaterialIcon name="check_circle" className="!text-[14px] text-emerald-400" />
+                    {r.label}
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-300/80">{r.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Alerts Panel */}
-        <div className="rounded-xl bg-white/[0.07] border border-white/15 p-3 space-y-2 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.45)]">
+        <div className="rounded-xl bg-white/[0.04] border border-white/10 p-3 space-y-2 backdrop-blur-2xl">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Alertas Críticos</h4>
             <MaterialIcon name="security" className="text-[#ffb4aa] !text-base" />
