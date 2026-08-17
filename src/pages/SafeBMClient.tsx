@@ -184,7 +184,7 @@ export default function SafeBMClient() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
 
         {/* Main Status Card */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-[#262a30]/40 border border-[#5d3f3b]/15 p-4 backdrop-blur-md">
+        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/10 p-4 backdrop-blur-xl">
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
