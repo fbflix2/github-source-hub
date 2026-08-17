@@ -195,14 +195,6 @@ export default function Auth() {
       });
       return;
     }
-    if (!validateCpf(registerCpf)) {
-      toast({
-        title: "CPF inválido",
-        description: "Informe um CPF válido.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!acceptTerms) {
       toast({
         title: "Termos obrigatórios",
@@ -220,7 +212,6 @@ export default function Auth() {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: registerName,
-          cpf: registerCpf.replace(/\D/g, ""),
         },
       },
     });
@@ -254,7 +245,6 @@ export default function Auth() {
         } catch { /* noop */ }
 
         await supabase.from("profiles").update({
-          cpf: registerCpf.replace(/\D/g, ""),
           full_name: registerName.trim(),
           referrer_id: partnerRefId || null,
           ...(resellerIdToLink ? { reseller_id: resellerIdToLink } : {}),
@@ -500,27 +490,6 @@ export default function Auth() {
                       onChange={(e) => setRegisterName(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl py-3.5 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm font-medium"
                       placeholder="Nome e Sobrenome"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* CPF Input */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-muted-foreground pl-1">CPF</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="material-symbols-outlined text-muted-foreground group-focus-within:text-primary transition-colors text-[20px]">
-                        badge
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      value={registerCpf}
-                      onChange={(e) => setRegisterCpf(formatCpf(e.target.value))}
-                      className="w-full bg-card border border-border rounded-xl py-3.5 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm font-medium"
-                      placeholder="000.000.000-00"
-                      maxLength={14}
                       required
                     />
                   </div>
