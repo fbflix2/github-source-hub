@@ -312,12 +312,12 @@ export default function SafeBMClient() {
             return (
               <div
                 key={v.id}
-                className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300`}
+                className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} lp-shop-card p-0 flex flex-col transition-all duration-300 hover:border-[#ffb4aa]/40`}
               >
                 {/* Vault door silhouette */}
                   <div className="relative flex items-center justify-center pt-5 pb-3">
-                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
-                    <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
+                   <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpired ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-black/20 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
+                    <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-white/[0.03] backdrop-blur-sm">
                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpired ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
                          <MaterialIcon name={isExpired ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
                       </div>
