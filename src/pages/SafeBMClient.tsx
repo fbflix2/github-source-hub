@@ -437,8 +437,7 @@ export default function SafeBMClient() {
         vaults={vaults}
         initialSelectedId={selectedRenewalVaultId}
       />
-
-
+      </div>
     </div>
     </>
   );
