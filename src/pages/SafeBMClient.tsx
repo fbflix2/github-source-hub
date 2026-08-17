@@ -378,7 +378,7 @@ export default function SafeBMClient() {
                            {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
                          </span>
                       </div>
-                      <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
+                      <div className="w-full bg-black/30 h-1 rounded-full overflow-hidden">
                         <div
                            className={`h-full ${isExpired ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
                           style={{ width: `${progressPercent}%` }}
