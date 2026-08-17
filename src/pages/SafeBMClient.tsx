@@ -334,18 +334,18 @@ export default function SafeBMClient() {
                 {/* Card content */}
                 <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
                   <div>
-                     <div className="flex justify-between items-start mb-1.5">
-                       <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
-                       <div className="flex items-center gap-1.5 shrink-0">
-                         {isActive && (
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
-                             className="p-1 rounded-full bg-[#1c2025]/60 hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
-                             title="Reportar problema"
-                           >
-                             <MaterialIcon name="report_problem" className="!text-[12px]" />
-                           </button>
-                         )}
+                      <div className="flex justify-between items-start mb-1.5">
+                        <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isActive && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
+                              className="p-1 rounded-full bg-white/[0.05] hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
+                              title="Reportar problema"
+                            >
+                              <MaterialIcon name="report_problem" className="!text-[12px]" />
+                            </button>
+                          )}
                          {isRenewing ? (
                            <div className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[9px] font-bold uppercase tracking-wider animate-pulse">
                              Renovando
