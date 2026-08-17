@@ -197,7 +197,7 @@ export default function SafeBMClient() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
 
         {/* Main Status Card */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/10 p-4 backdrop-blur-xl">
+        <div className="lg:col-span-2 relative overflow-hidden rounded-xl bg-white/[0.07] border border-white/15 p-4 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.45)]">
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
@@ -224,7 +224,7 @@ export default function SafeBMClient() {
         </div>
 
         {/* Alerts Panel */}
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 space-y-2 backdrop-blur-xl">
+        <div className="rounded-xl bg-white/[0.07] border border-white/15 p-3 space-y-2 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.45)]">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Alertas Críticos</h4>
             <MaterialIcon name="security" className="text-[#ffb4aa] !text-base" />
