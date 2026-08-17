@@ -211,7 +211,7 @@ export default function SafeBMClient() {
         </div>
 
         {/* Alerts Panel */}
-        <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-3 space-y-2">
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 space-y-2 backdrop-blur-xl">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Alertas Críticos</h4>
             <MaterialIcon name="security" className="text-[#ffb4aa] !text-base" />
@@ -219,7 +219,7 @@ export default function SafeBMClient() {
           <div className="space-y-1.5">
             {expiringVaults.length > 0 ? (
               expiringVaults.slice(0, 2).map(v => (
-                <div key={v.id} className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
+                <div key={v.id} className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#ffb4aa]">
                   <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">RENOVAÇÃO PRÓXIMA</p>
                   <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                     Sua BM "{v.bm_name}" expira em {getVaultProtectionWindow(v).daysRemaining} dias.
@@ -227,7 +227,7 @@ export default function SafeBMClient() {
                 </div>
               ))
             ) : (
-              <div className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#ffb4aa]">
+              <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#ffb4aa]">
                 <p className="text-[10px] font-bold text-[#ffb4aa] mb-0.5">TUDO EM ORDEM</p>
                 <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                   Todas as suas BMs estão protegidas e seguras.
@@ -236,7 +236,7 @@ export default function SafeBMClient() {
             )}
 
             {vaults.some(v => v.link_regenerations > 0) && (
-              <div className="p-2 rounded-lg bg-[#31353b] border-l-4 border-[#68d3fc]/50">
+              <div className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.06] border-l-4 border-l-[#68d3fc]/50">
                 <p className="text-[10px] font-bold text-[#68d3fc] mb-0.5">BACKUP CONCLUÍDO</p>
                 <p className="text-[11px] text-[#e0e2ea] font-medium leading-snug">
                   Snapshot do cofre gerado com sucesso.
