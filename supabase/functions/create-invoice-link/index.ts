@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildWooviCustomer } from "../_shared/woovi-customer.ts";
-import { resolveOpenPixGateway } from "../_shared/openpix-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,8 +72,8 @@ Deno.serve(async (req) => {
 
     // Create invoice link record
     const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
-    const gw = await resolveOpenPixGateway(supabaseAdmin, { userId: client_user_id });
-    const APP_ID = gw.appId || OPENPIX_APP_ID;
+    // Cobranças avulsas são emitidas pela FBFlix (revendedores só vendem proxy).
+    const APP_ID = OPENPIX_APP_ID;
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const openPixComment = sanitizeOpenPixComment(`Cobranca - ${product_name} - ${invoiceCode}`);
 
@@ -88,7 +87,7 @@ Deno.serve(async (req) => {
         code: paymentCode,
         gateway: "openpix",
         status: "pending",
-        metadata: { type: "invoice_link", invoice_code: invoiceCode, reseller_id: gw.resellerId, gateway_owner: gw.owner },
+        metadata: { type: "invoice_link", invoice_code: invoiceCode, gateway_owner: "fbflix" },
       })
       .select("id")
       .single();

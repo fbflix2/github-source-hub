@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildWooviCustomer } from "../_shared/woovi-customer.ts";
-import { resolveOpenPixGateway } from "../_shared/openpix-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,8 +176,8 @@ Deno.serve(async (req) => {
     // ===== PIX flow =====
     const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
     if (!OPENPIX_APP_ID) return json({ error: "PIX indisponível no momento" }, 500);
-    const gw = await resolveOpenPixGateway(admin, { userId });
-    const APP_ID = gw.appId || OPENPIX_APP_ID;
+    // Scale Pro é produto exclusivo FBFlix (revendedores só vendem proxy).
+    const APP_ID = OPENPIX_APP_ID;
 
     // Create ct_client in trial state (24h max)
     const trialEnds = new Date();
@@ -213,8 +212,7 @@ Deno.serve(async (req) => {
           ct_client_id: ctClient.id,
           plan_id: planId,
           plan_name: plan.name,
-          reseller_id: gw.resellerId,
-          gateway_owner: gw.owner,
+          gateway_owner: "fbflix",
         },
       })
       .select("id")
