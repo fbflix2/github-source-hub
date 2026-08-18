@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildWooviCustomer } from "../_shared/woovi-customer.ts";
+import { resolveOpenPixGateway } from "../_shared/openpix-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,55 +60,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    let effectiveAppId = OPENPIX_APP_ID;
-    let effectiveResellerId: string | null = reseller_id || null;
+    const gw = await resolveOpenPixGateway(adminClient, {
+      userId,
+      resellerId: reseller_id || null,
+      orderId: order_id || null,
+    });
+    const effectiveAppId = gw.appId || OPENPIX_APP_ID;
+    const effectiveResellerId = gw.resellerId;
 
-    // If order already has reseller_id, prefer it
-    if (order_id) {
-      const { data: orderRow } = await adminClient
+    // Make sure the order carries reseller_id (in case autofill did not run)
+    if (effectiveResellerId && order_id) {
+      await adminClient
         .from("orders")
-        .select("reseller_id")
+        .update({ reseller_id: effectiveResellerId })
         .eq("id", order_id)
-        .maybeSingle();
-      if (orderRow?.reseller_id) effectiveResellerId = orderRow.reseller_id;
-    }
-
-    // Recarga de carteira (sem pedido): usa o revendedor dono do cliente
-    if (!effectiveResellerId) {
-      const { data: profileRow } = await adminClient
-        .from("profiles")
-        .select("reseller_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (profileRow?.reseller_id) effectiveResellerId = profileRow.reseller_id;
-    }
-
-    if (effectiveResellerId) {
-      const { data: reseller } = await adminClient
-        .from("resellers")
-        .select("id, gateway_openpix_app_id, status")
-        .eq("id", effectiveResellerId)
-        .maybeSingle();
-      if (
-        reseller &&
-        ["active", "warning"].includes(String(reseller.status)) &&
-        reseller.gateway_openpix_app_id &&
-        String(reseller.gateway_openpix_app_id).trim().length > 0
-      ) {
-        effectiveAppId = String(reseller.gateway_openpix_app_id).trim();
-        console.log(`[create-pix-payment] Using reseller gateway for ${effectiveResellerId}`);
-      } else {
-        console.log(`[create-pix-payment] Reseller ${effectiveResellerId} sem gateway próprio, usando FBFlix`);
-      }
-
-      // Make sure the order carries reseller_id (in case autofill did not run)
-      if (order_id) {
-        await adminClient
-          .from("orders")
-          .update({ reseller_id: effectiveResellerId })
-          .eq("id", order_id)
-          .is("reseller_id", null);
-      }
+        .is("reseller_id", null);
     }
 
     // Create payment record
@@ -124,7 +91,7 @@ Deno.serve(async (req) => {
         metadata: {
           type: order_id ? "order_payment" : "wallet_recharge",
           reseller_id: effectiveResellerId,
-          gateway_owner: effectiveResellerId && effectiveAppId !== OPENPIX_APP_ID ? "reseller" : "fbflix",
+          gateway_owner: gw.owner,
         },
       })
       .select("id")
