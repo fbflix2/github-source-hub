@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
     // ===== PIX =====
     const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
     if (!OPENPIX_APP_ID) return json({ error: "PIX indisponível no momento" }, 500);
+    const gw = await resolveOpenPixGateway(admin, { userId: ctClient.user_id });
+    const APP_ID = gw.appId || OPENPIX_APP_ID;
 
     const { data: payment, error: payErr } = await admin
       .from("payments")
@@ -80,7 +82,7 @@ Deno.serve(async (req) => {
         code: `CTR-${Date.now()}`,
         gateway: "openpix",
         status: "pending",
-        metadata: { type: "ct_renewal", ct_client_id: ctClient.id },
+        metadata: { type: "ct_renewal", ct_client_id: ctClient.id, reseller_id: gw.resellerId, gateway_owner: gw.owner },
       })
       .select("id")
       .single();
@@ -89,7 +91,7 @@ Deno.serve(async (req) => {
     const wooviCustomer = await buildWooviCustomer(admin as any, ctClient.user_id);
     const chargeRes = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
-      headers: { Authorization: OPENPIX_APP_ID, "Content-Type": "application/json" },
+      headers: { Authorization: APP_ID, "Content-Type": "application/json" },
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(price * 100),
@@ -109,7 +111,7 @@ Deno.serve(async (req) => {
     try {
       const imgRes = await fetch(
         `https://api.openpix.com.br/api/v1/charge/${charge.identifier}/qrcode?format=base64`,
-        { headers: { Authorization: OPENPIX_APP_ID } },
+        { headers: { Authorization: APP_ID } },
       );
       if (imgRes.ok) {
         const imgData = await imgRes.json();
@@ -120,7 +122,7 @@ Deno.serve(async (req) => {
 
     await admin.from("payments").update({
       gateway_reference: charge.identifier,
-      metadata: { type: "ct_renewal", ct_client_id: ctClient.id, openpix_charge_id: charge.identifier },
+      metadata: { type: "ct_renewal", ct_client_id: ctClient.id, openpix_charge_id: charge.identifier, reseller_id: gw.resellerId, gateway_owner: gw.owner },
     }).eq("id", payment.id);
 
     return json({

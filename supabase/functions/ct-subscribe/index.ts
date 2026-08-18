@@ -176,6 +176,8 @@ Deno.serve(async (req) => {
     // ===== PIX flow =====
     const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
     if (!OPENPIX_APP_ID) return json({ error: "PIX indisponível no momento" }, 500);
+    const gw = await resolveOpenPixGateway(admin, { userId });
+    const APP_ID = gw.appId || OPENPIX_APP_ID;
 
     // Create ct_client in trial state (24h max)
     const trialEnds = new Date();
@@ -210,6 +212,8 @@ Deno.serve(async (req) => {
           ct_client_id: ctClient.id,
           plan_id: planId,
           plan_name: plan.name,
+          reseller_id: gw.resellerId,
+          gateway_owner: gw.owner,
         },
       })
       .select("id")
@@ -226,7 +230,7 @@ Deno.serve(async (req) => {
     }
     const chargeRes = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
-      headers: { Authorization: OPENPIX_APP_ID, "Content-Type": "application/json" },
+      headers: { Authorization: APP_ID, "Content-Type": "application/json" },
       body: JSON.stringify({
         correlationID: payment.id,
         value: Math.round(price * 100),
@@ -246,7 +250,7 @@ Deno.serve(async (req) => {
     try {
       const imgRes = await fetch(
         `https://api.openpix.com.br/api/v1/charge/${charge.identifier}/qrcode?format=base64`,
-        { headers: { Authorization: OPENPIX_APP_ID } },
+        { headers: { Authorization: APP_ID } },
       );
       if (imgRes.ok) {
         const imgData = await imgRes.json();
