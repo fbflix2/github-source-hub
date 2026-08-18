@@ -72,6 +72,16 @@ Deno.serve(async (req) => {
       if (orderRow?.reseller_id) effectiveResellerId = orderRow.reseller_id;
     }
 
+    // Recarga de carteira (sem pedido): usa o revendedor dono do cliente
+    if (!effectiveResellerId) {
+      const { data: profileRow } = await adminClient
+        .from("profiles")
+        .select("reseller_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileRow?.reseller_id) effectiveResellerId = profileRow.reseller_id;
+    }
+
     if (effectiveResellerId) {
       const { data: reseller } = await adminClient
         .from("resellers")
