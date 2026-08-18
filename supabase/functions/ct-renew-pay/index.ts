@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildWooviCustomer } from "../_shared/woovi-customer.ts";
+import { resolveOpenPixGateway } from "../_shared/openpix-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
