@@ -115,6 +115,9 @@ verify_jwt = false
 [functions.openpix-webhook]
 verify_jwt = false
 
+[functions.openpix-poll-pending]
+verify_jwt = false
+
 [functions.proxy-status]
 verify_jwt = false
 
