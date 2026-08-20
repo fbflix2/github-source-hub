@@ -8,14 +8,19 @@ async function callShopClone(action: string, params: Record<string, unknown> = {
     body: { action, supplier, ...params },
   });
 
-  if (error) throw new Error(error.message || "Erro ao chamar ShopClone API");
-  if (data?.error) throw new Error(data.error);
-  if (data?.status === "error") {
-    const msg = data.raw
-      ? `Erro do fornecedor: ${String(data.raw).substring(0, 200)}`
-      : "O fornecedor não retornou dados. Isso pode acontecer quando a API está temporariamente indisponível. Tente novamente em alguns instantes.";
+  if (error) {
+    console.error("[shopclone] error calling api:", error);
+    throw new Error(error.message || "Erro ao chamar ShopClone API");
+  }
+
+  // Handle common external supplier raw errors (like 404/File not found)
+  if (data?.status === "error" || (typeof data?.balance === "string" && data.balance.includes("File not found")) || (typeof data?.raw === "string" && data.raw.includes("File not found"))) {
+    const rawError = data?.raw || data?.balance || "File not found";
+    const msg = `Erro do fornecedor: ${String(rawError).substring(0, 100)}`;
+    console.warn("[shopclone] external provider error:", msg);
     throw new Error(msg);
   }
+
   return data;
 }
 
