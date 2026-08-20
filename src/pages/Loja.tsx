@@ -301,7 +301,7 @@ export default function Dashboard() {
       return base;
     }, [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages, activeFilter, activePurpose, userProfile]);
 
-    const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+    const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Facebook", "Web Scraping"];
 
     const standaloneLocalProxies = useMemo(() => {
       const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));

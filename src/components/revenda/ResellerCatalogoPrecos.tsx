@@ -57,7 +57,7 @@ const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 
 const MAX_TAGS = 5;
 const SUGGESTED_TAGS = [
-  "Contingência",
+  "Facebook",
   "Web Scraping",
   "Tráfego Pago",
   "Automação",
