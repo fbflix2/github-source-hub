@@ -330,7 +330,7 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
             <div>
               <p className="text-xs text-muted-foreground">Saldo no fornecedor</p>
               <p className="text-lg font-bold">
-                {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : balance || "—"}
+                {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : (balance && !balance.includes("File not found")) ? balance : "API Indisponível"}
               </p>
             </div>
           </CardContent>

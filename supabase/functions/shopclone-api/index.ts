@@ -262,26 +262,41 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "list-products": {
-        const url = `${config.baseUrl}/ListResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
-        const resp = await fetch(url);
-        const text = await resp.text();
-        if (!resp.ok) {
-          result = { status: "error", raw: text, httpStatus: resp.status };
-          break;
-        }
         try {
-          result = JSON.parse(text);
-        } catch {
-          result = { status: "error", raw: text, parseError: true };
+          const url = `${config.baseUrl}/ListResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
+          const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+          const text = await resp.text();
+          
+          if (!resp.ok || text.includes("File not found")) {
+            result = { status: "error", raw: text || "API Endpoint not found (404/File not found)", httpStatus: resp.status };
+            break;
+          }
+          
+          try {
+            result = JSON.parse(text);
+          } catch {
+            result = { status: "error", raw: text.substring(0, 500), parseError: true };
+          }
+        } catch (err) {
+          result = { status: "error", raw: err instanceof Error ? err.message : "Fetch timeout or network error" };
         }
         break;
       }
 
       case "get-balance": {
-        const url = `${config.baseUrl}/GetBalance.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
-        const resp = await fetch(url);
-        const text = await resp.text();
-        result = { balance: text.trim() };
+        try {
+          const url = `${config.baseUrl}/GetBalance.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
+          const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+          const text = await resp.text();
+          
+          if (text.includes("File not found")) {
+            result = { balance: "API Indisponível", status: "error", raw: text };
+          } else {
+            result = { balance: text.trim() };
+          }
+        } catch (err) {
+          result = { balance: "Timeout", status: "error", raw: err instanceof Error ? err.message : "Error" };
+        }
         break;
       }
 
