@@ -51,7 +51,7 @@ interface HeroBanner {
   category: string | null;
 }
 
-const purposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+const purposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Facebook", "Web Scraping"];
 
 export default function ResellerPublicStore() {
   const { slug } = useParams<{ slug: string }>();

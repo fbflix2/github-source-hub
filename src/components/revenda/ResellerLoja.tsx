@@ -45,7 +45,7 @@ interface Props {
   catalogOnly?: boolean;
 }
 
-const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Facebook", "Web Scraping"];
 
 export function ResellerLoja({ resellerId, primaryColor, proxyMultiplier = 1, proxyFixedPrice = null, bannerOnly = false, catalogOnly = false }: Props) {
   const navigate = useNavigate();
