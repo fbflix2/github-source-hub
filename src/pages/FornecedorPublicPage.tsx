@@ -1,5 +1,6 @@
- import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
- import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ResellerBrandingApplier } from "@/components/ResellerBrandingApplier";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -370,6 +371,7 @@ export default function FornecedorPublicPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
+      <ResellerBrandingApplier />
       <aside className="hidden lg:flex w-56 shrink-0 bg-[#0a0a0a] border-r border-zinc-900 p-4 flex-col gap-8 sticky top-0 h-screen">
         <div className="flex items-center gap-2.5 px-1 pt-1">
           <img src={logoFbflix} alt="FBFLIX" className="h-8 w-8 object-contain" />
