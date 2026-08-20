@@ -16,7 +16,7 @@ async function callShopClone(action: string, params: Record<string, unknown> = {
   // Handle common external supplier raw errors (like 404/File not found)
   if (data?.status === "error" || (typeof data?.balance === "string" && data.balance.includes("File not found")) || (typeof data?.raw === "string" && data.raw.includes("File not found"))) {
     const rawError = data?.raw || data?.balance || "File not found";
-    const msg = `Erro do fornecedor: ${String(rawError).substring(0, 100)}`;
+    const msg = `Erro do fornecedor: ${String(rawError).substring(0, 100)} (O endpoint ${supplier === "accface" ? "accface.us" : "via17.com"} pode ter mudado)`;
     console.warn("[shopclone] external provider error:", msg);
     throw new Error(msg);
   }
