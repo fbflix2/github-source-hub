@@ -33,14 +33,22 @@ const statusBadge: Record<string, { label: string; cls: string; icon: any }> = {
   rejected: { label: "Recusado", cls: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle },
 };
 
-export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
+export function SupplierStockPanel({ 
+  callPortal,
+  initialSubmissions = [],
+  initialMetrics = null 
+}: { 
+  callPortal: CallPortal,
+  initialSubmissions?: any[],
+  initialMetrics?: any
+}) {
   const [tab, setTab] = useState<"novo" | "meus">("novo");
   const [type, setType] = useState<ItemType>("perfil");
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [submissions, setSubmissions] = useState<any[]>(initialSubmissions);
+  const [metrics, setMetrics] = useState<any>(initialMetrics);
   const [filter, setFilter] = useState<string>("all");
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -58,7 +66,11 @@ export function SupplierStockPanel({ callPortal }: { callPortal: CallPortal }) {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    if (!initialSubmissions.length && !initialMetrics) {
+      load(); 
+    }
+  }, []);
 
   const submit = async () => {
     const name =

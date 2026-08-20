@@ -20,6 +20,7 @@ export default function FornecedorPublicPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
   const [supplier, setSupplier] = useState<any>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
   const [filterType, setFilterStatus] = useState<string>("all");
@@ -63,6 +64,7 @@ export default function FornecedorPublicPage() {
   const fetchMetrics = async () => {
     try {
       const data = await callPortal("list-submissions");
+      setSubmissions(data?.submissions || []);
       setMetrics(data?.metrics || null);
     } catch (err) {
       console.error("Error fetching metrics", err);
@@ -432,7 +434,11 @@ export default function FornecedorPublicPage() {
         <div className="p-4 md:p-6 max-w-[1180px] mx-auto w-full">
           {activeTab === 'estoque' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <SupplierStockPanel callPortal={(action, payload) => callPortal(action, payload)} />
+              <SupplierStockPanel 
+                callPortal={(action, payload) => callPortal(action, payload)} 
+                initialSubmissions={submissions}
+                initialMetrics={metrics}
+              />
             </div>
           )}
           {activeTab === 'dashboard' && (
