@@ -24,7 +24,7 @@ export function AdminPushToggle() {
   };
 
   const getPushRegistration = async () => {
-    const registration = await navigator.serviceWorker.register("/push-sw.js?v=2", {
+    const registration = await navigator.serviceWorker.register("/push-sw.js?v=3", {
       scope: "/",
       updateViaCache: "none",
     });
