@@ -629,7 +629,7 @@ export default function ItemDetails() {
   const token2fa = stockData.token2fa || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
-   const isInstagram = product?.name?.toLowerCase().includes("instagram") || orderItem?.name?.toLowerCase().includes("instagram");
+   const isInstagram = product?.name?.toLowerCase().includes("instagram") || orderItem?.name?.toLowerCase().includes("instagram") || (product?.tags || []).some(t => String(t).toLowerCase().includes("insta"));
    // Only treat as BM-only product when explicitly marked as such, or when the name has no "perfil" context.
    // Profiles that ship with a BM installed (e.g. "Perfil CA5 com bm 1.3k") must NOT be detected as BM.
    const _combinedName = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
@@ -639,7 +639,7 @@ export default function ItemDetails() {
      !_mentionsPerfil &&
      (product?.icon_type === "bm" || /(^|\s)bm(\s|$)/.test(_combinedName));
   const isComboProfileView = !!comboProfileId;
-  const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
+  const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView && !isInstagram;
   // E-mail simples: só login e senha, sem campos de perfil/2FA/esteira
   const _nameForEmail = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
   const _tagsForEmail = (product?.tags || []).map((t: string) => String(t).toLowerCase());
