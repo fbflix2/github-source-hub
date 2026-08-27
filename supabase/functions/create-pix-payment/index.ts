@@ -131,21 +131,31 @@ Deno.serve(async (req) => {
     if (!wooviCustomer) {
       console.warn("[create-pix-payment] Perfil sem dados fiscais completos — NFS-e automática indisponível");
     }
-    const openPixResponse = await fetch("https://api.openpix.com.br/api/v1/charge", {
-      method: "POST",
-      headers: {
-        Authorization: effectiveAppId,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        correlationID: payment.id,
-        value: Math.round(numericAmount * 100), // In cents
-        comment: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
-        ...(wooviCustomer ? { customer: wooviCustomer } : {}),
-      }),
-    });
+    const createCharge = (withCustomer: boolean) =>
+      fetch("https://api.openpix.com.br/api/v1/charge", {
+        method: "POST",
+        headers: {
+          Authorization: effectiveAppId,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          correlationID: payment.id,
+          value: Math.round(numericAmount * 100), // In cents
+          comment: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
+          ...(withCustomer && wooviCustomer ? { customer: wooviCustomer } : {}),
+        }),
+      });
 
-    const opData = await openPixResponse.json();
+    let openPixResponse = await createCharge(true);
+    let opData = await openPixResponse.json();
+
+    // Se a Woovi recusar os dados fiscais do cliente, gera a cobrança sem o bloco
+    // customer (o PIX funciona; apenas a NFS-e automática fica indisponível).
+    if (!openPixResponse.ok && wooviCustomer && /CPF|CNPJ|customer/i.test(JSON.stringify(opData))) {
+      console.warn("[create-pix-payment] Woovi recusou customer, refazendo sem dados fiscais:", JSON.stringify(opData));
+      openPixResponse = await createCharge(false);
+      opData = await openPixResponse.json();
+    }
 
     if (!openPixResponse.ok) {
       console.error("OpenPix error:", JSON.stringify(opData));

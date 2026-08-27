@@ -20,6 +20,37 @@ export interface WooviCustomer {
 
 const onlyDigits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
+function isValidCPF(cpf: string) {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(cpf[i]) * (10 - i);
+  let d1 = (sum * 10) % 11;
+  if (d1 === 10) d1 = 0;
+  if (d1 !== Number(cpf[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(cpf[i]) * (11 - i);
+  let d2 = (sum * 10) % 11;
+  if (d2 === 10) d2 = 0;
+  return d2 === Number(cpf[10]);
+}
+
+function isValidCNPJ(cnpj: string) {
+  if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+  const calc = (len: number) => {
+    let pos = len - 7;
+    let sum = 0;
+    for (let i = 0; i < len; i++) {
+      sum += Number(cnpj[i]) * pos--;
+      if (pos < 2) pos = 9;
+    }
+    const r = sum % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc(12) === Number(cnpj[12]) && calc(13) === Number(cnpj[13]);
+}
+
+export const isValidTaxID = (v: string) => isValidCPF(v) || isValidCNPJ(v);
+
 export async function buildWooviCustomer(
   admin: { from: (t: string) => any; auth: { admin: { getUserById: (id: string) => Promise<any> } } },
   userId: string,
@@ -35,7 +66,7 @@ export async function buildWooviCustomer(
 
     const name = String(p.full_name ?? "").trim();
     const taxID = onlyDigits(p.cpf);
-    if (!name || (taxID.length !== 11 && taxID.length !== 14)) return null;
+    if (!name || !isValidTaxID(taxID)) return null;
 
     let email: string | undefined;
     try {
