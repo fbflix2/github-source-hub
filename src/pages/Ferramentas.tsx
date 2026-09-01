@@ -11,14 +11,14 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateTOTP, sanitizeTOTPInput, syncTOTPTimeOffset } from "@/lib/totp";
 
-// ============= Material Icon helper =============
+// ---- Material Icon helper ----
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
 
 interface SavedSecret { id: string; label: string; secret: string; }
 
-// ============= Constants for Document Emitter =============
+// ---- Constants for Document Emitter ----
 const SETTINGS_KEY = "imageviewer_base_template_url";
 const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
@@ -79,7 +79,7 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ============= STYLES (matching the reference) =============
+// ---- STYLES (matching the reference) ----
 const glassCardStyle: React.CSSProperties = {
   background: "rgba(255, 255, 255, 0.03)",
   backdropFilter: "blur(12px)",
@@ -114,7 +114,7 @@ type ToolId = "2fa" | "verificador" | "emissor";
 
 interface ProfileResult { url: string; status: "active" | "blocked" | "uncertain" | "error"; message?: string; }
 
-// ============= SUB-COMPONENTS =============
+// ---- SUB-COMPONENTS ----
 
 function TOTPDisplay({ secret, label, onRemove }: { secret: string; label: string; onRemove?: () => void }) {
   const [result, setResult] = useState<{ code: string; remaining: number; period: number } | null>(null);
@@ -219,7 +219,7 @@ function GlassCard({ children, bgImage, onClick, className = "", disabled = fals
   );
 }
 
-// ============= TOOL COMPONENTS =============
+// ---- TOOL COMPONENTS ----
 
 function TwoFATool({ onBack }: { onBack: () => void }) {
   const [secrets, setSecrets] = useState<SavedSecret[]>([]);
@@ -428,7 +428,7 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ============= MAIN PAGE =============
+// ---- MAIN PAGE ----
 export default function Ferramentas() {
   const navigate = useNavigate();
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
@@ -457,11 +457,6 @@ export default function Ferramentas() {
            <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
              <h3 className="text-base font-bold text-white">Gerador de 2FA</h3>
              <p className="text-slate-400 text-xs mt-2">Gere códigos de autenticação instantaneamente.</p>
-           </GlassCard>
-           <GlassCard bgImage={BG_IMAGES.emissor} onClick={() => setActiveTool("emissor")}>
-             <h3 className="text-base font-bold text-white">Emissor de Documentos</h3>
-             <Badge className="bg-blue-500/20 text-blue-400 w-fit mt-1">Beta</Badge>
-             <p className="text-slate-400 text-xs mt-2">Crie documentos para verificação de perfis.</p>
            </GlassCard>
            <GlassCard bgImage={BG_IMAGES.verificador} disabled>
              <h3 className="text-base font-bold text-white">Verificador</h3>
