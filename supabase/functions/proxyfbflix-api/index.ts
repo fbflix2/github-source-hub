@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
     const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
     if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY não configurada");
 
-    // ========== INTERNAL ADMIN ALLOCATE (no user JWT needed) ==========
+    // SECTION: INTERNAL ADMIN ALLOCATE (no user JWT needed)
     bodyText = await req.text();
     const bodyClone = JSON.parse(bodyText || "{}");
 
@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== INTERNAL: UPDATE SUBSCRIPTION (no user JWT needed) ==========
+    // SECTION: INTERNAL: UPDATE SUBSCRIPTION (no user JWT needed)
     if (bodyClone.action === "internal-allocate-included-proxy") {
       const supabaseInternal = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -573,7 +573,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== INTERNAL: DELETE SUBSCRIPTION (permanent removal) ==========
+    // SECTION: INTERNAL: DELETE SUBSCRIPTION (permanent removal)
     if (bodyClone.action === "internal-delete-subscription") {
       const supabaseInternal = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
     const { action, ...params } = bodyClone;
     console.log(`[webshare-api] action=${action} user=${user?.id || 'service-role'}`);
 
-    // ========== GET PROFILE ==========
+    // SECTION: GET PROFILE
     if (action === "get-profile") {
       const resp = await webFetch("/profile/", WEBSHARE_API_KEY);
       const data = await resp.json();
@@ -683,7 +683,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET SUBSCRIPTION ==========
+    // SECTION: GET SUBSCRIPTION
     if (action === "get-subscription") {
       const resp = await webFetch("/subscription/", WEBSHARE_API_KEY);
       const data = await resp.json();
@@ -693,7 +693,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET PLAN ==========
+    // SECTION: GET PLAN
     if (action === "get-plan") {
       try {
         const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
@@ -716,7 +716,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ========== GET PROXY LIST ==========
+    // SECTION: GET PROXY LIST
     if (action === "get-proxy-list") {
       const mode = params.mode || "direct";
       const page = params.page || 1;
@@ -733,7 +733,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET ALL PROXIES (paginated fetch) ==========
+    // SECTION: GET ALL PROXIES (paginated fetch)
     if (action === "get-all-proxies") {
       try {
         const mode = params.mode || "direct";
@@ -767,7 +767,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ========== GET USAGE STATS (Top 10) ==========
+    // SECTION: GET USAGE STATS (Top 10)
     if (action === "get-usage-stats") {
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
@@ -866,7 +866,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET PROXY CONFIG ==========
+    // SECTION: GET PROXY CONFIG
     if (action === "get-proxy-config") {
       const resp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
       const data = await resp.json();
@@ -876,7 +876,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET BANDWIDTH STATS ==========
+    // SECTION: GET BANDWIDTH STATS
     if (action === "get-bandwidth-stats") {
       try {
         const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
@@ -925,7 +925,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ========== REPLACE PROXY ==========
+    // SECTION: REPLACE PROXY
     if (action === "replace-proxy") {
       const { proxy_id } = params as { proxy_id: string };
       if (!proxy_id) throw new Error("proxy_id é obrigatório");
@@ -940,7 +940,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET IP AUTHORIZATION ==========
+    // SECTION: GET IP AUTHORIZATION
     if (action === "get-ip-auth") {
       const resp = await webFetch("/proxy/ipauthorization/", WEBSHARE_API_KEY);
       const data = await resp.json();
@@ -950,7 +950,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== PURCHASE PROXY WITH BALANCE ==========
+    // SECTION: PURCHASE PROXY WITH BALANCE
     // Assigns an unassigned Webshare proxy to the customer, debits balance, creates subscription
     if (action === "purchase-proxy-with-balance") {
       const { order_id, total, product_id, quantity: purchaseQty, target_city } = params as {
@@ -1185,7 +1185,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== ALLOCATE PROXY FOR AN ALREADY-PAID ORDER ==========
+    // SECTION: ALLOCATE PROXY FOR AN ALREADY-PAID ORDER
     // Used when the checkout already debited the wallet (mixed carts / bumps).
     // Does NOT debit balance and does NOT change order totals.
     if (action === "allocate-proxy-for-paid-order") {
@@ -1331,7 +1331,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== ADMIN ALLOCATE PROXY ==========
+    // SECTION: ADMIN ALLOCATE PROXY
     if (action === "admin-allocate-proxy") {
       const { target_user_id, quantity: allocQty, product_id: allocProductId, order_id: allocOrderId, country_code: adminCountryCode } = params as {
         target_user_id: string;
@@ -1443,7 +1443,7 @@ Deno.serve(async (req) => {
     }
 
 
-    // ========== GET AVAILABLE COUNT ==========
+    // SECTION: GET AVAILABLE COUNT
     // Returns how many unassigned proxies are available for sale
     if (action === "get-available-count") {
       const assignedIds = await getAssignedProxyIds(supabaseAdmin);
@@ -1461,7 +1461,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET AVAILABLE LOCATIONS ==========
+    // SECTION: GET AVAILABLE LOCATIONS
     // Returns a list of cities/countries that have available (unassigned) proxies
     if (action === "get-available-locations") {
       const assignedIds = await getAssignedProxyIds(supabaseAdmin);
@@ -1490,7 +1490,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== SYNC WEBSHARE STATIC PROXY CREDENTIALS ==========
+    // SECTION: SYNC WEBSHARE STATIC PROXY CREDENTIALS
     if (action === "sync-webshare-proxy-credentials") {
       const { subscription_id } = params as { subscription_id: string };
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
@@ -1617,7 +1617,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== EXCHANGE WEBSHARE PROXY ==========
+    // SECTION: EXCHANGE WEBSHARE PROXY
     if (action === "exchange-webshare-proxy" || action === "exchange-proxyfbflix-proxy" || action === "fix-repeated-proxy") {
       const { subscription_id, target_country: overrideCountry, is_fix = false, proxy_id } = params as { 
         subscription_id: string; 
@@ -1857,7 +1857,7 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ========== ADMIN: MAINTENANCE EXCHANGE (no quota deduction) ==========
+    // SECTION: ADMIN: MAINTENANCE EXCHANGE (no quota deduction)
     if (action === "admin-maintenance-exchange") {
       const { subscription_id: maintSubId, target_city: maintTargetCity } = params as { subscription_id: string; target_city?: string };
       if (!maintSubId) throw new Error("subscription_id é obrigatório");
@@ -1907,6 +1907,25 @@ Deno.serve(async (req) => {
       if (!maintCountry) {
         maintCountry = maintRaw.country_code ? String(maintRaw.country_code).toUpperCase() : "BR";
       }
+
+      // The city chosen by the admin must decide the country, not the subscription's
+      // original product. Without this, choosing a US city (e.g. Los Angeles) on a
+      // BR-tagged subscription always failed with "no availability", even with US
+      // proxies in stock, because the search combined BR country + US city.
+      if (maintTargetCity) {
+        const BR_CITY_HINTS = [
+          "sao paulo", "sao paolo", "rio de janeiro", "fortaleza", "diadema",
+          "brasilia", "curitiba", "salvador", "recife", "belo horizonte",
+        ];
+        const normalizedMaintCity = maintTargetCity.toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const cityCountry = BR_CITY_HINTS.includes(normalizedMaintCity) ? "BR" : "US";
+        if (cityCountry !== maintCountry) {
+          console.log(`[admin-maint-exchange] Overriding country ${maintCountry} -> ${cityCountry} based on chosen city "${maintTargetCity}"`);
+        }
+        maintCountry = cityCountry;
+      }
+
       console.log(`[admin-maint-exchange] Detected country: ${maintCountry} for sub ${maintSubId}`);
 
       const maintCurrentProxyId = maintRaw.fbflix_proxy_id || maintRaw.webshare_proxy_id;
@@ -2137,7 +2156,7 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ========== ADMIN: UPDATE SUBSCRIPTION RAW_DATA ==========
+    // SECTION: ADMIN: UPDATE SUBSCRIPTION RAW_DATA
     if (action === "admin-update-subscription") {
       const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
         subscription_id: string;
@@ -2167,7 +2186,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET ROTATING PROXY CREDENTIALS ==========
+    // SECTION: GET ROTATING PROXY CREDENTIALS
     if (action === "get-rotating-credentials") {
       const countryCode = "BR";
       const backboneResp = await webFetch("/proxy/list/?mode=backbone&page=1&page_size=1", WEBSHARE_API_KEY);
@@ -2269,7 +2288,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== PURCHASE ROTATING PROXY (balance) ==========
+    // SECTION: PURCHASE ROTATING PROXY (balance)
      if (action === "purchase-rotating-proxy") {
        const { order_id, total, product_id, quantity: gbQty, target_city } = params as {
          order_id: string; total: number; product_id?: string; quantity?: number; target_city?: string;
@@ -2391,7 +2410,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== GET INTERNAL PROXY CONFIG ==========
+    // SECTION: GET INTERNAL PROXY CONFIG
     if (action === "get-internal-proxy-config") {
       const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
       if (!isStaff) throw new Error("Acesso negado");
@@ -2569,7 +2588,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== SAVE INTERNAL PROXY CONFIG ==========
+    // SECTION: SAVE INTERNAL PROXY CONFIG
     if (action === "save-internal-proxy-config") {
       const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
       if (!isStaff) throw new Error("Acesso negado");
@@ -2608,7 +2627,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== MIGRATE PROXYBR RENEWAL → WEBSHARE ==========
+    // SECTION: MIGRATE PROXYBR RENEWAL -> WEBSHARE
     if (action === "migrate-proxybr-renewal") {
       const { subscription_name, proxy_index, total_proxies, auto_renew_user_id, skip_whatsapp } = params as {
         subscription_name: string;
@@ -2998,7 +3017,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== BACKFILL ROTATING PROXY CREDENTIALS ==========
+    // SECTION: BACKFILL ROTATING PROXY CREDENTIALS
     if (action === "backfill-rotating-credentials") {
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
@@ -3044,7 +3063,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== INTERNAL: DELETE WEBSHARE PROXY ==========
+    // SECTION: INTERNAL: DELETE WEBSHARE PROXY
     if (action === "internal-delete-webshare-proxy") {
       const supabaseInternal = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -3069,7 +3088,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========== SYNC PROXY CREDENTIALS FROM WEBSHARE ==========
+    // SECTION: SYNC PROXY CREDENTIALS FROM WEBSHARE
     if (action === "sync-proxyfbflix-proxy-credentials") {
       const { subscription_id: sSubId } = params as { subscription_id: string };
       if (!sSubId) throw new Error("subscription_id é obrigatório");
