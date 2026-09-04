@@ -637,15 +637,45 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Verification hint */}
-              {!verified && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
-                  <span className="material-symbols-outlined text-primary mt-0.5">info</span>
-                  <p className="text-sm text-muted-foreground">
-                    Preencha todos os campos e envie um documento para receber o <strong className="text-foreground">selo de verificado</strong>.
-                  </p>
-                </div>
-              )}
+              {/* Verification checklist — itens preenchidos somem da lista, os pendentes ficam com o texto-base */}
+              {!verified && (() => {
+                const checklist: { label: string; done: boolean }[] = [
+                  { label: "Nome completo", done: formData.full_name.trim() !== "" },
+                  { label: "CPF", done: formData.cpf.replace(/\D/g, "").length >= 11 },
+                  { label: "Data de nascimento", done: formData.birth_date !== "" },
+                  { label: "Rua", done: formData.rua.trim() !== "" },
+                  { label: "Número", done: formData.numero.trim() !== "" },
+                  { label: "Bairro", done: formData.bairro.trim() !== "" },
+                  { label: "Cidade", done: formData.cidade.trim() !== "" },
+                  { label: "Estado (UF)", done: formData.estado.trim() !== "" },
+                  { label: "CEP", done: formData.cep.replace(/\D/g, "").length === 8 },
+                  { label: "WhatsApp", done: formData.whatsapp.trim() !== "" },
+                  { label: "Documento de identidade", done: documentUrl !== null },
+                ];
+                const pending = checklist.filter((item) => !item.done);
+                if (pending.length === 0) return null;
+                return (
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                    <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Preencha os campos abaixo e envie um documento para receber o <strong className="text-foreground">selo de verificado</strong>:
+                      </p>
+                      <ul className="flex flex-wrap gap-1.5">
+                        {pending.map((item) => (
+                          <li
+                            key={item.label}
+                            className="text-xs text-muted-foreground/70 bg-secondary/50 border border-dashed border-border px-2.5 py-1 rounded-full flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">radio_button_unchecked</span>
+                            {item.label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Actions */}
               <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border mt-8">
