@@ -3130,7 +3130,54 @@ Deno.serve(async (req) => {
         ));
 
         if (!providerProxy) {
-          throw new Error("Proxy não encontrado no fornecedor. Pode ter sido removido ou expirado.");
+          // Proxy sumiu do fornecedor (IP reciclado/removido pela Webshare) mesmo com
+          // a assinatura ainda dentro da validade — validade e existência física do IP
+          // são coisas independentes. Em vez de falhar, realoca automaticamente do pool.
+          console.warn(`[sync-credentials] Proxy ${fbflixId} not found on provider. Auto-reallocating...`);
+
+          const targetCountry = raw.country_code ? String(raw.country_code).toUpperCase() : null;
+
+          const { data: allActiveSubs } = await supabaseAdmin
+            .from("subscriptions")
+            .select("raw_data")
+            .eq("type", "proxyfbflix")
+            .in("status", ["active", "expiring"])
+            .neq("id", sSubId);
+
+          const assignedIds = new Set<string>();
+          const assignedIPs = new Set<string>();
+          for (const s of (allActiveSubs || [])) {
+            const r = (s.raw_data || {}) as Record<string, any>;
+            if (r.fbflix_proxy_id) assignedIds.add(String(r.fbflix_proxy_id));
+            if (r.proxy_address) assignedIPs.add(String(r.proxy_address));
+          }
+
+          const poolCandidate = allProxies.find((p: any) => (
+            p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))
+            && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry)
+          ));
+
+          if (!poolCandidate) {
+            throw new Error(`Proxy removido pelo fornecedor e sem proxies ${targetCountry || ''} disponíveis para realocar. Contate o suporte.`);
+          }
+
+          const reallocatedRaw = buildStaticWebshareRawData(poolCandidate, raw) as Record<string, any>;
+          reallocatedRaw.last_sync_at = new Date().toISOString();
+
+          const { error: reallocErr } = await supabaseAdmin
+            .from("subscriptions")
+            .update({ raw_data: reallocatedRaw, updated_at: new Date().toISOString() })
+            .eq("id", sSubId);
+
+          if (reallocErr) throw new Error(`Erro ao realocar proxy: ${reallocErr.message}`);
+
+          console.log(`[sync-credentials] sub=${sSubId} REALLOCATED from ${proxyAddress} to ${poolCandidate.proxy_address}`);
+
+          return new Response(JSON.stringify({
+            success: true, synced: true, reallocated: true, method: "auto-reallocate",
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
         const updatedRaw = buildStaticWebshareRawData(providerProxy, raw) as Record<string, any>;
