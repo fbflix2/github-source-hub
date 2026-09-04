@@ -3175,6 +3175,15 @@ Deno.serve(async (req) => {
 
           return new Response(JSON.stringify({
             success: true, synced: true, reallocated: true, method: "auto-reallocate",
+            new_proxy: `${poolCandidate.proxy_address}:${poolCandidate.port}`,
+            proxy: {
+              ip: poolCandidate.proxy_address,
+              port: poolCandidate.port,
+              username: poolCandidate.username,
+              password: poolCandidate.password,
+              country_code: poolCandidate.country_code,
+              city_name: poolCandidate.city_name,
+            },
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
