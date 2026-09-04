@@ -2092,18 +2092,25 @@ Deno.serve(async (req) => {
             if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
           }
 
+          // Only list cities that actually match the requested country, so the
+          // error message never shows e.g. Brazilian cities when the admin asked
+          // for a US city (or vice-versa) — that was the source of confusing
+          // messages like "no availability in Los Angeles" while Los Angeles was
+          // itself listed as "available" (it was available in the WRONG country bucket).
           const availableCities = new Set<string>();
           allCurrentProxies.forEach(p => {
-            if (p.valid && !assignedIds.has(p.id) && p.city_name) {
+            const countryMatch = !maintCountry || String(p.country_code).toUpperCase() === maintCountry;
+            if (p.valid && !assignedIds.has(p.id) && p.city_name && countryMatch) {
               availableCities.add(p.city_name);
             }
           });
 
           const cityList = Array.from(availableCities).sort().join(", ");
+          const countrySuffix = maintCountry ? ` (país ${maintCountry})` : "";
           if (maintTargetCity) {
-            throw new Error(`Sem disponibilidade em ${maintTargetCity}. Cidades disponíveis: ${cityList || "Nenhuma"}`);
+            throw new Error(`Sem disponibilidade em ${maintTargetCity}${countrySuffix}. Cidades disponíveis${countrySuffix}: ${cityList || "Nenhuma"}`);
           } else {
-            throw new Error(`Não foi possível trocar o proxy. Sem disponibilidade geral. Cidades com estoque: ${cityList || "Nenhuma"}`);
+            throw new Error(`Não foi possível trocar o proxy. Sem disponibilidade geral${countrySuffix}. Cidades com estoque${countrySuffix}: ${cityList || "Nenhuma"}`);
           }
         } catch (e: any) {
           if (e.message.includes("disponibilidade")) throw e;
