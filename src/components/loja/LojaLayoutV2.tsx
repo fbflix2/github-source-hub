@@ -87,19 +87,6 @@ export function LojaLayoutV2({
         {banner && <div className="mb-10">{banner}</div>}
         {/* header + busca */}
         <div className="flex flex-col items-center text-center">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md">
-              Nova experiência de layout!
-            </span>
-            {onUseLegacy && (
-              <button
-                onClick={onUseLegacy}
-                className="rounded-full border border-border bg-secondary/40 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur-md transition-colors hover:border-foreground/30 hover:text-foreground"
-              >
-                Usar versão antiga
-              </button>
-            )}
-          </div>
           {headlineVisible && headline?.trim() && (
             <h1 className="mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground md:text-[46px]">
               {headline}
