@@ -101,6 +101,13 @@ export default function SubscriptionManage() {
 
       // Fallback: find product by external_id (API product id) or name match
       const raw = (sub?.raw_data || {}) as Record<string, any>;
+
+      // Preço de renovação salvo na própria assinatura
+      const rp = raw?.renewal_price;
+      if (rp != null && !isNaN(Number(rp)) && Number(rp) > 0) {
+        return Number(rp);
+      }
+
       const apiProductId = raw?.product?.id;
       if (apiProductId) {
         const { data: product } = await supabase
@@ -111,7 +118,11 @@ export default function SubscriptionManage() {
         if (product?.price != null) return Number(product.price);
       }
 
+      // Último recurso: preço padrão do proxy dedicado (BR)
+      if (!isRotating) return 21;
+
       return null;
+
     },
     enabled: !!code && !combinedLoading && !!sub,
   });
