@@ -75,6 +75,8 @@ const TAG_SYNONYMS: Record<string, string[]> = {
   "web scraping": ["scraping", "raspagem de dados"],
   marketplace: ["mercado livre", "shopee"],
   perfis: ["perfil", "conta", "contas"],
+  "com bm": ["com business manager", "possui bm", "inclui bm"],
+  "sem bm": ["sem business manager", "sem gerenciador de negocios", "somente perfil"],
 };
 
 export default function Dashboard() {
@@ -409,8 +411,9 @@ export default function Dashboard() {
      const q = searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
      const searched = !q ? base : base.filter((p: any) => {
        const cat = categories.find((c) => c.id === p.category_id);
-       const tagSynonyms = (p.tags || []).flatMap((t: string) => TAG_SYNONYMS[t.toLowerCase()] || []);
-       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || []), ...tagSynonyms]
+       const normalizedTags = (p.tags || []).map((t: string) => t.toLowerCase().replace(/[_-]/g, " "));
+       const tagSynonyms = normalizedTags.flatMap((t: string) => TAG_SYNONYMS[t] || []);
+       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || []), ...normalizedTags, ...tagSynonyms]
          .filter(Boolean)
          .join(" ")
          .toLowerCase()
