@@ -82,7 +82,7 @@ export default function AdminProducts() {
   const [formStock, setFormStock] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formCategory, setFormCategory] = useState("");
-  const [formSubcategory, setFormSubcategory] = useState("");
+  
   const [formIcon, setFormIcon] = useState<ProductIcon>("perfil");
   const [formTags, setFormTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -256,7 +256,7 @@ export default function AdminProducts() {
 
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
-    setFormCategory(""); setFormSubcategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
+    setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
     setFormIncludedProxyId(""); setFormIncludedProxyQty("0");
     setAiImagePrompt("");
