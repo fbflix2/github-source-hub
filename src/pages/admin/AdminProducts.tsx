@@ -32,6 +32,7 @@ interface Product {
   image_url: string | null;
   tags: string[] | null;
   category_id: string | null;
+  subcategory_id: string | null;
   badge_text: string | null;
   badge_color: string | null;
   badge_icon: string | null;
@@ -47,6 +48,7 @@ interface Category {
   name: string;
   slug: string;
   restricted_to: string[] | null;
+  parent_id: string | null;
 }
 
 type ProductIcon = "perfil" | "bm" | "proxy" | "page";
@@ -81,6 +83,7 @@ export default function AdminProducts() {
   const [formStock, setFormStock] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formCategory, setFormCategory] = useState("");
+  const [formSubcategory, setFormSubcategory] = useState("");
   const [formIcon, setFormIcon] = useState<ProductIcon>("perfil");
   const [formTags, setFormTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -107,6 +110,7 @@ export default function AdminProducts() {
   // Category management
   const [newCategory, setNewCategory] = useState("");
   const [newCategoryRestricted, setNewCategoryRestricted] = useState("");
+  const [newCategoryParent, setNewCategoryParent] = useState("");
 
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
@@ -245,7 +249,7 @@ export default function AdminProducts() {
 
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
-    setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
+    setFormCategory(""); setFormSubcategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
     setFormIncludedProxyId(""); setFormIncludedProxyQty("0");
     setAiImagePrompt("");
@@ -283,6 +287,7 @@ export default function AdminProducts() {
     setFormStock(product.stock.toString());
     setFormDescription(product.description ?? "");
     setFormCategory(product.category_id ?? "");
+    setFormSubcategory(product.subcategory_id ?? "");
     setFormIcon((product.icon_type as ProductIcon) ?? "perfil");
     setFormTags(product.tags ?? []);
     setFormStatus(product.status);
@@ -305,6 +310,7 @@ export default function AdminProducts() {
       stock: parseInt(formStock) || 0,
       description: formDescription || null,
       category_id: formCategory || null,
+      subcategory_id: formSubcategory || null,
       icon_type: formIcon,
       tags: formTags.length > 0 ? formTags : null,
       status: formStatus,
@@ -378,12 +384,14 @@ export default function AdminProducts() {
     const { error } = await supabase.from("product_categories").insert({ 
       name: newCategory.trim(), 
       slug,
-      restricted_to: restrictedTo.length > 0 ? restrictedTo : null
+      restricted_to: restrictedTo.length > 0 ? restrictedTo : null,
+      parent_id: newCategoryParent || null,
     });
     if (error) { toast.error("Erro: " + error.message); return; }
     toast.success("Categoria criada!");
     setNewCategory("");
     setNewCategoryRestricted("");
+    setNewCategoryParent("");
     fetchData();
   };
 
@@ -398,6 +406,15 @@ export default function AdminProducts() {
   const getCategoryName = (catId: string | null) => {
     if (!catId) return "—";
     return categories.find(c => c.id === catId)?.name ?? "—";
+  };
+
+  const getCategoryDisplay = (product: Product) => {
+    const catName = getCategoryName(product.category_id);
+    if (product.subcategory_id) {
+      const subName = categories.find(c => c.id === product.subcategory_id)?.name;
+      if (subName) return `${catName} › ${subName}`;
+    }
+    return catName;
   };
 
   // Build a map of external_id → real API stock for proxy products
@@ -532,7 +549,7 @@ export default function AdminProducts() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm text-zinc-400">Categoria</label>
-                <Select value={formCategory} onValueChange={setFormCategory}>
+                <Select value={formCategory} onValueChange={(v) => { setFormCategory(v); setFormSubcategory(""); }}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
@@ -550,6 +567,20 @@ export default function AdminProducts() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-zinc-400">Subcategoria (opcional)</label>
+              <Select value={formSubcategory} onValueChange={setFormSubcategory} disabled={!formCategory}>
+                <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white disabled:opacity-50">
+                  <SelectValue placeholder={!formCategory ? "Escolha uma categoria primeiro" : "Nenhuma"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => c.parent_id === formCategory).map(cat => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -913,7 +944,7 @@ export default function AdminProducts() {
                           )}
                         </TableCell>
                         <TableCell className="text-white text-sm font-medium whitespace-normal break-words">{product.name}</TableCell>
-                        <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
+                        <TableCell className="text-zinc-400 text-sm">{getCategoryDisplay(product)}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {product.tags && product.tags.length > 0 ? product.tags.map(tag => (
@@ -1100,6 +1131,17 @@ export default function AdminProducts() {
                 <label className="text-sm text-zinc-400">Restrito para Departamentos (opcional, separado por vírgula)</label>
                 <Input value={newCategoryRestricted} onChange={e => setNewCategoryRestricted(e.target.value)} placeholder="Ex: VIP, B2B, Especial" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500" />
               </div>
+              <div className="flex-1 space-y-1.5 w-full">
+                <label className="text-sm text-zinc-400">Categoria Pai (opcional)</label>
+                <Select value={newCategoryParent} onValueChange={setNewCategoryParent}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Nenhuma (categoria raiz)" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => !c.parent_id).map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button onClick={handleAddCategory} className="bg-primary hover:bg-primary/90 text-white">
                 <Plus className="h-4 w-4 mr-2" /> CRIAR CATEGORIA
               </Button>
@@ -1111,7 +1153,14 @@ export default function AdminProducts() {
                 {categories.map(cat => (
                   <div key={cat.id} className="p-4 bg-zinc-800/30 rounded-lg border border-zinc-700 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{cat.name}</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-white">{cat.name}</span>
+                        {cat.parent_id && (
+                          <Badge variant="outline" className="text-[10px] border-zinc-600 text-zinc-400 w-fit">
+                            Subcategoria de: {categories.find(c => c.id === cat.parent_id)?.name ?? "—"}
+                          </Badge>
+                        )}
+                      </div>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400" onClick={async () => {
                         if (window.confirm("Excluir esta categoria?")) {
                           const { error } = await supabase.from("product_categories").delete().eq("id", cat.id);
