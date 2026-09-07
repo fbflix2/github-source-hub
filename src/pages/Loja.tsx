@@ -60,6 +60,23 @@ interface Category {
   slug: string;
 }
 
+// Dicionário de sinônimos: quando o produto tem uma dessas tags, a busca
+// também casa com os termos relacionados listados no array.
+const TAG_SYNONYMS: Record<string, string[]> = {
+  apostas: ["bet", "betting", "cassino", "gambling"],
+  black: ["blackhat", "black hat"],
+  white: ["whitehat", "white hat"],
+  bm: ["business manager", "gerenciador de negocios"],
+  proxy: ["proxies", "ip dedicado", "ip fixo"],
+  youtube: ["yt"],
+  tiktok: ["tt"],
+  "google ads": ["gads", "adwords"],
+  facebook: ["fb", "meta"],
+  "web scraping": ["scraping", "raspagem de dados"],
+  marketplace: ["mercado livre", "shopee"],
+  perfis: ["perfil", "conta", "contas"],
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -392,7 +409,8 @@ export default function Dashboard() {
      const q = searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
      const searched = !q ? base : base.filter((p: any) => {
        const cat = categories.find((c) => c.id === p.category_id);
-       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || [])]
+       const tagSynonyms = (p.tags || []).flatMap((t: string) => TAG_SYNONYMS[t.toLowerCase()] || []);
+       const haystack = [p.name, p.description, cat?.name, cat?.slug, ...(p.tags || []), ...tagSynonyms]
          .filter(Boolean)
          .join(" ")
          .toLowerCase()
