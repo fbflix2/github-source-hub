@@ -112,6 +112,14 @@ export default function AdminProducts() {
   const [newCategoryRestricted, setNewCategoryRestricted] = useState("");
   const [newCategoryParent, setNewCategoryParent] = useState("");
 
+  // Category edit modal
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryRestricted, setEditCategoryRestricted] = useState("");
+  const [editCategoryParent, setEditCategoryParent] = useState("");
+  const [savingCategory, setSavingCategory] = useState(false);
+
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
 
@@ -392,6 +400,36 @@ export default function AdminProducts() {
     setNewCategory("");
     setNewCategoryRestricted("");
     setNewCategoryParent("");
+    fetchData();
+  };
+
+  const openEditCategory = (cat: Category) => {
+    setEditingCategory(cat);
+    setEditCategoryName(cat.name);
+    setEditCategoryRestricted(cat.restricted_to?.join(", ") ?? "");
+    setEditCategoryParent(cat.parent_id ?? "");
+    setShowEditCategoryModal(true);
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return;
+    if (!editCategoryName.trim()) { toast.error("Nome da categoria é obrigatório"); return; }
+    if (editCategoryParent === editingCategory.id) {
+      toast.error("Uma categoria não pode ser pai de si mesma");
+      return;
+    }
+    setSavingCategory(true);
+    const restrictedTo = editCategoryRestricted.split(",").map(s => s.trim()).filter(Boolean);
+    const { error } = await supabase.from("product_categories").update({
+      name: editCategoryName.trim(),
+      restricted_to: restrictedTo.length > 0 ? restrictedTo : null,
+      parent_id: editCategoryParent || null,
+    }).eq("id", editingCategory.id);
+    setSavingCategory(false);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Categoria atualizada!");
+    setShowEditCategoryModal(false);
+    setEditingCategory(null);
     fetchData();
   };
 
@@ -1161,14 +1199,19 @@ export default function AdminProducts() {
                           </Badge>
                         )}
                       </div>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400" onClick={async () => {
-                        if (window.confirm("Excluir esta categoria?")) {
-                          const { error } = await supabase.from("product_categories").delete().eq("id", cat.id);
-                          if (error) toast.error(error.message); else fetchData();
-                        }
-                      }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-primary" onClick={() => openEditCategory(cat)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400" onClick={async () => {
+                          if (window.confirm("Excluir esta categoria?")) {
+                            const { error } = await supabase.from("product_categories").delete().eq("id", cat.id);
+                            if (error) toast.error(error.message); else fetchData();
+                          }
+                        }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <span className="text-[10px] text-zinc-500 uppercase font-black">Restrito para:</span>
@@ -1191,6 +1234,40 @@ export default function AdminProducts() {
           <WaitlistTab />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={showEditCategoryModal} onOpenChange={(open) => { if (!open) setEditingCategory(null); setShowEditCategoryModal(open); }}>
+        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-white">Editar Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-sm text-zinc-400">Nome</label>
+              <Input value={editCategoryName} onChange={e => setEditCategoryName(e.target.value)} className="bg-zinc-900/50 border-zinc-700 text-white" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-zinc-400">Restrito para Departamentos (opcional, separado por vírgula)</label>
+              <Input value={editCategoryRestricted} onChange={e => setEditCategoryRestricted(e.target.value)} placeholder="Ex: VIP, B2B, Especial" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm text-zinc-400">Categoria Pai (opcional)</label>
+              <Select value={editCategoryParent} onValueChange={setEditCategoryParent}>
+                <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Nenhuma (categoria raiz)" /></SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => !c.parent_id && c.id !== editingCategory?.id).map(cat => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleUpdateCategory} disabled={savingCategory} className="w-full bg-primary hover:bg-primary/90 text-white">
+              {savingCategory ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Salvar Alterações
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {stockModalProduct && (
         <StockItemsModal
