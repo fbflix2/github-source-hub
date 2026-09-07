@@ -127,7 +127,19 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   };
 
   useEffect(() => {
+    if (!open) return;
+    setSelected([]);
+    setDestProduct("");
+    supabase
+      .from("products")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setProducts(((data as any[]) ?? []).filter(p => p.id !== productId)));
+  }, [open, productId]);
+
+  useEffect(() => {
     if (open && productId) fetchItems();
+
   }, [open, productId]);
 
   const handleDelete = async (item: StockItem) => {
