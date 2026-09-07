@@ -32,7 +32,6 @@ interface Product {
   image_url: string | null;
   tags: string[] | null;
   category_id: string | null;
-  subcategory_id: string | null;
   badge_text: string | null;
   badge_color: string | null;
   badge_icon: string | null;
@@ -295,7 +294,6 @@ export default function AdminProducts() {
     setFormStock(product.stock.toString());
     setFormDescription(product.description ?? "");
     setFormCategory(product.category_id ?? "");
-    setFormSubcategory(product.subcategory_id ?? "");
     setFormIcon((product.icon_type as ProductIcon) ?? "perfil");
     setFormTags(product.tags ?? []);
     setFormStatus(product.status);
@@ -445,14 +443,7 @@ export default function AdminProducts() {
     return categories.find(c => c.id === catId)?.name ?? "—";
   };
 
-  const getCategoryDisplay = (product: Product) => {
-    const catName = getCategoryName(product.category_id);
-    if (product.subcategory_id) {
-      const subName = categories.find(c => c.id === product.subcategory_id)?.name;
-      if (subName) return `${catName} › ${subName}`;
-    }
-    return catName;
-  };
+  const getCategoryDisplay = (product: Product) => getCategoryName(product.category_id);
 
   // Build a map of external_id → real API stock for proxy products
   const apiStockMap = new Map<string, number>();
@@ -586,7 +577,7 @@ export default function AdminProducts() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm text-zinc-400">Categoria</label>
-                <Select value={formCategory} onValueChange={(v) => { setFormCategory(v); setFormSubcategory(""); }}>
+                <Select value={formCategory} onValueChange={setFormCategory}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
@@ -604,20 +595,6 @@ export default function AdminProducts() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm text-zinc-400">Subcategoria (opcional)</label>
-              <Select value={formSubcategory} onValueChange={setFormSubcategory} disabled={!formCategory}>
-                <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white disabled:opacity-50">
-                  <SelectValue placeholder={!formCategory ? "Escolha uma categoria primeiro" : "Nenhuma"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.filter(c => c.parent_id === formCategory).map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-1.5">
