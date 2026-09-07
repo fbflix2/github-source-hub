@@ -318,7 +318,6 @@ export default function AdminProducts() {
       stock: parseInt(formStock) || 0,
       description: formDescription || null,
       category_id: formCategory || null,
-      subcategory_id: formSubcategory || null,
       icon_type: formIcon,
       tags: formTags.length > 0 ? formTags : null,
       status: formStatus,
