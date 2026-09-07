@@ -273,6 +273,14 @@ export default function SubscriptionCard({
             {formattedEnd}
           </span>
         </div>
+        {sub.customer_price != null && (
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">Valor pago</span>
+            <span className={status === "expired" ? "text-text-secondary/70" : "text-foreground font-medium"}>
+              R$ {Number(sub.customer_price).toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+        )}
       </div>
 
 
