@@ -524,7 +524,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                         </TableRow>
                         {isExpanded && hasData && (
                           <TableRow key={`${item.id}-detail`} className="border-zinc-800 bg-zinc-800/20">
-                            <TableCell colSpan={4}>
+                            <TableCell colSpan={5}>
                               <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono p-2 bg-zinc-900/80 rounded-lg max-h-60 overflow-y-auto">
                                 {generateTxt(item)}
                               </pre>
@@ -533,7 +533,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                         )}
                         {expandedChildrenId === item.id && (
                           <TableRow key={`${item.id}-children`} className="border-zinc-800 bg-black/30">
-                            <TableCell colSpan={4} className="p-2">
+                            <TableCell colSpan={5} className="p-2">
                               {loadingChildren === item.id ? (
                                 <div className="flex items-center gap-2 text-zinc-400 text-xs py-3 px-2">
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando itens do combo...
