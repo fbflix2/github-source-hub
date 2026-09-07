@@ -32,7 +32,7 @@ interface Product {
   image_url: string | null;
   tags: string[] | null;
   category_id: string | null;
-  subcategory_id: string | null;
+  subcategory_id?: string | null;
   badge_text: string | null;
   badge_color: string | null;
   badge_icon: string | null;
@@ -48,7 +48,7 @@ interface Category {
   name: string;
   slug: string;
   restricted_to: string[] | null;
-  parent_id: string | null;
+  parent_id?: string | null;
 }
 
 type ProductIcon = "perfil" | "bm" | "proxy" | "page";

@@ -2,14 +2,17 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search, Link2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Download, Loader2, Package, Eye, EyeOff, Trash2, Search, Link2, CheckCircle2, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
 import JSZip from "jszip";
 import { toast } from "sonner";
+
 
 interface StockItem {
   id: string;
@@ -48,6 +51,33 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [expandedChildrenId, setExpandedChildrenId] = useState<string | null>(null);
   const [childrenMap, setChildrenMap] = useState<Record<string, StockItem[]>>({});
   const [loadingChildren, setLoadingChildren] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [destProduct, setDestProduct] = useState<string>("");
+  const [moving, setMoving] = useState(false);
+
+  const toggleSelect = (id: string) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const handleMove = async () => {
+    if (!destProduct || selected.length === 0) return;
+    setMoving(true);
+    const { error } = await supabase
+      .from("stock_items")
+      .update({ product_id: destProduct })
+      .in("id", selected);
+    setMoving(false);
+    if (error) {
+      toast.error("Erro ao mover estoque: " + error.message);
+      return;
+    }
+    const destName = products.find(p => p.id === destProduct)?.name || "outro produto";
+    toast.success(`${selected.length} item(ns) movido(s) para "${destName}"`);
+    setItems(prev => prev.filter(i => !selected.includes(i.id)));
+    setSelected([]);
+    setDestProduct("");
+  };
+
 
   const fetchItems = () => {
     setLoading(true);
@@ -97,7 +127,19 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   };
 
   useEffect(() => {
+    if (!open) return;
+    setSelected([]);
+    setDestProduct("");
+    supabase
+      .from("products")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setProducts(((data as any[]) ?? []).filter(p => p.id !== productId)));
+  }, [open, productId]);
+
+  useEffect(() => {
     if (open && productId) fetchItems();
+
   }, [open, productId]);
 
   const handleDelete = async (item: StockItem) => {
@@ -313,10 +355,50 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
               />
             </div>
 
+            {/* Mover estoque */}
+            {selected.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-2">
+                <span className="text-xs text-white font-medium px-1">
+                  {selected.length} item(ns) selecionado(s) — mover para:
+                </span>
+                <Select value={destProduct} onValueChange={setDestProduct}>
+                  <SelectTrigger className="h-8 w-[240px] bg-black/40 border-white/10 text-white text-xs">
+                    <SelectValue placeholder="Escolha o produto de destino" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {products.map(p => (
+                      <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  disabled={!destProduct || moving}
+                  onClick={handleMove}
+                >
+                  {moving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5" />}
+                  Mover estoque
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-zinc-400" onClick={() => setSelected([])}>
+                  Cancelar
+                </Button>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="w-8">
+                      <Checkbox
+                        checked={visibleItems.length > 0 && visibleItems.every(i => selected.includes(i.id))}
+                        onCheckedChange={(c) => {
+                          const ids = visibleItems.map(i => i.id);
+                          setSelected(c ? [...new Set([...selected, ...ids])] : selected.filter(id => !ids.includes(id)));
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="text-zinc-400 text-xs">NOME</TableHead>
                     <TableHead className="text-zinc-400 text-xs">ID</TableHead>
                     <TableHead className="text-zinc-400 text-xs">STATUS</TableHead>
@@ -326,11 +408,12 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                 <TableBody>
                   {visibleItems.length === 0 && (
                     <TableRow className="border-zinc-800">
-                      <TableCell colSpan={4} className="text-center text-zinc-500 text-sm py-6">
+                      <TableCell colSpan={5} className="text-center text-zinc-500 text-sm py-6">
                         Nenhum item encontrado.
                       </TableCell>
                     </TableRow>
                   )}
+
                   {visibleItems.map((item) => {
                     const st = statusLabels[item.status] || { label: item.status, color: "bg-zinc-600 text-zinc-400" };
                     const hasData = item.data && Object.keys(item.data).length > 0;
@@ -339,7 +422,14 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                     return (
                       <>
                         <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                          <TableCell className="w-8">
+                            <Checkbox
+                              checked={selected.includes(item.id)}
+                              onCheckedChange={() => toggleSelect(item.id)}
+                            />
+                          </TableCell>
                           <TableCell className="text-white text-sm font-medium">
+
                             <div className="flex items-center gap-2">
                               {(item.childCount ?? 0) > 0 && (
                                 <button
@@ -434,7 +524,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                         </TableRow>
                         {isExpanded && hasData && (
                           <TableRow key={`${item.id}-detail`} className="border-zinc-800 bg-zinc-800/20">
-                            <TableCell colSpan={4}>
+                            <TableCell colSpan={5}>
                               <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono p-2 bg-zinc-900/80 rounded-lg max-h-60 overflow-y-auto">
                                 {generateTxt(item)}
                               </pre>
@@ -443,7 +533,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                         )}
                         {expandedChildrenId === item.id && (
                           <TableRow key={`${item.id}-children`} className="border-zinc-800 bg-black/30">
-                            <TableCell colSpan={4} className="p-2">
+                            <TableCell colSpan={5} className="p-2">
                               {loadingChildren === item.id ? (
                                 <div className="flex items-center gap-2 text-zinc-400 text-xs py-3 px-2">
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando itens do combo...
