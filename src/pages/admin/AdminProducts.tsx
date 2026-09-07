@@ -32,7 +32,7 @@ interface Product {
   image_url: string | null;
   tags: string[] | null;
   category_id: string | null;
-  subcategory_id?: string | null;
+  subcategory_id: string | null;
   badge_text: string | null;
   badge_color: string | null;
   badge_icon: string | null;
