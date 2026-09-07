@@ -3567,7 +3567,6 @@ export type Database = {
           slug: string | null
           status: string
           stock: number
-          subcategory_id: string | null
           tags: string[] | null
           updated_at: string
           whatsapp_group_link: string | null
@@ -3593,7 +3592,6 @@ export type Database = {
           slug?: string | null
           status?: string
           stock?: number
-          subcategory_id?: string | null
           tags?: string[] | null
           updated_at?: string
           whatsapp_group_link?: string | null
@@ -3619,7 +3617,6 @@ export type Database = {
           slug?: string | null
           status?: string
           stock?: number
-          subcategory_id?: string | null
           tags?: string[] | null
           updated_at?: string
           whatsapp_group_link?: string | null
@@ -3637,13 +3634,6 @@ export type Database = {
             columns: ["included_proxy_product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_subcategory_id_fkey"
-            columns: ["subcategory_id"]
-            isOneToOne: false
-            referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
         ]
