@@ -422,7 +422,14 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                     return (
                       <>
                         <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                          <TableCell className="w-8">
+                            <Checkbox
+                              checked={selected.includes(item.id)}
+                              onCheckedChange={() => toggleSelect(item.id)}
+                            />
+                          </TableCell>
                           <TableCell className="text-white text-sm font-medium">
+
                             <div className="flex items-center gap-2">
                               {(item.childCount ?? 0) > 0 && (
                                 <button
