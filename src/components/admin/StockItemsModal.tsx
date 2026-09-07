@@ -51,6 +51,33 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [expandedChildrenId, setExpandedChildrenId] = useState<string | null>(null);
   const [childrenMap, setChildrenMap] = useState<Record<string, StockItem[]>>({});
   const [loadingChildren, setLoadingChildren] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [destProduct, setDestProduct] = useState<string>("");
+  const [moving, setMoving] = useState(false);
+
+  const toggleSelect = (id: string) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const handleMove = async () => {
+    if (!destProduct || selected.length === 0) return;
+    setMoving(true);
+    const { error } = await supabase
+      .from("stock_items")
+      .update({ product_id: destProduct })
+      .in("id", selected);
+    setMoving(false);
+    if (error) {
+      toast.error("Erro ao mover estoque: " + error.message);
+      return;
+    }
+    const destName = products.find(p => p.id === destProduct)?.name || "outro produto";
+    toast.success(`${selected.length} item(ns) movido(s) para "${destName}"`);
+    setItems(prev => prev.filter(i => !selected.includes(i.id)));
+    setSelected([]);
+    setDestProduct("");
+  };
+
 
   const fetchItems = () => {
     setLoading(true);
