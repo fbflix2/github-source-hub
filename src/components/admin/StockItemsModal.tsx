@@ -355,10 +355,50 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
               />
             </div>
 
+            {/* Mover estoque */}
+            {selected.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-2">
+                <span className="text-xs text-white font-medium px-1">
+                  {selected.length} item(ns) selecionado(s) — mover para:
+                </span>
+                <Select value={destProduct} onValueChange={setDestProduct}>
+                  <SelectTrigger className="h-8 w-[240px] bg-black/40 border-white/10 text-white text-xs">
+                    <SelectValue placeholder="Escolha o produto de destino" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {products.map(p => (
+                      <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  disabled={!destProduct || moving}
+                  onClick={handleMove}
+                >
+                  {moving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5" />}
+                  Mover estoque
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-zinc-400" onClick={() => setSelected([])}>
+                  Cancelar
+                </Button>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="w-8">
+                      <Checkbox
+                        checked={visibleItems.length > 0 && visibleItems.every(i => selected.includes(i.id))}
+                        onCheckedChange={(c) => {
+                          const ids = visibleItems.map(i => i.id);
+                          setSelected(c ? [...new Set([...selected, ...ids])] : selected.filter(id => !ids.includes(id)));
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="text-zinc-400 text-xs">NOME</TableHead>
                     <TableHead className="text-zinc-400 text-xs">ID</TableHead>
                     <TableHead className="text-zinc-400 text-xs">STATUS</TableHead>
@@ -368,11 +408,12 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                 <TableBody>
                   {visibleItems.length === 0 && (
                     <TableRow className="border-zinc-800">
-                      <TableCell colSpan={4} className="text-center text-zinc-500 text-sm py-6">
+                      <TableCell colSpan={5} className="text-center text-zinc-500 text-sm py-6">
                         Nenhum item encontrado.
                       </TableCell>
                     </TableRow>
                   )}
+
                   {visibleItems.map((item) => {
                     const st = statusLabels[item.status] || { label: item.status, color: "bg-zinc-600 text-zinc-400" };
                     const hasData = item.data && Object.keys(item.data).length > 0;
