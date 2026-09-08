@@ -631,13 +631,21 @@ export default function ItemDetails() {
   const tags = product?.tags || [];
    const isInstagram = product?.name?.toLowerCase().includes("instagram") || orderItem?.name?.toLowerCase().includes("instagram") || (product?.tags || []).some(t => String(t).toLowerCase().includes("insta"));
    // Only treat as BM-only product when explicitly marked as such, or when the name has no "perfil" context.
-   // Profiles that ship with a BM installed (e.g. "Perfil CA5 com bm 1.3k") must NOT be detected as BM.
+   // Profiles that ship with a BM installed (e.g. "Perfil CA5 com bm 1.3k", "P 1 - sem bm") must NOT be detected as BM.
    const _combinedName = `${product?.name || ""} ${orderItem?.name || ""}`.toLowerCase();
    const _mentionsPerfil = _combinedName.includes("perfil");
+   // Nomenclatura de perfis: "P 1", "P2", "P 3 - Com 2 bm", "P5 Elite"...
+   const _isProfileCode = /(^|\s)p\s?\d+(\s|$|-)/.test(_combinedName);
+   const _isProfileType = product?.icon_type === "perfil";
+   // "sem bm" / "com 2 bm" descrevem o perfil, não indicam produto BM
+   const _bmIsQualifier = /(sem|com|c\/|s\/)\s*\d*\s*bms?(\s|$)/.test(_combinedName);
    const isBM =
      !isInstagram &&
      !_mentionsPerfil &&
-     (product?.icon_type === "bm" || /(^|\s)bm(\s|$)/.test(_combinedName));
+     !_isProfileCode &&
+     !_isProfileType &&
+     (product?.icon_type === "bm" || (/(^|\s)bm(\s|$)/.test(_combinedName) && !_bmIsQualifier));
+
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView && !isInstagram;
   // E-mail simples: só login e senha, sem campos de perfil/2FA/esteira
