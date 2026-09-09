@@ -118,8 +118,22 @@ export default function SubscriptionManage() {
         if (product?.price != null) return Number(product.price);
       }
 
+      // Preço efetivamente pago no pedido original desta assinatura
+      const originOrderId = raw?.order_id || raw?.originating_order_id;
+      if (originOrderId) {
+        const { data: oi } = await supabase
+          .from("order_items")
+          .select("price")
+          .eq("order_id", String(originOrderId))
+          .limit(1)
+          .maybeSingle();
+        const paid = Number((oi as any)?.price);
+        if (Number.isFinite(paid) && paid > 0) return paid;
+      }
+
       // Último recurso: preço padrão do proxy dedicado (BR)
       if (!isRotating) return 21;
+
 
       return null;
 
