@@ -531,6 +531,7 @@ const App = () => {
             <BrowserRouter>
               <CustomDomainRouter>
               <ResellerBrandingApplier />
+              <ResellerClientGuard />
               <Routes>
                 <Route
                   path="/auth"
