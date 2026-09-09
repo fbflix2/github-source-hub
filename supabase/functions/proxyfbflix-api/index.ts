@@ -2744,22 +2744,36 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Only fall back to a dedicated/rotating residential product matching the country.
-      // Critically: for DEDICATED subs we must skip the rotating SKU (R$50) and vice-versa.
+      // (c2) Recover the price actually paid on the original order for this subscription.
+      let originalOrderPrice: number | null = null;
       if (!matchedProduct) {
+        const orderId = raw.order_id || raw.originating_order_id || null;
+        if (orderId) {
+          const { data: oi } = await supabaseAdmin
+            .from("order_items")
+            .select("price")
+            .eq("order_id", orderId)
+            .limit(1)
+            .maybeSingle();
+          const p = Number((oi as any)?.price);
+          if (Number.isFinite(p) && p > 0) originalOrderPrice = p;
+        }
+      }
+
+      // Only fall back to a webshare-tagged product matching the country.
+      // Name-based matching (e.g. "Residencial") is NOT used here because unrelated
+      // SKUs like "Proxy Residencial Turbo" (R$40) were being picked by mistake.
+      if (!matchedProduct && originalOrderPrice == null) {
         for (const p of (wsProducts || [])) {
-          const pName = p.name.toLowerCase();
-          const pTags = (p.tags || []) as string[];
-          const isWebshare =
-            pName.includes("residencial") ||
-            pName.includes("webshare") ||
-            pTags.some((t: string) => t.toLowerCase() === "webshare");
+          const pTags = ((p.tags || []) as string[]).map((t: string) => t.toLowerCase());
+          const isWebshare = pTags.includes("webshare");
           if (!isWebshare) continue;
           if (isRotatingSub !== isRotatingProduct(p)) continue;
           const pCountry = detectCountryFromProduct(p);
           if (pCountry === targetCountry) { matchedProduct = p; break; }
         }
       }
+
 
       const lockedPrice = Number(raw.renewal_price ?? raw.original_full_price ?? NaN);
       const safeDefault = 21; // dedicated proxy standard price (BR/US)
@@ -2774,9 +2788,11 @@ Deno.serve(async (req) => {
         ? lockedPrice
         : Number(
             (Number.isFinite(productInfoPrice) && productInfoPrice > 0 ? productInfoPrice : null)
+            ?? originalOrderPrice
             ?? matchedProduct?.price
             ?? safeDefault
           );
+
 
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} (locked=${Number.isFinite(lockedPrice) ? lockedPrice : "no"} product=${matchedProduct?.name || "fallback"} isRotatingSub=${isRotatingSub})`);
 
