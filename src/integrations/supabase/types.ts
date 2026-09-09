@@ -6359,6 +6359,15 @@ export type Database = {
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_my_reseller_binding: {
+        Args: never
+        Returns: {
+          custom_domain: string
+          is_owner: boolean
+          reseller_id: string
+          slug: string
+        }[]
+      }
       get_public_client_avatars: {
         Args: { _limit?: number }
         Returns: {
