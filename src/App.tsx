@@ -57,6 +57,7 @@ import RevendaPortal from "./pages/revenda/RevendaPortal";
 import RevendaCadastro from "./pages/revenda/RevendaCadastro";
 import ResellerPublicStore from "./pages/ResellerPublicStore";
 import CustomDomainRouter from "./components/CustomDomainRouter";
+import ResellerClientGuard from "./components/ResellerClientGuard";
 import ResellerBrandingApplier from "./components/ResellerBrandingApplier";
 
 // SocialSafe Pages
