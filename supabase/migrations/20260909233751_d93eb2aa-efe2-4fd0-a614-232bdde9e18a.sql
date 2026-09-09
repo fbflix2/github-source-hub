@@ -1,0 +1,3 @@
+UPDATE public.profiles SET reseller_id = '5df6e96f-a3dc-44d7-b1e2-1e5383778774', updated_at = now() WHERE user_id = 'bed70235-a457-4719-98b9-dc70863f9d85';
+UPDATE public.orders SET reseller_id = '5df6e96f-a3dc-44d7-b1e2-1e5383778774', updated_at = now() WHERE user_id = 'bed70235-a457-4719-98b9-dc70863f9d85' AND reseller_id IS NULL;
+UPDATE public.subscriptions SET reseller_id = '5df6e96f-a3dc-44d7-b1e2-1e5383778774', updated_at = now() WHERE user_id = 'bed70235-a457-4719-98b9-dc70863f9d85' AND reseller_id IS NULL;
