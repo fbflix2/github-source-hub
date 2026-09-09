@@ -2788,9 +2788,11 @@ Deno.serve(async (req) => {
         ? lockedPrice
         : Number(
             (Number.isFinite(productInfoPrice) && productInfoPrice > 0 ? productInfoPrice : null)
+            ?? originalOrderPrice
             ?? matchedProduct?.price
             ?? safeDefault
           );
+
 
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} (locked=${Number.isFinite(lockedPrice) ? lockedPrice : "no"} product=${matchedProduct?.name || "fallback"} isRotatingSub=${isRotatingSub})`);
 
