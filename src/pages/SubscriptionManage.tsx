@@ -118,16 +118,24 @@ export default function SubscriptionManage() {
         if (product?.price != null) return Number(product.price);
       }
 
-      // Preço efetivamente pago no pedido original desta assinatura
+      // Preço efetivamente pago no pedido original — apenas o item desta assinatura
       const originOrderId = raw?.order_id || raw?.originating_order_id;
       if (originOrderId) {
-        const { data: oi } = await supabase
+        const { data: ois } = await supabase
           .from("order_items")
-          .select("price")
-          .eq("order_id", String(originOrderId))
-          .limit(1)
-          .maybeSingle();
-        const paid = Number((oi as any)?.price);
+          .select("price, product_id, name, delivery_data")
+          .eq("order_id", String(originOrderId));
+        const items = (ois || []) as any[];
+        const subProductId = subRow?.product_id || null;
+        const rawName = String(raw?.product_name || raw?.product?.name || "").toLowerCase().trim();
+        const pick =
+          items.find((i) => i.delivery_data?.subscription_code && String(i.delivery_data.subscription_code) === realSubName) ||
+          (subProductId ? items.find((i) => i.product_id === subProductId) : null) ||
+          (rawName ? items.find((i) => (i.name || "").toLowerCase().trim() === rawName) : null) ||
+          (items.length === 1 ? items[0] : null) ||
+          items.find((i) => /proxy/i.test(i.name || "") && (isRotating === /rotativ|rotating/i.test(i.name || ""))) ||
+          null;
+        const paid = Number(pick?.price);
         if (Number.isFinite(paid) && paid > 0) return paid;
       }
 

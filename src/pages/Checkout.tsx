@@ -836,9 +836,10 @@ export default function Checkout() {
           } catch { /* noop */ }
         }
 
-        // Link pending Safe BM renewals to this order
+        // Link pending Safe BM renewals to this order — ONLY when this checkout
+        // is itself a Safe BM renewal. Never attach renewal ids to unrelated orders.
         const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
-        if (pendingRenewalsStr) {
+        if (pendingRenewalsStr && product.id === "safe-bm-renewal") {
           try {
             const renewalIds = JSON.parse(pendingRenewalsStr);
             if (Array.isArray(renewalIds) && renewalIds.length > 0) {
@@ -851,6 +852,9 @@ export default function Checkout() {
           } catch (e) {
             console.error("Error linking Safe BM renewals:", e);
           }
+        } else if (pendingRenewalsStr) {
+          // Checkout de outro produto: descarta ids de renovação abandonados
+          sessionStorage.removeItem("pending_safe_bm_renewals");
         }
 
         // Insert order items - use null for product_id if not a valid UUID

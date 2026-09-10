@@ -143,7 +143,9 @@ export function useProxyBRSubscriptions() {
 
         // Resolve price: from product join, raw_data, or name match
         const rawProductName = raw.product?.name || raw.product_name || raw.subscription?.product?.name || productInfo?.name || "";
-        const resolvedPrice = productInfo?.price || raw.product?.price || priceByName[rawProductName.toLowerCase().trim()] || null;
+        const lockedPrice = Number(raw.renewal_price ?? raw.original_full_price ?? NaN);
+        const resolvedPrice = (Number.isFinite(lockedPrice) && lockedPrice > 0 ? lockedPrice : null)
+          || productInfo?.price || raw.product?.price || priceByName[rawProductName.toLowerCase().trim()] || null;
 
         const baseEntry = {
           code: sub.name,

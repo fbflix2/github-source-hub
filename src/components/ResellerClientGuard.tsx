@@ -9,8 +9,9 @@ const MAIN_HOSTS = [
   "localhost",
 ];
 
-// Rotas internas (equipe / revendedor / fornecedor) não são afetadas
-const EXEMPT_PREFIXES = ["/admin", "/revenda", "/fornecedor", "/reset-password", "/migrar"];
+// Rotas internas (equipe / revendedor / fornecedor) e a loja do revendedor
+// servida no host principal (/r/:slug) não são afetadas
+const EXEMPT_PREFIXES = ["/admin", "/revenda", "/fornecedor", "/reset-password", "/migrar", "/r/"];
 
 const RESELLER_SLUG_STORAGE_KEY = "fbflix_reseller_slug";
 
@@ -53,21 +54,35 @@ export default function ResellerClientGuard() {
         const binding = Array.isArray(data) ? data[0] : data;
 
         if (isMainHost(host)) {
-          // Cliente de revendedor tentando acessar a FBFlix -> desloga e redireciona
           if (binding && !binding.is_owner) {
             const slug = binding.slug as string | null;
             const domain = binding.custom_domain as string | null;
-            try {
-              await supabase.auth.signOut();
-            } catch {
-              /* noop */
+
+            // Revendedor COM domínio próprio: cliente nunca fica no host da FBFlix.
+            // Desloga e envia para o domínio do revendedor.
+            if (domain && domain.toLowerCase() !== host) {
+              try {
+                await supabase.auth.signOut();
+              } catch {
+                /* noop */
+              }
+              window.location.replace(`https://${domain}/auth`);
+              return;
             }
-            const target = domain
-              ? `https://${domain}/auth`
-              : slug
-                ? `/r/${slug}`
-                : "/auth";
-            window.location.replace(target);
+
+            // Revendedor SEM domínio próprio: a loja dele vive em /r/:slug neste
+            // mesmo host, e o painel do cliente (/auth, /checkout, /subscriptions...)
+            // é compartilhado. Não deslogar — apenas garantir que o contexto do
+            // revendedor esteja ativo para aplicar marca/preços corretos.
+            if (slug) {
+              try {
+                if (localStorage.getItem(RESELLER_SLUG_STORAGE_KEY) !== slug) {
+                  localStorage.setItem(RESELLER_SLUG_STORAGE_KEY, slug);
+                }
+              } catch {
+                /* noop */
+              }
+            }
           }
           return;
         }

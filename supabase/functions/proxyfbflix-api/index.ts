@@ -2744,18 +2744,26 @@ Deno.serve(async (req) => {
         );
       }
 
-      // (c2) Recover the price actually paid on the original order for this subscription.
+      // (c2) Recover the price actually paid on the original order for THIS
+      // subscription's item (orders may contain several different products).
       let originalOrderPrice: number | null = null;
       if (!matchedProduct) {
         const orderId = raw.order_id || raw.originating_order_id || null;
         if (orderId) {
-          const { data: oi } = await supabaseAdmin
+          const { data: ois } = await supabaseAdmin
             .from("order_items")
-            .select("price")
-            .eq("order_id", orderId)
-            .limit(1)
-            .maybeSingle();
-          const p = Number((oi as any)?.price);
+            .select("price, product_id, name, delivery_data")
+            .eq("order_id", orderId);
+          const items = (ois || []) as any[];
+          const subName = String(existingSub.name || "");
+          const pick =
+            items.find((i) => i.delivery_data?.subscription_code && String(i.delivery_data.subscription_code) === subName) ||
+            (existingSub.product_id ? items.find((i) => i.product_id === existingSub.product_id) : null) ||
+            (originalProductName ? items.find((i) => (i.name || "").toLowerCase().trim() === originalProductName.toLowerCase().trim()) : null) ||
+            (items.length === 1 ? items[0] : null) ||
+            items.find((i) => /proxy/i.test(i.name || "") && (isRotatingSub === /rotativ|rotating/i.test(i.name || ""))) ||
+            null;
+          const p = Number(pick?.price);
           if (Number.isFinite(p) && p > 0) originalOrderPrice = p;
         }
       }

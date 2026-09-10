@@ -153,7 +153,12 @@ export function useProxyFbflixSubscriptions() {
         const productInfo = sub.products as any;
         const isRotating = sub.type === "proxyfbflix_rotating";
         const productName = productInfo?.name || raw.product_name || (isRotating ? "Proxy Rotativo BR" : "Proxy Residencial");
-        const customerPrice = productInfo?.price || null;
+        // Preço travado na assinatura (renewal_price / original_full_price) tem
+        // prioridade sobre o preço atual do catálogo — é o valor que o cliente paga.
+        const lockedPrice = Number(raw.renewal_price ?? raw.original_full_price ?? NaN);
+        const customerPrice = Number.isFinite(lockedPrice) && lockedPrice > 0
+          ? lockedPrice
+          : (productInfo?.price || null);
 
         const baseEntry = {
           id: sub.id,

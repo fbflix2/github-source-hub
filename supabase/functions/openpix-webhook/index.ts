@@ -592,23 +592,33 @@ Deno.serve(async (req) => {
       await fulfillOrder(supabase, orderId, userId);
 
       // ========== SAFE BM RENEWALS AUTO-ACTIVATION (PIX) ==========
+      // Só ativa renovações explicitamente vinculadas a ESTE pedido e somente se
+      // o pedido for de fato uma "Renovação Safe BM" cujo valor cobre as renovações.
       try {
-        let { data: renewals } = await supabase
-          .from("safe_bm_renewals")
-          .select("id, vault_id")
-          .eq("order_id", orderId)
-          .neq("status", "verified");
-        if (!renewals || renewals.length === 0) {
-          // Fallback: renovações pendentes do usuário criadas nas últimas 6h (order_id não vinculado)
-          const since = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-          const { data: pend } = await supabase
+        const { data: renewOrderItems } = await supabase
+          .from("order_items")
+          .select("name, price, quantity")
+          .eq("order_id", orderId);
+        const isSafeBmRenewalOrder = (renewOrderItems || []).some((i: any) =>
+          /renova[cç][aã]o\s+safe\s*bm/i.test(i.name || "")
+        );
+
+        let renewals: any[] = [];
+        if (isSafeBmRenewalOrder) {
+          const { data: linked } = await supabase
             .from("safe_bm_renewals")
-            .select("id, vault_id")
+            .select("id, vault_id, amount, user_id")
+            .eq("order_id", orderId)
             .eq("user_id", userId)
-            .eq("status", "pending")
-            .is("order_id", null)
-            .gte("created_at", since);
-          renewals = pend || [];
+            .neq("status", "verified");
+          const candidates = linked || [];
+          const renewalsTotal = candidates.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+          const paidTotal = Number(amount || 0);
+          if (candidates.length > 0 && paidTotal + 0.01 >= renewalsTotal) {
+            renewals = candidates;
+          } else if (candidates.length > 0) {
+            console.warn(`[openpix-webhook] SafeBM: pago R$${paidTotal} < renovações R$${renewalsTotal}; não ativado automaticamente`);
+          }
         }
         if (renewals && renewals.length > 0) {
           const nowIso = new Date().toISOString();
