@@ -31,6 +31,22 @@ export default function Auth() {
     return qs ? `${redirect}?${qs}` : redirect;
   };
 
+  const getResellerSlug = (): string | null => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get("redirect");
+    const fromRedirect = redirect?.match(/^\/r\/([^/?#]+)/)?.[1];
+    const slug = params.get("r") || fromRedirect || localStorage.getItem("reseller_slug");
+    if (slug) localStorage.setItem("reseller_slug", slug);
+    return slug;
+  };
+
+  const getAuthDestination = (): string => {
+    const target = getRedirectTarget();
+    if (target) return target;
+    const slug = getResellerSlug();
+    return slug ? `/r/${slug}` : "/loja";
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("type") === "recovery") {
@@ -200,8 +216,16 @@ export default function Auth() {
       // Save CPF and Referrer to profile
       if (signUpData?.user) {
         const partnerRefId = localStorage.getItem("partner_ref_id");
-        // Se o cadastro é no domínio de um revendedor, vincula o cliente a ele
+        // Se o cadastro é no domínio ou na loja de um revendedor, vincula o cliente a ele
         let resellerIdToLink: string | null = null;
+        try {
+          const resellerSlug = getResellerSlug();
+          if (resellerSlug) {
+            const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: resellerSlug });
+            const row = Array.isArray(r) ? r[0] : r;
+            if (row?.id) resellerIdToLink = row.id as string;
+          }
+        } catch { /* noop */ }
         try {
           const host = window.location.hostname.toLowerCase();
           const isMainHost =
@@ -238,8 +262,7 @@ export default function Auth() {
         title: "Conta criada!",
         description: "Você já pode fazer login.",
       });
-      const target = getRedirectTarget();
-      navigate(target || "/loja");
+      navigate(getAuthDestination());
     }
 
     setLoading(false);
@@ -568,11 +591,12 @@ export default function Auth() {
               onClick={async () => {
                 const params = new URLSearchParams(location.search);
                 const redirect = params.get("redirect");
-                const resellerSlug = params.get("r");
+                const resellerSlug = getResellerSlug();
                 const destination = redirect && redirect.startsWith("/") ? redirect : resellerSlug ? `/r/${resellerSlug}` : "/loja";
                 const callbackParams = new URLSearchParams();
                 callbackParams.set("redirect", destination);
                 if (resellerSlug) callbackParams.set("r", resellerSlug);
+                localStorage.setItem("auth_redirect", destination);
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {

@@ -203,18 +203,19 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
     let cancelled = false;
     const mainHosts = ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"];
 
-    // FAST PATH: honor ?redirect=... or ?r=... immediately after OAuth.
+    // FAST PATH: honor ?redirect=..., ?r=... or persisted reseller context after OAuth.
     // This keeps the customer inside the reseller context.
     try {
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");
-      const resellerSlug = params.get("r");
+      const resellerSlug = params.get("r") || localStorage.getItem("reseller_slug");
       const contextualRedirect = redirect && redirect.startsWith("/")
         ? redirect
         : resellerSlug
           ? `/r/${resellerSlug}`
           : null;
-      if (contextualRedirect) {
+        if (contextualRedirect) {
+        localStorage.removeItem("auth_redirect");
         const forwarded = new URLSearchParams();
         params.forEach((v, k) => {
           if (k !== "redirect" && k !== "type" && k !== "r") forwarded.append(k, v);
@@ -232,6 +233,10 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
       try {
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect");
+        const persistedTarget = localStorage.getItem("auth_redirect");
+        const persistedSlug = localStorage.getItem("reseller_slug");
+        if (persistedTarget?.startsWith("/")) return persistedTarget;
+        if (persistedSlug) return `/r/${persistedSlug}`;
         if (redirect && redirect.startsWith("/")) {
           const forwarded = new URLSearchParams();
           params.forEach((v, k) => {
@@ -448,7 +453,25 @@ const App = () => {
         // On sign-in, check staff redirect in a separate non-blocking call
         if (event === 'SIGNED_IN' && session?.user) {
           const userId = session.user.id;
-          const isImpersonated = new URLSearchParams(window.location.search).has('impersonated');
+          const authParams = new URLSearchParams(window.location.search);
+          const redirectContext = authParams.get('redirect');
+          const resellerSlug = authParams.get('r') || redirectContext?.match(/^\/r\/([^/?#]+)/)?.[1] || localStorage.getItem('reseller_slug');
+          const isImpersonated = authParams.has('impersonated');
+
+          if (resellerSlug) {
+            localStorage.setItem('reseller_slug', resellerSlug);
+            setTimeout(async () => {
+              try {
+                const { data: reseller } = await supabase.rpc('get_reseller_public_by_slug', { _slug: resellerSlug });
+                const row = Array.isArray(reseller) ? reseller[0] : reseller;
+                if (row?.id) {
+                  await supabase.from('profiles').update({ reseller_id: row.id }).eq('user_id', userId);
+                }
+              } catch (err) {
+                console.warn('[auth] reseller link failed:', err);
+              }
+            }, 150);
+          }
 
           // Track real client first login (not impersonation)
           if (!isImpersonated) {
