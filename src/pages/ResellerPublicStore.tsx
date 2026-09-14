@@ -284,7 +284,7 @@ export default function ResellerPublicStore() {
         hideTickets
         hideNotifications
         unauthenticated={!currentUser}
-        onLoginClick={() => navigate("/auth")}
+        onLoginClick={() => navigate(`/auth?r=${encodeURIComponent(reseller.slug)}&redirect=${encodeURIComponent(`/r/${reseller.slug}`)}`)}
       />
 
       <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 pt-24">
@@ -522,14 +522,14 @@ export default function ResellerPublicStore() {
             </p>
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(authPrompt.target)}`)}
+                onClick={() => navigate(`/auth?mode=signup&r=${encodeURIComponent(reseller.slug)}&redirect=${encodeURIComponent(authPrompt.target)}`)}
                 className="w-full h-11 text-white font-bold text-sm rounded-lg transition-all hover:opacity-90 flex items-center justify-center gap-2"
                 style={{ background: primaryColor }}
               >
                 Criar conta rápida
               </button>
               <button
-                onClick={() => navigate(`/auth?mode=login&redirect=${encodeURIComponent(authPrompt.target)}`)}
+                onClick={() => navigate(`/auth?mode=login&r=${encodeURIComponent(reseller.slug)}&redirect=${encodeURIComponent(authPrompt.target)}`)}
                 className="w-full h-11 bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-sm rounded-lg border border-border transition-all"
               >
                 Já tenho conta — Entrar

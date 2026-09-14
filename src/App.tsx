@@ -203,18 +203,24 @@ function ResellerAwareRedirect({ user, fallback }: { user: User; fallback: strin
     let cancelled = false;
     const mainHosts = ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"];
 
-    // FAST PATH: honor ?redirect=... immediately (e.g. reseller "Comprar" button)
-    // to avoid a blank/loading screen while checkIsReseller resolves.
+    // FAST PATH: honor ?redirect=... or ?r=... immediately after OAuth.
+    // This keeps the customer inside the reseller context.
     try {
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");
-      if (redirect && redirect.startsWith("/")) {
+      const resellerSlug = params.get("r");
+      const contextualRedirect = redirect && redirect.startsWith("/")
+        ? redirect
+        : resellerSlug
+          ? `/r/${resellerSlug}`
+          : null;
+      if (contextualRedirect) {
         const forwarded = new URLSearchParams();
         params.forEach((v, k) => {
-          if (k !== "redirect" && k !== "type") forwarded.append(k, v);
+          if (k !== "redirect" && k !== "type" && k !== "r") forwarded.append(k, v);
         });
         const qs = forwarded.toString();
-        setTarget(qs ? `${redirect}?${qs}` : redirect);
+        setTarget(qs ? `${contextualRedirect}?${qs}` : contextualRedirect);
         return () => { cancelled = true; };
       }
     } catch { /* noop */ }

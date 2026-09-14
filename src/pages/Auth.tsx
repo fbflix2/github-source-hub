@@ -566,10 +566,17 @@ export default function Auth() {
             <button
               type="button"
               onClick={async () => {
+                const params = new URLSearchParams(location.search);
+                const redirect = params.get("redirect");
+                const resellerSlug = params.get("r");
+                const destination = redirect && redirect.startsWith("/") ? redirect : resellerSlug ? `/r/${resellerSlug}` : "/loja";
+                const callbackParams = new URLSearchParams();
+                callbackParams.set("redirect", destination);
+                if (resellerSlug) callbackParams.set("r", resellerSlug);
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'google',
                   options: {
-                    redirectTo: `${window.location.origin}${window.location.pathname}`,
+                    redirectTo: `${window.location.origin}/auth?${callbackParams.toString()}`,
                   },
                 });
                 if (error) {
