@@ -159,6 +159,48 @@ export function PageRequestNotification() {
           .eq("id", req.order_item_id);
       }
 
+      // WhatsApp notification to the client (fire & forget)
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone, full_name")
+          .eq("user_id", req.user_id)
+          .maybeSingle();
+
+        const phone = (profile as any)?.phone as string | undefined;
+        if (phone) {
+          const firstName = ((req.client_name || (profile as any)?.full_name || "") as string)
+            .trim()
+            .split(" ")[0] || "cliente";
+          const perfis = (req.profile_links || []).filter(Boolean);
+          const perfilLinha = perfis.length
+            ? perfis.map((l) => `• ${l}`).join("\n")
+            : "—";
+
+          const message =
+            `Olá, ${firstName}! 👋\n\n` +
+            `Acabamos de enviar sua página para o perfil:\n${perfilLinha}\n\n` +
+            `📄 *Página enviada:* ${pageName}\n` +
+            `🧾 *Pedido:* ${req.order_code}\n\n` +
+            `Qualquer dúvida é só chamar por aqui. Obrigado pela preferência! 🚀`;
+
+          supabase.functions.invoke("wapi-send", {
+            body: {
+              action: "send-text",
+              phone,
+              message,
+              user_id: req.user_id,
+              event_key: "page_delivered",
+              metadata: {
+                order_code: req.order_code,
+                order_item_id: req.order_item_id,
+                page_name: pageName,
+              },
+            },
+          }).catch(() => {});
+        }
+      } catch {}
+
       toast({ title: "Página confirmada!", description: `Pedido ${req.order_code} — Página: ${pageName}` });
       setRequests(prev => prev.filter(r => r.id !== req.id));
       setSelectedRequest(null);
