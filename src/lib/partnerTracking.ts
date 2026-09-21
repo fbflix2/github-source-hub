@@ -4,7 +4,19 @@ const VISITOR_KEY = "fbflix_visitor_id";
 const REF_ID_KEY = "partner_ref_id";
 const REF_SLUG_KEY = "partner_ref";
 const REF_AT_KEY = "partner_ref_at";
+const REF_COUPON_KEY = "partner_ref_coupon";
 const ATTRIBUTION_DAYS = 30;
+
+/** Exclusive discount coupon of the partner that referred this visitor (if any). */
+export function getPartnerCoupon(): string | null {
+  try {
+    if (!getActivePartnerId()) return null;
+    const c = localStorage.getItem(REF_COUPON_KEY);
+    return c && c.trim() ? c.trim().toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
 
 export function getVisitorId(): string {
   try {
