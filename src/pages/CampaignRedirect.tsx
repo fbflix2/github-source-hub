@@ -18,8 +18,8 @@ export default function CampaignRedirect() {
         // Attribute partner
         try {
           if (row.partner_id) {
-            localStorage.setItem("fbflix_partner_ref", String(row.partner_id));
-            localStorage.setItem("fbflix_partner_ref_at", String(Date.now()));
+            localStorage.setItem("partner_ref_id", String(row.partner_id));
+            localStorage.setItem("partner_ref_at", new Date().toISOString());
           }
         } catch {}
         // Build destination with UTMs appended

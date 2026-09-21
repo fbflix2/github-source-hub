@@ -6368,6 +6368,13 @@ export type Database = {
           slug: string
         }[]
       }
+      get_partner_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          slug: string
+        }[]
+      }
       get_public_client_avatars: {
         Args: { _limit?: number }
         Returns: {
