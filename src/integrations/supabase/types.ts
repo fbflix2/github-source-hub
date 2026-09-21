@@ -3066,6 +3066,7 @@ export type Database = {
         Row: {
           balance: number
           commission_rate: number
+          coupon_code: string | null
           created_at: string
           guarantee_days: number
           id: string
@@ -3084,6 +3085,7 @@ export type Database = {
         Insert: {
           balance?: number
           commission_rate?: number
+          coupon_code?: string | null
           created_at?: string
           guarantee_days?: number
           id?: string
@@ -3102,6 +3104,7 @@ export type Database = {
         Update: {
           balance?: number
           commission_rate?: number
+          coupon_code?: string | null
           created_at?: string
           guarantee_days?: number
           id?: string
@@ -6371,6 +6374,7 @@ export type Database = {
       get_partner_by_slug: {
         Args: { _slug: string }
         Returns: {
+          coupon_code: string
           id: string
           slug: string
         }[]
