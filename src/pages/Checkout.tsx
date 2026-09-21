@@ -1215,7 +1215,29 @@ export default function Checkout() {
     }
   };
 
-  
+  // Exclusive partner coupon: pre-fill and auto-apply for visitors that came
+  // through a partner referral link (e.g. /parceiro/alexandre -> ALE10).
+  const [partnerCoupon, setPartnerCoupon] = useState<string | null>(null);
+  const partnerCouponTried = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      const { getPartnerCoupon } = await import("@/lib/partnerTracking");
+      const c = getPartnerCoupon();
+      if (c) {
+        setPartnerCoupon(c);
+        setCoupon((prev) => (prev ? prev : c));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!partnerCoupon || partnerCouponTried.current) return;
+    if (couponApplied || subtotal <= 0) return;
+    if (coupon.trim().toUpperCase() !== partnerCoupon) return;
+    partnerCouponTried.current = true;
+    applyCoupon();
+  }, [partnerCoupon, coupon, couponApplied, subtotal]);
 
   const handlePay = async () => {
     if (isResellerCheckout && product && resellerItemPrices[product.id] == null) {
@@ -2389,6 +2411,11 @@ export default function Checkout() {
               </div>
 
               {/* Coupon */}
+              {partnerCoupon && (
+                <p className="text-[11px] text-emerald-400">
+                  Cupom exclusivo <span className="font-bold">{partnerCoupon}</span> aplicado para você.
+                </p>
+              )}
               <div className="flex gap-2">
                 <input
                   type="text"

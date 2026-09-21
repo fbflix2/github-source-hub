@@ -23,6 +23,11 @@ export default function PartnerRedirect() {
         localStorage.setItem("partner_ref", data.slug);
         localStorage.setItem("partner_ref_id", data.id);
         localStorage.setItem("partner_ref_at", new Date().toISOString());
+        if (data.coupon_code) {
+          localStorage.setItem("partner_ref_coupon", String(data.coupon_code).toUpperCase());
+        } else {
+          localStorage.removeItem("partner_ref_coupon");
+        }
         setFound(true);
         // Track the click event with the freshly known partner id
         const to = searchParams.get("to");
