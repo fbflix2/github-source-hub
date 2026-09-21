@@ -105,30 +105,31 @@ export default function AdminClientes() {
     (safeBmActive || []).forEach((r: any) => r.user_id && activeSubUserIds.add(r.user_id));
     (ctActive || []).forEach((r: any) => r.user_id && activeSubUserIds.add(r.user_id));
 
-    // Fetch emails from auth via edge function
-    let emailMap: Record<string, string> = {};
+    // Fetch all Auth users, including accounts that do not yet have a profile
+    const authUsers = new Map<string, { email: string; created_at: string }>();
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL || "https://mxnlerkeygfvdnznoxld.supabase.co"}/functions/v1/list-user-emails`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (res.ok) {
-          const json = await res.json();
-          emailMap = json.emails || {};
-        }
+      const { data, error } = await supabase.functions.invoke("list-user-emails", { body: {} });
+      if (error) throw error;
+      const payload = data || {};
+      const rawUsers = Array.isArray(payload) ? payload : (payload.users || payload.emails || []);
+      if (Array.isArray(rawUsers)) {
+        rawUsers.forEach((user: any) => {
+          const userId = user.user_id || user.id;
+          const email = user.email || (typeof user === "string" ? user : "");
+          if (userId && email) authUsers.set(userId, { email, created_at: user.created_at || new Date().toISOString() });
+        });
+      } else {
+        Object.entries(rawUsers).forEach(([userId, value]: [string, any]) => {
+          const email = typeof value === "string" ? value : value?.email;
+          if (email) authUsers.set(userId, { email, created_at: value?.created_at || new Date().toISOString() });
+        });
       }
     } catch (e) {
-      console.error("Failed to fetch emails:", e);
+      console.error("Failed to fetch Auth users:", e);
     }
 
-    // Build client list
+    // Build client list from profiles and merge Auth users without profiles
+    const profileUserIds = new Set(allProfiles.map((p) => p.user_id));
     const clientList: Client[] = allProfiles.map((p) => {
       const isComplete = !!(
         p.full_name && p.cpf && p.birth_date &&
@@ -139,7 +140,7 @@ export default function AdminClientes() {
         id: p.id,
         user_id: p.user_id,
         full_name: p.full_name,
-        email: emailMap[p.user_id] || "",
+        email: authUsers.get(p.user_id)?.email || p.email || "",
         phone: p.phone,
         balance: p.balance ?? 0,
         status: p.status ?? "active",
@@ -149,6 +150,24 @@ export default function AdminClientes() {
         profile_complete: isComplete,
         first_login_at: p.first_login_at,
       };
+    });
+
+    authUsers.forEach((authUser, userId) => {
+      if (profileUserIds.has(userId)) return;
+      clientList.push({
+        id: `auth-${userId}`,
+        user_id: userId,
+        full_name: "Cadastro incompleto",
+        email: authUser.email,
+        phone: null,
+        balance: 0,
+        status: "active",
+        avatar_url: null,
+        created_at: authUser.created_at,
+        has_active_subscription: activeSubUserIds.has(userId),
+        profile_complete: false,
+        first_login_at: null,
+      });
     });
 
     setClients(clientList);
@@ -252,6 +271,14 @@ export default function AdminClientes() {
         <div className="flex items-center gap-1 text-xs text-[#0bda0b] font-medium bg-[#0bda0b]/10 w-fit px-2 py-0.5 rounded-full">
           <CheckCircle className="w-3 h-3" />
           Assinatura Ativa
+        </div>
+      );
+    }
+    if (!client.profile_complete) {
+      return (
+        <div className="flex items-center gap-1 text-xs text-amber-300 font-medium bg-amber-500/10 w-fit px-2 py-0.5 rounded-full">
+          <AlertTriangle className="w-3 h-3" />
+          Cadastro incompleto
         </div>
       );
     }
@@ -499,7 +526,7 @@ export default function AdminClientes() {
 
               {/* Contact Info */}
               <div className="flex flex-col gap-2 py-2 border-y border-white/5">
-                {client.phone && (
+                        {client.phone && (
                   <div className="flex items-center gap-2 text-sm text-white/60">
                     <Phone className="w-4 h-4 text-white/40" />
                     <span>{client.phone}</span>
@@ -578,7 +605,8 @@ export default function AdminClientes() {
                             <span className="text-white font-semibold text-sm truncate">{client.full_name || "Sem nome"}</span>
                             {client.profile_complete && <BadgeCheck className="w-4 h-4 text-[#0bda0b] flex-shrink-0" />}
                           </div>
-                          <span className="text-white/30 text-xs truncate block">ID: {client.user_id.substring(0, 8)}...</span>
+                          <span className="text-white/40 text-xs truncate block">{client.email || `ID: ${client.user_id.substring(0, 8)}...`}</span>
+                    {!client.profile_complete && <span className="text-amber-300 text-[10px] font-semibold">Cadastro incompleto</span>}
                         </div>
                       </div>
                     </td>
