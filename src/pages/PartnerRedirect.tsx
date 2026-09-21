@@ -14,13 +14,12 @@ export default function PartnerRedirect() {
     const track = async () => {
       if (!slug) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from("partners")
-        .select("id, slug")
-        .eq("slug", slug.toLowerCase())
-        .maybeSingle();
+      // Uses a public RPC: the partners table is not readable by visitors (RLS),
+      // so a direct select would silently fail and break attribution.
+      const { data: rows } = await supabase.rpc("get_partner_by_slug" as any, { _slug: slug });
+      const data: any = Array.isArray(rows) ? rows[0] : rows;
 
-      if (data) {
+      if (data?.id) {
         localStorage.setItem("partner_ref", data.slug);
         localStorage.setItem("partner_ref_id", data.id);
         localStorage.setItem("partner_ref_at", new Date().toISOString());
