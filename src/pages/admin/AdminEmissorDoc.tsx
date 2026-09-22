@@ -724,15 +724,23 @@ export default function AdminEmissorDoc() {
                  <div className="relative rounded-lg overflow-auto border border-border bg-black/20 min-h-[420px] flex items-center justify-center p-3">
                    <div className="relative inline-block">
                      <img ref={settingsImgRef} src={templatePreview} alt="Template" className="block max-w-full max-h-[62vh] object-contain select-none" draggable={false} />
-                     {photoOverlay && (
-                       <div
-                         className="absolute border border-primary/60"
-                         onMouseDown={(e) => onElementMouseDown("photo", e)}
-                         style={{ left: `${photoPos.xPct}%`, top: `${photoPos.yPct}%`, width: `${photoPos.wPct}%`, height: `${photoPos.hPct}%`, cursor: "move" }}
-                       >
+                     <div
+                       className={`absolute ${photoOverlay ? "border border-primary/60" : "border-2 border-dashed border-primary/70 bg-primary/10"}`}
+                       onMouseDown={(e) => onElementMouseDown("photo", e)}
+                       style={{ left: `${photoPos.xPct}%`, top: `${photoPos.yPct}%`, width: `${photoPos.wPct}%`, height: `${photoPos.hPct}%`, cursor: "move" }}
+                     >
+                       {photoOverlay ? (
                          <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                       </div>
-                     )}
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-[9px] text-primary font-semibold pointer-events-none text-center leading-tight">
+                           Foto 3×4
+                         </div>
+                       )}
+                       <div
+                         onMouseDown={onResizeMouseDown}
+                         className="absolute -right-1.5 -bottom-1.5 size-3 rounded-sm bg-primary cursor-nwse-resize"
+                       />
+                     </div>
                       {docIdRandom && (
                         <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
                           <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdRandom}</span>
