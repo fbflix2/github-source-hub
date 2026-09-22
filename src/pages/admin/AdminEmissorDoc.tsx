@@ -689,6 +689,27 @@ export default function AdminEmissorDoc() {
                          <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdentidade}</span>
                        </div>
                      )}
+                     {formData.nomeCompleto && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nome", e)} style={{ left: `${safeTextPos.nome.xPct}%`, top: `${safeTextPos.nome.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-bold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nome}px` }}>{formData.nomeCompleto}</span>
+                       </div>
+                     )}
+                     {(formData.dataNascimento || formData.naturalidade) && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nascimento", e)} style={{ left: `${safeTextPos.nascimento.xPct}%`, top: `${safeTextPos.nascimento.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nascimento}px` }}>{[formData.dataNascimento ? parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR") : "", formData.naturalidade, formData.uf].filter(Boolean).join(" - ")}</span>
+                       </div>
+                     )}
+                     {(formData.nomePai || formData.nomeMae) && (
+                       <div className="absolute select-none flex flex-col" onMouseDown={(e) => onElementMouseDown("filiacao", e)} style={{ left: `${safeTextPos.filiacao.xPct}%`, top: `${safeTextPos.filiacao.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         {formData.nomePai && <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.filiacao}px` }}>{formData.nomePai}</span>}
+                         {formData.nomeMae && <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.filiacao}px` }}>{formData.nomeMae}</span>}
+                       </div>
+                     )}
+                     {formData.nomeCompleto && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("assinatura", e)} style={{ left: `${safeTextPos.assinatura.xPct}%`, top: `${safeTextPos.assinatura.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${safeFontSizes.assinatura}px`, color: "#1a1a8a" }}>{formData.nomeCompleto}</span>
+                       </div>
+                     )}
                      {([
                        ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
                        ["dataEmissao", autoData.dataEmissao, "text-black/90"],
