@@ -20,6 +20,7 @@ type AutoDocumentData = {
   dataEmissao: string;
   validade: string;
   categoria: string;
+  nacionalidade: string;
   numeroRegistro: string;
   cpf: string;
   id: string;
@@ -35,6 +36,14 @@ function formatDocumentDate(date: Date): string {
 
 function randomDigits(length: number): string {
   return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+}
+
+// Mantém o órgão emissor (ex.: "SSPSP") e sorteia o número a cada documento.
+function generateRandomDocIdentidade(template: string): string {
+  const trimmed = (template || DEFAULT_DOC_IDENTIDADE).trim();
+  const match = trimmed.match(/^(\d+)(.*)$/);
+  if (!match) return trimmed;
+  return `${randomDigits(match[1].length)}${match[2] || ""}`;
 }
 
 function generateValidCpf(): string {
