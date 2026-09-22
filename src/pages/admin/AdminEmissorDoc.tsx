@@ -204,6 +204,7 @@ export default function AdminEmissorDoc() {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
     docIdentidade: sanitizeTextPoint(docIdentidadePos, FIXED_DOC_IDENTIDADE_POSITION),
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
+    nacionalidade: sanitizeTextPoint(textPos.nacionalidade, DEFAULT_TEXT.nacionalidade),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
     primeiraHabilitacao: sanitizeTextPoint(textPos.primeiraHabilitacao, DEFAULT_TEXT.primeiraHabilitacao),
@@ -221,7 +222,7 @@ export default function AdminEmissorDoc() {
     filiacao: DEFAULT_FONT_SIZES.filiacao,
     assinatura: DEFAULT_FONT_SIZES.assinatura,
     ...(fontSizes ?? {}),
-    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
+    docIdentidade: fontSizes.docIdentidade ?? FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
 
   const [formData, setFormData] = useState({
