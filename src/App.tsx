@@ -661,6 +661,7 @@ const App = () => {
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />
+                  <Route path="emissor-doc" element={<AdminEmissorDoc />} />
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="scale-pro-pool" element={<AdminScaleProPool />} />
