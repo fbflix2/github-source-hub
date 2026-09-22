@@ -696,7 +696,7 @@ export default function AdminEmissorDoc() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Emissor Doc</h1>
@@ -900,9 +900,9 @@ export default function AdminEmissorDoc() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[220px_minmax(0,1fr)_340px] gap-4 items-start xl:items-stretch xl:h-[calc(100vh-7rem)] xl:min-h-[620px]">
         {/* Left: Upload Foto + Form */}
-        <div className="space-y-4">
+        <div className="space-y-3 xl:h-full xl:overflow-y-auto xl:pr-1">
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-sm">Foto & Dados</CardTitle>
@@ -969,9 +969,9 @@ export default function AdminEmissorDoc() {
           </Card>
         </div>
 
-        {/* Right: Full-size viewer */}
-        <div className="space-y-4 min-w-0">
-        <Card className="bg-white/5 border-white/10 min-h-[78vh]">
+        {/* Center: Full-size viewer */}
+        <div className="min-w-0 xl:h-full">
+        <Card className="bg-white/5 border-white/10 min-h-[620px] xl:min-h-0 xl:h-full flex flex-col">
           <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-white text-sm">Visualização</CardTitle>
             {selectedImage && (
@@ -1000,7 +1000,7 @@ export default function AdminEmissorDoc() {
             )}
           </CardHeader>
           <CardContent
-            className="overflow-hidden h-[calc(78vh-60px)]"
+            className="overflow-hidden h-[calc(78vh-60px)] xl:h-auto xl:flex-1 xl:min-h-0"
             style={{ cursor: panMode ? (isPanning ? "grabbing" : "grab") : "default" }}
             onMouseDown={onViewerMouseDown}
           >
@@ -1027,7 +1027,7 @@ export default function AdminEmissorDoc() {
                     alt="Visualização"
                     className="select-none"
                     draggable={false}
-                    style={{ maxWidth: "100%", maxHeight: "calc(78vh - 80px)", objectFit: "contain" }}
+                    style={{ maxWidth: "100%", maxHeight: "calc(100vh - 13rem)", objectFit: "contain" }}
                   />
 
                   {photoOverlay && (
@@ -1153,16 +1153,18 @@ export default function AdminEmissorDoc() {
             )}
           </CardContent>
         </Card>
+        </div>
 
-        <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-3 flex-row items-center justify-between">
+        {/* Right: automatic data and compact controls */}
+        <Card className="bg-white/5 border-white/10 xl:h-full xl:min-h-0 flex flex-col overflow-hidden">
+          <CardHeader className="pb-2 flex-row items-center justify-between shrink-0">
             <CardTitle className="text-white text-sm">Dados automáticos e ajustes</CardTitle>
-            <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={regenerateAllRandomData}>
-              <RefreshCw className="size-3" /> Gerar novamente
+            <Button type="button" variant="ghost" size="icon" className="size-8 shrink-0" onClick={regenerateAllRandomData} title="Gerar novamente">
+              <RefreshCw className="size-3.5" />
             </Button>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+          <CardContent className="space-y-4 xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:pr-3">
+            <div className="grid grid-cols-2 gap-2">
               {[
                 ["Primeira habilitação", autoData.primeiraHabilitacao],
                 ["Data de emissão", autoData.dataEmissao],
@@ -1180,7 +1182,7 @@ export default function AdminEmissorDoc() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-x-8 gap-y-2 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-1 gap-y-2 pt-3 border-t border-white/10">
               {([
                 ["nome", "Nome completo"],
                 ["nascimento", "Nascimento / São Paulo - SP"],
@@ -1194,20 +1196,20 @@ export default function AdminEmissorDoc() {
                 ["cpf", "CPF"],
                 ["id", "ID"],
               ] as const).map(([key, label]) => (
-                <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)_42px] items-center gap-2 min-w-0">
+                <div key={key} className="grid grid-cols-[112px_minmax(0,1fr)_38px] items-center gap-2 min-w-0">
                   <span className="text-[10px] text-white/40 truncate">Fonte — {label}</span>
                   <Slider value={[safeFontSizes[key]]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, [key]: v }))} min={5} max={28} step={0.5} />
                   <span className="text-[10px] text-white/50 text-right">{safeFontSizes[key]}px</span>
                 </div>
               ))}
-              <div className="grid grid-cols-[140px_minmax(0,1fr)_42px] items-center gap-2 min-w-0">
+              <div className="grid grid-cols-[112px_minmax(0,1fr)_38px] items-center gap-2 min-w-0">
                 <span className="text-[10px] text-white/40">Giro do ID</span>
                 <Slider value={[idRotation]} onValueChange={([v]) => setIdRotation(v)} min={-180} max={180} step={1} />
                 <span className="text-[10px] text-white/50 text-right">{idRotation}°</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-1 gap-4 pt-3 border-t border-white/10">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <Label className="text-white/60 text-xs">Filiação automática</Label>
@@ -1241,7 +1243,7 @@ export default function AdminEmissorDoc() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-1 gap-3 pt-3 border-t border-white/10">
               <div className="grid grid-cols-[72px_minmax(0,1fr)_42px] items-center gap-2">
                 <Label className="text-white/60 text-xs">Assinatura</Label>
                 <Slider value={[safeTextPos.assinatura.yPct]} onValueChange={([v]) => setTextPos((prev) => ({ ...prev, assinatura: { ...prev.assinatura, yPct: v } }))} min={0} max={100} step={0.1} />
@@ -1255,7 +1257,6 @@ export default function AdminEmissorDoc() {
             </div>
           </CardContent>
         </Card>
-        </div>
       </div>
     </div>
   );
