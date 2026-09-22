@@ -1,7 +1,7 @@
 const permissionAliases: Record<string, string[]> = {
   "/admin/ferramentas": ["/admin/ferramentas-2fa"],
   "/admin/ferramentas/2fa": ["/admin/ferramentas-2fa"],
-  "/admin/ferramentas/imagens": ["/admin/imagens"],
+  "/admin/ferramentas/imagens": ["/admin/imagens", "/admin/emissor-doc"],
 };
 
 export function normalizeAdminAllowedPaths(paths: string[] | null | undefined): Set<string> {
