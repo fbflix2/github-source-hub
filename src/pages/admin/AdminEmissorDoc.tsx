@@ -270,7 +270,11 @@ export default function AdminEmissorDoc() {
             if (row.key === POSITIONS_KEY && row.value) {
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) setTextPos((current) => ({ ...current, ...saved.textPos }));
+                if (saved.textPos) {
+                  const { docIdentidade: savedDocPos, ...restTextPos } = saved.textPos;
+                  setTextPos((current) => ({ ...current, ...restTextPos }));
+                  if (savedDocPos) setDocIdentidadePos(sanitizeTextPoint(savedDocPos, FIXED_DOC_IDENTIDADE_POSITION));
+                }
                 if (saved.fontSizes) setFontSizes((current) => ({ ...current, ...saved.fontSizes }));
                 if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
@@ -383,7 +387,7 @@ export default function AdminEmissorDoc() {
     } catch {
       if (!silent) toast.error("Erro ao salvar posições");
     }
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, docIdentidadePos]);
 
   // Auto-save positions after changes (debounced)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -395,7 +399,7 @@ export default function AdminEmissorDoc() {
       savePositions(true);
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, selectedImage, templateLoading, savePositions]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, docIdentidadePos, selectedImage, templateLoading, savePositions]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
