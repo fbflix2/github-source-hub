@@ -286,6 +286,7 @@ export default function AdminEmissorDoc() {
                 if (saved.brightness != null) setBrightness(saved.brightness);
                 if (saved.saturation != null) setSaturation(saved.saturation);
                 if (saved.grayscale != null) setGrayscale(saved.grayscale);
+                if (saved.noise != null) setNoise(saved.noise);
                 if (saved.idRotation != null) setIdRotation(saved.idRotation);
               } catch { /* ignore parse errors */ }
             }
@@ -383,6 +384,7 @@ export default function AdminEmissorDoc() {
         brightness,
         saturation,
         grayscale,
+        noise,
         idRotation,
       });
       const { data: existing } = await supabase
@@ -400,7 +402,7 @@ export default function AdminEmissorDoc() {
     } catch {
       if (!silent) toast.error("Erro ao salvar posições");
     }
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, idRotation, docIdentidadePos]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, noise, idRotation, docIdentidadePos]);
 
   // Auto-save positions after changes (debounced)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -412,7 +414,7 @@ export default function AdminEmissorDoc() {
       savePositions(true);
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, idRotation, docIdentidadePos, selectedImage, templateLoading, savePositions]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, noise, idRotation, docIdentidadePos, selectedImage, templateLoading, savePositions]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -424,7 +426,7 @@ export default function AdminEmissorDoc() {
 
   const downloadImage = async () => {
     if (!selectedImage) return;
-    const accepted = window.confirm("Esta imagem será exportada com a marca permanente “MODELO SEM VALIDADE”. Deseja continuar?");
+    const accepted = window.confirm("Esta imagem será exportada com a marca permanente “AMOSTRA”. Deseja continuar?");
     if (!accepted) return;
 
     const baseImg = new Image();
@@ -577,16 +579,28 @@ export default function AdminEmissorDoc() {
     ctx.fillText(autoData.id, 0, 0);
     ctx.restore();
 
-    // Permanent safety marking for simulated documents.
-    const watermarkSize = Math.max(20, Math.round(W * 0.032));
+    // Film-grain noise
+    if (noise > 0) {
+      const amount = (noise / 100) * 42;
+      const imgData = ctx.getImageData(0, 0, W, H);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const n = (Math.random() - 0.5) * 2 * amount;
+        d[i] = Math.min(255, Math.max(0, d[i] + n));
+        d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + n));
+        d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + n));
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // Permanent safety marking for simulated documents (small, bottom corner).
+    const watermarkSize = Math.max(9, Math.round(W * 0.011));
     ctx.save();
-    ctx.translate(W / 2, H / 2);
-    ctx.rotate(-Math.PI / 10);
-    ctx.font = `700 ${watermarkSize}px Arial, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "rgba(180, 0, 0, 0.34)";
-    ctx.fillText("MODELO SEM VALIDADE", 0, 0);
+    ctx.font = `600 ${watermarkSize}px Arial, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.fillText("AMOSTRA", Math.round(W * 0.02), H - Math.round(H * 0.018));
     ctx.restore();
 
     // Download
@@ -1101,8 +1115,19 @@ export default function AdminEmissorDoc() {
                   >
                     <span className="text-black/90" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: `${safeFontSizes.id}px` }}>{autoData.id}</span>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                    <span className="text-destructive/35 text-3xl sm:text-5xl font-bold rotate-[-18deg] whitespace-nowrap">MODELO SEM VALIDADE</span>
+                  {noise > 0 && (
+                    <div
+                      className="absolute inset-0 pointer-events-none mix-blend-overlay"
+                      style={{
+                        opacity: noise / 100,
+                        backgroundImage:
+                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.55'/></svg>\")",
+                        backgroundRepeat: "repeat",
+                      }}
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden px-[2%] pb-[1.4%]">
+                    <span className="text-white/25 text-[9px] font-semibold tracking-wide">AMOSTRA</span>
                   </div>
                 </div>
               </div>
@@ -1121,7 +1146,7 @@ export default function AdminEmissorDoc() {
           <div className="shrink-0 border-t border-white/10 px-5 py-3">
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="text-xs font-medium text-white/70">Ajustes da imagem</span>
-              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setBrightness(100); setContrast(100); setSaturation(100); setGrayscale(0); }}>Restaurar</Button>
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setBrightness(100); setContrast(100); setSaturation(100); setGrayscale(0); setNoise(0); }}>Restaurar</Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-x-5 gap-y-2">
               {([
@@ -1129,6 +1154,7 @@ export default function AdminEmissorDoc() {
                 ["Contraste", contrast, setContrast, 50, 200],
                 ["Saturação", saturation, setSaturation, 0, 200],
                 ["Cinza", grayscale, setGrayscale, 0, 100],
+                ["Ruído", noise, setNoise, 0, 100],
               ] as const).map(([label, value, setter, min, max]) => (
                 <div key={label} className="grid grid-cols-[58px_minmax(0,1fr)_36px] items-center gap-2">
                   <Label className="text-[10px] text-white/50">{label}</Label>
