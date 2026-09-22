@@ -1040,6 +1040,7 @@ export default function AdminEmissorDoc() {
                     ["dataEmissao", "Fonte da data de emissão"],
                     ["validade", "Fonte da validade"],
                     ["categoria", "Fonte da categoria"],
+                    ["nacionalidade", "Fonte da nacionalidade"],
                     ["numeroRegistro", "Fonte do número de registro"],
                     ["cpf", "Fonte do CPF"],
                   ] as const).map(([key, label]) => (
