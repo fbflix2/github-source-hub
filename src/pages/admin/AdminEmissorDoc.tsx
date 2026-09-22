@@ -566,7 +566,7 @@ export default function AdminEmissorDoc() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Visualizador de Imagens</h1>
+          <h1 className="text-2xl font-bold text-white">Emissor Doc</h1>
           <p className="text-white/50 text-sm">Faça upload e visualize imagens em tamanho real</p>
         </div>
         <Button variant="ghost" size="icon" className="size-9" onClick={() => setSettingsOpen(true)} title="Configurações do Template">
