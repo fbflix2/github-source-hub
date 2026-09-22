@@ -853,6 +853,31 @@ export default function AdminEmissorDoc() {
                     <span className="text-[10px] text-muted-foreground w-10">{safeFontSizes.docIdentidade}px</span>
                   </div>
                 </div>
+                <div className="pt-3 border-t border-border">
+                  <Label className="text-xs text-muted-foreground">Foto 3×4 (posição e tamanho padrão)</Label>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Ajuste a moldura tracejada no template. Toda foto enviada entra exatamente nesta posição e tamanho.
+                  </p>
+                  {([
+                    ["xPct", "Posição X", 0, 100],
+                    ["yPct", "Altura", 0, 100],
+                    ["wPct", "Largura", 3, 60],
+                    ["hPct", "Altura da foto", 3, 60],
+                  ] as const).map(([key, label, min, max]) => (
+                    <div key={key} className="flex items-center gap-2 mt-2">
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap w-24">{label}:</span>
+                      <Slider
+                        value={[photoPos[key]]}
+                        onValueChange={([v]) => setPhotoPos((p) => ({ ...p, [key]: v }))}
+                        min={min}
+                        max={max}
+                        step={0.1}
+                        className="flex-1"
+                      />
+                      <span className="text-[10px] text-muted-foreground w-12">{photoPos[key].toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Arraste as informações diretamente no template acima. Ajuste fontes e rotação nos dados do documento, depois salve as posições permanentemente.
                 </p>
