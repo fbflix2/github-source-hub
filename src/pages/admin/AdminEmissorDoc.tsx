@@ -239,8 +239,8 @@ export default function AdminEmissorDoc() {
   const [formData, setFormData] = useState({
     nomeCompleto: "",
     dataNascimento: "",
-    naturalidade: "",
-    uf: "",
+    naturalidade: "São Paulo",
+    uf: "SP",
     nomePai: "",
     nomeMae: "",
   });
@@ -900,7 +900,7 @@ export default function AdminEmissorDoc() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-6 items-start">
         {/* Left: Upload Foto + Form */}
         <div className="space-y-4">
           <Card className="bg-white/5 border-white/10">
@@ -955,197 +955,22 @@ export default function AdminEmissorDoc() {
                   className="mt-1 bg-white/5 border-white/10 text-white uppercase"
                   maxLength={100}
                 />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[fontSizes.nome]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nome: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <div>
-                  <Label className="text-white/60 text-xs">Data de Nascimento</Label>
-                  <Input
-                    type="date"
-                    value={formData.dataNascimento}
-                    onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
-                    className="mt-1 bg-white/5 border-white/10 text-white"
-                  />
-                </div>
-                <div className="w-16">
-                  <Label className="text-white/60 text-xs">UF</Label>
-                  <Input
-                    value={formData.uf}
-                    onChange={(e) => setFormData((f) => ({ ...f, uf: e.target.value.toUpperCase().slice(0, 2) }))}
-                    placeholder="SP"
-                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs text-center"
-                    maxLength={2}
-                  />
-                </div>
               </div>
               <div>
-                <Label className="text-white/60 text-xs">Local de Nascimento</Label>
+                <Label className="text-white/60 text-xs">Data de Nascimento</Label>
                 <Input
-                  value={formData.naturalidade}
-                  onChange={(e) => setFormData((f) => ({ ...f, naturalidade: e.target.value }))}
-                  placeholder="São Paulo"
-                  className="mt-1 bg-white/5 border-white/10 text-white text-xs"
-                  maxLength={100}
+                  type="date"
+                  value={formData.dataNascimento}
+                  onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
+                  className="mt-1 bg-white/5 border-white/10 text-white"
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-white/40">Fonte nasc.:</span>
-                <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-white/60 text-xs">Filiação (gerada automaticamente)</Label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sobrenome = extractSobrenome(formData.nomeCompleto);
-                      if (sobrenome) {
-                        setFormData((f) => ({
-                          ...f,
-                          nomePai: gerarNomePai(sobrenome),
-                          nomeMae: gerarNomeMae(sobrenome),
-                        }));
-                      }
-                    }}
-                    className="text-[10px] text-primary hover:text-primary/80 flex items-center gap-1"
-                    title="Gerar novos nomes"
-                  >
-                    <RotateCw className="size-3" /> Sortear
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-white/40 text-[10px]">Pai</Label>
-                    <Input
-                      value={formData.nomePai}
-                      onChange={(e) => setFormData((f) => ({ ...f, nomePai: e.target.value }))}
-                      placeholder="Gerado ao digitar nome"
-                      className="mt-0.5 bg-white/5 border-white/10 text-white uppercase text-xs"
-                      maxLength={100}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-white/40 text-[10px]">Mãe</Label>
-                    <Input
-                      value={formData.nomeMae}
-                      onChange={(e) => setFormData((f) => ({ ...f, nomeMae: e.target.value }))}
-                      placeholder="Gerado ao digitar nome"
-                      className="mt-0.5 bg-white/5 border-white/10 text-white uppercase text-xs"
-                      maxLength={100}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-white/40">Fonte filiação:</span>
-                  <Slider value={[fontSizes.filiacao]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, filiacao: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.filiacao}px</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-white/60 text-xs">Dados automáticos</Label>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={regenerateAllRandomData}>
-                    <RefreshCw className="size-3" /> Gerar novamente
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    ["Primeira habilitação", autoData.primeiraHabilitacao],
-                    ["Data de emissão", autoData.dataEmissao],
-                    ["Validade", autoData.validade],
-                    ["Categoria", autoData.categoria],
-                    ["Nacionalidade", autoData.nacionalidade],
-                    ["Número de registro", autoData.numeroRegistro],
-                    ["CPF", autoData.cpf],
-                    ["ID", autoData.id],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <Label className="text-white/40 text-[10px]">{label}</Label>
-                      <Input value={value} readOnly className={`mt-0.5 bg-white/5 border-white/10 text-xs ${["Validade", "Categoria", "Número de registro"].includes(label) ? "text-destructive" : "text-white"} ${label === "ID" ? "font-mono" : ""}`} />
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-1">
-                  {([
-                    ["primeiraHabilitacao", "Fonte da primeira habilitação"],
-                    ["dataEmissao", "Fonte da data de emissão"],
-                    ["validade", "Fonte da validade"],
-                    ["categoria", "Fonte da categoria"],
-                    ["nacionalidade", "Fonte da nacionalidade"],
-                    ["numeroRegistro", "Fonte do número de registro"],
-                    ["cpf", "Fonte do CPF"],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-[10px] text-white/40 whitespace-nowrap w-44">{label}:</span>
-                      <Slider value={[safeFontSizes[key]]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, [key]: v }))} min={5} max={28} step={0.5} className="flex-1" />
-                      <span className="text-[10px] text-white/50 w-10">{safeFontSizes[key]}px</span>
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/40 whitespace-nowrap w-44">Fonte do ID:</span>
-                    <Slider value={[safeFontSizes.id]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, id: v }))} min={5} max={28} step={0.5} className="flex-1" />
-                    <span className="text-[10px] text-white/50 w-10">{safeFontSizes.id}px</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/40 whitespace-nowrap w-44">Giro do ID:</span>
-                    <Slider value={[idRotation]} onValueChange={([v]) => setIdRotation(v)} min={-180} max={180} step={1} className="flex-1" />
-                    <span className="text-[10px] text-white/50 w-10">{idRotation}°</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assinatura */}
-              <div className="pt-2 border-t border-white/10">
-                <Label className="text-white/60 text-xs">Assinatura (gerada do nome)</Label>
-                {formData.nomeCompleto && (
-                  <div className="mt-1 p-2 bg-white/5 rounded border border-white/10">
-                    <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
-                      {formData.nomeCompleto}
-                    </span>
-                  </div>
-                )}
-                <div className="flex gap-1 mt-1.5 flex-wrap">
-                  {SIGNATURE_FONTS.map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setSignatureFont(f)}
-                      className={`px-2 py-1 rounded text-xs border transition-all ${signatureFont === f ? "border-primary bg-primary/20 text-white" : "border-white/10 text-white/50 hover:border-white/30"}`}
-                      style={{ fontFamily: `'${f}', cursive` }}
-                    >
-                      Aa
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Tamanho:</span>
-                  <Slider value={[fontSizes.assinatura]} onValueChange={([v]) => setFontSizes((sf) => ({ ...sf, assinatura: v }))} min={8} max={24} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.assinatura}px</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Altura:</span>
-                  <Slider value={[safeTextPos.assinatura.yPct]} onValueChange={([v]) => setTextPos((prev) => ({ ...prev, assinatura: { ...prev.assinatura, yPct: v } }))} min={0} max={100} step={0.1} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-10">{safeTextPos.assinatura.yPct.toFixed(1)}%</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-white/10">
-                <div className="flex items-center gap-2">
-                  <Label className="text-white/60 text-xs whitespace-nowrap">Contraste</Label>
-                  <Slider value={[contrast]} onValueChange={([v]) => setContrast(v)} min={50} max={200} step={1} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-10">{contrast}%</span>
-                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right: Full-size viewer */}
+        <div className="space-y-4 min-w-0">
         <Card className="bg-white/5 border-white/10 min-h-[78vh]">
           <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-white text-sm">Visualização</CardTitle>
@@ -1328,6 +1153,109 @@ export default function AdminEmissorDoc() {
             )}
           </CardContent>
         </Card>
+
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="pb-3 flex-row items-center justify-between">
+            <CardTitle className="text-white text-sm">Dados automáticos e ajustes</CardTitle>
+            <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={regenerateAllRandomData}>
+              <RefreshCw className="size-3" /> Gerar novamente
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+              {[
+                ["Primeira habilitação", autoData.primeiraHabilitacao],
+                ["Data de emissão", autoData.dataEmissao],
+                ["Validade", autoData.validade],
+                ["Categoria", autoData.categoria],
+                ["Nacionalidade", autoData.nacionalidade],
+                ["Número de registro", autoData.numeroRegistro],
+                ["CPF", autoData.cpf],
+                ["ID", autoData.id],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <Label className="text-white/40 text-[10px] block truncate">{label}</Label>
+                  <Input value={value} readOnly className={`mt-0.5 h-9 bg-white/5 border-white/10 px-2 text-xs ${["Validade", "Categoria", "Número de registro"].includes(label) ? "text-destructive" : "text-white"} ${label === "ID" ? "font-mono" : ""}`} />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-x-8 gap-y-2 pt-4 border-t border-white/10">
+              {([
+                ["nome", "Nome completo"],
+                ["nascimento", "Nascimento / São Paulo - SP"],
+                ["filiacao", "Filiação automática"],
+                ["primeiraHabilitacao", "Primeira habilitação"],
+                ["dataEmissao", "Data de emissão"],
+                ["validade", "Validade"],
+                ["categoria", "Categoria"],
+                ["nacionalidade", "Nacionalidade"],
+                ["numeroRegistro", "Número de registro"],
+                ["cpf", "CPF"],
+                ["id", "ID"],
+              ] as const).map(([key, label]) => (
+                <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)_42px] items-center gap-2 min-w-0">
+                  <span className="text-[10px] text-white/40 truncate">Fonte — {label}</span>
+                  <Slider value={[safeFontSizes[key]]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, [key]: v }))} min={5} max={28} step={0.5} />
+                  <span className="text-[10px] text-white/50 text-right">{safeFontSizes[key]}px</span>
+                </div>
+              ))}
+              <div className="grid grid-cols-[140px_minmax(0,1fr)_42px] items-center gap-2 min-w-0">
+                <span className="text-[10px] text-white/40">Giro do ID</span>
+                <Slider value={[idRotation]} onValueChange={([v]) => setIdRotation(v)} min={-180} max={180} step={1} />
+                <span className="text-[10px] text-white/50 text-right">{idRotation}°</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/10">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="text-white/60 text-xs">Filiação automática</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => {
+                    const sobrenome = extractSobrenome(formData.nomeCompleto);
+                    if (sobrenome) setFormData((f) => ({ ...f, nomePai: gerarNomePai(sobrenome), nomeMae: gerarNomeMae(sobrenome) }));
+                  }}>
+                    <RotateCw className="size-3" /> Sortear
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={formData.nomePai} readOnly placeholder="Gerada ao informar o nome" className="h-9 bg-white/5 border-white/10 text-white uppercase text-xs" />
+                  <Input value={formData.nomeMae} readOnly placeholder="Gerada ao informar o nome" className="h-9 bg-white/5 border-white/10 text-white uppercase text-xs" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white/60 text-xs">Assinatura automática</Label>
+                <div className="flex items-center gap-2">
+                  {SIGNATURE_FONTS.map((font) => (
+                    <Button key={font} type="button" variant={signatureFont === font ? "default" : "outline"} size="icon" className="size-8" onClick={() => setSignatureFont(font)} title={font}>
+                      <span style={{ fontFamily: `'${font}', cursive` }}>Aa</span>
+                    </Button>
+                  ))}
+                  <div className="flex-1 grid grid-cols-[58px_minmax(0,1fr)_42px] items-center gap-2 ml-2">
+                    <span className="text-[10px] text-white/40">Tamanho</span>
+                    <Slider value={[fontSizes.assinatura]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, assinatura: v }))} min={8} max={24} step={0.5} />
+                    <span className="text-[10px] text-white/50 text-right">{fontSizes.assinatura}px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-white/10">
+              <div className="grid grid-cols-[72px_minmax(0,1fr)_42px] items-center gap-2">
+                <Label className="text-white/60 text-xs">Assinatura</Label>
+                <Slider value={[safeTextPos.assinatura.yPct]} onValueChange={([v]) => setTextPos((prev) => ({ ...prev, assinatura: { ...prev.assinatura, yPct: v } }))} min={0} max={100} step={0.1} />
+                <span className="text-[10px] text-white/50 text-right">{safeTextPos.assinatura.yPct.toFixed(1)}%</span>
+              </div>
+              <div className="grid grid-cols-[72px_minmax(0,1fr)_42px] items-center gap-2">
+                <Label className="text-white/60 text-xs">Contraste</Label>
+                <Slider value={[contrast]} onValueChange={([v]) => setContrast(v)} min={50} max={200} step={1} />
+                <span className="text-[10px] text-white/50 text-right">{contrast}%</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        </div>
       </div>
     </div>
   );
