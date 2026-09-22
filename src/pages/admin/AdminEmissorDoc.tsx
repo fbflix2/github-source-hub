@@ -270,7 +270,11 @@ export default function AdminEmissorDoc() {
             if (row.key === POSITIONS_KEY && row.value) {
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) setTextPos((current) => ({ ...current, ...saved.textPos }));
+                if (saved.textPos) {
+                  const { docIdentidade: savedDocPos, ...restTextPos } = saved.textPos;
+                  setTextPos((current) => ({ ...current, ...restTextPos }));
+                  if (savedDocPos) setDocIdentidadePos(sanitizeTextPoint(savedDocPos, FIXED_DOC_IDENTIDADE_POSITION));
+                }
                 if (saved.fontSizes) setFontSizes((current) => ({ ...current, ...saved.fontSizes }));
                 if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
