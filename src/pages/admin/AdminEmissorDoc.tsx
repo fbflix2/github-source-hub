@@ -733,11 +733,11 @@ export default function AdminEmissorDoc() {
                          <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                        </div>
                      )}
-                     {docIdentidade && (
-                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
-                         <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdentidade}</span>
-                       </div>
-                     )}
+                      {docIdRandom && (
+                        <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                          <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdRandom}</span>
+                        </div>
+                      )}
                      {formData.nomeCompleto && (
                        <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nome", e)} style={{ left: `${safeTextPos.nome.xPct}%`, top: `${safeTextPos.nome.yPct}%`, cursor: "move", lineHeight: 1 }}>
                          <span className="font-bold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nome}px` }}>{formData.nomeCompleto}</span>
@@ -763,9 +763,10 @@ export default function AdminEmissorDoc() {
                        ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
                        ["dataEmissao", autoData.dataEmissao, "text-black/90"],
                        ["validade", autoData.validade, "text-destructive"],
-                       ["categoria", autoData.categoria, "text-destructive"],
-                       ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
-                        ["cpf", autoData.cpf, "text-black/90"],
+                        ["categoria", autoData.categoria, "text-destructive"],
+                        ["nacionalidade", autoData.nacionalidade, "text-black/90"],
+                        ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                         ["cpf", autoData.cpf, "text-black/90"],
                      ] as const).map(([key, value, colorClass]) => (
                        <div key={key} className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown(key, e)} style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: "move", lineHeight: 1 }}>
                          <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
