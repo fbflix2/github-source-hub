@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer, Settings, Loader2 } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer, Settings, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,44 @@ const SETTINGS_KEY = "emissordoc_base_template_url";
 const POSITIONS_KEY = "emissordoc_positions";
 const DOC_IDENTIDADE_KEY = "emissordoc_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
+const RED_DOCUMENT_TEXT = "#d20b18";
+
+type AutoDocumentData = {
+  primeiraHabilitacao: string;
+  dataEmissao: string;
+  validade: string;
+  categoria: string;
+  numeroRegistro: string;
+  id: string;
+};
+
+function randomDateBetween(start: Date, end: Date): Date {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+function formatDocumentDate(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(date);
+}
+
+function randomDigits(length: number): string {
+  return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+}
+
+function generateAutoDocumentData(): AutoDocumentData {
+  const first = randomDateBetween(new Date("2021-02-05T12:00:00Z"), new Date("2024-05-10T12:00:00Z"));
+  const emission = new Date(first);
+  emission.setUTCFullYear(emission.getUTCFullYear() + 2);
+  emission.setUTCDate(emission.getUTCDate() + Math.floor(Math.random() * 366));
+  const validity = randomDateBetween(new Date("2029-02-28T12:00:00Z"), new Date("2035-05-10T12:00:00Z"));
+  return {
+    primeiraHabilitacao: formatDocumentDate(first),
+    dataEmissao: formatDocumentDate(emission),
+    validade: formatDocumentDate(validity),
+    categoria: "AB",
+    numeroRegistro: randomDigits(11),
+    id: randomDigits(10),
+  };
+}
 
 // Posições padrão fixas — calibradas para o template oficial.
 // Não alterar sem recalibrar visualmente sobre o mockup.
@@ -58,6 +96,12 @@ const DEFAULT_TEXT = {
    nascimento: { xPct: 45.57, yPct: 19.8 },
   filiacao: { xPct: 49.71, yPct: 40.31 },
   assinatura: { xPct: 25.0, yPct: 43.61 },
+  primeiraHabilitacao: { xPct: 61, yPct: 56 },
+  dataEmissao: { xPct: 77, yPct: 56 },
+  validade: { xPct: 77, yPct: 51 },
+  categoria: { xPct: 63, yPct: 51 },
+  numeroRegistro: { xPct: 45, yPct: 51 },
+  id: { xPct: 11, yPct: 65 },
 };
 const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
 const DEFAULT_FONT_SIZES = {
@@ -66,6 +110,12 @@ const DEFAULT_FONT_SIZES = {
   nascimento: 8,
   filiacao: 8,
   assinatura: 10.5,
+  primeiraHabilitacao: 8,
+  dataEmissao: 8,
+  validade: 8,
+  categoria: 9,
+  numeroRegistro: 8,
+  id: 10,
 };
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
@@ -111,6 +161,8 @@ export default function AdminEmissorDoc() {
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
+  const [idRotation, setIdRotation] = useState(0);
+  const [autoData, setAutoData] = useState<AutoDocumentData>(() => generateAutoDocumentData());
 
   const docIdLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -120,6 +172,12 @@ export default function AdminEmissorDoc() {
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
+    primeiraHabilitacao: sanitizeTextPoint(textPos.primeiraHabilitacao, DEFAULT_TEXT.primeiraHabilitacao),
+    dataEmissao: sanitizeTextPoint(textPos.dataEmissao, DEFAULT_TEXT.dataEmissao),
+    validade: sanitizeTextPoint(textPos.validade, DEFAULT_TEXT.validade),
+    categoria: sanitizeTextPoint(textPos.categoria, DEFAULT_TEXT.categoria),
+    numeroRegistro: sanitizeTextPoint(textPos.numeroRegistro, DEFAULT_TEXT.numeroRegistro),
+    id: sanitizeTextPoint(textPos.id, DEFAULT_TEXT.id),
   };
 
   const safeFontSizes = {
@@ -143,6 +201,7 @@ export default function AdminEmissorDoc() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const settingsImgRef = useRef<HTMLImageElement>(null);
 
   const [templateLoading, setTemplateLoading] = useState(true);
 
@@ -162,12 +221,14 @@ export default function AdminEmissorDoc() {
               setTemplatePreview(row.value);
             }
             if (row.key === POSITIONS_KEY && row.value) {
-              // Posições/tamanhos de fonte/foto são FIXOS (DEFAULT_TEXT / DEFAULT_FONT_SIZES / DEFAULT_PHOTO).
-              // Apenas a fonte de assinatura e o contraste continuam configuráveis.
               try {
                 const saved = JSON.parse(row.value);
+                if (saved.textPos) setTextPos((current) => ({ ...current, ...saved.textPos }));
+                if (saved.fontSizes) setFontSizes((current) => ({ ...current, ...saved.fontSizes }));
+                if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
+                if (saved.idRotation != null) setIdRotation(saved.idRotation);
               } catch { /* ignore parse errors */ }
             }
             if (row.key === DOC_IDENTIDADE_KEY) {
@@ -185,8 +246,9 @@ export default function AdminEmissorDoc() {
   }, []);
 
   const getImgRect = () => {
-    if (!imgRef.current) return null;
-    return { w: imgRef.current.clientWidth, h: imgRef.current.clientHeight };
+    const activeImage = settingsOpen ? settingsImgRef.current : imgRef.current;
+    if (!activeImage) return null;
+    return { w: activeImage.clientWidth, h: activeImage.clientHeight };
   };
 
   const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -240,6 +302,7 @@ export default function AdminEmissorDoc() {
       setFontSizes({ ...DEFAULT_FONT_SIZES });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
+      setIdRotation(0);
       setSignatureFont(SIGNATURE_FONTS[0]);
       setDocIdentidade(DEFAULT_DOC_IDENTIDADE);
       toast.success("Template removido");
@@ -251,21 +314,12 @@ export default function AdminEmissorDoc() {
   const savePositions = useCallback(async (silent = false) => {
     try {
       const payload = JSON.stringify({
-        textPos: {
-          nome: safeTextPos.nome,
-          nascimento: safeTextPos.nascimento,
-          filiacao: safeTextPos.filiacao,
-          assinatura: safeTextPos.assinatura,
-        },
-        fontSizes: {
-          nome: safeFontSizes.nome,
-          nascimento: safeFontSizes.nascimento,
-          filiacao: safeFontSizes.filiacao,
-          assinatura: safeFontSizes.assinatura,
-        },
+        textPos: safeTextPos,
+        fontSizes: safeFontSizes,
         photoPos,
         signatureFont,
         contrast,
+        idRotation,
       });
       const { data: existing } = await supabase
         .from("site_settings")
@@ -282,7 +336,7 @@ export default function AdminEmissorDoc() {
     } catch {
       if (!silent) toast.error("Erro ao salvar posições");
     }
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation]);
 
   // Auto-save positions after changes (debounced)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -294,7 +348,7 @@ export default function AdminEmissorDoc() {
       savePositions(true);
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, selectedImage, templateLoading, savePositions]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, selectedImage, templateLoading, savePositions]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -424,6 +478,32 @@ export default function AdminEmissorDoc() {
       const y = (textPos.assinatura.yPct / 100) * H + cssTopOffset(fs);
       ctx.fillText(formData.nomeCompleto, x, y);
     }
+
+    // Draw automatically generated document data
+    const autoFields = [
+      { key: "primeiraHabilitacao", value: autoData.primeiraHabilitacao, color: "rgba(0,0,0,0.9)" },
+      { key: "dataEmissao", value: autoData.dataEmissao, color: "rgba(0,0,0,0.9)" },
+      { key: "validade", value: autoData.validade, color: RED_DOCUMENT_TEXT },
+      { key: "categoria", value: autoData.categoria, color: RED_DOCUMENT_TEXT },
+      { key: "numeroRegistro", value: autoData.numeroRegistro, color: RED_DOCUMENT_TEXT },
+    ] as const;
+    for (const field of autoFields) {
+      const fs = scaledFont(safeFontSizes[field.key]);
+      ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = field.color;
+      ctx.fillText(field.value, (safeTextPos[field.key].xPct / 100) * W, (safeTextPos[field.key].yPct / 100) * H + cssTopOffset(fs));
+    }
+
+    const idFs = scaledFont(safeFontSizes.id);
+    const idX = (safeTextPos.id.xPct / 100) * W;
+    const idY = (safeTextPos.id.yPct / 100) * H + cssTopOffset(idFs);
+    ctx.save();
+    ctx.translate(idX, idY);
+    ctx.rotate((idRotation * Math.PI) / 180);
+    ctx.font = `${idFs}px "Courier New", Courier, monospace`;
+    ctx.fillStyle = "rgba(0,0,0,0.9)";
+    ctx.fillText(autoData.id, 0, 0);
+    ctx.restore();
 
     // Download
     canvas.toBlob((blob) => {
@@ -576,7 +656,7 @@ export default function AdminEmissorDoc() {
 
       {/* Settings Modal */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border w-[96vw] max-w-6xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configurações do Template</DialogTitle>
           </DialogHeader>
@@ -592,14 +672,65 @@ export default function AdminEmissorDoc() {
             {templatePreview && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Template atual:</Label>
-                <div className="relative rounded-lg overflow-hidden border border-border">
-                  <img src={templatePreview} alt="Template" className="w-full h-48 object-contain bg-black/20" />
+                 <div className="relative rounded-lg overflow-auto border border-border bg-black/20 min-h-[420px] flex items-center justify-center p-3">
+                   <div className="relative inline-block">
+                     <img ref={settingsImgRef} src={templatePreview} alt="Template" className="block max-w-full max-h-[62vh] object-contain select-none" draggable={false} />
+                     {photoOverlay && (
+                       <div
+                         className="absolute border border-primary/60"
+                         onMouseDown={(e) => onElementMouseDown("photo", e)}
+                         style={{ left: `${photoPos.xPct}%`, top: `${photoPos.yPct}%`, width: `${photoPos.wPct}%`, height: `${photoPos.hPct}%`, cursor: "move" }}
+                       >
+                         <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                       </div>
+                     )}
+                     {docIdentidade && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdentidade}</span>
+                       </div>
+                     )}
+                     {formData.nomeCompleto && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nome", e)} style={{ left: `${safeTextPos.nome.xPct}%`, top: `${safeTextPos.nome.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-bold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nome}px` }}>{formData.nomeCompleto}</span>
+                       </div>
+                     )}
+                     {(formData.dataNascimento || formData.naturalidade) && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nascimento", e)} style={{ left: `${safeTextPos.nascimento.xPct}%`, top: `${safeTextPos.nascimento.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nascimento}px` }}>{[formData.dataNascimento ? parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR") : "", formData.naturalidade, formData.uf].filter(Boolean).join(" - ")}</span>
+                       </div>
+                     )}
+                     {(formData.nomePai || formData.nomeMae) && (
+                       <div className="absolute select-none flex flex-col" onMouseDown={(e) => onElementMouseDown("filiacao", e)} style={{ left: `${safeTextPos.filiacao.xPct}%`, top: `${safeTextPos.filiacao.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         {formData.nomePai && <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.filiacao}px` }}>{formData.nomePai}</span>}
+                         {formData.nomeMae && <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.filiacao}px` }}>{formData.nomeMae}</span>}
+                       </div>
+                     )}
+                     {formData.nomeCompleto && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("assinatura", e)} style={{ left: `${safeTextPos.assinatura.xPct}%`, top: `${safeTextPos.assinatura.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${safeFontSizes.assinatura}px`, color: "#1a1a8a" }}>{formData.nomeCompleto}</span>
+                       </div>
+                     )}
+                     {([
+                       ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
+                       ["dataEmissao", autoData.dataEmissao, "text-black/90"],
+                       ["validade", autoData.validade, "text-destructive"],
+                       ["categoria", autoData.categoria, "text-destructive"],
+                       ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                     ] as const).map(([key, value, colorClass]) => (
+                       <div key={key} className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown(key, e)} style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
+                       </div>
+                     ))}
+                     <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("id", e)} style={{ left: `${safeTextPos.id.xPct}%`, top: `${safeTextPos.id.yPct}%`, transform: `rotate(${idRotation}deg)`, transformOrigin: "left top", cursor: "move", lineHeight: 1 }}>
+                       <span className="text-black/90" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: `${safeFontSizes.id}px` }}>{autoData.id}</span>
+                     </div>
+                   </div>
                   <button
                     onClick={removeTemplate}
                     className="absolute top-2 right-2 bg-destructive rounded-full p-1 hover:bg-destructive/80 transition-colors"
                   >
                     <X className="size-4 text-white" />
-                  </button>
+                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground">Este template será carregado automaticamente ao abrir esta página.</p>
               </div>
@@ -659,7 +790,7 @@ export default function AdminEmissorDoc() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
+                  Arraste as informações diretamente no template acima. Ajuste fontes e rotação nos dados do documento, depois salve as posições permanentemente.
                 </p>
                 <Button onClick={() => savePositions(false)} variant="outline" className="w-full gap-2">
                   <Download className="size-4" />
@@ -676,7 +807,7 @@ export default function AdminEmissorDoc() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
         {/* Left: Upload Foto + Form */}
         <div className="space-y-4">
           <Card className="bg-white/5 border-white/10">
@@ -823,6 +954,42 @@ export default function AdminEmissorDoc() {
                 </div>
               </div>
 
+              <div className="pt-2 border-t border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-white/60 text-xs">Dados automáticos</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setAutoData(generateAutoDocumentData())}>
+                    <RefreshCw className="size-3" /> Gerar novamente
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ["Primeira habilitação", autoData.primeiraHabilitacao],
+                    ["Data de emissão", autoData.dataEmissao],
+                    ["Validade", autoData.validade],
+                    ["Categoria", autoData.categoria],
+                    ["Número de registro", autoData.numeroRegistro],
+                    ["ID", autoData.id],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <Label className="text-white/40 text-[10px]">{label}</Label>
+                      <Input value={value} readOnly className={`mt-0.5 bg-white/5 border-white/10 text-xs ${["Validade", "Categoria", "Número de registro"].includes(label) ? "text-destructive" : "text-white"} ${label === "ID" ? "font-mono" : ""}`} />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/40 whitespace-nowrap">Fonte do ID:</span>
+                    <Slider value={[safeFontSizes.id]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, id: v }))} min={5} max={28} step={0.5} className="flex-1" />
+                    <span className="text-[10px] text-white/50 w-10">{safeFontSizes.id}px</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/40 whitespace-nowrap">Giro do ID:</span>
+                    <Slider value={[idRotation]} onValueChange={([v]) => setIdRotation(v)} min={-180} max={180} step={1} className="flex-1" />
+                    <span className="text-[10px] text-white/50 w-10">{idRotation}°</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Assinatura */}
               <div className="pt-2 border-t border-white/10">
                 <Label className="text-white/60 text-xs">Assinatura (gerada do nome)</Label>
@@ -869,7 +1036,7 @@ export default function AdminEmissorDoc() {
         </div>
 
         {/* Right: Full-size viewer */}
-        <Card className="bg-white/5 border-white/10 min-h-[70vh]">
+        <Card className="bg-white/5 border-white/10 min-h-[78vh]">
           <CardHeader className="pb-3 flex-row items-center justify-between">
             <CardTitle className="text-white text-sm">Visualização</CardTitle>
             {selectedImage && (
@@ -898,7 +1065,7 @@ export default function AdminEmissorDoc() {
             )}
           </CardHeader>
           <CardContent
-            className="overflow-hidden h-[calc(70vh-60px)]"
+            className="overflow-hidden h-[calc(78vh-60px)]"
             style={{ cursor: panMode ? (isPanning ? "grabbing" : "grab") : "default" }}
             onMouseDown={onViewerMouseDown}
           >
@@ -925,19 +1092,20 @@ export default function AdminEmissorDoc() {
                     alt="Visualização"
                     className="select-none"
                     draggable={false}
-                    style={{ maxWidth: "100%", maxHeight: "calc(70vh - 80px)", objectFit: "contain" }}
+                    style={{ maxWidth: "100%", maxHeight: "calc(78vh - 80px)", objectFit: "contain" }}
                   />
 
                   {photoOverlay && (
                     <div
                       className="absolute border border-blue-400/50"
+                      onMouseDown={(e) => onElementMouseDown("photo", e)}
                       style={{
                         left: `${photoPos.xPct}%`,
                         top: `${photoPos.yPct}%`,
                         width: `${photoPos.wPct}%`,
                         height: `${photoPos.hPct}%`,
-                        cursor: "default",
-                        pointerEvents: "none",
+                        cursor: panMode ? "default" : "move",
+                        pointerEvents: panMode ? "none" : "auto",
                       }}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover" draggable={false} />
@@ -947,7 +1115,8 @@ export default function AdminEmissorDoc() {
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
+                      onMouseDown={(e) => onElementMouseDown("nome", e)}
+                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
@@ -957,7 +1126,8 @@ export default function AdminEmissorDoc() {
                   {docIdentidade && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
+                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
@@ -967,7 +1137,8 @@ export default function AdminEmissorDoc() {
                   {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
+                      onMouseDown={(e) => onElementMouseDown("nascimento", e)}
+                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {[
@@ -981,7 +1152,8 @@ export default function AdminEmissorDoc() {
                   {(formData.nomePai || formData.nomeMae) && (
                     <div
                       className="absolute select-none flex flex-col"
-                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
+                      onMouseDown={(e) => onElementMouseDown("filiacao", e)}
+                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       {formData.nomePai && (
                         <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
@@ -998,13 +1170,37 @@ export default function AdminEmissorDoc() {
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
+                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
                         {formData.nomeCompleto}
                       </span>
                     </div>
                   )}
+                  {([
+                    ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
+                    ["dataEmissao", autoData.dataEmissao, "text-black/90"],
+                    ["validade", autoData.validade, "text-destructive"],
+                    ["categoria", autoData.categoria, "text-destructive"],
+                    ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                  ] as const).map(([key, value, colorClass]) => (
+                    <div
+                      key={key}
+                      className="absolute select-none whitespace-nowrap"
+                      onMouseDown={(e) => onElementMouseDown(key, e)}
+                      style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
+                    >
+                      <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
+                    </div>
+                  ))}
+                  <div
+                    className="absolute select-none whitespace-nowrap"
+                    onMouseDown={(e) => onElementMouseDown("id", e)}
+                    style={{ left: `${safeTextPos.id.xPct}%`, top: `${safeTextPos.id.yPct}%`, transform: `rotate(${idRotation}deg)`, transformOrigin: "left top", cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
+                  >
+                    <span className="text-black/90" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: `${safeFontSizes.id}px` }}>{autoData.id}</span>
+                  </div>
                 </div>
               </div>
             ) : (
