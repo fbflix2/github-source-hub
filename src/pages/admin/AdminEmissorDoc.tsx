@@ -21,6 +21,7 @@ type AutoDocumentData = {
   validade: string;
   categoria: string;
   numeroRegistro: string;
+  cpf: string;
   id: string;
 };
 
@@ -36,6 +37,24 @@ function randomDigits(length: number): string {
   return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
 }
 
+function generateValidCpf(): string {
+  let base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
+  while (base.every((digit) => digit === base[0])) {
+    base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
+  }
+
+  const calculateDigit = (digits: number[]) => {
+    const sum = digits.reduce((total, digit, index) => total + digit * (digits.length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  const firstDigit = calculateDigit(base);
+  const secondDigit = calculateDigit([...base, firstDigit]);
+  const cpf = [...base, firstDigit, secondDigit].join("");
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
 function generateAutoDocumentData(): AutoDocumentData {
   const first = randomDateBetween(new Date("2021-02-05T12:00:00Z"), new Date("2024-05-10T12:00:00Z"));
   const emission = new Date(first);
@@ -48,6 +67,7 @@ function generateAutoDocumentData(): AutoDocumentData {
     validade: formatDocumentDate(validity),
     categoria: "AB",
     numeroRegistro: randomDigits(11),
+    cpf: generateValidCpf(),
     id: randomDigits(10),
   };
 }
@@ -101,6 +121,7 @@ const DEFAULT_TEXT = {
   validade: { xPct: 77, yPct: 51 },
   categoria: { xPct: 63, yPct: 51 },
   numeroRegistro: { xPct: 45, yPct: 51 },
+  cpf: { xPct: 45, yPct: 60 },
   id: { xPct: 11, yPct: 65 },
 };
 const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
@@ -115,6 +136,7 @@ const DEFAULT_FONT_SIZES = {
   validade: 8,
   categoria: 9,
   numeroRegistro: 8,
+  cpf: 8,
   id: 10,
 };
 
@@ -177,6 +199,7 @@ export default function AdminEmissorDoc() {
     validade: sanitizeTextPoint(textPos.validade, DEFAULT_TEXT.validade),
     categoria: sanitizeTextPoint(textPos.categoria, DEFAULT_TEXT.categoria),
     numeroRegistro: sanitizeTextPoint(textPos.numeroRegistro, DEFAULT_TEXT.numeroRegistro),
+    cpf: sanitizeTextPoint(textPos.cpf, DEFAULT_TEXT.cpf),
     id: sanitizeTextPoint(textPos.id, DEFAULT_TEXT.id),
   };
 
@@ -486,6 +509,7 @@ export default function AdminEmissorDoc() {
       { key: "validade", value: autoData.validade, color: RED_DOCUMENT_TEXT },
       { key: "categoria", value: autoData.categoria, color: RED_DOCUMENT_TEXT },
       { key: "numeroRegistro", value: autoData.numeroRegistro, color: RED_DOCUMENT_TEXT },
+      { key: "cpf", value: autoData.cpf, color: "rgba(0,0,0,0.9)" },
     ] as const;
     for (const field of autoFields) {
       const fs = scaledFont(safeFontSizes[field.key]);
@@ -716,6 +740,7 @@ export default function AdminEmissorDoc() {
                        ["validade", autoData.validade, "text-destructive"],
                        ["categoria", autoData.categoria, "text-destructive"],
                        ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                        ["cpf", autoData.cpf, "text-black/90"],
                      ] as const).map(([key, value, colorClass]) => (
                        <div key={key} className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown(key, e)} style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: "move", lineHeight: 1 }}>
                          <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
@@ -968,6 +993,7 @@ export default function AdminEmissorDoc() {
                     ["Validade", autoData.validade],
                     ["Categoria", autoData.categoria],
                     ["Número de registro", autoData.numeroRegistro],
+                    ["CPF", autoData.cpf],
                     ["ID", autoData.id],
                   ].map(([label, value]) => (
                     <div key={label}>
@@ -977,13 +1003,27 @@ export default function AdminEmissorDoc() {
                   ))}
                 </div>
                 <div className="space-y-1">
+                  {([
+                    ["primeiraHabilitacao", "Fonte da primeira habilitação"],
+                    ["dataEmissao", "Fonte da data de emissão"],
+                    ["validade", "Fonte da validade"],
+                    ["categoria", "Fonte da categoria"],
+                    ["numeroRegistro", "Fonte do número de registro"],
+                    ["cpf", "Fonte do CPF"],
+                  ] as const).map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <span className="text-[10px] text-white/40 whitespace-nowrap w-44">{label}:</span>
+                      <Slider value={[safeFontSizes[key]]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, [key]: v }))} min={5} max={28} step={0.5} className="flex-1" />
+                      <span className="text-[10px] text-white/50 w-10">{safeFontSizes[key]}px</span>
+                    </div>
+                  ))}
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/40 whitespace-nowrap">Fonte do ID:</span>
+                    <span className="text-[10px] text-white/40 whitespace-nowrap w-44">Fonte do ID:</span>
                     <Slider value={[safeFontSizes.id]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, id: v }))} min={5} max={28} step={0.5} className="flex-1" />
                     <span className="text-[10px] text-white/50 w-10">{safeFontSizes.id}px</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/40 whitespace-nowrap">Giro do ID:</span>
+                    <span className="text-[10px] text-white/40 whitespace-nowrap w-44">Giro do ID:</span>
                     <Slider value={[idRotation]} onValueChange={([v]) => setIdRotation(v)} min={-180} max={180} step={1} className="flex-1" />
                     <span className="text-[10px] text-white/50 w-10">{idRotation}°</span>
                   </div>
@@ -1184,6 +1224,7 @@ export default function AdminEmissorDoc() {
                     ["validade", autoData.validade, "text-destructive"],
                     ["categoria", autoData.categoria, "text-destructive"],
                     ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                    ["cpf", autoData.cpf, "text-black/90"],
                   ] as const).map(([key, value, colorClass]) => (
                     <div
                       key={key}
