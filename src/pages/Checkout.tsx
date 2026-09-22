@@ -1123,23 +1123,6 @@ export default function Checkout() {
     })();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-8 text-primary animate-spin" />
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Produto não encontrado.</p>
-        <button onClick={() => navigate("/loja")} className="text-primary mt-4 hover:underline">Voltar à loja</button>
-      </div>
-    );
-  }
-
   const toggleBump = (bumpId: string) => {
     setSelectedBumps((prev) =>
       prev.includes(bumpId) ? prev.filter((id) => id !== bumpId) : [...prev, bumpId]
@@ -1239,6 +1222,23 @@ export default function Checkout() {
     partnerCouponTried.current = true;
     applyCoupon();
   }, [partnerCoupon, coupon, couponApplied, subtotal]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Produto não encontrado.</p>
+        <button onClick={() => navigate("/loja")} className="text-primary mt-4 hover:underline">Voltar à loja</button>
+      </div>
+    );
+  }
 
   const handlePay = async () => {
     if (isResellerCheckout && product && resellerItemPrices[product.id] == null) {
