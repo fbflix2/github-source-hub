@@ -1106,6 +1106,23 @@ export default function Checkout() {
     isResellerCheckout && product && resellerItemPrices[product.id] == null,
   );
 
+  // Exclusive partner coupon: these hooks must run before any conditional
+  // return so React sees the same hook order while the product is loading and
+  // after it has loaded.
+  const [partnerCoupon, setPartnerCoupon] = useState<string | null>(null);
+  const partnerCouponTried = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      const { getPartnerCoupon } = await import("@/lib/partnerTracking");
+      const c = getPartnerCoupon();
+      if (c) {
+        setPartnerCoupon(c);
+        setCoupon((prev) => (prev ? prev : c));
+      }
+    })();
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -1214,22 +1231,6 @@ export default function Checkout() {
       setApplyingCoupon(false);
     }
   };
-
-  // Exclusive partner coupon: pre-fill and auto-apply for visitors that came
-  // through a partner referral link (e.g. /parceiro/alexandre -> ALE10).
-  const [partnerCoupon, setPartnerCoupon] = useState<string | null>(null);
-  const partnerCouponTried = useRef(false);
-
-  useEffect(() => {
-    (async () => {
-      const { getPartnerCoupon } = await import("@/lib/partnerTracking");
-      const c = getPartnerCoupon();
-      if (c) {
-        setPartnerCoupon(c);
-        setCoupon((prev) => (prev ? prev : c));
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     if (!partnerCoupon || partnerCouponTried.current) return;
