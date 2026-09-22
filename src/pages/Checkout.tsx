@@ -1106,22 +1106,22 @@ export default function Checkout() {
     isResellerCheckout && product && resellerItemPrices[product.id] == null,
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-8 text-primary animate-spin" />
-      </div>
-    );
-  }
+  // Exclusive partner coupon: these hooks must run before any conditional
+  // return so React sees the same hook order while the product is loading and
+  // after it has loaded.
+  const [partnerCoupon, setPartnerCoupon] = useState<string | null>(null);
+  const partnerCouponTried = useRef(false);
 
-  if (!product) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Produto não encontrado.</p>
-        <button onClick={() => navigate("/loja")} className="text-primary mt-4 hover:underline">Voltar à loja</button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    (async () => {
+      const { getPartnerCoupon } = await import("@/lib/partnerTracking");
+      const c = getPartnerCoupon();
+      if (c) {
+        setPartnerCoupon(c);
+        setCoupon((prev) => (prev ? prev : c));
+      }
+    })();
+  }, []);
 
   const toggleBump = (bumpId: string) => {
     setSelectedBumps((prev) =>
@@ -1215,22 +1215,6 @@ export default function Checkout() {
     }
   };
 
-  // Exclusive partner coupon: pre-fill and auto-apply for visitors that came
-  // through a partner referral link (e.g. /parceiro/alexandre -> ALE10).
-  const [partnerCoupon, setPartnerCoupon] = useState<string | null>(null);
-  const partnerCouponTried = useRef(false);
-
-  useEffect(() => {
-    (async () => {
-      const { getPartnerCoupon } = await import("@/lib/partnerTracking");
-      const c = getPartnerCoupon();
-      if (c) {
-        setPartnerCoupon(c);
-        setCoupon((prev) => (prev ? prev : c));
-      }
-    })();
-  }, []);
-
   useEffect(() => {
     if (!partnerCoupon || partnerCouponTried.current) return;
     if (couponApplied || subtotal <= 0) return;
@@ -1238,6 +1222,23 @@ export default function Checkout() {
     partnerCouponTried.current = true;
     applyCoupon();
   }, [partnerCoupon, coupon, couponApplied, subtotal]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Produto não encontrado.</p>
+        <button onClick={() => navigate("/loja")} className="text-primary mt-4 hover:underline">Voltar à loja</button>
+      </div>
+    );
+  }
 
   const handlePay = async () => {
     if (isResellerCheckout && product && resellerItemPrices[product.id] == null) {
