@@ -201,6 +201,7 @@ export default function AdminEmissorDoc() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const settingsImgRef = useRef<HTMLImageElement>(null);
 
   const [templateLoading, setTemplateLoading] = useState(true);
 
@@ -245,8 +246,9 @@ export default function AdminEmissorDoc() {
   }, []);
 
   const getImgRect = () => {
-    if (!imgRef.current) return null;
-    return { w: imgRef.current.clientWidth, h: imgRef.current.clientHeight };
+    const activeImage = settingsOpen ? settingsImgRef.current : imgRef.current;
+    if (!activeImage) return null;
+    return { w: activeImage.clientWidth, h: activeImage.clientHeight };
   };
 
   const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -670,14 +672,44 @@ export default function AdminEmissorDoc() {
             {templatePreview && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Template atual:</Label>
-                <div className="relative rounded-lg overflow-hidden border border-border">
-                  <img src={templatePreview} alt="Template" className="w-full max-h-[58vh] object-contain bg-black/20" />
+                 <div className="relative rounded-lg overflow-auto border border-border bg-black/20 min-h-[420px] flex items-center justify-center p-3">
+                   <div className="relative inline-block">
+                     <img ref={settingsImgRef} src={templatePreview} alt="Template" className="block max-w-full max-h-[62vh] object-contain select-none" draggable={false} />
+                     {photoOverlay && (
+                       <div
+                         className="absolute border border-primary/60"
+                         onMouseDown={(e) => onElementMouseDown("photo", e)}
+                         style={{ left: `${photoPos.xPct}%`, top: `${photoPos.yPct}%`, width: `${photoPos.wPct}%`, height: `${photoPos.hPct}%`, cursor: "move" }}
+                       >
+                         <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                       </div>
+                     )}
+                     {docIdentidade && (
+                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdentidade}</span>
+                       </div>
+                     )}
+                     {([
+                       ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
+                       ["dataEmissao", autoData.dataEmissao, "text-black/90"],
+                       ["validade", autoData.validade, "text-destructive"],
+                       ["categoria", autoData.categoria, "text-destructive"],
+                       ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                     ] as const).map(([key, value, colorClass]) => (
+                       <div key={key} className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown(key, e)} style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: "move", lineHeight: 1 }}>
+                         <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
+                       </div>
+                     ))}
+                     <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("id", e)} style={{ left: `${safeTextPos.id.xPct}%`, top: `${safeTextPos.id.yPct}%`, transform: `rotate(${idRotation}deg)`, transformOrigin: "left top", cursor: "move", lineHeight: 1 }}>
+                       <span className="text-black/90" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: `${safeFontSizes.id}px` }}>{autoData.id}</span>
+                     </div>
+                   </div>
                   <button
                     onClick={removeTemplate}
                     className="absolute top-2 right-2 bg-destructive rounded-full p-1 hover:bg-destructive/80 transition-colors"
                   >
                     <X className="size-4 text-white" />
-                  </button>
+                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground">Este template será carregado automaticamente ao abrir esta página.</p>
               </div>
@@ -737,7 +769,7 @@ export default function AdminEmissorDoc() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Use a visualização grande ao lado para arrastar todas as informações. Ajuste fontes, rotação e contraste, depois salve as posições permanentemente.
+                  Arraste as informações diretamente no template acima. Ajuste fontes e rotação nos dados do documento, depois salve as posições permanentemente.
                 </p>
                 <Button onClick={() => savePositions(false)} variant="outline" className="w-full gap-2">
                   <Download className="size-4" />
@@ -1051,8 +1083,8 @@ export default function AdminEmissorDoc() {
                         top: `${photoPos.yPct}%`,
                         width: `${photoPos.wPct}%`,
                         height: `${photoPos.hPct}%`,
-                        cursor: "default",
-                        pointerEvents: "none",
+                        cursor: panMode ? "default" : "move",
+                        pointerEvents: panMode ? "none" : "auto",
                       }}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover" draggable={false} />
