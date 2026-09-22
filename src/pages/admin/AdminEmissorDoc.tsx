@@ -195,6 +195,9 @@ export default function AdminEmissorDoc() {
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
+  const [brightness, setBrightness] = useState(100);
+  const [saturation, setSaturation] = useState(100);
+  const [grayscale, setGrayscale] = useState(0);
   const [idRotation, setIdRotation] = useState(0);
   const [autoData, setAutoData] = useState<AutoDocumentData>(() => generateAutoDocumentData());
   const [docIdRandom, setDocIdRandom] = useState<string>(() => generateRandomDocIdentidade(DEFAULT_DOC_IDENTIDADE));
@@ -279,6 +282,9 @@ export default function AdminEmissorDoc() {
                 if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
+                if (saved.brightness != null) setBrightness(saved.brightness);
+                if (saved.saturation != null) setSaturation(saved.saturation);
+                if (saved.grayscale != null) setGrayscale(saved.grayscale);
                 if (saved.idRotation != null) setIdRotation(saved.idRotation);
               } catch { /* ignore parse errors */ }
             }
@@ -353,6 +359,9 @@ export default function AdminEmissorDoc() {
       setFontSizes({ ...DEFAULT_FONT_SIZES });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
+      setBrightness(100);
+      setSaturation(100);
+      setGrayscale(0);
       setIdRotation(0);
       setSignatureFont(SIGNATURE_FONTS[0]);
       setDocIdentidade(DEFAULT_DOC_IDENTIDADE);
@@ -370,6 +379,9 @@ export default function AdminEmissorDoc() {
         photoPos,
         signatureFont,
         contrast,
+        brightness,
+        saturation,
+        grayscale,
         idRotation,
       });
       const { data: existing } = await supabase
@@ -387,7 +399,7 @@ export default function AdminEmissorDoc() {
     } catch {
       if (!silent) toast.error("Erro ao salvar posições");
     }
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, docIdentidadePos]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, idRotation, docIdentidadePos]);
 
   // Auto-save positions after changes (debounced)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -399,7 +411,7 @@ export default function AdminEmissorDoc() {
       savePositions(true);
     }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [textPos, fontSizes, photoPos, signatureFont, contrast, idRotation, docIdentidadePos, selectedImage, templateLoading, savePositions]);
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, brightness, saturation, grayscale, idRotation, docIdentidadePos, selectedImage, templateLoading, savePositions]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -425,8 +437,8 @@ export default function AdminEmissorDoc() {
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    // Apply contrast
-    ctx.filter = `contrast(${contrast}%)`;
+    // Apply the same basic image adjustments shown in the preview.
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%)`;
     ctx.drawImage(baseImg, 0, 0, W, H);
     ctx.filter = "none";
 
@@ -556,6 +568,18 @@ export default function AdminEmissorDoc() {
     ctx.font = `${idFs}px "Courier New", Courier, monospace`;
     ctx.fillStyle = "rgba(0,0,0,0.9)";
     ctx.fillText(autoData.id, 0, 0);
+    ctx.restore();
+
+    // Permanent safety marking for simulated documents.
+    const watermarkSize = Math.max(20, Math.round(W * 0.032));
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(-Math.PI / 10);
+    ctx.font = `700 ${watermarkSize}px Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(180, 0, 0, 0.34)";
+    ctx.fillText("MODELO SEM VALIDADE", 0, 0);
     ctx.restore();
 
     // Download
@@ -900,75 +924,7 @@ export default function AdminEmissorDoc() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[220px_minmax(0,1fr)_340px] gap-4 items-start xl:items-stretch xl:h-[calc(100vh-7rem)] xl:min-h-[620px]">
-        {/* Left: Upload Foto + Form */}
-        <div className="space-y-3 xl:h-full xl:overflow-y-auto xl:pr-1">
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-sm">Foto & Dados</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-              <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
-                <UserCircle className="size-4" />
-                Upload Foto 3×4
-              </Button>
-              {photoOverlay && (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
-                  <img src={photoOverlay} alt="Foto" className="w-10 h-12 object-cover rounded border border-white/20" />
-                  <span className="text-xs text-white/60 flex-1">Posicionada automaticamente</span>
-                  <button onClick={() => { URL.revokeObjectURL(photoOverlay); setPhotoOverlay(null); }}>
-                    <X className="size-4 text-white/40 hover:text-white" />
-                  </button>
-                </div>
-              )}
-              {!templatePreview && (
-                <div className="text-center py-4 text-white/30 text-xs border border-dashed border-white/10 rounded-lg">
-                  Nenhum template configurado.<br />
-                  <button onClick={() => setSettingsOpen(true)} className="text-primary underline mt-1">Configurar template</button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Form */}
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm">Dados do Documento</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label className="text-white/60 text-xs">Nome Completo</Label>
-                <Input
-                  value={formData.nomeCompleto}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const sobrenome = extractSobrenome(val);
-                    setFormData((f) => ({
-                      ...f,
-                      nomeCompleto: val,
-                      nomePai: sobrenome ? gerarNomePai(sobrenome) : "",
-                      nomeMae: sobrenome ? gerarNomeMae(sobrenome) : "",
-                    }));
-                  }}
-                  placeholder="NOME COMPLETO"
-                  className="mt-1 bg-white/5 border-white/10 text-white uppercase"
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <Label className="text-white/60 text-xs">Data de Nascimento</Label>
-                <Input
-                  type="date"
-                  value={formData.dataNascimento}
-                  onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
-                  className="mt-1 bg-white/5 border-white/10 text-white"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start xl:items-stretch xl:h-[calc(100vh-7rem)] xl:min-h-[620px]">
         {/* Center: Full-size viewer */}
         <div className="min-w-0 xl:h-full">
         <Card className="bg-white/5 border-white/10 min-h-[620px] xl:min-h-0 xl:h-full flex flex-col">
@@ -1000,7 +956,7 @@ export default function AdminEmissorDoc() {
             )}
           </CardHeader>
           <CardContent
-            className="overflow-hidden h-[calc(78vh-60px)] xl:h-auto xl:flex-1 xl:min-h-0"
+            className="overflow-hidden h-[calc(72vh-60px)] xl:h-auto xl:flex-1 xl:min-h-0"
             style={{ cursor: panMode ? (isPanning ? "grabbing" : "grab") : "default" }}
             onMouseDown={onViewerMouseDown}
           >
@@ -1018,7 +974,7 @@ export default function AdminEmissorDoc() {
                     transform: `scale(${zoom}) rotate(${rotation}deg)`,
                     transformOrigin: "center center",
                     transition: "transform 0.2s",
-                    filter: `contrast(${contrast}%)`,
+                    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%)`,
                   }}
                 >
                   <img
@@ -1027,7 +983,7 @@ export default function AdminEmissorDoc() {
                     alt="Visualização"
                     className="select-none"
                     draggable={false}
-                    style={{ maxWidth: "100%", maxHeight: "calc(100vh - 13rem)", objectFit: "contain" }}
+                    style={{ maxWidth: "100%", maxHeight: "calc(100vh - 19rem)", objectFit: "contain" }}
                   />
 
                   {photoOverlay && (
@@ -1152,6 +1108,26 @@ export default function AdminEmissorDoc() {
               </div>
             )}
           </CardContent>
+          <div className="shrink-0 border-t border-white/10 px-5 py-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-xs font-medium text-white/70">Ajustes da imagem</span>
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setBrightness(100); setContrast(100); setSaturation(100); setGrayscale(0); }}>Restaurar</Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-x-5 gap-y-2">
+              {([
+                ["Brilho", brightness, setBrightness, 50, 150],
+                ["Contraste", contrast, setContrast, 50, 200],
+                ["Saturação", saturation, setSaturation, 0, 200],
+                ["Cinza", grayscale, setGrayscale, 0, 100],
+              ] as const).map(([label, value, setter, min, max]) => (
+                <div key={label} className="grid grid-cols-[58px_minmax(0,1fr)_36px] items-center gap-2">
+                  <Label className="text-[10px] text-white/50">{label}</Label>
+                  <Slider value={[value]} onValueChange={([next]) => setter(next)} min={min} max={max} step={1} />
+                  <span className="text-[10px] text-white/50 text-right">{value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </Card>
         </div>
 
@@ -1164,6 +1140,31 @@ export default function AdminEmissorDoc() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4 xl:flex-1 xl:min-h-0 xl:overflow-y-auto xl:pr-3">
+            <div className="space-y-3 pb-3 border-b border-white/10">
+              <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
+                <UserCircle className="size-4" /> Upload Foto 3×4
+              </Button>
+              {photoOverlay && (
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
+                  <img src={photoOverlay} alt="Foto" className="w-9 h-11 object-cover rounded border border-white/20" />
+                  <span className="text-xs text-white/60 flex-1">Posicionada automaticamente</span>
+                  <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => { URL.revokeObjectURL(photoOverlay); setPhotoOverlay(null); }} title="Remover foto"><X className="size-4" /></Button>
+                </div>
+              )}
+              <div>
+                <Label className="text-white/60 text-xs">Nome Completo</Label>
+                <Input value={formData.nomeCompleto} onChange={(e) => {
+                  const val = e.target.value;
+                  const sobrenome = extractSobrenome(val);
+                  setFormData((f) => ({ ...f, nomeCompleto: val, nomePai: sobrenome ? gerarNomePai(sobrenome) : "", nomeMae: sobrenome ? gerarNomeMae(sobrenome) : "" }));
+                }} placeholder="NOME COMPLETO" className="mt-1 bg-white/5 border-white/10 text-white uppercase" maxLength={100} />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Data de Nascimento</Label>
+                <Input type="date" value={formData.dataNascimento} onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))} className="mt-1 bg-white/5 border-white/10 text-white" />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {[
                 ["Primeira habilitação", autoData.primeiraHabilitacao],
@@ -1248,11 +1249,6 @@ export default function AdminEmissorDoc() {
                 <Label className="text-white/60 text-xs">Assinatura</Label>
                 <Slider value={[safeTextPos.assinatura.yPct]} onValueChange={([v]) => setTextPos((prev) => ({ ...prev, assinatura: { ...prev.assinatura, yPct: v } }))} min={0} max={100} step={0.1} />
                 <span className="text-[10px] text-white/50 text-right">{safeTextPos.assinatura.yPct.toFixed(1)}%</span>
-              </div>
-              <div className="grid grid-cols-[72px_minmax(0,1fr)_42px] items-center gap-2">
-                <Label className="text-white/60 text-xs">Contraste</Label>
-                <Slider value={[contrast]} onValueChange={([v]) => setContrast(v)} min={50} max={200} step={1} />
-                <span className="text-[10px] text-white/50 text-right">{contrast}%</span>
               </div>
             </div>
           </CardContent>
