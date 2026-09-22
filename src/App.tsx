@@ -130,6 +130,7 @@ import AdminDepartments from "./pages/admin/AdminDepartments";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
+import AdminEmissorDoc from "./pages/admin/AdminEmissorDoc";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
