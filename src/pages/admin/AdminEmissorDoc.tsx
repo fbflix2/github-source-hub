@@ -423,6 +423,8 @@ export default function AdminEmissorDoc() {
 
   const downloadImage = async () => {
     if (!selectedImage) return;
+    const accepted = window.confirm("Esta imagem será exportada com a marca permanente “MODELO SEM VALIDADE”. Deseja continuar?");
+    if (!accepted) return;
 
     const baseImg = new Image();
     baseImg.crossOrigin = "anonymous";
@@ -435,7 +437,11 @@ export default function AdminEmissorDoc() {
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      toast.error("Não foi possível preparar a imagem para download.");
+      return;
+    }
 
     // Apply the same basic image adjustments shown in the preview.
     ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%)`;
@@ -1093,6 +1099,9 @@ export default function AdminEmissorDoc() {
                     style={{ left: `${safeTextPos.id.xPct}%`, top: `${safeTextPos.id.yPct}%`, transform: `rotate(${idRotation}deg)`, transformOrigin: "left top", cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                   >
                     <span className="text-black/90" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: `${safeFontSizes.id}px` }}>{autoData.id}</span>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                    <span className="text-destructive/35 text-3xl sm:text-5xl font-bold rotate-[-18deg] whitespace-nowrap">MODELO SEM VALIDADE</span>
                   </div>
                 </div>
               </div>
