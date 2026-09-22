@@ -476,7 +476,10 @@ export default function AdminEmissorDoc() {
         sx = 0;
         sy = (pImg.naturalHeight - sh) / 2;
       }
+      // Apply the same adjustments to the 3x4 photo, as shown in the preview.
+      ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) grayscale(${grayscale}%)`;
       ctx.drawImage(pImg, sx, sy, sw, sh, dx, dy, dw, dh);
+      ctx.filter = "none";
     }
 
     // Helper to compute font size scaled to natural resolution
