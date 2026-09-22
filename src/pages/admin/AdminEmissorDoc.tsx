@@ -1196,14 +1196,14 @@ export default function AdminEmissorDoc() {
                       </span>
                     </div>
                   )}
-                  {docIdentidade && (
+                  {docIdRandom && (
                     <div
                       className="absolute select-none whitespace-nowrap"
                       onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                       style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
-                        {docIdentidade}
+                        {docIdRandom}
                       </span>
                     </div>
                   )}
@@ -1256,6 +1256,7 @@ export default function AdminEmissorDoc() {
                     ["dataEmissao", autoData.dataEmissao, "text-black/90"],
                     ["validade", autoData.validade, "text-destructive"],
                     ["categoria", autoData.categoria, "text-destructive"],
+                    ["nacionalidade", autoData.nacionalidade, "text-black/90"],
                     ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
                     ["cpf", autoData.cpf, "text-black/90"],
                   ] as const).map(([key, value, colorClass]) => (
