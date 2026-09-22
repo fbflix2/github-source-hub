@@ -75,6 +75,7 @@ function generateAutoDocumentData(): AutoDocumentData {
     dataEmissao: formatDocumentDate(emission),
     validade: formatDocumentDate(validity),
     categoria: "AB",
+    nacionalidade: "BRASILEIRO(A)",
     numeroRegistro: randomDigits(11),
     cpf: generateValidCpf(),
     id: randomDigits(10),
