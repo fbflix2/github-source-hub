@@ -482,13 +482,13 @@ export default function AdminEmissorDoc() {
     }
 
     // Draw doc identidade
-    if (docIdentidade) {
+    if (docIdRandom) {
       const fs = scaledFont(safeFontSizes.docIdentidade);
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (safeTextPos.docIdentidade.xPct / 100) * W;
       const y = (safeTextPos.docIdentidade.yPct / 100) * H + cssTopOffset(fs);
-      ctx.fillText(docIdentidade.toUpperCase(), x, y);
+      ctx.fillText(docIdRandom.toUpperCase(), x, y);
     }
 
     // Draw nascimento + naturalidade
@@ -532,6 +532,7 @@ export default function AdminEmissorDoc() {
       { key: "dataEmissao", value: autoData.dataEmissao, color: "rgba(0,0,0,0.9)" },
       { key: "validade", value: autoData.validade, color: RED_DOCUMENT_TEXT },
       { key: "categoria", value: autoData.categoria, color: RED_DOCUMENT_TEXT },
+      { key: "nacionalidade", value: autoData.nacionalidade, color: "rgba(0,0,0,0.9)" },
       { key: "numeroRegistro", value: autoData.numeroRegistro, color: RED_DOCUMENT_TEXT },
       { key: "cpf", value: autoData.cpf, color: "rgba(0,0,0,0.9)" },
     ] as const;
