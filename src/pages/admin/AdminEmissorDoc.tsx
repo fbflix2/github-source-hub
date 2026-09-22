@@ -20,6 +20,7 @@ type AutoDocumentData = {
   dataEmissao: string;
   validade: string;
   categoria: string;
+  nacionalidade: string;
   numeroRegistro: string;
   cpf: string;
   id: string;
@@ -35,6 +36,14 @@ function formatDocumentDate(date: Date): string {
 
 function randomDigits(length: number): string {
   return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+}
+
+// Mantém o órgão emissor (ex.: "SSPSP") e sorteia o número a cada documento.
+function generateRandomDocIdentidade(template: string): string {
+  const trimmed = (template || DEFAULT_DOC_IDENTIDADE).trim();
+  const match = trimmed.match(/^(\d+)(.*)$/);
+  if (!match) return trimmed;
+  return `${randomDigits(match[1].length)}${match[2] || ""}`;
 }
 
 function generateValidCpf(): string {
@@ -66,6 +75,7 @@ function generateAutoDocumentData(): AutoDocumentData {
     dataEmissao: formatDocumentDate(emission),
     validade: formatDocumentDate(validity),
     categoria: "AB",
+    nacionalidade: "BRASILEIRO(A)",
     numeroRegistro: randomDigits(11),
     cpf: generateValidCpf(),
     id: randomDigits(10),
@@ -113,7 +123,8 @@ function gerarNomeMae(sobrenome: string): string {
 const DEFAULT_TEXT = {
    nome: { xPct: 22.01, yPct: 16.2 },
   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
-   nascimento: { xPct: 45.57, yPct: 19.8 },
+  nascimento: { xPct: 45.57, yPct: 19.8 },
+  nacionalidade: { xPct: 45.57, yPct: 23.5 },
   filiacao: { xPct: 49.71, yPct: 40.31 },
   assinatura: { xPct: 25.0, yPct: 43.61 },
   primeiraHabilitacao: { xPct: 61, yPct: 56 },
@@ -135,6 +146,7 @@ const DEFAULT_FONT_SIZES = {
   dataEmissao: 8,
   validade: 8,
   categoria: 9,
+  nacionalidade: 8,
   numeroRegistro: 8,
   cpf: 8,
   id: 10,
@@ -185,6 +197,17 @@ export default function AdminEmissorDoc() {
   const [contrast, setContrast] = useState(100);
   const [idRotation, setIdRotation] = useState(0);
   const [autoData, setAutoData] = useState<AutoDocumentData>(() => generateAutoDocumentData());
+  const [docIdRandom, setDocIdRandom] = useState<string>(() => generateRandomDocIdentidade(DEFAULT_DOC_IDENTIDADE));
+
+  // O número do Doc. de Identidade é sorteado a cada novo documento (o órgão emissor é mantido).
+  useEffect(() => {
+    setDocIdRandom(generateRandomDocIdentidade(docIdentidade));
+  }, [docIdentidade]);
+
+  const regenerateAllRandomData = useCallback(() => {
+    setAutoData(generateAutoDocumentData());
+    setDocIdRandom(generateRandomDocIdentidade(docIdentidade));
+  }, [docIdentidade]);
 
   const docIdLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -192,6 +215,7 @@ export default function AdminEmissorDoc() {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
     docIdentidade: sanitizeTextPoint(docIdentidadePos, FIXED_DOC_IDENTIDADE_POSITION),
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
+    nacionalidade: sanitizeTextPoint(textPos.nacionalidade, DEFAULT_TEXT.nacionalidade),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
     primeiraHabilitacao: sanitizeTextPoint(textPos.primeiraHabilitacao, DEFAULT_TEXT.primeiraHabilitacao),
@@ -209,7 +233,7 @@ export default function AdminEmissorDoc() {
     filiacao: DEFAULT_FONT_SIZES.filiacao,
     assinatura: DEFAULT_FONT_SIZES.assinatura,
     ...(fontSizes ?? {}),
-    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
+    docIdentidade: fontSizes.docIdentidade ?? FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
 
   const [formData, setFormData] = useState({
@@ -458,13 +482,13 @@ export default function AdminEmissorDoc() {
     }
 
     // Draw doc identidade
-    if (docIdentidade) {
+    if (docIdRandom) {
       const fs = scaledFont(safeFontSizes.docIdentidade);
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (safeTextPos.docIdentidade.xPct / 100) * W;
       const y = (safeTextPos.docIdentidade.yPct / 100) * H + cssTopOffset(fs);
-      ctx.fillText(docIdentidade.toUpperCase(), x, y);
+      ctx.fillText(docIdRandom.toUpperCase(), x, y);
     }
 
     // Draw nascimento + naturalidade
@@ -508,6 +532,7 @@ export default function AdminEmissorDoc() {
       { key: "dataEmissao", value: autoData.dataEmissao, color: "rgba(0,0,0,0.9)" },
       { key: "validade", value: autoData.validade, color: RED_DOCUMENT_TEXT },
       { key: "categoria", value: autoData.categoria, color: RED_DOCUMENT_TEXT },
+      { key: "nacionalidade", value: autoData.nacionalidade, color: "rgba(0,0,0,0.9)" },
       { key: "numeroRegistro", value: autoData.numeroRegistro, color: RED_DOCUMENT_TEXT },
       { key: "cpf", value: autoData.cpf, color: "rgba(0,0,0,0.9)" },
     ] as const;
@@ -708,11 +733,11 @@ export default function AdminEmissorDoc() {
                          <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                        </div>
                      )}
-                     {docIdentidade && (
-                       <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
-                         <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdentidade}</span>
-                       </div>
-                     )}
+                      {docIdRandom && (
+                        <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("docIdentidade", e)} style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "move", lineHeight: 1 }}>
+                          <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>{docIdRandom}</span>
+                        </div>
+                      )}
                      {formData.nomeCompleto && (
                        <div className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown("nome", e)} style={{ left: `${safeTextPos.nome.xPct}%`, top: `${safeTextPos.nome.yPct}%`, cursor: "move", lineHeight: 1 }}>
                          <span className="font-bold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.nome}px` }}>{formData.nomeCompleto}</span>
@@ -738,9 +763,10 @@ export default function AdminEmissorDoc() {
                        ["primeiraHabilitacao", autoData.primeiraHabilitacao, "text-black/90"],
                        ["dataEmissao", autoData.dataEmissao, "text-black/90"],
                        ["validade", autoData.validade, "text-destructive"],
-                       ["categoria", autoData.categoria, "text-destructive"],
-                       ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
-                        ["cpf", autoData.cpf, "text-black/90"],
+                        ["categoria", autoData.categoria, "text-destructive"],
+                        ["nacionalidade", autoData.nacionalidade, "text-black/90"],
+                        ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
+                         ["cpf", autoData.cpf, "text-black/90"],
                      ] as const).map(([key, value, colorClass]) => (
                        <div key={key} className="absolute select-none whitespace-nowrap" onMouseDown={(e) => onElementMouseDown(key, e)} style={{ left: `${safeTextPos[key].xPct}%`, top: `${safeTextPos[key].yPct}%`, cursor: "move", lineHeight: 1 }}>
                          <span className={`font-semibold ${colorClass}`} style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes[key]}px` }}>{value}</span>
@@ -782,7 +808,7 @@ export default function AdminEmissorDoc() {
                     className="mt-1"
                     maxLength={50}
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Este valor será preenchido automaticamente em novos documentos.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">O número do Doc. de Identidade é sorteado automaticamente em cada novo documento — mantenha apenas o órgão emissor (ex.: SSPSP).</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">Posição X:</span>
                     <Slider value={[docIdentidadePos.xPct]} onValueChange={([v]) => {
@@ -812,6 +838,11 @@ export default function AdminEmissorDoc() {
                       }, 3000);
                     }} min={0} max={100} step={0.1} className="flex-1" />
                     <span className="text-[10px] text-muted-foreground w-10">{docIdentidadePos.yPct.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">Fonte:</span>
+                    <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, docIdentidade: v }))} min={5} max={28} step={0.5} className="flex-1" />
+                    <span className="text-[10px] text-muted-foreground w-10">{safeFontSizes.docIdentidade}px</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -982,7 +1013,7 @@ export default function AdminEmissorDoc() {
               <div className="pt-2 border-t border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-white/60 text-xs">Dados automáticos</Label>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setAutoData(generateAutoDocumentData())}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={regenerateAllRandomData}>
                     <RefreshCw className="size-3" /> Gerar novamente
                   </Button>
                 </div>
@@ -992,6 +1023,7 @@ export default function AdminEmissorDoc() {
                     ["Data de emissão", autoData.dataEmissao],
                     ["Validade", autoData.validade],
                     ["Categoria", autoData.categoria],
+                    ["Nacionalidade", autoData.nacionalidade],
                     ["Número de registro", autoData.numeroRegistro],
                     ["CPF", autoData.cpf],
                     ["ID", autoData.id],
@@ -1008,6 +1040,7 @@ export default function AdminEmissorDoc() {
                     ["dataEmissao", "Fonte da data de emissão"],
                     ["validade", "Fonte da validade"],
                     ["categoria", "Fonte da categoria"],
+                    ["nacionalidade", "Fonte da nacionalidade"],
                     ["numeroRegistro", "Fonte do número de registro"],
                     ["cpf", "Fonte do CPF"],
                   ] as const).map(([key, label]) => (
@@ -1163,14 +1196,14 @@ export default function AdminEmissorDoc() {
                       </span>
                     </div>
                   )}
-                  {docIdentidade && (
+                  {docIdRandom && (
                     <div
                       className="absolute select-none whitespace-nowrap"
                       onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                       style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "default" : "move", pointerEvents: panMode ? "none" : "auto", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
-                        {docIdentidade}
+                        {docIdRandom}
                       </span>
                     </div>
                   )}
@@ -1223,6 +1256,7 @@ export default function AdminEmissorDoc() {
                     ["dataEmissao", autoData.dataEmissao, "text-black/90"],
                     ["validade", autoData.validade, "text-destructive"],
                     ["categoria", autoData.categoria, "text-destructive"],
+                    ["nacionalidade", autoData.nacionalidade, "text-black/90"],
                     ["numeroRegistro", autoData.numeroRegistro, "text-destructive"],
                     ["cpf", autoData.cpf, "text-black/90"],
                   ] as const).map(([key, value, colorClass]) => (
