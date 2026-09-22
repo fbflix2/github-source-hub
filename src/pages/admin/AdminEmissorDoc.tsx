@@ -1013,7 +1013,7 @@ export default function AdminEmissorDoc() {
               <div className="pt-2 border-t border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-white/60 text-xs">Dados automáticos</Label>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setAutoData(generateAutoDocumentData())}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={regenerateAllRandomData}>
                     <RefreshCw className="size-3" /> Gerar novamente
                   </Button>
                 </div>
@@ -1023,6 +1023,7 @@ export default function AdminEmissorDoc() {
                     ["Data de emissão", autoData.dataEmissao],
                     ["Validade", autoData.validade],
                     ["Categoria", autoData.categoria],
+                    ["Nacionalidade", autoData.nacionalidade],
                     ["Número de registro", autoData.numeroRegistro],
                     ["CPF", autoData.cpf],
                     ["ID", autoData.id],
