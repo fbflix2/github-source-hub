@@ -130,6 +130,7 @@ import AdminDepartments from "./pages/admin/AdminDepartments";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
+import AdminEmissorDoc from "./pages/admin/AdminEmissorDoc";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
@@ -660,6 +661,7 @@ const App = () => {
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />
+                  <Route path="emissor-doc" element={<AdminEmissorDoc />} />
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="scale-pro-pool" element={<AdminScaleProPool />} />

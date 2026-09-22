@@ -35,6 +35,7 @@ const allMenuItems = [
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
   { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
   { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
+  { title: "Emissor Doc", icon: ImageIcon, path: "/admin/emissor-doc" },
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
   { title: "Parceiros", icon: Users, path: "/admin/parceiros" },
