@@ -197,6 +197,17 @@ export default function AdminEmissorDoc() {
   const [contrast, setContrast] = useState(100);
   const [idRotation, setIdRotation] = useState(0);
   const [autoData, setAutoData] = useState<AutoDocumentData>(() => generateAutoDocumentData());
+  const [docIdRandom, setDocIdRandom] = useState<string>(() => generateRandomDocIdentidade(DEFAULT_DOC_IDENTIDADE));
+
+  // O número do Doc. de Identidade é sorteado a cada novo documento (o órgão emissor é mantido).
+  useEffect(() => {
+    setDocIdRandom(generateRandomDocIdentidade(docIdentidade));
+  }, [docIdentidade]);
+
+  const regenerateAllRandomData = useCallback(() => {
+    setAutoData(generateAutoDocumentData());
+    setDocIdRandom(generateRandomDocIdentidade(docIdentidade));
+  }, [docIdentidade]);
 
   const docIdLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
