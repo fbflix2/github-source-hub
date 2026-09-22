@@ -198,6 +198,7 @@ export default function AdminEmissorDoc() {
   const [brightness, setBrightness] = useState(100);
   const [saturation, setSaturation] = useState(100);
   const [grayscale, setGrayscale] = useState(0);
+  const [noise, setNoise] = useState(0);
   const [idRotation, setIdRotation] = useState(0);
   const [autoData, setAutoData] = useState<AutoDocumentData>(() => generateAutoDocumentData());
   const [docIdRandom, setDocIdRandom] = useState<string>(() => generateRandomDocIdentidade(DEFAULT_DOC_IDENTIDADE));
