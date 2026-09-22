@@ -123,7 +123,8 @@ function gerarNomeMae(sobrenome: string): string {
 const DEFAULT_TEXT = {
    nome: { xPct: 22.01, yPct: 16.2 },
   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
-   nascimento: { xPct: 45.57, yPct: 19.8 },
+  nascimento: { xPct: 45.57, yPct: 19.8 },
+  nacionalidade: { xPct: 45.57, yPct: 23.5 },
   filiacao: { xPct: 49.71, yPct: 40.31 },
   assinatura: { xPct: 25.0, yPct: 43.61 },
   primeiraHabilitacao: { xPct: 61, yPct: 56 },
@@ -145,6 +146,7 @@ const DEFAULT_FONT_SIZES = {
   dataEmissao: 8,
   validade: 8,
   categoria: 9,
+  nacionalidade: 8,
   numeroRegistro: 8,
   cpf: 8,
   id: 10,
