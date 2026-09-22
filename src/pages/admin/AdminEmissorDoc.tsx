@@ -808,7 +808,7 @@ export default function AdminEmissorDoc() {
                     className="mt-1"
                     maxLength={50}
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Este valor será preenchido automaticamente em novos documentos.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">O número do Doc. de Identidade é sorteado automaticamente em cada novo documento — mantenha apenas o órgão emissor (ex.: SSPSP).</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">Posição X:</span>
                     <Slider value={[docIdentidadePos.xPct]} onValueChange={([v]) => {
@@ -838,6 +838,11 @@ export default function AdminEmissorDoc() {
                       }, 3000);
                     }} min={0} max={100} step={0.1} className="flex-1" />
                     <span className="text-[10px] text-muted-foreground w-10">{docIdentidadePos.yPct.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">Fonte:</span>
+                    <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((current) => ({ ...current, docIdentidade: v }))} min={5} max={28} step={0.5} className="flex-1" />
+                    <span className="text-[10px] text-muted-foreground w-10">{safeFontSizes.docIdentidade}px</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
