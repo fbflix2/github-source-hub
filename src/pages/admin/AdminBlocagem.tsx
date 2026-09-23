@@ -194,8 +194,9 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
   };
 
   const parsedItems = useMemo(() => items.map(it => parseFlashText(it.rawText)), [items]);
-  const totalRecognized = parsedItems.reduce((n, p) => n + Object.keys(p).length, 0);
-  const filledCount = items.reduce((n, it, i) => n + ((it.rawText.trim() && Object.keys(parsedItems[i] || {}).length > 0) ? 1 : 0), 0);
+  const countFields = (p: Record<string, string>) => Object.keys(p || {}).filter(k => !k.startsWith("__")).length;
+  const totalRecognized = parsedItems.reduce((n, p) => n + countFields(p), 0);
+  const filledCount = items.reduce((n, it, i) => n + ((it.rawText.trim() && countFields(parsedItems[i]) > 0) ? 1 : 0), 0);
 
   const setComboQty = (qty: number) => {
     const q = Math.max(1, Math.min(200, Math.floor(qty || 1)));
