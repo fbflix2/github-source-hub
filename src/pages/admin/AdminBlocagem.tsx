@@ -152,6 +152,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     };
 
     const out: Record<string, string> = {};
+    const extras: string[] = [];
     const lines = text.split(/\r?\n/);
     for (const rawLine of lines) {
       const line = rawLine.trim();
@@ -160,13 +161,16 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       if (!m) {
         // fallback: pure link line -> linkPerfil
         if (/^https?:\/\//i.test(line) && !out.linkPerfil) out.linkPerfil = line;
+        else extras.push(line);
         continue;
       }
       const key = normalizeKey(m[1]);
       const val = m[2].trim();
       const mapped = keyMap[key];
       if (mapped && !out[mapped]) out[mapped] = val;
+      else if (!mapped) extras.push(`${m[1].trim()}: ${val}`);
     }
+    if (extras.length) out.__extras = extras.join("\n");
 
     // Auto-extract idPerfil from link
     if (out.linkPerfil && !out.idPerfil) {
@@ -190,8 +194,9 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
   };
 
   const parsedItems = useMemo(() => items.map(it => parseFlashText(it.rawText)), [items]);
-  const totalRecognized = parsedItems.reduce((n, p) => n + Object.keys(p).length, 0);
-  const filledCount = items.reduce((n, it, i) => n + ((it.rawText.trim() && Object.keys(parsedItems[i] || {}).length > 0) ? 1 : 0), 0);
+  const countFields = (p: Record<string, string>) => Object.keys(p || {}).filter(k => !k.startsWith("__")).length;
+  const totalRecognized = parsedItems.reduce((n, p) => n + countFields(p), 0);
+  const filledCount = items.reduce((n, it, i) => n + ((it.rawText.trim() && countFields(parsedItems[i]) > 0) ? 1 : 0), 0);
 
   const setComboQty = (qty: number) => {
     const q = Math.max(1, Math.min(200, Math.floor(qty || 1)));
@@ -210,6 +215,16 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       const nome = d.nomePerfil || "";
       const mockup = d.linkDocumento || "https://fbflix.com.br/ferramentas";
       const cookiesOut = (cookies.trim() || d.cookies || "");
+      // Todos os demais dados colados também entram no bloco
+      const extraLines: string[] = [];
+      if (d.tempoPlataforma) extraLines.push(`Tempo de plataforma: ${d.tempoPlataforma}`);
+      if (d.statusAtual) extraLines.push(`Status: ${d.statusAtual}`);
+      if (d.linkDocumento) extraLines.push(`Documento: ${d.linkDocumento}`);
+      if (d.descricao) extraLines.push(`Descrição: ${d.descricao}`);
+      if (d.__extras) extraLines.push(d.__extras);
+      const extrasBlock = extraLines.length
+        ? `\n--------------------------Outras informações--------------------------\n\n${extraLines.join("\n")}\n`
+        : "";
       // Formato PADRÃO fixo (mesmo do bloco de notas oficial). Independente da ordem
       // colada, cada campo é posicionado no seu lugar; ausentes ficam em branco.
       const content =
@@ -256,7 +271,7 @@ Token: ${d.token2fa || ""}
 E-mail alternativo: ${d.emailAlternativo || ""}
 
 Site para gerar os códigos com o Token :https://fbflix.com.br/2fa
---------------------------Acesso login--------------------------
+${extrasBlock}--------------------------Acesso login--------------------------
 
  (Logue via cookie ou usando o id ou e-mail conforme o tutorial)
 
@@ -383,6 +398,22 @@ ${cookiesOut}`;
     } finally {
       setSaving(false);
     }
+  };
+
+  // Apenas gera e baixa o TXT localmente — não salva nada na plataforma
+  const handleDownloadOnly = async () => {
+    const filled = items
+      .map((it, i) => ({ it, i, parsed: parsedItems[i] }))
+      .filter(x => x.it.rawText.trim() && countFields(x.parsed) > 0);
+    if (filled.length === 0) {
+      toast.error("Cole ao menos um item com dados no formato 'Chave: valor'.");
+      return;
+    }
+    for (const x of filled) {
+      const nm = x.parsed.nomePerfil || x.parsed.emailAcesso || `Item ${x.i + 1}`;
+      await generateTxt(x.parsed, x.it.cookiesText, nm);
+    }
+    toast.success(filled.length > 1 ? `${filled.length} TXTs baixados!` : "TXT baixado!");
   };
 
   const exampleText = `Nome: João Silva
@@ -570,6 +601,9 @@ Descrição: Perfil verificado, sem restrições`;
           <Button type="button" variant="outline" size="sm" onClick={handleSaveDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
             {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar como rascunho
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleDownloadOnly} disabled={totalRecognized === 0} className="text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Baixar TXT
           </Button>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
