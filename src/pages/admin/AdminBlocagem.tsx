@@ -271,7 +271,7 @@ Token: ${d.token2fa || ""}
 E-mail alternativo: ${d.emailAlternativo || ""}
 
 Site para gerar os códigos com o Token :https://fbflix.com.br/2fa
---------------------------Acesso login--------------------------
+${extrasBlock}--------------------------Acesso login--------------------------
 
  (Logue via cookie ou usando o id ou e-mail conforme o tutorial)
 
