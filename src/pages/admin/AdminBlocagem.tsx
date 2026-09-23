@@ -602,6 +602,9 @@ Descrição: Perfil verificado, sem restrições`;
             {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar como rascunho
           </Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleDownloadOnly} disabled={totalRecognized === 0} className="text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Baixar TXT
+          </Button>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
             onClick={handleSave}
