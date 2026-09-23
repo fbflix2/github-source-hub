@@ -215,6 +215,16 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       const nome = d.nomePerfil || "";
       const mockup = d.linkDocumento || "https://fbflix.com.br/ferramentas";
       const cookiesOut = (cookies.trim() || d.cookies || "");
+      // Todos os demais dados colados também entram no bloco
+      const extraLines: string[] = [];
+      if (d.tempoPlataforma) extraLines.push(`Tempo de plataforma: ${d.tempoPlataforma}`);
+      if (d.statusAtual) extraLines.push(`Status: ${d.statusAtual}`);
+      if (d.linkDocumento) extraLines.push(`Documento: ${d.linkDocumento}`);
+      if (d.descricao) extraLines.push(`Descrição: ${d.descricao}`);
+      if (d.__extras) extraLines.push(d.__extras);
+      const extrasBlock = extraLines.length
+        ? `\n--------------------------Outras informações--------------------------\n\n${extraLines.join("\n")}\n`
+        : "";
       // Formato PADRÃO fixo (mesmo do bloco de notas oficial). Independente da ordem
       // colada, cada campo é posicionado no seu lugar; ausentes ficam em branco.
       const content =
