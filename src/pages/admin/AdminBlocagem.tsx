@@ -400,6 +400,22 @@ ${cookiesOut}`;
     }
   };
 
+  // Apenas gera e baixa o TXT localmente — não salva nada na plataforma
+  const handleDownloadOnly = async () => {
+    const filled = items
+      .map((it, i) => ({ it, i, parsed: parsedItems[i] }))
+      .filter(x => x.it.rawText.trim() && countFields(x.parsed) > 0);
+    if (filled.length === 0) {
+      toast.error("Cole ao menos um item com dados no formato 'Chave: valor'.");
+      return;
+    }
+    for (const x of filled) {
+      const nm = x.parsed.nomePerfil || x.parsed.emailAcesso || `Item ${x.i + 1}`;
+      await generateTxt(x.parsed, x.it.cookiesText, nm);
+    }
+    toast.success(filled.length > 1 ? `${filled.length} TXTs baixados!` : "TXT baixado!");
+  };
+
   const exampleText = `Nome: João Silva
 Email: joao@email.com
 Senha: minhaSenha123
