@@ -152,6 +152,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     };
 
     const out: Record<string, string> = {};
+    const extras: string[] = [];
     const lines = text.split(/\r?\n/);
     for (const rawLine of lines) {
       const line = rawLine.trim();
@@ -160,13 +161,16 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       if (!m) {
         // fallback: pure link line -> linkPerfil
         if (/^https?:\/\//i.test(line) && !out.linkPerfil) out.linkPerfil = line;
+        else extras.push(line);
         continue;
       }
       const key = normalizeKey(m[1]);
       const val = m[2].trim();
       const mapped = keyMap[key];
       if (mapped && !out[mapped]) out[mapped] = val;
+      else if (!mapped) extras.push(`${m[1].trim()}: ${val}`);
     }
+    if (extras.length) out.__extras = extras.join("\n");
 
     // Auto-extract idPerfil from link
     if (out.linkPerfil && !out.idPerfil) {
