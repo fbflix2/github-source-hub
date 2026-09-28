@@ -586,7 +586,8 @@ export default function Auth() {
             </form>
           )}
 
-          {/* Social Login */}
+          {/* Social Login — oculto no painel de revendedor para evitar contas sem vínculo */}
+          {!getResellerSlug() && (
           <div className="flex flex-col items-center gap-4 pt-4 border-t border-border">
             <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Ou entre com</span>
             <button
@@ -622,6 +623,7 @@ export default function Auth() {
               Continuar com Google
             </button>
           </div>
+          )}
 
           {/* Footer - Legal Links */}
           <div className="flex items-center justify-center gap-3 pt-2">
