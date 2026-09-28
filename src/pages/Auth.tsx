@@ -141,8 +141,10 @@ export default function Auth() {
       const target = getRedirectTarget();
       if (target && !isStaff && !resellerData) {
         navigate(target);
+      } else if (!isStaff && !resellerData) {
+        navigate(getAuthDestination());
       } else {
-        navigate(isStaff ? "/admin" : resellerData ? "/revenda" : "/loja");
+        navigate(isStaff ? "/admin" : "/revenda");
       }
     }
 
@@ -195,13 +197,40 @@ export default function Auth() {
     }
     setLoading(true);
 
+    // Resolve o revendedor ANTES do cadastro, para gravar o vínculo no próprio cadastro.
+    let resellerIdToLink: string | null = null;
+    try {
+      const host = window.location.hostname.toLowerCase();
+      const isMainHost =
+        ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"].includes(host) ||
+        host.endsWith(".lovableproject.com") ||
+        host.endsWith(".lovable.app");
+      if (!isMainHost) {
+        const { data: slug } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
+        if (slug) {
+          const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug as string });
+          const row = Array.isArray(r) ? r[0] : r;
+          if (row?.id) resellerIdToLink = row.id as string;
+        }
+      }
+      if (!resellerIdToLink) {
+        const resellerSlug = getResellerSlug();
+        if (resellerSlug) {
+          const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: resellerSlug });
+          const row = Array.isArray(r) ? r[0] : r;
+          if (row?.id) resellerIdToLink = row.id as string;
+        }
+      }
+    } catch { /* noop */ }
+
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: {
           full_name: registerName,
+          ...(resellerIdToLink ? { reseller_id: resellerIdToLink } : {}),
         },
       },
     });
@@ -213,34 +242,8 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      // Save CPF and Referrer to profile
       if (signUpData?.user) {
         const partnerRefId = localStorage.getItem("partner_ref_id");
-        // Se o cadastro é no domínio ou na loja de um revendedor, vincula o cliente a ele
-        let resellerIdToLink: string | null = null;
-        try {
-          const resellerSlug = getResellerSlug();
-          if (resellerSlug) {
-            const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: resellerSlug });
-            const row = Array.isArray(r) ? r[0] : r;
-            if (row?.id) resellerIdToLink = row.id as string;
-          }
-        } catch { /* noop */ }
-        try {
-          const host = window.location.hostname.toLowerCase();
-          const isMainHost =
-            ["fbflix.com.br", "www.fbflix.com.br", "fbflix1.lovable.app", "localhost"].includes(host) ||
-            host.endsWith(".lovableproject.com") ||
-            host.endsWith(".lovable.app");
-          if (!isMainHost) {
-            const { data: slug } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host });
-            if (slug) {
-              const { data: r } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug as string });
-              const row = Array.isArray(r) ? r[0] : r;
-              if (row?.id) resellerIdToLink = row.id as string;
-            }
-          }
-        } catch { /* noop */ }
 
         await supabase.from("profiles").update({
           full_name: registerName.trim(),
