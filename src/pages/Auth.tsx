@@ -623,6 +623,7 @@ export default function Auth() {
               Continuar com Google
             </button>
           </div>
+          )}
 
           {/* Footer - Legal Links */}
           <div className="flex items-center justify-center gap-3 pt-2">
