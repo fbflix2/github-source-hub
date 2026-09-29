@@ -446,10 +446,10 @@ export default function AdminSafeBM() {
   };
 
   const deleteVault = async (v: SafeBmVault) => {
-    if (!confirm(`Remover "${v.bm_name}" do cofre?`)) return;
+    if (!confirm(`Excluir o cofre "${v.bm_name}"?\n\nEle também será removido da conta do cliente. Essa ação não pode ser desfeita.`)) return;
     const { error } = await supabase.from("safe_bm_vaults" as any).delete().eq("id", v.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Removido do cofre"); fetchVaults(); }
+    if (error) toast.error("Erro ao excluir: " + error.message);
+    else { toast.success("Cofre excluído (removido também da conta do cliente)"); fetchVaults(); }
   };
 
   const verifyRenewal = async (renewal: any) => {
@@ -705,6 +705,9 @@ export default function AdminSafeBM() {
                                 <div className="flex items-center justify-end gap-2">
                                   <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={() => openEdit(v)}>
                                     <Pencil className="size-3" /> Editar
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteVault(v)}>
+                                    <Trash2 className="size-3" /> Excluir
                                   </Button>
                                   <Button
                                     size="sm"
@@ -1096,6 +1099,9 @@ export default function AdminSafeBM() {
                               <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
                                 onClick={() => toggleStatus(v)}>
                                 <ShieldOff className="size-3" /> Desativar
+                              </Button>
+                              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => deleteVault(v)}>
+                                <Trash2 className="size-3" /> Excluir
                               </Button>
                             </div>
                           </TableCell>
