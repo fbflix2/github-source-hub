@@ -53,8 +53,10 @@ interface HeroBanner {
 
 const purposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Facebook", "Web Scraping"];
 
-export default function ResellerPublicStore() {
-  const { slug } = useParams<{ slug: string }>();
+export default function ResellerPublicStore({ slugOverride }: { slugOverride?: string } = {}) {
+  const params = useParams<{ slug: string }>();
+  const slug = slugOverride || params.slug;
+  const storeHome = slugOverride ? "/" : `/r/${slug}`;
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [loading, setLoading] = useState(true);
@@ -280,11 +282,12 @@ export default function ResellerPublicStore() {
         allowedKeys={["loja", "subscriptions"]}
         logoOverride={reseller.logo_url || undefined}
         brandNameOverride={brandName}
-        linkOverrides={{ loja: `/r/${reseller.slug}` }}
+        linkOverrides={{ loja: storeHome }}
+        brandColor={reseller.accent_color || reseller.primary_color || undefined}
         hideTickets
         hideNotifications
         unauthenticated={!currentUser}
-        onLoginClick={() => navigate(`/auth?r=${encodeURIComponent(reseller.slug)}&redirect=${encodeURIComponent(`/r/${reseller.slug}`)}`)}
+        onLoginClick={() => navigate(`/auth?r=${encodeURIComponent(reseller.slug)}&redirect=${encodeURIComponent(storeHome)}`)}
       />
 
       <main className="flex-1 min-h-0 flex flex-col w-full max-w-7xl mx-auto px-4 pt-24">

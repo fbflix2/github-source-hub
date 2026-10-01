@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ResellerPublicStore from "@/pages/ResellerPublicStore";
 
 // Hosts em que o app é a FBFlix "principal" — nunca redirecionar para loja de revendedor
 const MAIN_HOSTS = [
@@ -162,8 +163,8 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
             }
           }
         }
-        if (slug && !isPassthrough) {
-          navigate(`/r/${slug}${location.search}`, { replace: true });
+        if (slug && !isPassthrough && path !== "/") {
+          navigate(`/${location.search}`, { replace: true });
           setTimeout(() => setChecked(true), 0);
           return;
         }
@@ -181,6 +182,11 @@ export default function CustomDomainRouter({ children }: { children: ReactNode }
         <div className="size-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
       </div>
     );
+  }
+
+  // Domínio próprio do revendedor: loja direto na raiz, URL limpa
+  if (resellerSlug && location.pathname === "/" && typeof window !== "undefined" && !isMainHost(window.location.hostname.toLowerCase())) {
+    return <ResellerPublicStore slugOverride={resellerSlug} />;
   }
 
   return <>{children}</>;

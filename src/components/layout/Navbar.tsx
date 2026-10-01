@@ -30,6 +30,7 @@ interface NavbarProps {
   allowedKeys?: string[];
   logoOverride?: string;
   brandNameOverride?: string;
+  brandColor?: string;
   linkOverrides?: Record<string, string>;
   hideTickets?: boolean;
   hideNotifications?: boolean;
@@ -57,8 +58,9 @@ const partnerNavLinks = [
   { key: "finance", title: "Financeiro", tab: "finance" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, linkOverrides, hideTickets = false, hideNotifications = false, hideLogo = false, unauthenticated = false, onLoginClick }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned, isReseller, resellerOnly = false, onLogout, unreadTickets = 0, allowedKeys, logoOverride, brandNameOverride, brandColor, linkOverrides, hideTickets = false, hideNotifications = false, hideLogo = false, unauthenticated = false, onLoginClick }: NavbarProps) {
   const location = useLocation();
+  const isCustomDomain = typeof document !== "undefined" && document.documentElement.getAttribute("data-custom-domain") === "1";
   const [searchParams] = useSearchParams();
   const { hiddenLinks } = useNavVisibility();
   const [logoHeight, setLogoHeight] = useState(32);
@@ -92,8 +94,17 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, partnerEarned,
         <NavLink to={linkOverrides?.loja || (resellerOnly ? "/revenda" : "/loja")} className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
           {hideLogo ? (
             <div style={{ height: `${logoHeight}px`, width: `${logoHeight}px` }} className="mr-2" aria-hidden />
+          ) : logoOverride ? (
+            <img src={logoOverride} alt={brandNameOverride || "Logo"} style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
+          ) : brandNameOverride || isCustomDomain ? (
+            <span
+              className="font-display text-xl font-bold tracking-tight mr-2 text-foreground"
+              style={brandColor ? { color: brandColor } : undefined}
+            >
+              {brandNameOverride || ""}
+            </span>
           ) : (
-            <img src={logoOverride || logoFbflix} alt={brandNameOverride || "FBFLIX"} style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
+            <img src={logoFbflix} alt="FBFLIX" style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
           )}
           <span className="sr-only">{brandNameOverride || (hideLogo ? "" : "FBFLIX")}</span>
         </NavLink>
