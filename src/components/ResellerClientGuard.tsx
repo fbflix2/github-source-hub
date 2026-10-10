@@ -66,7 +66,10 @@ export default function ResellerClientGuard() {
               } catch {
                 /* noop */
               }
-              window.location.replace(`https://${domain}/auth`);
+              const keep = path.startsWith("/subscriptions") || path.startsWith("/orders") || path.startsWith("/wallet") || path.startsWith("/tickets")
+                ? `/auth?redirect=${encodeURIComponent(path + window.location.search)}`
+                : "/auth";
+              window.location.replace(`https://${domain}${keep}`);
               return;
             }
 

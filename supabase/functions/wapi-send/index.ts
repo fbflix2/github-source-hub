@@ -180,6 +180,16 @@ Deno.serve(async (req) => {
    try {
      const body = await req.json();
      const { action } = body;
+
+     // ========= FIREWALL: clientes de revendedores nunca recebem WhatsApp da FBFlix =========
+     const SEND_ACTIONS = ["send-text", "send-image", "send-audio", "send-video", "send-button", "send-template", "trigger-flow", "send-replacement-alert"];
+     if (SEND_ACTIONS.includes(action) && body?.user_id) {
+       const { data: bp } = await admin.from("profiles").select("reseller_id").eq("user_id", body.user_id).maybeSingle();
+       if (bp?.reseller_id) {
+         console.log(`[wapi-send] BLOCKED: user ${body.user_id} pertence ao revendedor ${bp.reseller_id} (${action}/${body.event_key || body.template_id || ""})`);
+         return ok({ success: false, skipped: true, reason: "reseller_client" });
+       }
+     }
  
      // ========= ACTION: fetch-contacts =========
       if (action === "fetch-contacts") {
@@ -732,9 +742,12 @@ Deno.serve(async (req) => {
       if (!subs?.length) return ok({ success: true, message: `Nenhuma assinatura vencendo em ${dateStr}`, sent: 0 });
 
       const userIds = [...new Set(subs.map((s: any) => s.user_id))];
-      const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds);
+      const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone, reseller_id").in("user_id", userIds);
       const profileMap: Record<string, any> = {};
       for (const p of profiles || []) profileMap[p.user_id] = p;
+      // Clientes de revendedores nunca recebem alertas da FBFlix
+      for (const p of profiles || []) if ((p as any).reseller_id) delete profileMap[p.user_id];
+      for (const s of [...subs]) if (!profileMap[s.user_id] && (profiles || []).some((p: any) => p.user_id === s.user_id && p.reseller_id)) subs.splice(subs.indexOf(s), 1);
 
       const productIds = [...new Set(subs.filter((s: any) => s.product_id).map((s: any) => s.product_id))];
       const productMap: Record<string, any> = {};

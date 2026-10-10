@@ -461,7 +461,7 @@ function ProxiesPanel() {
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma assinatura de proxy</h2>
         <p className="text-text-secondary text-sm text-center max-w-md mb-6">Conheça nossos planos de proxy residencial.</p>
-        <a href="/loja?filter=Proxy" className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
+        <a href={typeof window !== "undefined" && document.documentElement.hasAttribute("data-custom-domain") ? "/" : "/loja?filter=Proxy"} className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
           Ver Planos de Proxy
         </a>
       </div>
@@ -670,7 +670,7 @@ function ProxiesPanel() {
           <h2 className="text-2xl font-bold text-foreground">Precisa de mais performance?</h2>
           <p className="text-text-secondary max-w-xl">Nossos novos planos de Proxy Residencial Rotativo oferecem IPs limpos e alta velocidade.</p>
         </div>
-        <a href="/loja" className="z-10 whitespace-nowrap bg-primary hover:bg-[#00c968] text-background h-12 px-8 rounded-xl text-base font-bold transition-all shadow-lg hover:shadow-primary/20 flex items-center">
+        <a href={typeof window !== "undefined" && document.documentElement.hasAttribute("data-custom-domain") ? "/" : "/loja"} className="z-10 whitespace-nowrap bg-primary hover:bg-[#00c968] text-background h-12 px-8 rounded-xl text-base font-bold transition-all shadow-lg hover:shadow-primary/20 flex items-center">
           Conhecer Novos Planos
         </a>
       </div>
