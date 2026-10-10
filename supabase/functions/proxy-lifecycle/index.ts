@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     // ======== FETCH ALL PROXY SUBSCRIPTIONS (Webshare + ProxyBR) ========
     let subsQuery = admin
       .from("subscriptions")
-      .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew, notifications_enabled")
+      .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew, notifications_enabled, reseller_id")
          .in("type", ["webshare", "webshare_rotating", "proxybr", "proxyfbflix", "proxyfbflix_rotating"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
@@ -98,9 +98,12 @@ Deno.serve(async (req) => {
 
     // Collect user IDs for profile lookups
     const userIds = [...new Set(allSubs.map(s => s.user_id))];
-    const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
+    const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone, balance, reseller_id").in("user_id", userIds);
     const profileMap: Record<string, any> = {};
     for (const p of profiles || []) profileMap[p.user_id] = p;
+    // Clientes de revendedores: sem telefone => nenhuma mensagem da FBFlix é enfileirada
+    for (const p of profiles || []) if ((p as any).reseller_id) profileMap[p.user_id] = { ...p, phone: null };
+    for (const s of allSubs) if ((s as any).reseller_id && profileMap[s.user_id]) profileMap[s.user_id] = { ...profileMap[s.user_id], phone: null };
 
     // Product lookup
     const productIds = [...new Set(allSubs.filter(s => s.product_id).map(s => s.product_id))];
