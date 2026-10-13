@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,37 @@ export default function AdminLogin() {
     return localStorage.getItem("admin_remember_me") !== "false";
   });
   const [loading, setLoading] = useState(false);
+  const [brand, setBrand] = useState<{ name: string; logo: string | null } | null>(null);
+  const [brandChecked, setBrandChecked] = useState(false);
+
+  // Em domínio de revendedor, mostra a marca dele (nunca FBFlix)
+  useEffect(() => {
+    const host = window.location.hostname.toLowerCase();
+    const isMain = ["fbflix.com.br", "www.fbflix.com.br", "localhost"].includes(host) ||
+      host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com");
+    if (isMain) { setBrandChecked(true); return; }
+    (async () => {
+      try {
+        const { data: slug } = await supabase.rpc("get_reseller_slug_by_domain", { _domain: host.replace(/^www\./, "") });
+        if (slug) {
+          const { data } = await supabase.rpc("get_reseller_public_by_slug", { _slug: slug as string });
+          const r = (data as any[])?.[0];
+          setBrand({ name: r?.brand_name || r?.company_name || "Painel", logo: r?.logo_url || null });
+        }
+      } catch { /* noop */ }
+      setBrandChecked(true);
+    })();
+  }, []);
+
+  // Já logado como revendedor → vai direto ao painel dele
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: r } = await supabase.from("resellers").select("id").eq("user_id", session.user.id).maybeSingle();
+      if (r) window.location.replace("/revenda");
+    })();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +124,16 @@ export default function AdminLogin() {
         roleError = moderatorResult.error;
       }
 
+      if (!isStaff) {
+        const { data: resellerRow } = await supabase
+          .from("resellers").select("id").eq("user_id", data.user.id).maybeSingle();
+        if (resellerRow) {
+          toast.success("Login realizado com sucesso!");
+          window.location.replace("/revenda");
+          return;
+        }
+      }
+
       if (roleError || !isStaff) {
         if (!roleError) clearStaleAdminSession();
         toast.error(roleError
@@ -122,10 +163,16 @@ export default function AdminLogin() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <img src={logoFbflix} alt="FBFLIX" className="size-14 object-contain" />
+          {!brandChecked ? (
+            <div className="size-14" />
+          ) : brand ? (
+            brand.logo ? <img src={brand.logo} alt={brand.name} className="size-14 object-contain" /> : null
+          ) : (
+            <img src={logoFbflix} alt="FBFLIX" className="size-14 object-contain" />
+          )}
           <div className="flex flex-col">
             <h1 className="text-white text-2xl font-bold tracking-tight">
-              FBFLIX <span className="text-primary">Admin</span>
+              {brandChecked && (brand ? brand.name : "FBFLIX")} <span className="text-primary">Admin</span>
             </h1>
             <p className="text-white/40 text-xs font-medium">Painel de Controle</p>
           </div>
@@ -135,7 +182,7 @@ export default function AdminLogin() {
         <div className="glass-card-static rounded-2xl p-8">
           <div className="text-center mb-8">
             <h2 className="text-xl font-semibold text-white mb-2">Acesso Administrativo</h2>
-            <p className="text-white/50 text-sm">Entre com suas credenciais de administrador</p>
+            <p className="text-white/50 text-sm">Entre com seu e-mail e senha</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -148,7 +195,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                placeholder="admin@fbflix.com"
+                placeholder="seu@email.com"
                 required
               />
             </div>
@@ -198,7 +245,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">
-          © 2026 FBFLIX. Todos os direitos reservados.
+          © 2026 {brand ? brand.name : "FBFLIX"}. Todos os direitos reservados.
         </p>
       </div>
     </div>
