@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_product_default_to_products() FROM PUBLIC, anon, authenticated;
