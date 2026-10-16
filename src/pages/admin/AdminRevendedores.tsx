@@ -388,6 +388,32 @@ export default function AdminRevendedores() {
                 </div>
               </div>
 
+              {/* ID interno: exibido apenas na listagem administrativa de revendedores. */}
+              <div className="flex items-center gap-2 min-w-0 border-t border-border/40 pt-3">
+                <span className="text-[10px] uppercase text-muted-foreground shrink-0">ID</span>
+                <code className="text-[11px] text-muted-foreground truncate select-all flex-1" title={r.id}>
+                  {r.id}
+                </code>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 gap-1 shrink-0"
+                  title="Copiar ID interno do revendedor"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(r.id);
+                      toast.success("ID do revendedor copiado");
+                    } catch {
+                      toast.error("Não foi possível copiar o ID");
+                    }
+                  }}
+                >
+                  <Copy className="size-3" />
+                  <span className="text-xs">Copiar</span>
+                </Button>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <Button
                   size="sm"
