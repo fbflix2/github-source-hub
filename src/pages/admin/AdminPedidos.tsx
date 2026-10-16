@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft, Undo2 } from "lucide-react";
 import ProductExchangeModal from "@/components/admin/ProductExchangeModal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -83,6 +84,7 @@ const formatDate = (d: string) => {
 };
 
 export default function AdminPedidos() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -319,9 +321,15 @@ export default function AdminPedidos() {
             Visualize e gerencie todos os pedidos realizados na plataforma.
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <Button onClick={() => navigate("/admin/auditoria/nova-venda")} className="gap-2">
+            <ShoppingCart className="size-4" />
+            Nova Venda
+          </Button>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <ShoppingCart className="size-5 text-primary" />
           <span className="font-bold text-foreground text-lg">{orders.length}</span> pedidos no total
+          </div>
         </div>
       </div>
 
