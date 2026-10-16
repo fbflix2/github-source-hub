@@ -665,7 +665,7 @@ export default function AdminNovaVenda() {
         ? `🎁 Cortesia ${code} registrada! Valor estimado: R$ ${subtotal.toFixed(2)}`
         : `Venda ${code} registrada com sucesso!`
       );
-      navigate("/admin/auditoria");
+      navigate("/admin/pedidos");
     } catch (err: any) {
       console.error(err);
       toast.error("Erro ao registrar venda: " + (err.message || ""));
@@ -1281,7 +1281,7 @@ export default function AdminNovaVenda() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/auditoria")}
+                  onClick={() => navigate("/admin/pedidos")}
                   className="px-5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-all"
                 >
                   {pixStatus === "completed" ? "Voltar à Auditoria" : "Cancelar"}
