@@ -322,7 +322,7 @@ export default function AdminPedidos() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => navigate("/admin/auditoria/nova-venda")} className="gap-2">
+          <Button onClick={() => navigate("/admin/pedidos/nova-venda")} className="gap-2">
             <ShoppingCart className="size-4" />
             Nova Venda
           </Button>
