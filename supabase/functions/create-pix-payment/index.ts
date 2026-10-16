@@ -60,11 +60,55 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Blackproxy-only safety rule: never charge FBFLIX's OpenPix for a
+    // customer order belonging to this reseller. Other resellers are unchanged.
+    const BLACKPROXY_RESELLER_ID = "67b6094f-2988-497f-b666-3d4e9620cb0d";
+    if (order_id) {
+      const { data: orderOwner, error: orderOwnerError } = await adminClient
+        .from("orders")
+        .select("reseller_id, user_id")
+        .eq("id", order_id)
+        .maybeSingle();
+      if (orderOwnerError) throw orderOwnerError;
+      if (orderOwner?.reseller_id === BLACKPROXY_RESELLER_ID) {
+        if (orderOwner.user_id !== userId) {
+          return new Response(JSON.stringify({ error: "Pedido não pertence ao usuário autenticado" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: blackproxy, error: gatewayError } = await adminClient
+          .from("resellers")
+          .select("gateway_provider, gateway_openpix_app_id, gateway_mp_access_token, status")
+          .eq("id", BLACKPROXY_RESELLER_ID)
+          .maybeSingle();
+        if (gatewayError) throw gatewayError;
+        const ownOpenPix = blackproxy?.gateway_provider === "openpix" &&
+          Boolean(String(blackproxy.gateway_openpix_app_id || "").trim()) &&
+          ["active", "warning"].includes(String(blackproxy.status));
+        if (!ownOpenPix) {
+          const message = blackproxy?.gateway_provider === "mercadopago"
+            ? "A Blackproxy selecionou Mercado Pago, mas o checkout PIX Mercado Pago ainda não está integrado. Nenhuma cobrança foi criada na FBFLIX."
+            : "A Blackproxy precisa configurar e ativar seu próprio gateway antes de receber pagamentos.";
+          return new Response(JSON.stringify({ error: message }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     const gw = await resolveOpenPixGateway(adminClient, {
       userId,
       resellerId: reseller_id || null,
       orderId: order_id || null,
     });
+    if (order_id) {
+      const { data: orderOwner } = await adminClient.from("orders").select("reseller_id").eq("id", order_id).maybeSingle();
+      if (orderOwner?.reseller_id === BLACKPROXY_RESELLER_ID && (gw.owner !== "reseller" || gw.resellerId !== BLACKPROXY_RESELLER_ID)) {
+        return new Response(JSON.stringify({ error: "Gateway próprio da Blackproxy não pôde ser validado. Cobrança não criada." }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const effectiveAppId = gw.appId || OPENPIX_APP_ID;
     const effectiveResellerId = gw.resellerId;
 
