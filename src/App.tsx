@@ -609,7 +609,7 @@ const App = () => {
                   <Route path="suporte" element={<AdminSuporte />} />
                   <Route path="auditoria" element={<AdminAuditoria />} />
                   <Route path="auditoria/nova-compra" element={<AdminNovaCompra />} />
-                  <Route path="auditoria/nova-venda" element={<AdminNovaVenda />} />
+                  <Route path="pedidos/nova-venda" element={<AdminNovaVenda />} />
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
                   <Route path="auditoria/centro-custos" element={<AdminCentroCustos />} />
                   <Route path="auditoria/investimentos" element={<AdminCentralInvestimentos />} />
