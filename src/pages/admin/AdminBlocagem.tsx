@@ -119,36 +119,36 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(image, left, top, width, height, 0, 0, canvas.width, canvas.height);
         const secondWorker = await w.Tesseract.createWorker("por+eng");
-        try { text += "\\n" + (await secondWorker.recognize(canvas)).data.text; }
+        try { text += "\n" + (await secondWorker.recognize(canvas)).data.text; }
         finally { await secondWorker.terminate(); }
       }
       image.close();
 
-      const lines = text.split(/\\r?\\n/).map(x => x.trim()).filter(Boolean);
-      const url = text.match(/(?:https?:\\/\\/)?(?:www\\.)?(?:facebook\\.com|fb\\.com)\\/profile\\.php\\?id=\\d{5,}/i)?.[0];
-      const id = url?.match(/id=(\\d+)/i)?.[1];
+      const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const url = text.match(/(?:https?:\/\/)?(?:www\.)?(?:facebook\.com|fb\.com)\/profile\.php\?id=\d{5,}/i)?.[0];
+      const id = url?.match(/id=(\d+)/i)?.[1];
       const monthNames: Record<string, string> = { janeiro:"01", fevereiro:"02", marco:"03", abril:"04", maio:"05", junho:"06", julho:"07", agosto:"08", setembro:"09", outubro:"10", novembro:"11", dezembro:"12" };
-      const normalize = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+      const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalized = normalize(text);
-      const birthday = normalized.match(/\\b(\\d{1,2})\\s*(?:de\\s*)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\\s*(?:de\\s*)?(\\d{4})\\b/);
+      const birthday = normalized.match(/\b(\d{1,2})\s*(?:de\s*)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:de\s*)?(\d{4})\b/);
       // Names appear above or near the friend count. OCR sometimes puts
       // both on the same line or inserts a location between them.
-      const friends = /\\b\\d{1,5}\\s*(?:amigos?|friends?)\\b/i;
+      const friends = /\b\d{1,5}\s*(?:amigos?|friends?)\b/i;
       const nameCandidates: string[] = [];
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const inline = line.match(/^(.+?)\\s+\\d{1,5}\\s*(?:amigos?|friends?)\\b/i);
+        const inline = line.match(/^(.+?)\s+\d{1,5}\s*(?:amigos?|friends?)\b/i);
         if (inline) nameCandidates.push(inline[1].trim());
         if (friends.test(line) && i > 0) nameCandidates.push(lines[i - 1]);
-        if (/^[\\p{L}][\\p{L} .'-]{3,65}$/u.test(line) && lines.slice(i + 1, i + 4).some(l => friends.test(l))) nameCandidates.push(line);
+        if (/^[\p{L}][\p{L} .'-]{3,65}$/u.test(line) && lines.slice(i + 1, i + 4).some(l => friends.test(l))) nameCandidates.push(line);
       }
       const name = nameCandidates.find(candidate =>
-        /^[\\p{L}][\\p{L} .'-]{3,65}$/u.test(candidate) &&
+        /^[\p{L}][\p{L} .'-]{3,65}$/u.test(candidate) &&
         !/facebook|pesquisar|sao paulo|dados pessoais|amigos|publicac|inicio|perfil/i.test(normalize(candidate))
       );
       // The relationship-status wording is a heuristic, not verified gender.
-      const feminine = /\\bsolteira\\b/.test(normalized);
-      const masculine = /\\bsolteiro\\b/.test(normalized);
+      const feminine = /\bsolteira\b/.test(normalized);
+      const masculine = /\bsolteiro\b/.test(normalized);
       const genderHint = feminine && !masculine ? "Feminino" : masculine && !feminine ? "Masculino" : undefined;
       const additions: string[] = [];
       const current = parseFlashText(items[index]?.rawText || "");
