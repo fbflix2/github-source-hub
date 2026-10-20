@@ -119,7 +119,7 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(image, left, top, width, height, 0, 0, canvas.width, canvas.height);
         const secondWorker = await w.Tesseract.createWorker("por+eng");
-        try { text += "\n" + (await secondWorker.recognize(canvas)).data.text; }
+        try { text += "\n" + (await secondWorker.recognize(canvas as any)).data.text; }
         finally { await secondWorker.terminate(); }
       }
       image.close();
