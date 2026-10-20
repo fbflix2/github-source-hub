@@ -73,6 +73,68 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     { rawText: "", cookiesText: "" },
   ]);
 
+  const [ocrBusy, setOcrBusy] = useState<number | null>(null);
+  const [ocrNotes, setOcrNotes] = useState<Record<number, string>>({});
+
+  const analyzeFlashScreenshot = async (file: File, index: number) => {
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem."); return; }
+    if (file.size > 12 * 1024 * 1024) { toast.error("Imagem muito grande (máximo 12 MB)."); return; }
+    setOcrBusy(index);
+    try {
+      // OCR runs in the browser, without Lovable AI or uploading screenshots to our server.
+      const w = window as typeof window & { Tesseract?: { createWorker: (lang: string) => Promise<{ recognize: (image: File) => Promise<{ data: { text: string } }>; terminate: () => Promise<void> }> } };
+      if (!w.Tesseract) {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector<HTMLScriptElement>('script[data-flash-ocr]');
+          if (existing) {
+            if (w.Tesseract) resolve();
+            else { existing.addEventListener("load", () => resolve(), { once: true }); existing.addEventListener("error", () => reject(new Error("OCR indisponível")), { once: true }); }
+            return;
+          }
+          const script = document.createElement("script");
+          script.dataset.flashOcr = "true";
+          script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Não foi possível carregar o OCR"));
+          document.head.appendChild(script);
+        });
+      }
+      if (!w.Tesseract) throw new Error("OCR não carregado");
+      const worker = await w.Tesseract.createWorker("por+eng");
+      let text = "";
+      try { text = (await worker.recognize(file)).data.text; }
+      finally { await worker.terminate(); }
+      const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const url = text.match(/(?:https?:\/\/)?(?:www\.)?(?:facebook\.com|fb\.com)\/profile\.php\?id=\d{5,}/i)?.[0];
+      const id = url?.match(/id=(\d+)/i)?.[1];
+      const monthNames: Record<string, string> = { janeiro:"01", fevereiro:"02", marco:"03", abril:"04", maio:"05", junho:"06", julho:"07", agosto:"08", setembro:"09", outubro:"10", novembro:"11", dezembro:"12" };
+      const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const birthday = normalized.match(/\b(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})\b/);
+      const name = lines.find((line, i) => {
+        const next = lines[i + 1] || "";
+        return /^[\p{L}][\p{L} .'-]{3,65}$/u.test(line) && (/\d+\s+amigos?/i.test(next) || /\d+\s+friends?/i.test(next));
+      });
+      const additions: string[] = [];
+      const current = parseFlashText(items[index]?.rawText || "");
+      const conflicts: string[] = [];
+      const propose = (field: string, label: string, value?: string) => {
+        if (!value) return;
+        if (current[field]) {
+          if (current[field].trim().toLowerCase() !== value.trim().toLowerCase()) conflicts.push(label);
+        } else additions.push(`${label}: ${value}`);
+      };
+      propose("nomePerfil", "Nome do perfil", name);
+      propose("linkPerfil", "Link perfil", url ? (url.startsWith("http") ? url : `https://${url}`) : undefined);
+      propose("idPerfil", "ID", id);
+      propose("dataNascimento", "Aniversário", birthday ? `${birthday[1].padStart(2, "0")}/${monthNames[birthday[2]]}/${birthday[3]}` : undefined);
+      if (additions.length) setItems(prev => prev.map((it, i) => i === index ? { ...it, rawText: [it.rawText.trim(), ...additions].filter(Boolean).join("\n") } : it));
+      const note = `${additions.length} campo(s) complementado(s).${conflicts.length ? ` Divergência em: ${conflicts.join(", ")}. Dados originais preservados.` : ""} Confira os resultados antes de salvar.`;
+      setOcrNotes(prev => ({ ...prev, [index]: note }));
+      if (additions.length) toast.success(note); else toast.info(note);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao analisar imagem"); }
+    finally { setOcrBusy(null); }
+  };
+
   // Restore draft on mount
   useEffect(() => {
     try {
@@ -139,8 +201,8 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       senha: "senha", password: "senha", pass: "senha", senhafb: "senha", senhafacebook: "senha",
       senhaemail: "senhaEmail", passemail: "senhaEmail", senhadoemail: "senhaEmail",
       "2fa": "token2fa", token: "token2fa", token2fa: "token2fa", totp: "token2fa", codigo2fa: "token2fa",
-      emailalternativo: "emailAlternativo", altemail: "emailAlternativo", emailalt: "emailAlternativo", recuperacao: "emailAlternativo",
-      id: "idPerfil", idperfil: "idPerfil", uid: "idPerfil",
+      alternativo: "emailAlternativo", emailalternativo: "emailAlternativo", altemail: "emailAlternativo", emailalt: "emailAlternativo", recuperacao: "emailAlternativo",
+      id: "idPerfil", idperfil: "idPerfil", iddaconta: "idPerfil", idconta: "idPerfil", uid: "idPerfil",
       link: "linkPerfil", linkperfil: "linkPerfil", url: "linkPerfil",
       datanascimento: "dataNascimento", nascimento: "dataNascimento", dtnascimento: "dataNascimento", aniversario: "dataNascimento",
       genero: "genero", sexo: "genero",
@@ -550,6 +612,20 @@ Descrição: Perfil verificado, sem restrições`;
                     placeholder={exampleText}
                     className="min-h-[280px] bg-black/40 border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs"
                   />
+                  <div className="space-y-1">
+                    <label className="text-xs text-zinc-400 flex items-center gap-2">
+                      <ImageIcon className="h-3.5 w-3.5" /> Print complementar (OCR local, sem IA)
+                    </label>
+                    <input type="file" accept="image/*" disabled={ocrBusy !== null}
+                      className="block w-full text-xs text-zinc-400 file:mr-3 file:rounded file:border-0 file:bg-yellow-500/10 file:px-3 file:py-1.5 file:text-yellow-400"
+                      onChange={e => { const file = e.target.files?.[0]; if (file) void analyzeFlashScreenshot(file, idx); e.target.value = ""; }} />
+                    <div tabIndex={0} role="button" aria-label="Cole um print com Ctrl+V"
+                      onPaste={e => { const file = Array.from(e.clipboardData.files).find(f => f.type.startsWith("image/")); if (file) { e.preventDefault(); void analyzeFlashScreenshot(file, idx); } }}
+                      className="rounded border border-dashed border-white/10 p-2 text-[11px] text-zinc-500 focus:border-yellow-500/50 outline-none">
+                      {ocrBusy === idx ? "Lendo print no navegador..." : "Ou clique aqui e cole o print com Ctrl+V"}
+                    </div>
+                    {ocrNotes[idx] && <p className="text-[11px] text-yellow-300">{ocrNotes[idx]}</p>}
+                  </div>
                   <div className="flex items-center justify-between text-[10px] text-zinc-500">
                     <span>{parsedCount} campo(s) reconhecido(s)</span>
                     <button type="button" onClick={() => setItems(items.map((it, i) => i === idx ? { ...it, rawText: exampleText } : it))} className="text-yellow-400 hover:text-yellow-300">
