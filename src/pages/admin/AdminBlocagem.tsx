@@ -159,7 +159,8 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
           if (current[field].trim().toLowerCase() !== value.trim().toLowerCase()) conflicts.push(label);
         } else additions.push(`${label}: ${value}`);
       };
-      propose("nomePerfil", "Nome do perfil", name);\n      propose("genero", "Gênero", genderHint);
+      propose("nomePerfil", "Nome do perfil", name);
+      propose("genero", "Gênero", genderHint);
       propose("linkPerfil", "Link perfil", url ? (url.startsWith("http") ? url : `https://${url}`) : undefined);
       propose("idPerfil", "ID", id);
       propose("dataNascimento", "Aniversário", birthday ? `${birthday[1].padStart(2, "0")}/${monthNames[birthday[2]]}/${birthday[3]}` : undefined);
