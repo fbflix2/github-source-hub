@@ -131,21 +131,26 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const normalized = normalize(text);
       const birthday = normalized.match(/\b(\d{1,2})\s*(?:de\s*)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:de\s*)?(\d{4})\b/);
-      // Names appear above or near the friend count. OCR sometimes puts
-      // both on the same line or inserts a location between them.
-      const friends = /\b\d{1,5}\s*(?:amigos?|friends?)\b/i;
-      const nameCandidates: string[] = [];
+      // Identify the profile heading by its layout: the large name is directly
+      // ABOVE the friend count, not above a nearby Facebook composer prompt.
+      // Only accept a name when the following line is the friends counter.
+      const friends = /^\\s*\\d{1,5}\\s*(?:amigos?|friends?)\\b/i;
+      const forbidden = /compartilh|pensamento|publica|pesquisar|facebook|dados pessoais|sao paulo|perfil|amigos/i;
+      const validName = (candidate: string) =>
+        /^[\\p{L}][\\p{L} .'-]{3,65}$/u.test(candidate) &&
+        candidate.trim().split(/\\s+/).length >= 2 &&
+        !forbidden.test(normalize(candidate));
+      let name: string | undefined;
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const inline = line.match(/^(.+?)\s+\d{1,5}\s*(?:amigos?|friends?)\b/i);
-        if (inline) nameCandidates.push(inline[1].trim());
-        if (friends.test(line) && i > 0) nameCandidates.push(lines[i - 1]);
-        if (/^[\p{L}][\p{L} .'-]{3,65}$/u.test(line) && lines.slice(i + 1, i + 4).some(l => friends.test(l))) nameCandidates.push(line);
+        if (friends.test(line) && i > 0 && validName(lines[i - 1])) {
+          name = lines[i - 1];
+          break;
+        }
+        const inline = line.match(/^(.+?)\\s+\\d{1,5}\\s*(?:amigos?|friends?)\\b/i);
+        if (inline && validName(inline[1])) { name = inline[1].trim(); break; }
       }
-      const name = nameCandidates.find(candidate =>
-        /^[\p{L}][\p{L} .'-]{3,65}$/u.test(candidate) &&
-        !/facebook|pesquisar|sao paulo|dados pessoais|amigos|publicac|inicio|perfil/i.test(normalize(candidate))
-      );
+      // Do not guess a profile name when the OCR failed to read the heading.
       // The relationship-status wording is a heuristic, not verified gender.
       const feminine = /\bsolteira\b/.test(normalized);
       const masculine = /\bsolteiro\b/.test(normalized);
