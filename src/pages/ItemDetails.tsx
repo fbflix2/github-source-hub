@@ -788,7 +788,7 @@ export default function ItemDetails() {
       // session (kept by the admin tab) and let the server verify it (getUser + is_staff).
       let authHeader: Record<string, string> | undefined;
       if (isImpersonationTab()) {
-        const adminSession = getStoredAdminAccessToken();
+        const adminSession = await getStoredAdminAccessToken();
         if (!adminSession) {
           throw new Error("Sua sessão de administrador não foi encontrada ou expirou. Abra o painel admin em outra aba, entre novamente e tente de novo.");
         }
