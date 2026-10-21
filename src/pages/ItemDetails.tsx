@@ -775,6 +775,27 @@ export default function ItemDetails() {
     toast.success("Item marcado como bloqueado. Dados ocultados.");
   };
 
+  const [unblocking, setUnblocking] = useState(false);
+
+  const handleAdminUnblock = async () => {
+    if (!isStaff || !isBlocked || !stockItemId || !orderItem?.id || unblocking) return;
+    if (!window.confirm("Após verificar que o perfil funciona, deseja desbloquear este item e restaurar o acesso do cliente aos dados e ao bloco de notas?")) return;
+    setUnblocking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-unblock-stock-item", {
+        body: { stock_item_id: stockItemId, order_item_id: orderItem.id },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Erro ao desbloquear");
+      setIsBlocked(false);
+      setIsConfirmedOk(false);
+      toast.success("Item desbloqueado. O cliente já pode acessar os dados novamente.");
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível desbloquear o item.");
+    } finally {
+      setUnblocking(false);
+    }
+  };
+
   const handleConfirmOk = async () => {
     if (!stockItemId) return;
     await supabase.from("stock_items").update({ status: "ok" }).eq("id", stockItemId);
@@ -825,6 +846,18 @@ export default function ItemDetails() {
                 <span className="material-symbols-outlined text-[12px]">block</span>
                 Bloqueado
               </span>
+            )}
+            {isBlocked && isStaff && (
+              <button
+                type="button"
+                onClick={handleAdminUnblock}
+                disabled={unblocking}
+                className="flex items-center gap-1 rounded-md border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-400 hover:bg-green-500/20 disabled:opacity-50"
+                title="Apenas administradores: restaurar acesso após verificar o perfil"
+              >
+                <span className="material-symbols-outlined text-[12px]">lock_open</span>
+                {unblocking ? "Desbloqueando..." : "Desbloquear"}
+              </button>
             )}
           </div>
         </div>
