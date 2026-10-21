@@ -782,8 +782,16 @@ export default function ItemDetails() {
     if (!window.confirm("Após verificar que o perfil funciona, deseja desbloquear este item e restaurar o acesso do cliente aos dados e ao bloco de notas?")) return;
     setUnblocking(true);
     try {
-      if (sessionStorage.getItem("fbflix_impersonation_tab") === "1") {
-        throw new Error("Esta aba está logada como o cliente (modo visualização). Desbloqueie pelo painel admin, na sua própria sessão.");
+      // Verify the REAL session (JWT) is staff — never rely on the impersonation flag.
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session || (session.expires_at ?? 0) * 1000 - Date.now() < 60_000) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session ?? session;
+      }
+      if (!session) throw new Error("Sessão expirada. Faça login novamente como administrador.");
+      const { data: realStaff } = await supabase.rpc("is_staff", { _user_id: session.user.id });
+      if (realStaff !== true) {
+        throw new Error(`A sessão ativa nesta aba (${session.user.email ?? "usuário"}) não é administradora. Entre com sua conta admin nesta aba para desbloquear.`);
       }
       const { data, error } = await supabase.functions.invoke("admin-unblock-stock-item", {
         body: { stock_item_id: stockItemId, order_item_id: orderItem.id },
