@@ -7,6 +7,7 @@ import { PlatformFeedback } from "@/components/PlatformFeedback";
 import ExchangePaymentGate from "@/components/ExchangePaymentGate";
 import WarmingTrackerModal from "@/components/admin/WarmingTrackerModal";
 import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
+import { isImpersonationTab, getStoredAdminAccessToken } from "@/lib/admin-session";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -782,19 +783,32 @@ export default function ItemDetails() {
     if (!window.confirm("Após verificar que o perfil funciona, deseja desbloquear este item e restaurar o acesso do cliente aos dados e ao bloco de notas?")) return;
     setUnblocking(true);
     try {
-      // Verify the REAL session (JWT) is staff — never rely on the impersonation flag.
-      let { data: { session } } = await supabase.auth.getSession();
-      if (!session || (session.expires_at ?? 0) * 1000 - Date.now() < 60_000) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        session = refreshed.session ?? session;
-      }
-      if (!session) throw new Error("Sessão expirada. Faça login novamente como administrador.");
-      const { data: realStaff } = await supabase.rpc("is_staff", { _user_id: session.user.id });
-      if (realStaff !== true) {
-        throw new Error(`A sessão ativa nesta aba (${session.user.email ?? "usuário"}) não é administradora. Entre com sua conta admin nesta aba para desbloquear.`);
+      // Privileged action must use a verifiable ADMIN JWT — never the impersonation flag.
+      // In "view as client" tabs the client session lives here; use the admin's own
+      // session (kept by the admin tab) and let the server verify it (getUser + is_staff).
+      let authHeader: Record<string, string> | undefined;
+      if (isImpersonationTab()) {
+        const adminSession = getStoredAdminAccessToken();
+        if (!adminSession) {
+          throw new Error("Sua sessão de administrador não foi encontrada ou expirou. Abra o painel admin em outra aba, entre novamente e tente de novo.");
+        }
+        authHeader = { Authorization: `Bearer ${adminSession.token}` };
+      } else {
+        let { data: { session } } = await supabase.auth.getSession();
+        if (!session || (session.expires_at ?? 0) * 1000 - Date.now() < 60_000) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          session = refreshed.session ?? session;
+        }
+        if (!session) throw new Error("Sessão expirada. Faça login novamente como administrador.");
+        const { data: realStaff } = await supabase.rpc("is_staff", { _user_id: session.user.id });
+        if (realStaff !== true) {
+          throw new Error(`A sessão ativa nesta aba (${session.user.email ?? "usuário"}) não é administradora.`);
+        }
+        authHeader = { Authorization: `Bearer ${session.access_token}` };
       }
       const { data, error } = await supabase.functions.invoke("admin-unblock-stock-item", {
         body: { stock_item_id: stockItemId, order_item_id: orderItem.id },
+        headers: authHeader,
       });
       if (error) {
         let detail = "";
