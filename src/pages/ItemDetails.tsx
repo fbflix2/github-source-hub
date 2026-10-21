@@ -806,23 +806,26 @@ export default function ItemDetails() {
         }
         authHeader = { Authorization: `Bearer ${session.access_token}` };
       }
-      const { data, error } = await supabase.functions.invoke("admin-unblock-stock-item", {
-        body: { stock_item_id: stockItemId, order_item_id: orderItem.id },
-        headers: authHeader,
+      // Use a direct request for this privileged action: the shared Supabase
+      // client is authenticated as the impersonated CUSTOMER in this tab.
+      // Its functions.invoke may supply that customer's JWT instead.
+      const token = authHeader?.Authorization?.replace(/^Bearer /, "");
+      if (!token) throw new Error("Sessão administrativa indisponível.");
+      const supabaseUrl = "https://mxnlerkeygfvdnznoxld.supabase.co";
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      if (!anonKey) throw new Error("Configuração pública do Supabase ausente.");
+      const response = await fetch(`${supabaseUrl}/functions/v1/admin-unblock-stock-item`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stock_item_id: stockItemId, order_item_id: orderItem.id }),
       });
-      if (error) {
-        let detail = "";
-        const ctx: any = (error as any).context;
-        if (ctx && typeof ctx.json === "function") {
-          try {
-            const body = await ctx.clone().json();
-            detail = typeof body?.error === "string" ? body.error : "";
-          } catch {
-            try { detail = (await ctx.text())?.slice(0, 200) || ""; } catch { /* ignore */ }
-          }
-        }
-        const status = ctx?.status ? ` (${ctx.status})` : "";
-        throw new Error((detail || error.message || "Erro ao desbloquear") + status);
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`${data?.error || "Falha ao desbloquear item"} (${response.status})`);
       }
       if (!data?.success) throw new Error(data?.error || "Erro ao desbloquear");
       setIsBlocked(false);
