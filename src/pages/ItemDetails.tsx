@@ -782,10 +782,27 @@ export default function ItemDetails() {
     if (!window.confirm("Após verificar que o perfil funciona, deseja desbloquear este item e restaurar o acesso do cliente aos dados e ao bloco de notas?")) return;
     setUnblocking(true);
     try {
+      if (sessionStorage.getItem("fbflix_impersonation_tab") === "1") {
+        throw new Error("Esta aba está logada como o cliente (modo visualização). Desbloqueie pelo painel admin, na sua própria sessão.");
+      }
       const { data, error } = await supabase.functions.invoke("admin-unblock-stock-item", {
         body: { stock_item_id: stockItemId, order_item_id: orderItem.id },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Erro ao desbloquear");
+      if (error) {
+        let detail = "";
+        const ctx: any = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.clone().json();
+            detail = typeof body?.error === "string" ? body.error : "";
+          } catch {
+            try { detail = (await ctx.text())?.slice(0, 200) || ""; } catch { /* ignore */ }
+          }
+        }
+        const status = ctx?.status ? ` (${ctx.status})` : "";
+        throw new Error((detail || error.message || "Erro ao desbloquear") + status);
+      }
+      if (!data?.success) throw new Error(data?.error || "Erro ao desbloquear");
       setIsBlocked(false);
       setIsConfirmedOk(false);
       toast.success("Item desbloqueado. O cliente já pode acessar os dados novamente.");

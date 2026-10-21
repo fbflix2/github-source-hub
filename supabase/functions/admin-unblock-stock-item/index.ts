@@ -5,7 +5,10 @@ const headers = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Content-Type": "application/json",
 };
-const respond = (error: string, status: number) => new Response(JSON.stringify({ error }), { status, headers });
+const respond = (error: string, status: number) => {
+  console.warn("admin-unblock-stock-item rejected", { status, error });
+  return new Response(JSON.stringify({ error }), { status, headers });
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers });
