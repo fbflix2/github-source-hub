@@ -116,6 +116,15 @@ export default function TermsOfService() {
                 em até 48 horas úteis após a abertura do ticket.
               </li>
             </ul>
+            <p className="mt-4">
+              <strong className="text-foreground">Segurança das credenciais e responsabilidade após a entrega:</strong>{" "}
+              o comprador deve verificar e proteger os acessos do perfil adquirido, atualizando, quando permitido
+              pelo serviço de origem, senha, e-mail principal e alternativo, métodos de recuperação, autenticação
+              em dois fatores (2FA), tokens e códigos de recuperação. Após os 7 (sete) dias de garantia contratual,
+              problemas decorrentes da falta dessas medidas, do compartilhamento de credenciais ou de falhas de
+              segurança sob controle do comprador serão de sua responsabilidade. Esta disposição não afasta
+              direitos assegurados pela legislação aplicável.
+            </p>
           </section>
 
           <section>
