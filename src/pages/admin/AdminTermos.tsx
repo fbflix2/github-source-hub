@@ -12,13 +12,19 @@ Ao acessar e usar a plataforma FBFLIX, você aceita e concorda em estar vinculad
 A FBFLIX fornece aos usuários acesso a uma rica coleção de recursos, incluindo várias ferramentas de comunicação, fóruns de busca, conteúdo personalizado e programação de marca através de sua rede de propriedades.
 
 3. MODIFICAÇÕES NO SERVIÇO
-A FBFLIX reserva-se o direito de a qualquer momento e de tempos em tempos modificar ou descontinuar, temporária ou permanentemente, o Serviço (ou qualquer parte dele) com ou sem aviso prévio.`;
+A FBFLIX reserva-se o direito de a qualquer momento e de tempos em tempos modificar ou descontinuar, temporária ou permanentemente, o Serviço (ou qualquer parte dele) com ou sem aviso prévio.
+
+SEGURANÇA DAS CREDENCIAIS E RESPONSABILIDADE APÓS A ENTREGA
+O comprador deve verificar e proteger os acessos do perfil adquirido, atualizando, quando permitido pelo serviço de origem, senha, e-mail principal e alternativo, métodos de recuperação, autenticação em dois fatores (2FA), tokens e códigos de recuperação. Após os 7 (sete) dias de garantia contratual, problemas decorrentes da falta dessas medidas, do compartilhamento de credenciais ou de falhas de segurança sob controle do comprador serão de sua responsabilidade. Esta disposição não afasta direitos assegurados pela legislação aplicável.`;
 
 const DEFAULT_GARANTIA = `POLÍTICA DE REEMBOLSO E GARANTIA
 
 Oferecemos uma garantia de satisfação de 7 dias. Se você não estiver satisfeito com nosso serviço por qualquer motivo, poderá solicitar um reembolso total dentro de 7 dias após a compra inicial.
 
-Para assinaturas mensais, você pode cancelar a qualquer momento, e o acesso continuará até o final do período de faturamento atual.`;
+Para assinaturas mensais, você pode cancelar a qualquer momento, e o acesso continuará até o final do período de faturamento atual.
+
+SEGURANÇA DAS CREDENCIAIS E RESPONSABILIDADE APÓS A ENTREGA
+O comprador deve verificar e proteger os acessos do perfil adquirido, atualizando, quando permitido pelo serviço de origem, senha, e-mail principal e alternativo, métodos de recuperação, autenticação em dois fatores (2FA), tokens e códigos de recuperação. Após os 7 (sete) dias de garantia contratual, problemas decorrentes da falta dessas medidas, do compartilhamento de credenciais ou de falhas de segurança sob controle do comprador serão de sua responsabilidade. Esta disposição não afasta direitos assegurados pela legislação aplicável.`;
 
 export default function AdminTermos() {
   const [termosUso, setTermosUso] = useState(DEFAULT_TERMOS);
