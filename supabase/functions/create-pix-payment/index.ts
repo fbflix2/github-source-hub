@@ -85,6 +85,17 @@ Deno.serve(async (req) => {
         const ownOpenPix = blackproxy?.gateway_provider === "openpix" &&
           Boolean(String(blackproxy.gateway_openpix_app_id || "").trim()) &&
           ["active", "warning"].includes(String(blackproxy.status));
+        const ownMp = blackproxy?.gateway_provider === "mercadopago" &&
+          String(blackproxy.gateway_mp_access_token || "").trim().length > 20 &&
+          ["active", "warning"].includes(String(blackproxy.status));
+        if (ownMp) {
+          return await createResellerMpPix({
+            adminClient, supabase, userId, numericAmount, order_id, proxy_data,
+            resellerId: BLACKPROXY_RESELLER_ID,
+            accessToken: String(blackproxy!.gateway_mp_access_token).trim(),
+            email: userData.user.email || "",
+          });
+        }
         if (!ownOpenPix) {
           const message = blackproxy?.gateway_provider === "mercadopago"
             ? "A Blackproxy selecionou Mercado Pago, mas o checkout PIX Mercado Pago ainda não está integrado. Nenhuma cobrança foi criada na FBFLIX."
@@ -276,3 +287,77 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// PIX charged on the RESELLER's own Mercado Pago account.
+async function createResellerMpPix(p: {
+  adminClient: any; supabase: any; userId: string; numericAmount: number;
+  order_id: string; proxy_data: any; resellerId: string; accessToken: string; email: string;
+}) {
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+  const paymentCode = `PIX-${Date.now()}`;
+  const { data: payment, error: paymentError } = await p.supabase
+    .from("payments")
+    .insert({
+      user_id: p.userId, amount: p.numericAmount, code: paymentCode,
+      gateway: "mercadopago", status: "pending", order_id: p.order_id,
+      metadata: { type: "order_payment", method: "pix", reseller_id: p.resellerId, gateway_owner: "reseller" },
+    })
+    .select("id").single();
+  if (paymentError) { console.error("Payment insert error:", paymentError); throw new Error("Erro ao criar pagamento"); }
+
+  if (p.proxy_data) {
+    const { data: items } = await p.adminClient.from("order_items").select("id").eq("order_id", p.order_id);
+    if (items?.length) {
+      await p.adminClient.from("order_items").update({ delivery_data: {
+        type: "proxy_contract",
+        product_variant_id: p.proxy_data.product_variant_id,
+        api_product_id: p.proxy_data.api_product_id,
+        variant_location: p.proxy_data.variant_location,
+        quantity: p.proxy_data.quantity || 1,
+        interval: p.proxy_data.interval || "monthly",
+      } }).eq("id", items[0].id);
+    }
+  }
+
+  const { data: profile } = await p.adminClient.from("profiles").select("full_name").eq("user_id", p.userId).maybeSingle();
+  const [firstName, ...rest] = String(profile?.full_name || "Cliente").trim().split(/\s+/);
+  const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook?reseller_id=${p.resellerId}`;
+
+  const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${p.accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": payment.id,
+    },
+    body: JSON.stringify({
+      transaction_amount: Number(p.numericAmount.toFixed(2)),
+      description: `Pedido ${paymentCode}`,
+      payment_method_id: "pix",
+      external_reference: payment.id,
+      notification_url: notificationUrl,
+      date_of_expiration: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      payer: { email: p.email || "cliente@email.com", first_name: firstName, last_name: rest.join(" ") || firstName },
+    }),
+  });
+  const mp = await mpRes.json();
+  if (!mpRes.ok) {
+    console.error("[create-pix-payment] Mercado Pago revenda erro:", mpRes.status, JSON.stringify(mp));
+    await p.adminClient.from("payments").update({ status: "failed" }).eq("id", payment.id);
+    return json({ error: `Mercado Pago recusou a cobrança: ${mp?.message || mpRes.status}` }, 502);
+  }
+  const tx = mp.point_of_interaction?.transaction_data || {};
+  await p.adminClient.from("payments").update({
+    gateway_reference: String(mp.id),
+    metadata: { type: "order_payment", method: "pix", reseller_id: p.resellerId, gateway_owner: "reseller", mp_payment_id: mp.id, mp_status: mp.status },
+  }).eq("id", payment.id);
+  console.log(`[create-pix-payment] PIX Mercado Pago revenda ${p.resellerId} criado: ${mp.id}`);
+  return json({
+    payment_id: payment.id,
+    qr_code: tx.qr_code,
+    qr_code_base64: tx.qr_code_base64,
+    payment_link: tx.ticket_url,
+  });
+}
