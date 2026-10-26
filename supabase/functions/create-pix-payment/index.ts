@@ -85,6 +85,17 @@ Deno.serve(async (req) => {
         const ownOpenPix = blackproxy?.gateway_provider === "openpix" &&
           Boolean(String(blackproxy.gateway_openpix_app_id || "").trim()) &&
           ["active", "warning"].includes(String(blackproxy.status));
+        const ownMp = blackproxy?.gateway_provider === "mercadopago" &&
+          String(blackproxy.gateway_mp_access_token || "").trim().length > 20 &&
+          ["active", "warning"].includes(String(blackproxy.status));
+        if (ownMp) {
+          return await createResellerMpPix({
+            adminClient, supabase, userId, numericAmount, order_id, proxy_data,
+            resellerId: BLACKPROXY_RESELLER_ID,
+            accessToken: String(blackproxy!.gateway_mp_access_token).trim(),
+            email: userData.user.email || "",
+          });
+        }
         if (!ownOpenPix) {
           const message = blackproxy?.gateway_provider === "mercadopago"
             ? "A Blackproxy selecionou Mercado Pago, mas o checkout PIX Mercado Pago ainda não está integrado. Nenhuma cobrança foi criada na FBFLIX."
