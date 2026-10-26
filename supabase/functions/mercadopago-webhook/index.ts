@@ -120,11 +120,25 @@ Deno.serve(async (req) => {
     
     console.log("Processing payment ID:", mpPaymentId);
 
+    // Reseller-owned charges are verified with the reseller's own token
+    let verifyToken = MERCADOPAGO_ACCESS_TOKEN;
+    const resellerParam = url.searchParams.get("reseller_id");
+    if (resellerParam && /^[0-9a-f-]{36}$/i.test(resellerParam)) {
+      const { data: rs } = await supabase
+        .from("resellers")
+        .select("gateway_provider, gateway_mp_access_token")
+        .eq("id", resellerParam)
+        .maybeSingle();
+      if (rs?.gateway_provider === "mercadopago" && rs.gateway_mp_access_token) {
+        verifyToken = String(rs.gateway_mp_access_token).trim();
+      }
+    }
+
     // Fetch payment details from Mercado Pago
     const mpResponse = await fetch(
       `https://api.mercadopago.com/v1/payments/${mpPaymentId}`,
       {
-        headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
+        headers: { Authorization: `Bearer ${verifyToken}` },
       }
     );
 
