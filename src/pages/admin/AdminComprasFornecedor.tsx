@@ -957,6 +957,21 @@ export default function AdminComprasFornecedor() {
                               )}
                             </div>
                             <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
+                            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+                              <span className="text-[10px] text-white/40 shrink-0">Código do lote:</span>
+                              <span className="text-[10px] font-mono text-white/70 truncate" title={b.id}>{b.id}</span>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="size-5 shrink-0 text-white/50 hover:text-white"
+                                onClick={(e) => { e.stopPropagation(); copyToClipboard(b.id, "Código do lote"); }}
+                                title="Copiar código do lote"
+                                aria-label="Copiar código do lote"
+                              >
+                                <Copy className="size-3" />
+                              </Button>
+                            </div>
                             <div className="text-[10px] text-white/40 mt-0.5">
                               {new Date(b.purchased_at || b.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
                             </div>
