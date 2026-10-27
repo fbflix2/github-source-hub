@@ -30,6 +30,17 @@ const copyToClipboard = (value: string | null | undefined, label: string) => {
   );
 };
 
+// Short, stable display code derived from the existing UUID.
+// The UUID remains the database identifier; this is a human-friendly reference.
+const batchDisplayCode = (id: string): string => {
+  const hex = id.replace(/-/g, "").toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return id;
+  const bytes = Array.from({ length: 16 }, (_, i) => parseInt(hex.slice(i * 2, i * 2 + 2), 16));
+  const letters = [0, 4, 8, 12].map((i) => String.fromCharCode(65 + ((bytes[i] * 256 + bytes[i + 1]) % 26))).join("");
+  const numbers = [2, 6, 10, 14].map((i) => String((bytes[i] * 256 + bytes[i + 1]) % 10)).join("");
+  return letters + numbers;
+};
+
 type Supplier = {
   id: string;
   name: string;
@@ -959,13 +970,13 @@ export default function AdminComprasFornecedor() {
                             <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
                             <div className="flex items-center gap-1.5 mt-1 min-w-0">
                               <span className="text-[10px] text-white/40 shrink-0">Código do lote:</span>
-                              <span className="text-[10px] font-mono text-white/70 truncate" title={b.id}>{b.id}</span>
+                              <span className="text-[10px] font-mono text-white/70 truncate" title={b.id}>{batchDisplayCode(b.id)}</span>
                               <Button
                                 type="button"
                                 size="icon"
                                 variant="ghost"
                                 className="size-5 shrink-0 text-white/50 hover:text-white"
-                                onClick={(e) => { e.stopPropagation(); copyToClipboard(b.id, "Código do lote"); }}
+                                onClick={(e) => { e.stopPropagation(); copyToClipboard(batchDisplayCode(b.id), "Código do lote"); }}
                                 title="Copiar código do lote"
                                 aria-label="Copiar código do lote"
                               >
