@@ -249,20 +249,40 @@ export default function AdminComprasFornecedor() {
   const [importModal, setImportModal] = useState<{ open: boolean; batch?: Batch }>({ open: false });
   const [accountModal, setAccountModal] = useState<{ open: boolean; account?: Account }>({ open: false });
 
+  // Supabase/PostgREST caps individual query responses (typically 1,000 rows).
+  // Fetch every page so the dashboard, supplier ranking and batch totals use
+  // the full purchase history rather than just the first 1,000 accounts.
+  const loadAllSupplierAccounts = async (): Promise<Account[]> => {
+    const pageSize = 500;
+    const result: Account[] = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("supplier_accounts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const page = (data || []) as Account[];
+      result.push(...page);
+      if (page.length < pageSize) break;
+    }
+    return result;
+  };
+
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [s, b, a] = await Promise.all([
+      const [s, b, allAccounts] = await Promise.all([
         supabase.from("suppliers").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_batches").select("*").order("created_at", { ascending: false }),
-        supabase.from("supplier_accounts").select("*").order("created_at", { ascending: false }).limit(2000),
+        loadAllSupplierAccounts(),
       ]);
       if (s.error) throw s.error;
       if (b.error) throw b.error;
-      if (a.error) throw a.error;
       setSuppliers((s.data || []) as Supplier[]);
       setBatches((b.data || []) as Batch[]);
-      setAccounts(((a.data || []) as Account[]).map(normalizeAccountCredentials));
+      setAccounts(allAccounts.map(normalizeAccountCredentials));
     } catch (err: any) {
       toast.error("Erro ao carregar: " + err.message);
     } finally {
