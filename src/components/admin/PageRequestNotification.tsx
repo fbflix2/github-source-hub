@@ -251,9 +251,49 @@ export function PageRequestNotification() {
         global: false,
       });
 
+      // Also notify via WhatsApp when the client's phone is available.
+      // Await the provider response so an in-app notification is not mistaken for WhatsApp delivery.
+      let whatsappSent = false;
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("phone, full_name")
+          .eq("user_id", req.user_id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        const phone = (profile as any)?.phone as string | undefined;
+        if (phone) {
+          const firstName = ((req.client_name || (profile as any)?.full_name || "") as string)
+            .trim().split(" ")[0] || "cliente";
+          const message =
+            `Olá, ${firstName}! 👋\\n\\n` +
+            `⚠️ Identificamos que o link do perfil enviado para receber sua página está incorreto ou inacessível.\\n\\n` +
+            `📄 *Produto:* ${req.product_name}\\n` +
+            `🧾 *Pedido:* ${req.order_code}\\n\\n` +
+            `Por favor, acesse seu pedido na FBFLIX e atualize o link do perfil do Facebook para que possamos prosseguir com a entrega da página.\\n\\n` +
+            `Assim que corrigir, poderemos continuar o atendimento. Obrigado!`;
+          const { data: waResult, error: waError } = await supabase.functions.invoke("wapi-send", {
+            body: {
+              action: "send-text",
+              phone,
+              message,
+              user_id: req.user_id,
+              event_key: "page_invalid_profile_link",
+              metadata: { order_code: req.order_code, order_item_id: req.order_item_id },
+            },
+          });
+          if (waError) throw waError;
+          whatsappSent = waResult?.success === true || waResult?.sent === true;
+        }
+      } catch (waError) {
+        console.error("Failed to notify invalid page profile link via WhatsApp:", waError);
+      }
+
       toast({
-        title: "Cliente notificado",
-        description: "Ele poderá corrigir o link do perfil.",
+        title: whatsappSent ? "Cliente notificado por WhatsApp e na plataforma" : "Notificação interna enviada",
+        description: whatsappSent
+          ? "O cliente recebeu a solicitação de correção pelo WhatsApp."
+          : "A solicitação de correção foi registrada na plataforma; envio pelo WhatsApp não confirmado.",
       });
       setRequests(prev => prev.filter(r => r.id !== req.id));
       setSelectedRequest(null);
