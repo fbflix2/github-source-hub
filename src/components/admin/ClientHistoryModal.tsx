@@ -26,6 +26,7 @@ interface OrderItem {
   total: number;
   status: string;
   created_at: string;
+  payment_method?: string | null;
 }
 
 interface WalletItem {
@@ -74,13 +75,25 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
   const fetchAll = async () => {
     if (!client) return;
     setLoading(true);
-    const [ordersRes, walletRes, notesRes, presenceRes] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("id, code, total, status, created_at")
-        .eq("user_id", client.user_id)
-        .order("created_at", { ascending: false })
-        .limit(50),
+    const fetchAllOrders = async (): Promise<OrderItem[]> => {
+      const result: OrderItem[] = [];
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("id, code, total, status, created_at, payment_method")
+          .eq("user_id", client.user_id)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        result.push(...(data ?? []));
+        if (!data || data.length < pageSize) break;
+      }
+      return result;
+    };
+    const [allOrders, walletRes, notesRes, presenceRes] = await Promise.all([
+      fetchAllOrders(),
       supabase
         .from("wallet_transactions")
         .select("id, title, amount, type, created_at")
@@ -99,11 +112,11 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
         .maybeSingle(),
     ]);
 
-    const ords = ordersRes.data ?? [];
+    const ords = allOrders;
     setOrders(ords);
     setTotalSpent(
       ords
-        .filter((o) => ["completed", "delivered"].includes(o.status))
+        .filter((o) => ["completed", "delivered"].includes(o.status) && o.payment_method !== "cortesia")
         .reduce((s, o) => s + Number(o.total), 0)
     );
     setWalletTxs(walletRes.data ?? []);
