@@ -79,7 +79,7 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoiceAdmin, setInvoiceAdmin] = useState(false);
-  const [invoiceMonth, setInvoiceMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [invoiceMonth, setInvoiceMonth] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7));
   const [invoiceCopied, setInvoiceCopied] = useState(false);
   useEffect(() => {
     let mounted = true;
@@ -110,7 +110,7 @@ export default function Orders() {
     return () => { mounted = false; };
   }, []);
   const copyInvoiceMonth = async () => {
-    const matching = orders.filter(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth);
+    const matching = orders.filter(o => ["completed", "delivered"].includes(o.status) && o.payment_method !== "cortesia" && new Date(o.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7) === invoiceMonth);
     if (!matching.length) return;
     const brl = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     // Keep the copied invoice summary to at most 20 lines without dropping products.
@@ -136,7 +136,7 @@ export default function Orders() {
     );
     const lines = [
       "RESUMO PARA NOTA FISCAL — " + invoiceMonth.slice(5) + "/" + invoiceMonth.slice(0, 4),
-      "Pedidos concluídos: " + matching.length,
+      "Compras do mês selecionado: " + matching.length,
       "Itens adquiridos (agrupados por produto e preço):",
     ];
     const detailLines = Math.min(14, entries.length);
@@ -301,9 +301,9 @@ export default function Orders() {
   }, []);
 
   const invoiceMonthOrders = orders.filter(o =>
-    o.status === "completed" &&
+    ["completed", "delivered"].includes(o.status) &&
     o.payment_method !== "cortesia" &&
-    o.created_at.slice(0, 7) === invoiceMonth
+    new Date(o.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7) === invoiceMonth
   );
   const invoiceMonthTotal = invoiceMonthOrders.reduce((sum, order) => sum + order.total, 0);
 
@@ -338,7 +338,7 @@ export default function Orders() {
         </div>
         {invoiceAdmin && (
           <div className="flex items-center flex-wrap gap-2">
-            <span className="text-xs text-muted-foreground">Resumo para NF</span>
+            <span className="text-xs text-muted-foreground">Resumo para NF (somente mês selecionado)</span>
             <input type="month" aria-label="Mês da nota fiscal" value={invoiceMonth} onChange={e => { setInvoiceMonth(e.target.value); setInvoiceCopied(false); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs" />
             <span className="text-xs text-muted-foreground">Total do mês: <strong className="text-foreground">{invoiceMonthTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
             <button type="button" onClick={copyInvoiceMonth} disabled={!orders.some(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth)} className="flex items-center gap-1 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50">
