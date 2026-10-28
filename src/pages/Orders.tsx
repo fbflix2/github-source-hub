@@ -122,7 +122,7 @@ export default function Orders() {
       lines.push("Total pago: " + brl(order.total), "");
       total += order.total;
     }
-    lines.push("TOTAL DO MÊS: " + brl(total), "PEDIDOS: " + matching.length, "Atenção: conferir pagamentos, reembolsos e data fiscal antes de emitir a nota.");
+    lines.push("PEDIDOS: " + matching.length, "================================", "VALOR TOTAL DO MÊS: " + brl(total), "================================", "Atenção: conferir pagamentos, reembolsos e data fiscal antes de emitir a nota.");
     try { await navigator.clipboard.writeText(lines.join("\n")); setInvoiceCopied(true); }
     catch (error) { console.error("Erro ao copiar resumo fiscal:", error); }
   };
@@ -275,6 +275,13 @@ export default function Orders() {
     fetchOrders();
   }, []);
 
+  const invoiceMonthOrders = orders.filter(o =>
+    o.status === "completed" &&
+    o.payment_method !== "cortesia" &&
+    o.created_at.slice(0, 7) === invoiceMonth
+  );
+  const invoiceMonthTotal = invoiceMonthOrders.reduce((sum, order) => sum + order.total, 0);
+
   const filteredOrders = orders.filter((order) => {
     if (activeFilter === "all") return true;
     return order.status === activeFilter;
@@ -308,6 +315,7 @@ export default function Orders() {
           <div className="flex items-center flex-wrap gap-2">
             <span className="text-xs text-muted-foreground">Resumo para NF</span>
             <input type="month" aria-label="Mês da nota fiscal" value={invoiceMonth} onChange={e => { setInvoiceMonth(e.target.value); setInvoiceCopied(false); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs" />
+            <span className="text-xs text-muted-foreground">Total do mês: <strong className="text-foreground">{invoiceMonthTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
             <button type="button" onClick={copyInvoiceMonth} disabled={!orders.some(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth)} className="flex items-center gap-1 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50">
               <Copy size={14} /> {invoiceCopied ? "Copiado!" : "Copiar compras do mês"}
             </button>
