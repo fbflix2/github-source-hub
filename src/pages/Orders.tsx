@@ -174,20 +174,39 @@ export default function Orders() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const { data: ordersData, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("user_id", user.id)
-        .not("status", "in", '("abandoned","cancelled")')
-        .order("created_at", { ascending: false });
+      // Paginate orders: Supabase/PostgREST otherwise truncates at the configured row limit.
+      const ordersData: any[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("user_id", user.id)
+          .not("status", "in", '("abandoned","cancelled")')
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(offset, offset + 499);
+        if (error) { console.error("Erro ao carregar pedidos:", error); setLoading(false); return; }
+        ordersData.push(...(data ?? []));
+        if (!data || data.length < 500) break;
+      }
 
-      if (error || !ordersData) { setLoading(false); return; }
-
-      const orderIds = ordersData.map((o) => o.id);
-      const { data: itemsData } = await supabase
-        .from("order_items")
-        .select("*, products:product_id(icon_type)")
-        .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
+      const orderIds = ordersData.map(o => o.id);
+      const itemsData: any[] = [];
+      // Avoid overly large IN clauses and the default 1,000-row query cap.
+      for (let i = 0; i < orderIds.length; i += 100) {
+        const batch = orderIds.slice(i, i + 100);
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await supabase
+            .from("order_items")
+            .select("*, products:product_id(icon_type)")
+            .in("order_id", batch)
+            .order("id", { ascending: true })
+            .range(offset, offset + 499);
+          if (error) { console.error("Erro ao carregar itens:", error); setLoading(false); return; }
+          itemsData.push(...(data ?? []));
+          if (!data || data.length < 500) break;
+        }
+      }
 
       // Fetch ALL stock_items linked to order_items
       const itemIds = (itemsData || []).map((i) => i.id);
