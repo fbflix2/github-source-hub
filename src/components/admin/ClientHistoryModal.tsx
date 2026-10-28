@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Send, ShoppingBag, Wallet, Clock, StickyNote, Trash2, DollarSign, UserRound } from "lucide-react";
 import AdjustBalanceModal from "./AdjustBalanceModal";
+import { computeSpend, unlinkedWalletPurchases, type SpendWalletTx } from "@/lib/client-spend";
 
 interface ClientHistoryModalProps {
   open: boolean;
@@ -114,11 +115,14 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
 
     const ords = allOrders;
     setOrders(ords);
-    setTotalSpent(
-      ords
-        .filter((o) => ["completed", "delivered"].includes(o.status) && o.payment_method !== "cortesia")
-        .reduce((s, o) => s + Number(o.total), 0)
-    );
+    const purchaseTxs: SpendWalletTx[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data } = await supabase.from("wallet_transactions").select("type, amount, reference_id, created_at").eq("user_id", client.user_id).eq("type", "purchase").order("id").range(offset, offset + 999);
+      purchaseTxs.push(...((data ?? []) as any));
+      if (!data || data.length < 1000) break;
+    }
+    const renewals = unlinkedWalletPurchases(purchaseTxs, new Set(ords.map(o => o.id)), new Set(ords.map(o => o.code)));
+    setTotalSpent(computeSpend(ords, renewals).total);
     setWalletTxs(walletRes.data ?? []);
     setNotes(notesRes.data ?? []);
     setLastSeenAt(presenceRes.data?.last_seen_at ?? null);
