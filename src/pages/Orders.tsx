@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Copy } from "lucide-react";
 import { isImpersonationTab, getStoredAdminAccessToken } from "@/lib/admin-session";
+import { computeSpend, unlinkedWalletPurchases, type SpendWalletTx } from "@/lib/client-spend";
 
 type OrderStatus = "completed" | "processing" | "cancelled";
 
@@ -81,6 +82,7 @@ export default function Orders() {
   const [invoiceAdmin, setInvoiceAdmin] = useState(false);
   const [invoiceMonth, setInvoiceMonth] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7));
   const [invoiceCopied, setInvoiceCopied] = useState(false);
+  const [renewalTxs, setRenewalTxs] = useState<SpendWalletTx[]>([]);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -110,8 +112,8 @@ export default function Orders() {
     return () => { mounted = false; };
   }, []);
   const copyInvoiceMonth = async () => {
-    const matching = orders.filter(o => ["completed", "delivered"].includes(o.status) && o.payment_method !== "cortesia" && new Date(o.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7) === invoiceMonth);
-    if (!matching.length) return;
+    const matching = invoiceSpend.orders as Order[];
+    if (!matching.length && !invoiceSpend.renewals.length) return;
     const brl = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     // Keep the copied invoice summary to at most 20 lines without dropping products.
     // Aggregate identical products and distribute entries across up to 14 detail lines.
@@ -128,7 +130,15 @@ export default function Orders() {
         }
       }
     }
-    const total = matching.reduce((sum, order) => sum + order.total, 0);
+    for (const t of invoiceSpend.renewals) {
+      const price = Math.abs(Number(t.amount));
+      const name = "Renovação de Proxy";
+      const key = JSON.stringify([name, "", price]);
+      const existing = grouped.get(key);
+      if (existing) { existing.quantity += 1; existing.subtotal += price; }
+      else grouped.set(key, { name, description: "", price, quantity: 1, subtotal: price });
+    }
+    const total = invoiceSpend.total;
     const discount = matching.reduce((sum, order) => sum + order.discount, 0);
     const entries = Array.from(grouped.values()).map(item =>
       item.name + (item.description ? " — " + item.description : "") +
@@ -136,7 +146,7 @@ export default function Orders() {
     );
     const lines = [
       "RESUMO PARA NOTA FISCAL — " + invoiceMonth.slice(5) + "/" + invoiceMonth.slice(0, 4),
-      "Compras do mês selecionado: " + matching.length,
+      "Compras do mês selecionado: " + (matching.length + invoiceSpend.renewals.length) + (invoiceSpend.renewals.length ? " (" + matching.length + " pedidos + " + invoiceSpend.renewals.length + " renovações de proxy)" : ""),
       "Itens adquiridos (agrupados por produto e preço):",
     ];
     const detailLines = Math.min(14, entries.length);
@@ -312,6 +322,23 @@ export default function Orders() {
           })),
       })).filter(o => o.items.length > 0);
 
+      // Proxy renewals are wallet purchases without an orders row: load them separately.
+      const allIds = new Set<string>();
+      const allCodes = new Set<string>();
+      for (let offset = 0; ; offset += 1000) {
+        const { data } = await supabase.from("orders").select("id, code").eq("user_id", user.id).order("id").range(offset, offset + 999);
+        (data ?? []).forEach((o: any) => { allIds.add(o.id); if (o.code) allCodes.add(o.code); });
+        if (!data || data.length < 1000) break;
+      }
+      const walletTxs: SpendWalletTx[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.from("wallet_transactions").select("id, type, amount, reference_id, created_at, title").eq("user_id", user.id).eq("type", "purchase").order("id").range(offset, offset + 999);
+        if (error) { console.error("Erro ao carregar carteira:", error); break; }
+        walletTxs.push(...((data ?? []) as any));
+        if (!data || data.length < 1000) break;
+      }
+      setRenewalTxs(unlinkedWalletPurchases(walletTxs, allIds, allCodes));
+
       setOrders(enriched);
       if (enriched.length > 0) setSelectedOrder(enriched[0]);
       setLoading(false);
@@ -319,12 +346,9 @@ export default function Orders() {
     fetchOrders();
   }, []);
 
-  const invoiceMonthOrders = orders.filter(o =>
-    ["completed", "delivered"].includes(o.status) &&
-    o.payment_method !== "cortesia" &&
-    new Date(o.created_at).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).slice(0, 7) === invoiceMonth
-  );
-  const invoiceMonthTotal = invoiceMonthOrders.reduce((sum, order) => sum + order.total, 0);
+  const invoiceSpend = computeSpend(orders, renewalTxs, invoiceMonth);
+  const invoiceMonthTotal = invoiceSpend.total;
+  const lifetimeTotal = computeSpend(orders, renewalTxs).total;
 
   const filteredOrders = orders.filter((order) => {
     if (activeFilter === "all") return true;
@@ -360,7 +384,8 @@ export default function Orders() {
             <span className="text-xs text-muted-foreground">Resumo para NF (somente mês selecionado)</span>
             <input type="month" aria-label="Mês da nota fiscal" value={invoiceMonth} onChange={e => { setInvoiceMonth(e.target.value); setInvoiceCopied(false); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs" />
             <span className="text-xs text-muted-foreground">Total do mês: <strong className="text-foreground">{invoiceMonthTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
-            <button type="button" onClick={copyInvoiceMonth} disabled={!orders.some(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth)} className="flex items-center gap-1 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50">
+            <span className="text-xs text-muted-foreground">Gasto total (todo o período): <strong className="text-foreground">{lifetimeTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
+            <button type="button" onClick={copyInvoiceMonth} disabled={!invoiceSpend.orders.length && !invoiceSpend.renewals.length} className="flex items-center gap-1 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50">
               <Copy size={14} /> {invoiceCopied ? "Copiado!" : "Copiar compras do mês"}
             </button>
           </div>
