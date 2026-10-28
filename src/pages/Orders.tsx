@@ -113,16 +113,41 @@ export default function Orders() {
     const matching = orders.filter(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth);
     if (!matching.length) return;
     const brl = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    const lines = ["RESUMO DE COMPRAS — " + invoiceMonth.slice(5) + "/" + invoiceMonth.slice(0, 4), "FBFLIX — Conferir antes de emitir nota fiscal.", ""];
-    let total = 0;
+    // Keep the copied invoice summary to at most 20 lines without dropping products.
+    // Aggregate identical products and distribute entries across up to 14 detail lines.
+    const grouped = new Map<string, { name: string; description: string; price: number; quantity: number; subtotal: number }>();
     for (const order of matching) {
-      lines.push("Pedido: " + order.code + " | Data: " + formatDateFull(order.created_at) + " | Pagamento: " + (order.payment_method || "Não informado"));
-      for (const item of order.items) lines.push("• " + item.name + (item.description ? " — " + item.description : "") + " | Quantidade: " + item.quantity + " | Unitário: " + brl(item.price) + " | Subtotal: " + brl(item.price * item.quantity));
-      if (order.discount) lines.push("Desconto: -" + brl(order.discount));
-      lines.push("Total pago: " + brl(order.total), "");
-      total += order.total;
+      for (const item of order.items) {
+        const key = JSON.stringify([item.name, item.description || "", item.price]);
+        const existing = grouped.get(key);
+        if (existing) {
+          existing.quantity += item.quantity;
+          existing.subtotal += item.price * item.quantity;
+        } else {
+          grouped.set(key, { name: item.name, description: item.description || "", price: item.price, quantity: item.quantity, subtotal: item.price * item.quantity });
+        }
+      }
     }
-    lines.push("PEDIDOS: " + matching.length, "================================", "VALOR TOTAL DO MÊS: " + brl(total), "================================", "Atenção: conferir pagamentos, reembolsos e data fiscal antes de emitir a nota.");
+    const total = matching.reduce((sum, order) => sum + order.total, 0);
+    const discount = matching.reduce((sum, order) => sum + order.discount, 0);
+    const entries = Array.from(grouped.values()).map(item =>
+      item.name + (item.description ? " — " + item.description : "") +
+      " (Qtd. " + item.quantity + " × " + brl(item.price) + " = " + brl(item.subtotal) + ")"
+    );
+    const lines = [
+      "RESUMO PARA NOTA FISCAL — " + invoiceMonth.slice(5) + "/" + invoiceMonth.slice(0, 4),
+      "Pedidos concluídos: " + matching.length,
+      "Itens adquiridos (agrupados por produto e preço):",
+    ];
+    const detailLines = Math.min(14, entries.length);
+    for (let i = 0; i < detailLines; i++) {
+      const start = Math.floor(i * entries.length / detailLines);
+      const end = Math.floor((i + 1) * entries.length / detailLines);
+      lines.push((i + 1) + ". " + entries.slice(start, end).join(" ; "));
+    }
+    if (discount) lines.push("Descontos aplicados: -" + brl(discount));
+    lines.push("VALOR TOTAL DO MÊS: " + brl(total));
+    lines.push("Conferir recebimentos, estornos e data fiscal antes da emissão.");
     try { await navigator.clipboard.writeText(lines.join("\n")); setInvoiceCopied(true); }
     catch (error) { console.error("Erro ao copiar resumo fiscal:", error); }
   };
