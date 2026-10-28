@@ -1,7 +1,8 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy } from "lucide-react";
+import { isImpersonationTab, getStoredAdminAccessToken } from "@/lib/admin-session";
 
 type OrderStatus = "completed" | "processing" | "cancelled";
 
@@ -77,6 +78,54 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [invoiceAdmin, setInvoiceAdmin] = useState(false);
+  const [invoiceMonth, setInvoiceMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [invoiceCopied, setInvoiceCopied] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (isImpersonationTab()) {
+          const admin = await getStoredAdminAccessToken();
+          if (!admin) return;
+          const base = import.meta.env.VITE_SUPABASE_URL as string;
+          const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+          const response = await fetch(base + "/auth/v1/user", { headers: { apikey: key, Authorization: "Bearer " + admin.token } });
+          if (!response.ok) return;
+          const adminUser = await response.json();
+          const check = await fetch(base + "/rest/v1/rpc/is_staff", {
+            method: "POST",
+            headers: { apikey: key, Authorization: "Bearer " + admin.token, "Content-Type": "application/json" },
+            body: JSON.stringify({ _user_id: adminUser.id }),
+          });
+          if (mounted && check.ok && (await check.json()) === true) setInvoiceAdmin(true);
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          const { data } = await supabase.rpc("is_staff", { _user_id: user.id });
+          if (mounted && data === true) setInvoiceAdmin(true);
+        }
+      } catch (error) { console.error("Invoice admin check failed:", error); }
+    })();
+    return () => { mounted = false; };
+  }, []);
+  const copyInvoiceMonth = async () => {
+    const matching = orders.filter(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth);
+    if (!matching.length) return;
+    const brl = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const lines = ["RESUMO DE COMPRAS — " + invoiceMonth.slice(5) + "/" + invoiceMonth.slice(0, 4), "FBFLIX — Conferir antes de emitir nota fiscal.", ""];
+    let total = 0;
+    for (const order of matching) {
+      lines.push("Pedido: " + order.code + " | Data: " + formatDateFull(order.created_at) + " | Pagamento: " + (order.payment_method || "Não informado"));
+      for (const item of order.items) lines.push("• " + item.name + (item.description ? " — " + item.description : "") + " | Quantidade: " + item.quantity + " | Unitário: " + brl(item.price) + " | Subtotal: " + brl(item.price * item.quantity));
+      if (order.discount) lines.push("Desconto: -" + brl(order.discount));
+      lines.push("Total pago: " + brl(order.total), "");
+      total += order.total;
+    }
+    lines.push("TOTAL DO MÊS: " + brl(total), "PEDIDOS: " + matching.length, "Atenção: conferir pagamentos, reembolsos e data fiscal antes de emitir a nota.");
+    try { await navigator.clipboard.writeText(lines.join("\n")); setInvoiceCopied(true); }
+    catch (error) { console.error("Erro ao copiar resumo fiscal:", error); }
+  };
 
   // Lock parent overflow to prevent page scroll - only left cards scroll
   useLayoutEffect(() => {
@@ -255,6 +304,15 @@ export default function Orders() {
           </div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Histórico de Pedidos</h1>
         </div>
+        {invoiceAdmin && (
+          <div className="flex items-center flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground">Resumo para NF</span>
+            <input type="month" aria-label="Mês da nota fiscal" value={invoiceMonth} onChange={e => { setInvoiceMonth(e.target.value); setInvoiceCopied(false); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs" />
+            <button type="button" onClick={copyInvoiceMonth} disabled={!orders.some(o => o.status === "completed" && o.payment_method !== "cortesia" && o.created_at.slice(0, 7) === invoiceMonth)} className="flex items-center gap-1 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs disabled:opacity-50">
+              <Copy size={14} /> {invoiceCopied ? "Copiado!" : "Copiar compras do mês"}
+            </button>
+          </div>
+        )}
         <div className="flex gap-1.5">
           {filters.map((f) => (
             <button
