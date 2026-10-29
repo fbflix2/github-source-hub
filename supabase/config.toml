@@ -147,3 +147,6 @@ verify_jwt = false
 
 [functions.ct-renew-pay]
 verify_jwt = false
+
+[functions.reseller-share-og]
+verify_jwt = false
