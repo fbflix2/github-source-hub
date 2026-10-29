@@ -69,6 +69,16 @@ export default function ResellerStoreConfig({ resellerId, slug }: Props) {
   }, [resellerId]);
 
   const storeUrl = `${window.location.origin}/r/${slug}`;
+  const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reseller-share-og?slug=${encodeURIComponent(slug)}`;
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link para WhatsApp copiado com a identidade da sua loja!");
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
+
 
   const copyUrl = async () => {
     await navigator.clipboard.writeText(storeUrl);
@@ -144,6 +154,21 @@ export default function ResellerStoreConfig({ resellerId, slug }: Props) {
             aria-label="Abrir loja"
           >
             <ExternalLink className="size-4" />
+          </Button>
+        </div>
+      </section>
+
+      <section className="bg-card/60 border border-border/60 rounded-xl p-6 shadow-sm space-y-3">
+        <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+          Link para compartilhar no WhatsApp
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Use este link para exibir o nome, a descrição e a imagem da sua marca na prévia. Ao abrir, o cliente será direcionado à sua loja.
+        </p>
+        <div className="flex gap-2">
+          <Input value={shareUrl} readOnly className="flex-1 bg-background/60 border-border/60 font-mono text-xs" />
+          <Button onClick={copyShareUrl} variant="outline" className="shrink-0 gap-2">
+            <Copy className="size-4" /> Copiar para WhatsApp
           </Button>
         </div>
       </section>
