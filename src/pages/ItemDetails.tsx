@@ -873,6 +873,24 @@ export default function ItemDetails() {
 
   return (
     <div className="space-y-3 animate-fade-in">
+      {(orderItem?.delivery_data as any)?._manual_delivery && (
+        <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <h2 className="text-sm font-bold text-foreground">Entrega manual do pedido</h2>
+          {(orderItem.delivery_data as any).manualTxt && (
+            <button type="button" className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold" onClick={() => {
+              const d = orderItem.delivery_data as any;
+              const blob = new Blob([d.manualTxt], { type: "text/plain;charset=utf-8" });
+              const href = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = href;
+              a.download = String(d.manualTxtName || "perfil.txt").replace(/[^a-zA-Z0-9._-]/g, "_");
+              a.click(); URL.revokeObjectURL(href);
+            }}>Baixar arquivo TXT do perfil</button>
+          )}
+          {(orderItem.delivery_data as any).manualBmLink && (
+            <a href={(orderItem.delivery_data as any).manualBmLink} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary underline break-all">Abrir link da BM</a>
+          )}
+        </section>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
