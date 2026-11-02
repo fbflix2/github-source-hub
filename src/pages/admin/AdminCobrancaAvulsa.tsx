@@ -63,6 +63,7 @@ export default function AdminCobrancaAvulsa() {
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientLastName, setNewClientLastName] = useState("");
   const [registeringClient, setRegisteringClient] = useState(false);
 
   useEffect(() => {
@@ -275,42 +276,24 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const handleRegisterClient = async () => {
-    if (!newClientName.trim() && !newClientEmail.trim()) {
-      toast.error("Informe pelo menos o nome ou e-mail");
+    if (!newClientName.trim() || !newClientEmail.trim().includes("@")) {
+      toast.error("Informe nome e e-mail do cliente.");
       return;
     }
-    const emailToUse = newClientEmail.trim()
-      ? newClientEmail.trim().toLowerCase()
-      : `cliente-${Date.now()}@placeholder.fbflix.com`;
     setRegisteringClient(true);
     try {
-      const tempPassword = "Fb" + Math.random().toString(36).slice(2, 10) + "!1";
-      const res = await supabase.functions.invoke("import-clients", {
-        body: {
-          clients: [{
-            email: emailToUse,
-            full_name: newClientName.trim() || null,
-            password: tempPassword,
-          }]
-        }
+      const { data, error } = await supabase.functions.invoke("create-invoice-client", {
+        body: { first_name: newClientName.trim(), last_name: newClientLastName.trim(), email: newClientEmail.trim() }
       });
-      if (res.error) throw res.error;
-      const result = res.data;
-      if (result?.errors?.length > 0) throw new Error(result.errors[0]);
-
-      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: emailToUse });
-      if (userId) {
-        const newClient: ClientOption = {
-          user_id: userId,
-          full_name: newClientName.trim() || emailToUse,
-          email: emailToUse,
-        };
-        setSelectedClient(newClient);
-        setClients(prev => [...prev, newClient]);
-      }
-      toast.success("Cliente cadastrado com sucesso!");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const client: ClientOption = { user_id: data.user_id, full_name: data.full_name, email: data.email };
+      setSelectedClient(client);
+      setClients(prev => [...prev, client]);
+      toast.success(data.setup_email_sent ? "Cliente cadastrado! E-mail para definir senha enviado." : "Cliente cadastrado. Verifique o envio do e-mail de senha.");
       setShowNewClientForm(false);
       setNewClientName("");
+      setNewClientLastName("");
       setNewClientEmail("");
       setShowClientDropdown(false);
       setClientSearch("");
@@ -369,6 +352,11 @@ export default function AdminCobrancaAvulsa() {
             {/* Client search */}
             <div className="relative">
               <Label>Cliente *</Label>
+              {!selectedClient && !showNewClientForm && (
+                <Button type="button" variant="outline" size="sm" className="my-2 gap-2" onClick={() => setShowNewClientForm(true)}>
+                  <UserPlus className="size-4" /> Cadastrar novo cliente
+                </Button>
+              )}
               {selectedClient ? (
                 <div className="flex items-center gap-2 mt-1 p-2 rounded-lg bg-muted">
                   <span className="text-sm font-medium">{selectedClient.full_name}</span>
@@ -424,14 +412,19 @@ export default function AdminCobrancaAvulsa() {
                       <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="size-4 text-primary" /> Cadastrar novo cliente</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <Label className="text-xs">Nome</Label>
-                          <Input placeholder="Nome completo" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="mt-1" />
+                          <Label className="text-xs">Nome *</Label>
+                          <Input placeholder="Primeiro nome" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="mt-1" />
                         </div>
                         <div>
-                          <Label className="text-xs">E-mail <span className="text-muted-foreground">(opcional)</span></Label>
+                          <Label className="text-xs">Sobrenome (opcional)</Label>
+                          <Input placeholder="Sobrenome" value={newClientLastName} onChange={e => setNewClientLastName(e.target.value)} className="mt-1" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">E-mail *</Label>
                           <Input placeholder="email@exemplo.com" type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} className="mt-1" />
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground">O cliente receberá um e-mail para definir a senha.</p>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={handleRegisterClient} disabled={registeringClient} className="gap-1.5">
                           {registeringClient ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
