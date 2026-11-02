@@ -876,16 +876,23 @@ export default function ItemDetails() {
       {(orderItem?.delivery_data as any)?._manual_delivery && (
         <section className="rounded-xl border border-border bg-card p-4 space-y-3">
           <h2 className="text-sm font-bold text-foreground">Entrega manual do pedido</h2>
-          {(orderItem.delivery_data as any).manualTxt && (
-            <button type="button" className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold" onClick={() => {
-              const d = orderItem.delivery_data as any;
-              const blob = new Blob([d.manualTxt], { type: "text/plain;charset=utf-8" });
-              const href = URL.createObjectURL(blob);
-              const a = document.createElement("a"); a.href = href;
-              a.download = String(d.manualTxtName || "perfil.txt").replace(/[^a-zA-Z0-9._-]/g, "_");
-              a.click(); URL.revokeObjectURL(href);
-            }}>Baixar arquivo TXT do perfil</button>
-          )}
+          {(() => {
+            const d = orderItem.delivery_data as any;
+            const files: { name: string; content: string }[] = Array.isArray(d.manualFiles)
+              ? d.manualFiles : d.manualTxt ? [{ name: d.manualTxtName || "perfil.txt", content: d.manualTxt }] : [];
+            return files.map((file, index) => (
+              <div key={index} className="flex items-center justify-between gap-3 rounded-lg border border-border p-2">
+                <span className="text-sm text-foreground truncate">{file.name}</span>
+                <button type="button" className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0" onClick={() => {
+                  const blob = new Blob([file.content], { type: "text/plain;charset=utf-8" });
+                  const href = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = href;
+                  a.download = String(file.name || "perfil.txt").replace(/[^a-zA-Z0-9._-]/g, "_");
+                  a.click(); URL.revokeObjectURL(href);
+                }}>Baixar TXT</button>
+              </div>
+            ));
+          })()}
           {(orderItem.delivery_data as any).manualBmLink && (
             <a href={(orderItem.delivery_data as any).manualBmLink} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary underline break-all">Abrir link da BM</a>
           )}
