@@ -65,6 +65,8 @@ interface SaleItem {
   manualStockItemId?: string | null;
   manualStockItemName?: string | null;
   customName?: boolean;
+  manualFiles?: { name: string; content: string }[];
+  manualBmLink?: string;
 }
 
 export default function AdminNovaVenda() {
@@ -77,9 +79,6 @@ export default function AdminNovaVenda() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("manual");
   const [notes, setNotes] = useState("");
-  const [manualTxt, setManualTxt] = useState("");
-  const [manualBmLink, setManualBmLink] = useState("");
-  const [manualTxtName, setManualTxtName] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
     { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null, customName: false },
   ]);
@@ -290,11 +289,11 @@ export default function AdminNovaVenda() {
            price: item.price,
            quantity: item.quantity,
            product_id: item.productId || null,
-           ...(deliveryMethod === "manual" && (manualTxt || manualBmLink.trim()) ? {
+           ...(deliveryMethod === "manual" && ((item.manualFiles?.length || 0) > 0 || item.manualBmLink?.trim()) ? {
              delivery_data: {
                _manual_delivery: true,
-               ...(manualTxt ? { manualTxt, manualTxtName: manualTxtName || "perfil.txt" } : {}),
-               ...(manualBmLink.trim() ? { manualBmLink: manualBmLink.trim() } : {}),
+               manualFiles: item.manualFiles || [],
+               ...(item.manualBmLink?.trim() ? { manualBmLink: item.manualBmLink.trim() } : {}),
              },
            } : {}),
            description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
@@ -424,10 +423,20 @@ export default function AdminNovaVenda() {
        return;
      }
 
-    if (manualTxt.length > 100000) { toast.error("O TXT excede 100 KB."); return; }
-    if (manualBmLink.trim()) {
-      try { const u = new URL(manualBmLink.trim()); if (!["https:", "http:"].includes(u.protocol)) throw new Error(); }
-      catch { toast.error("Informe um link válido para a BM."); return; }
+    if (saleType === "product") {
+      for (const item of items) {
+        if (item.manualFiles?.some(file => file.content.length > 100000)) {
+          toast.error("Cada TXT deve ter no máximo 100 KB."); return;
+        }
+        if (item.manualBmLink?.trim()) {
+          try {
+            const url = new URL(item.manualBmLink.trim());
+            if (!["https:", "http:"].includes(url.protocol)) throw new Error("Protocolo inválido");
+          } catch {
+            toast.error(`Link de BM inválido no item: ${item.name}`); return;
+          }
+        }
+      }
     }
     setSubmitting(true);
 
@@ -901,21 +910,6 @@ export default function AdminNovaVenda() {
                   </div>
                 </div>
 
-                 {saleType === "product" && deliveryMethod === "manual" && (
-                   <div className="md:col-span-2 space-y-3 rounded-lg border border-white/10 p-4">
-                     <label className="text-sm font-medium text-gray-300">Dados da entrega (opcional)</label>
-                     <p className="text-xs text-gray-500">O conteúdo ficará vinculado aos detalhes do pedido do cliente. Para múltiplos itens, os dados serão disponibilizados em cada item.</p>
-                     <input type="file" accept=".txt,text/plain" className="block w-full text-xs text-gray-300" onChange={async (e) => {
-                       const file = e.target.files?.[0];
-                       if (!file) { setManualTxt(""); setManualTxtName(""); return; }
-                       if (file.size > 100000 || !file.name.toLowerCase().endsWith(".txt")) { toast.error("Selecione um arquivo TXT de até 100 KB."); e.target.value = ""; return; }
-                       setManualTxt(await file.text()); setManualTxtName(file.name);
-                     }} />
-                     {manualTxtName && <p className="text-xs text-emerald-400">TXT selecionado: {manualTxtName}</p>}
-                     <Input value={manualBmLink} onChange={(e) => setManualBmLink(e.target.value)} placeholder="Link da BM (opcional) — https://..." />
-                   </div>
-                 )}
-
                  {saleType === "subscription" && (
                    <div className="space-y-2">
                      <label className="text-sm text-gray-400 font-medium ml-1">Próxima Cobrança (Recorrência)</label>
@@ -1039,6 +1033,27 @@ export default function AdminNovaVenda() {
                            </div>
                          </div>
  
+                         {deliveryMethod === "manual" && (
+                           <div className="col-span-12 rounded-lg border border-white/10 p-3 space-y-2">
+                             <p className="text-xs font-medium text-gray-300">Entrega do item {idx + 1}: {item.name || "Sem nome"} (opcional)</p>
+                             <input type="file" multiple accept=".txt,text/plain" className="block w-full text-xs text-gray-300" onChange={async (e) => {
+                               const files = Array.from(e.target.files || []);
+                               if (files.some(file => file.size > 100000 || !file.name.toLowerCase().endsWith(".txt"))) {
+                                 toast.error("Selecione somente arquivos TXT de até 100 KB."); e.target.value = ""; return;
+                               }
+                               const next = await Promise.all(files.map(async file => ({ name: file.name, content: await file.text() })));
+                               setItems(prev => prev.map(i => i.id === item.id ? { ...i, manualFiles: [...(i.manualFiles || []), ...next] } : i));
+                               e.target.value = "";
+                             }} />
+                             {(item.manualFiles || []).map((file, fileIndex) => (
+                               <div key={fileIndex} className="flex items-center justify-between text-xs text-emerald-400">
+                                 <span className="truncate">{file.name}</span>
+                                 <button type="button" className="text-red-400 px-2" onClick={() => setItems(prev => prev.map(i => i.id === item.id ? { ...i, manualFiles: (i.manualFiles || []).filter((_, n) => n !== fileIndex) } : i))}>Remover</button>
+                               </div>
+                             ))}
+                             <Input value={item.manualBmLink || ""} onChange={(e) => updateItem(item.id, "manualBmLink", e.target.value)} placeholder="Link da BM deste item (opcional) — https://..." />
+                           </div>
+                         )}
                          <div className="col-span-4 md:col-span-2 space-y-1.5">
                            <label className="text-xs text-gray-500 font-medium">Qtd</label>
                            <input
