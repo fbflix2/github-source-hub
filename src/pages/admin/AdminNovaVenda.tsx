@@ -249,8 +249,11 @@ export default function AdminNovaVenda() {
       toast.error("O valor mínimo para PIX é R$ 1,00");
       return;
     }
-     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
-       toast.error("Preencha todos os itens corretamente");
+     if (saleType === "product" && items.some((i) => !i.name.trim() || !Number.isFinite(i.price) || i.price <= 0 || i.quantity < 1)) {
+       const invalidIndex = items.findIndex(i => !i.name.trim() || !Number.isFinite(i.price) || i.price <= 0 || i.quantity < 1);
+       const invalid = items[invalidIndex];
+       const reason = !invalid.name.trim() ? "nome do produto vazio" : invalid.price <= 0 || !Number.isFinite(invalid.price) ? "preço unitário não informado" : "quantidade inválida";
+       toast.error(`Item ${invalidIndex + 1}: ${reason}. Verifique em Itens da Venda.`);
        return;
      }
      if (saleType === "subscription" && !selectedCtPlanId) {
@@ -414,8 +417,11 @@ export default function AdminNovaVenda() {
       toast.error("Selecione o método de pagamento");
       return;
     }
-     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
-       toast.error("Preencha todos os itens corretamente");
+     if (saleType === "product" && items.some((i) => !i.name.trim() || !Number.isFinite(i.price) || i.price <= 0 || i.quantity < 1)) {
+       const invalidIndex = items.findIndex(i => !i.name.trim() || !Number.isFinite(i.price) || i.price <= 0 || i.quantity < 1);
+       const invalid = items[invalidIndex];
+       const reason = !invalid.name.trim() ? "nome do produto vazio" : invalid.price <= 0 || !Number.isFinite(invalid.price) ? "preço unitário não informado" : "quantidade inválida";
+       toast.error(`Item ${invalidIndex + 1}: ${reason}. Verifique em Itens da Venda.`);
        return;
      }
      if (saleType === "subscription" && !selectedCtPlanId) {
@@ -964,7 +970,7 @@ export default function AdminNovaVenda() {
  
                    <div className="space-y-4">
                      {items.map((item, idx) => (
-                       <div key={item.id} className="grid grid-cols-12 gap-3 items-end p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                       <div key={item.id} className={`grid grid-cols-12 gap-3 items-end p-4 rounded-xl bg-white/[0.02] border ${!item.name.trim() || item.price <= 0 || item.quantity < 1 ? "border-amber-500/30" : "border-white/5"}`}>
                          {/* ... (existing item fields) ... */}
                          <div className="col-span-12 md:col-span-5 space-y-1.5">
                            <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
