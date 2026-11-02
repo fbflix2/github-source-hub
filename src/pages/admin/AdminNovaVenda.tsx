@@ -76,6 +76,9 @@ export default function AdminNovaVenda() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState("manual");
   const [notes, setNotes] = useState("");
+  const [manualTxt, setManualTxt] = useState("");
+  const [manualBmLink, setManualBmLink] = useState("");
+  const [manualTxtName, setManualTxtName] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
     { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
   ]);
@@ -286,6 +289,13 @@ export default function AdminNovaVenda() {
            price: item.price,
            quantity: item.quantity,
            product_id: item.productId || null,
+           ...(deliveryMethod === "manual" && (manualTxt || manualBmLink.trim()) ? {
+             delivery_data: {
+               _manual_delivery: true,
+               ...(manualTxt ? { manualTxt, manualTxtName: manualTxtName || "perfil.txt" } : {}),
+               ...(manualBmLink.trim() ? { manualBmLink: manualBmLink.trim() } : {}),
+             },
+           } : {}),
            description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
          }));
        } else {
@@ -413,6 +423,11 @@ export default function AdminNovaVenda() {
        return;
      }
 
+    if (manualTxt.length > 100000) { toast.error("O TXT excede 100 KB."); return; }
+    if (manualBmLink.trim()) {
+      try { const u = new URL(manualBmLink.trim()); if (!["https:", "http:"].includes(u.protocol)) throw new Error(); }
+      catch { toast.error("Informe um link válido para a BM."); return; }
+    }
     setSubmitting(true);
 
     const isCourtesy = paymentMethod === "cortesia";
@@ -884,6 +899,21 @@ export default function AdminNovaVenda() {
                     </div>
                   </div>
                 </div>
+
+                 {saleType === "product" && deliveryMethod === "manual" && (
+                   <div className="md:col-span-2 space-y-3 rounded-lg border border-white/10 p-4">
+                     <label className="text-sm font-medium text-gray-300">Dados da entrega (opcional)</label>
+                     <p className="text-xs text-gray-500">O conteúdo ficará vinculado aos detalhes do pedido do cliente. Para múltiplos itens, os dados serão disponibilizados em cada item.</p>
+                     <input type="file" accept=".txt,text/plain" className="block w-full text-xs text-gray-300" onChange={async (e) => {
+                       const file = e.target.files?.[0];
+                       if (!file) { setManualTxt(""); setManualTxtName(""); return; }
+                       if (file.size > 100000 || !file.name.toLowerCase().endsWith(".txt")) { toast.error("Selecione um arquivo TXT de até 100 KB."); e.target.value = ""; return; }
+                       setManualTxt(await file.text()); setManualTxtName(file.name);
+                     }} />
+                     {manualTxtName && <p className="text-xs text-emerald-400">TXT selecionado: {manualTxtName}</p>}
+                     <Input value={manualBmLink} onChange={(e) => setManualBmLink(e.target.value)} placeholder="Link da BM (opcional) — https://..." />
+                   </div>
+                 )}
 
                  {saleType === "subscription" && (
                    <div className="space-y-2">
