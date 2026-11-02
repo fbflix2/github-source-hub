@@ -64,6 +64,7 @@ interface SaleItem {
   productId: string | null;
   manualStockItemId?: string | null;
   manualStockItemName?: string | null;
+  customName?: boolean;
 }
 
 export default function AdminNovaVenda() {
@@ -80,7 +81,7 @@ export default function AdminNovaVenda() {
   const [manualBmLink, setManualBmLink] = useState("");
   const [manualTxtName, setManualTxtName] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
-    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
+    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null, customName: false },
   ]);
    const [products, setProducts] = useState<any[]>([]);
    const [ctPlans, setCtPlans] = useState<any[]>([]);
@@ -212,7 +213,7 @@ export default function AdminNovaVenda() {
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
+      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null, customName: false },
     ]);
   };
 
@@ -233,7 +234,7 @@ export default function AdminNovaVenda() {
       setItems((prev) =>
         prev.map((i) =>
           i.id === itemId
-            ? { ...i, productId: product.id, name: product.name, price: product.price, manualStockItemId: null, manualStockItemName: null }
+            ? { ...i, productId: product.id, name: product.name, price: product.price, customName: false, manualStockItemId: null, manualStockItemName: null }
             : i
         )
       );
@@ -975,11 +976,16 @@ export default function AdminNovaVenda() {
                            <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
                            <div className="flex flex-col gap-1.5">
                              <select
-                               value={item.productId || ""}
+                               value={item.customName ? "custom" : item.productId || ""}
                                onChange={(e) => {
                                  if (e.target.value === "custom") {
-                                   updateItem(item.id, "productId", null);
-                                   updateItem(item.id, "name", "");
+                                   setItems(prev => prev.map(i => i.id === item.id
+                                     ? { ...i, customName: true, productId: null, name: "", manualStockItemId: null, manualStockItemName: null }
+                                     : i));
+                                 } else if (!e.target.value) {
+                                   setItems(prev => prev.map(i => i.id === item.id
+                                     ? { ...i, customName: false, productId: null, name: "" }
+                                     : i));
                                  } else {
                                    selectProduct(item.id, e.target.value);
                                  }
@@ -987,7 +993,7 @@ export default function AdminNovaVenda() {
                                className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
                              >
                                <option value="" className="bg-gray-900">Selecione um produto...</option>
-                               <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
+                               <option value="custom" className="bg-gray-900">✏️ Produto personalizado / Combo</option>
                                {products.map((p) => (
                                  <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
                                ))}
@@ -1018,12 +1024,15 @@ export default function AdminNovaVenda() {
                                </div>
                              )}
  
-                             {item.productId === null && (
+                             {item.customName && (
+                               <p className="text-[11px] text-gray-500">O nome digitado será o título do produto no pedido do cliente.</p>
+                             )}
+                             {item.customName && (
                                <input
                                  type="text"
                                  value={item.name}
                                  onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                                 placeholder="Nome do item..."
+                                 placeholder="Ex.: Combo Perfil P24 + BM 2024"
                                  className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
                                />
                              )}
