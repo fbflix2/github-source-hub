@@ -104,25 +104,31 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
       let text = "";
       try { text = (await worker.recognize(file)).data.text; }
       finally { await worker.terminate(); }
-      // Improve recognition of small Facebook profile text by scanning an enlarged
-      // central crop as well as the original screenshot.
+      // Read the large profile heading separately: it sits to the RIGHT of the
+      // circular avatar, while the composer prompt sits above the avatar.
       const image = await createImageBitmap(file);
-      const canvas = document.createElement("canvas");
-      const left = Math.floor(image.width * 0.25);
-      const top = Math.floor(image.height * 0.18);
-      const width = image.width - left;
-      const height = Math.floor(image.height * 0.76);
-      canvas.width = width * 2;
-      canvas.height = height * 2;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
+      const recognizeCrop = async (leftRatio: number, topRatio: number, widthRatio: number, heightRatio: number) => {
+        const left = Math.floor(image.width * leftRatio);
+        const top = Math.floor(image.height * topRatio);
+        const width = Math.min(image.width - left, Math.floor(image.width * widthRatio));
+        const height = Math.min(image.height - top, Math.floor(image.height * heightRatio));
+        if (width < 40 || height < 20) return "";
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 3;
+        canvas.height = height * 3;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return "";
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(image, left, top, width, height, 0, 0, canvas.width, canvas.height);
-        const secondWorker = await w.Tesseract.createWorker("por+eng");
-        try { text += "\n" + (await secondWorker.recognize(canvas as any)).data.text; }
-        finally { await secondWorker.terminate(); }
-      }
-      image.close();
+        const cropWorker = await w.Tesseract!.createWorker("por+eng");
+        try { return (await cropWorker.recognize(canvas as any)).data.text; }
+        finally { await cropWorker.terminate(); }
+      };
+      let headingText = "";
+      try {
+        headingText = await recognizeCrop(0.55, 0.22, 0.44, 0.24);
+        text += "\n" + await recognizeCrop(0.25, 0.18, 0.74, 0.76);
+      } finally { image.close(); }
 
       const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
       const url = text.match(/(?:https?:\/\/)?(?:www\.)?(?:facebook\.com|fb\.com)\/profile\.php\?id=\d{5,}/i)?.[0];
@@ -150,10 +156,21 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
         const inline = line.match(/^(.+?)\\s+\\d{1,5}\\s*(?:amigos?|friends?)\\b/i);
         if (inline && validName(inline[1])) { name = inline[1].trim(); break; }
       }
+      // Prefer the dedicated header crop, where the bold display name is located.
+      const headingLines = headingText.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      for (let i = 0; i < headingLines.length; i++) {
+        const line = headingLines[i];
+        if (friends.test(line) && i > 0 && validName(headingLines[i - 1])) {
+          name = headingLines[i - 1];
+          break;
+        }
+        const inline = line.match(/^(.+?)\s+\d{1,5}\s*(?:amigos?|friends?)\b/i);
+        if (inline && validName(inline[1])) { name = inline[1].trim(); break; }
+      }
       // Do not guess a profile name when the OCR failed to read the heading.
       // The relationship-status wording is a heuristic, not verified gender.
-      const feminine = /\bsolteira\b/.test(normalized);
-      const masculine = /\bsolteiro\b/.test(normalized);
+      const feminine = /\b(?:solteira|casada|viuva|divorciada)\b/.test(normalized);
+      const masculine = /\b(?:solteiro|casado|viuvo|divorciado)\b/.test(normalized);
       const genderHint = feminine && !masculine ? "Feminino" : masculine && !feminine ? "Masculino" : undefined;
       const additions: string[] = [];
       const current = parseFlashText(items[index]?.rawText || "");
