@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft, Undo2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft, Undo2, Pencil, Save } from "lucide-react";
 import ProductExchangeModal from "@/components/admin/ProductExchangeModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,40 @@ export default function AdminPedidos() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderWithDetails | null>(null);
+  const [editItems, setEditItems] = useState<{ id: string; name: string; price: number; quantity: number; manualFiles: { name: string; content: string }[]; manualBmLink: string }[]>([]);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const beginEdit = (order: OrderWithDetails) => {
+    setSelectedOrder(null);
+    setEditingOrder(order);
+    setEditItems(order.items.map(item => ({
+      id: item.id, name: item.name, price: item.price, quantity: item.quantity,
+      manualFiles: Array.isArray(item.delivery_data?.manualFiles) ? item.delivery_data.manualFiles
+        : item.delivery_data?.manualTxt ? [{ name: item.delivery_data.manualTxtName || "perfil.txt", content: item.delivery_data.manualTxt }] : [],
+      manualBmLink: item.delivery_data?.manualBmLink || "",
+    })));
+  };
+
+  const saveEdit = async () => {
+    if (!editingOrder || savingEdit) return;
+    if (editItems.some(i => !i.name.trim() || !Number.isFinite(i.price) || i.price < 0 || i.quantity < 1)) {
+      toast.error("Confira nome, preço e quantidade de todos os itens."); return;
+    }
+    setSavingEdit(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("edit-manual-sale", {
+        body: { order_id: editingOrder.id, items: editItems }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Venda atualizada! Valores e arquivos corrigidos.");
+      setEditingOrder(null);
+      await fetchOrders();
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao editar venda.");
+    } finally { setSavingEdit(false); }
+  };
   const [exchangeOpen, setExchangeOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundCreditWallet, setRefundCreditWallet] = useState(true);
@@ -440,6 +474,11 @@ export default function AdminPedidos() {
                           >
                             <Eye className="size-4" />
                           </button>
+                          {order.code.startsWith("VND-") && (
+                            <button onClick={() => beginEdit(order)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20" title="Editar venda manual">
+                              <Pencil className="size-4" />
+                            </button>
+                          )}
                           <button
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
                             title="Excluir"
@@ -503,6 +542,51 @@ export default function AdminPedidos() {
           <SalesBalanceTab />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editingOrder} onOpenChange={(open) => { if (!open && !savingEdit) setEditingOrder(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Editar venda {editingOrder?.code}</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Corrija os preços e os arquivos de cada item. O pagamento original não será alterado ou cobrado novamente.</p>
+          <div className="space-y-4">
+            {editItems.map((item, idx) => (
+              <div key={item.id} className="rounded-xl border border-border p-4 space-y-3">
+                <p className="text-sm font-semibold">Item {idx + 1}</p>
+                <Input value={item.name} placeholder="Nome do produto" onChange={e => setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, name: e.target.value } : x))} />
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-xs text-muted-foreground">Preço unitário (R$)
+                    <Input type="number" min="0" step="0.01" value={item.price} onChange={e => setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, price: Number(e.target.value) } : x))} />
+                  </label>
+                  <label className="text-xs text-muted-foreground">Quantidade
+                    <Input type="number" min="1" step="1" value={item.quantity} onChange={e => setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, quantity: Number(e.target.value) } : x))} />
+                  </label>
+                </div>
+                <label className="block text-xs text-muted-foreground">Adicionar arquivos TXT deste item
+                  <Input type="file" multiple accept=".txt,text/plain" className="mt-1" onChange={async e => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.some(f => f.size > 100000 || !f.name.toLowerCase().endsWith(".txt"))) { toast.error("Somente TXT de até 100 KB."); e.target.value = ""; return; }
+                    const added = await Promise.all(files.map(async f => ({ name: f.name, content: await f.text() })));
+                    setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, manualFiles: [...x.manualFiles, ...added] } : x));
+                    e.target.value = "";
+                  }} />
+                </label>
+                {item.manualFiles.map((file, fileIdx) => (
+                  <div key={fileIdx} className="flex justify-between items-center text-xs gap-2">
+                    <span className="truncate">{file.name}</span>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, manualFiles: x.manualFiles.filter((_, i) => i !== fileIdx) } : x))}>Remover</Button>
+                  </div>
+                ))}
+                <label className="block text-xs text-muted-foreground">Link da BM (opcional)
+                  <Input value={item.manualBmLink} placeholder="https://..." onChange={e => setEditItems(prev => prev.map(x => x.id === item.id ? { ...x, manualBmLink: e.target.value } : x))} />
+                </label>
+              </div>
+            ))}
+            <div className="flex justify-between items-center gap-3">
+              <span className="font-bold">Total corrigido: R$ {editItems.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2).replace(".", ",")}</span>
+              <Button onClick={saveEdit} disabled={savingEdit} className="gap-2"><Save className="size-4" /> {savingEdit ? "Salvando..." : "Salvar alterações"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Order Detail Modal */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
