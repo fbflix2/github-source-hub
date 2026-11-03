@@ -38,6 +38,15 @@ Deno.serve(async req => {
       }
       if (order.payment_method === "courtesy") return respond({ error: "Cortesia não pode ser convertida em cobrança automaticamente." }, 409);
     }
+    const { data: activePayments, error: activeError } = await admin.from("payments").select("id,status").eq("order_id", order_id);
+    if (activeError) return respond({ error: "Não foi possível verificar cobranças vinculadas" }, 500);
+    const amountChanged = items.some((item: any) => {
+      const previous = existing.find(x => x.id === item.id)!;
+      return Number(previous.price) !== item.price || Number(previous.quantity) !== item.quantity;
+    });
+    if (amountChanged && (activePayments || []).some(p => ["pending", "completed", "paid", "approved", "succeeded"].includes(String(p.status).toLowerCase()))) {
+      return respond({ error: "Existe cobrança ou pagamento ativo. Não altere preços antes de cancelar ou conciliar a cobrança." }, 409);
+    }
     const total = Math.round(items.reduce((sum: number, i: any) => sum + Math.round(i.price * 100) * i.quantity, 0)) / 100;
     const courtesy = order.payment_method === "courtesy";
     const old = { subtotal: order.subtotal, total: order.total, discount: order.discount, items: existing };
