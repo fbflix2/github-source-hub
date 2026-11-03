@@ -94,16 +94,47 @@ export default function AdminPedidos() {
   const [editingOrder, setEditingOrder] = useState<OrderWithDetails | null>(null);
   const [editItems, setEditItems] = useState<{ id: string; name: string; price: number; quantity: number; manualFiles: { name: string; content: string }[]; manualBmLink: string }[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [markUnpaid, setMarkUnpaid] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [generatedInvoiceUrl, setGeneratedInvoiceUrl] = useState("");
 
   const beginEdit = (order: OrderWithDetails) => {
     setSelectedOrder(null);
     setEditingOrder(order);
+    setMarkUnpaid(false);
+    setGeneratedInvoiceUrl("");
     setEditItems(order.items.map(item => ({
       id: item.id, name: item.name, price: item.price, quantity: item.quantity,
       manualFiles: Array.isArray(item.delivery_data?.manualFiles) ? item.delivery_data.manualFiles
         : item.delivery_data?.manualTxt ? [{ name: item.delivery_data.manualTxtName || "perfil.txt", content: item.delivery_data.manualTxt }] : [],
       manualBmLink: item.delivery_data?.manualBmLink || "",
     })));
+  };
+
+  const generateExistingInvoice = async () => {
+    if (!editingOrder || generatingInvoice) return;
+    setGeneratingInvoice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-invoice-link", {
+        body: {
+          order_id: editingOrder.id,
+          client_user_id: editingOrder.user_id,
+          client_name: editingOrder.profile?.full_name || null,
+          client_email: editingOrder.email || null,
+          product_name: editingOrder.items.map(i => i.name).join(" + ").slice(0, 180),
+          amount: editingOrder.total,
+          reference_date: new Date().toISOString().slice(0, 10),
+          description: `Cobrança referente à venda ${editingOrder.code}`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.invoice?.code) throw new Error("Link da cobrança não retornado");
+      const url = `${window.location.origin}/pagar/${data.invoice.code}`;
+      setGeneratedInvoiceUrl(url);
+      toast.success("Cobrança PIX gerada para a venda existente.");
+    } catch (err: any) { toast.error(err.message || "Erro ao gerar cobrança PIX"); }
+    finally { setGeneratingInvoice(false); }
   };
 
   const saveEdit = async () => {
@@ -114,12 +145,13 @@ export default function AdminPedidos() {
     setSavingEdit(true);
     try {
       const { data, error } = await supabase.functions.invoke("edit-manual-sale", {
-        body: { order_id: editingOrder.id, items: editItems }
+        body: { order_id: editingOrder.id, items: editItems, mark_unpaid: markUnpaid }
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success("Venda atualizada! Valores e arquivos corrigidos.");
       setEditingOrder(null);
+      setMarkUnpaid(false);
       await fetchOrders();
     } catch (error: any) {
       toast.error(error?.message || "Erro ao editar venda.");
@@ -546,7 +578,21 @@ export default function AdminPedidos() {
       <Dialog open={!!editingOrder} onOpenChange={(open) => { if (!open && !savingEdit) setEditingOrder(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar venda {editingOrder?.code}</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground">Corrija os preços e os arquivos de cada item. O pagamento original não será alterado ou cobrado novamente.</p>
+          <p className="text-xs text-muted-foreground">Corrija os preços e os arquivos de cada item. Os pagamentos existentes não são alterados automaticamente.</p>
+          {editingOrder?.status === "pending_payment" && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <p className="text-sm font-semibold">Pagamento pendente</p>
+              <Button type="button" variant="outline" disabled={generatingInvoice} onClick={generateExistingInvoice}>
+                {generatingInvoice ? "Gerando..." : "Gerar cobrança PIX desta venda"}
+              </Button>
+              {generatedInvoiceUrl && (
+                <div className="flex gap-2 items-center">
+                  <Input readOnly value={generatedInvoiceUrl} />
+                  <Button type="button" onClick={() => { navigator.clipboard.writeText(generatedInvoiceUrl); toast.success("Link copiado"); }}>Copiar</Button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="space-y-4">
             {editItems.map((item, idx) => (
               <div key={item.id} className="rounded-xl border border-border p-4 space-y-3">
@@ -580,6 +626,12 @@ export default function AdminPedidos() {
                 </label>
               </div>
             ))}
+            {editingOrder?.status === "completed" && (
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <Checkbox checked={markUnpaid} onCheckedChange={value => setMarkUnpaid(value === true)} />
+                <span>Esta venda foi registrada como concluída por engano e ainda não foi paga. Alterar para <strong>Aguardando pagamento</strong> ao salvar. O sistema verificará pagamentos confirmados antes de permitir.</span>
+              </label>
+            )}
             <div className="flex justify-between items-center gap-3">
               <span className="font-bold">Total corrigido: R$ {editItems.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2).replace(".", ",")}</span>
               <Button onClick={saveEdit} disabled={savingEdit} className="gap-2"><Save className="size-4" /> {savingEdit ? "Salvando..." : "Salvar alterações"}</Button>
