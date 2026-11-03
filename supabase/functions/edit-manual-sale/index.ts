@@ -13,7 +13,7 @@ Deno.serve(async req => {
     if (authError || !user) return respond({ error: "Não autenticado" }, 401);
     const { data: isAdmin, error: roleError } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (roleError || !isAdmin) return respond({ error: "Somente administradores podem editar vendas" }, 403);
-    const { order_id, items } = await req.json();
+    const { order_id, items, mark_unpaid } = await req.json();
     if (typeof order_id !== "string" || !Array.isArray(items) || items.length === 0 || items.length > 100) return respond({ error: "Dados inválidos" }, 400);
     const { data: order, error: orderError } = await admin.from("orders").select("id,code,subtotal,total,discount,status,payment_method").eq("id", order_id).single();
     if (orderError || !order || !order.code?.startsWith("VND-")) return respond({ error: "Somente vendas manuais VND podem ser editadas" }, 400);
@@ -30,6 +30,14 @@ Deno.serve(async req => {
         catch { return respond({ error: "Link de BM inválido" }, 400); }
       }
     }
+    if (mark_unpaid) {
+      const { data: payments, error: paymentError } = await admin.from("payments").select("id,status").eq("order_id", order_id);
+      if (paymentError) return respond({ error: "Não foi possível verificar pagamentos" }, 500);
+      if ((payments || []).some(p => ["completed", "paid", "approved", "succeeded", "refunded", "partially_refunded"].includes(String(p.status).toLowerCase()))) {
+        return respond({ error: "Há pagamento confirmado ou estornado vinculado a esta venda. Não é possível voltar para não pago automaticamente." }, 409);
+      }
+      if (order.payment_method === "courtesy") return respond({ error: "Cortesia não pode ser convertida em cobrança automaticamente." }, 409);
+    }
     const total = Math.round(items.reduce((sum: number, i: any) => sum + Math.round(i.price * 100) * i.quantity, 0)) / 100;
     const courtesy = order.payment_method === "courtesy";
     const old = { subtotal: order.subtotal, total: order.total, discount: order.discount, items: existing };
@@ -41,10 +49,10 @@ Deno.serve(async req => {
       const { error } = await admin.from("order_items").update({ name: i.name.trim(), quantity: i.quantity, price: i.price, delivery_data: delivery }).eq("id", i.id).eq("order_id", order_id);
       if (error) throw error;
     }
-    const { error: updateError } = await admin.from("orders").update({ subtotal: total, total: courtesy ? 0 : total, discount: courtesy ? total : 0 }).eq("id", order_id);
+    const { error: updateError } = await admin.from("orders").update({ subtotal: total, total: courtesy ? 0 : total, discount: courtesy ? total : 0, ...(mark_unpaid ? { status: "pending_payment", payment_method: "pix" } : {}) }).eq("id", order_id);
     if (updateError) throw updateError;
     // Financial payment records are deliberately untouched; correction is of the recorded sale, not a refund or additional charge.
     console.log("Manual sale corrected", { order_id, admin_user_id: user.id, before: old, after: { total, items: items.map((i: any) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, files: i.manualFiles?.map((f: any) => f.name) })) } });
-    return respond({ ok: true, total, payment_records_unchanged: true });
+    return respond({ ok: true, total, marked_unpaid: Boolean(mark_unpaid), payment_records_unchanged: true });
   } catch (e) { console.error("edit-manual-sale", e); return respond({ error: "Não foi possível salvar as alterações" }, 500); }
 });
