@@ -150,3 +150,6 @@ verify_jwt = false
 
 [functions.reseller-share-og]
 verify_jwt = false
+
+[functions.edit-manual-sale]
+verify_jwt = true
