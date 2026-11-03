@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { client_user_id, client_name, client_email, product_name, product_id, amount, reference_date, description } = await req.json();
+    const { client_user_id, client_name, client_email, product_name, product_id, amount, reference_date, description, order_id } = await req.json();
 
     if (!client_user_id || !product_name || !amount || amount < 1) {
       return new Response(JSON.stringify({ error: "Dados incompletos" }), {
@@ -69,6 +69,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    if (order_id) {
+      const { data: target, error: targetError } = await supabaseAdmin.from("orders")
+        .select("id,user_id,status,total,code").eq("id", order_id).maybeSingle();
+      if (targetError || !target || !String(target.code || "").startsWith("VND-") ||
+          target.user_id !== client_user_id || target.status !== "pending_payment" ||
+          Math.abs(Number(target.total) - Number(amount)) > 0.01) {
+        return new Response(JSON.stringify({ error: "Venda não está pendente ou valor/cliente não corresponde. Salve a correção antes de gerar PIX." }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: previousPayments, error: previousError } = await supabaseAdmin.from("payments")
+        .select("id,status").eq("order_id", order_id);
+      if (previousError || (previousPayments || []).some(p => !["failed", "cancelled", "expired", "rejected"].includes(String(p.status).toLowerCase()))) {
+        return new Response(JSON.stringify({ error: "Já existe uma cobrança ou pagamento vinculado a esta venda. Verifique antes de gerar outro PIX." }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Create invoice link record
     const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
@@ -83,11 +102,12 @@ Deno.serve(async (req) => {
       .from("payments")
       .insert({
         user_id: client_user_id,
+        ...(order_id ? { order_id } : {}),
         amount: Number(amount),
         code: paymentCode,
         gateway: "openpix",
         status: "pending",
-        metadata: { type: "invoice_link", invoice_code: invoiceCode, gateway_owner: "fbflix" },
+        metadata: { type: "invoice_link", invoice_code: invoiceCode, gateway_owner: "fbflix", ...(order_id ? { order_id } : {}) },
       })
       .select("id")
       .single();
@@ -153,7 +173,8 @@ Deno.serve(async (req) => {
         gateway_reference: charge.identifier,
         metadata: { 
           type: "invoice_link", 
-          invoice_code: invoiceCode, 
+          invoice_code: invoiceCode,
+          ...(order_id ? { order_id } : {}),
           openpix_charge_id: charge.identifier 
         },
       })
