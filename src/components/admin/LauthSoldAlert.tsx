@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Send, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,15 @@ export default function LauthSoldAlert() {
   const [profiles, setProfiles] = useState<SoldProfile[] | null>(null);
   const [alreadySent, setAlreadySent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [settings, setSettings] = useState<{ alerts_enabled: boolean; movement_requires_approval: boolean } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.functions.invoke("lauth-sold-alert", { body: { action: "settings" } })
+      .then(({ data, error }) => { if (active && !error && data?.ok) setSettings(data.settings); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const invoke = async (action: "preview" | "send") => {
     setBusy(true);
@@ -66,6 +75,12 @@ export default function LauthSoldAlert() {
           </Button>
         </div>
       </div>
+      {settings && (
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span>Alertas automáticos: <strong className="text-foreground">{settings.alerts_enabled ? "Ativados" : "Desativados"}</strong></span>
+          <span>Movimentação Lauth: <strong className="text-foreground">{settings.movement_requires_approval ? "Somente após aprovação" : "Verificar configuração"}</strong></span>
+        </div>
+      )}
       {profiles !== null && (
         <div className="space-y-3">
           <p className="text-sm text-foreground">{profiles.length} perfil(is) identificado(s) em pedidos com pagamento confirmado.</p>
