@@ -8,10 +8,75 @@ Deno.serve(async req=>{
  try {
   const url=Deno.env.get("SUPABASE_URL")!,service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const bearer=req.headers.get("Authorization")||"";
-  if(!bearer.startsWith("Bearer "))return reply({error:"Authentication required"},401);
+  if(!bearer.startsWith("Bearer ") && !req.headers.get("x-lauth-daily-secret"))return reply({error:"Authentication required"},401);
   const admin=createClient(url,service);
   const userClient=createClient(url,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:bearer}}});
   const body=await req.json();
+
+  if(body.action==="daily-report"){
+    const token=req.headers.get("x-lauth-daily-secret")||"";
+    if(!/^[a-f0-9]{64}$/.test(token))return reply({error:"Unauthorized"},401);
+    const {data:verified,error:verifyError}=await admin.rpc("verify_lauth_daily_report_secret",{p_secret:token});
+    if(verifyError||verified!==true)return reply({error:"Unauthorized"},401);
+    const now=new Date();
+    const yesterday=new Date(now.getTime()-86400000);
+    const date=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(yesterday);
+    const start=new Date(date+"T03:00:00Z");
+    const end=new Date(start.getTime()+86400000);
+    const {data:orders,error:ordersError}=await admin.from("orders").select("id,code,status,created_at").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).eq("status","completed").limit(1000);
+    if(ordersError)throw ordersError;
+    const ids=(orders||[]).map(o=>o.id);
+    let items:any[]=[];
+    let payments:any[]=[];
+    for(let i=0;i<ids.length;i+=100){
+      const batch=ids.slice(i,i+100);
+      const [it,pa]=await Promise.all([
+        admin.from("order_items").select("id,order_id,name,delivery_data").in("order_id",batch),
+        admin.from("payments").select("order_id,status").in("order_id",batch)
+      ]);
+      if(it.error||pa.error)throw it.error||pa.error;
+      items.push(...(it.data||[]));payments.push(...(pa.data||[]));
+    }
+    const paidIds=new Set(payments.filter(p=>paid.has(String(p.status).toLowerCase())).map(p=>p.order_id));
+    const orderMap=new Map((orders||[]).map(o=>[o.id,o]));
+    const found=new Map<string,{id:string,order:string}>();
+    for(const item of items){
+      if(!paidIds.has(item.order_id))continue;
+      const d=item.delivery_data||{};
+      const profileIds=new Set<string>();
+      for(const v of [d.idPerfil,d.lauthProfileId])if(typeof v==="string"&&/^\d{8,25}$/.test(v))profileIds.add(v);
+      for(const file of Array.isArray(d.manualFiles)?d.manualFiles:[]){
+        const match=String(file?.name||"").match(/^(\d{8,25})\.txt$/i);
+        if(match)profileIds.add(match[1]);
+      }
+      for(const id of profileIds)found.set(item.order_id+":"+id,{id,order:orderMap.get(item.order_id)?.code||item.order_id});
+    }
+    const profiles=[...found.values()];
+    const {error:claimError}=await admin.from("lauth_daily_reports").insert({report_date:date,status:"processing",profile_count:profiles.length});
+    if(claimError){
+      if(claimError.code==="23505")return reply({ok:true,skipped:"already_registered",date});
+      throw claimError;
+    }
+    const message=[
+      "*FBFLIX | RELATÓRIO DIÁRIO DE PERFIS*",
+      "Vendas de "+date+" (00:00 às 23:59, Brasília)",
+      "Perfis com pagamento confirmado: "+profiles.length,
+      "",
+      ...(profiles.length?profiles.map((p,i)=>(i+1)+". "+p.id+" | Pedido "+p.order):["Nenhum perfil vendido com pagamento confirmado neste dia."]),
+      "",
+      "Lauth: nenhuma movimentação automática. Aguardando sua aprovação."
+    ].join("\n");
+    try{
+      const {data:result,error:sendError}=await admin.functions.invoke("wapi-send",{body:{action:"send-text",phone:"5519995081355",message,event_key:"lauth-daily-report:"+date,metadata:{source:"lauth-daily-report",date,profile_count:profiles.length}}});
+      if(sendError||!result||result.success!==true)throw new Error(String(sendError?.message||result?.error||"WAPI did not confirm sending"));
+      await admin.from("lauth_daily_reports").update({status:"sent",sent_at:new Date().toISOString()}).eq("report_date",date);
+      return reply({ok:true,sent:true,date,count:profiles.length});
+    }catch(e){
+      await admin.from("lauth_daily_reports").update({status:"failed",error:String(e).slice(0,500)}).eq("report_date",date);
+      return reply({error:"WhatsApp send failed",date},502);
+    }
+  }
+
 
   if(body.action==="auto-order" && bearer==="Bearer "+service){
     const orderId=String(body.order_id||"");
