@@ -700,6 +700,16 @@ Deno.serve(async (req) => {
         global: true,
       });
 
+
+      // Notify admin only after payment confirmation and item fulfillment.
+      try {
+        const { data: lauthAlert, error: lauthError } = await supabase.functions.invoke("lauth-sold-alert", {
+          body: { action: "auto-order", order_id: orderId },
+        });
+        if (lauthError || lauthAlert?.error) console.warn("[lauth-auto-alert]", lauthError?.message || lauthAlert?.error);
+      } catch (lauthErr) {
+        console.warn("[lauth-auto-alert] Non-blocking notification failure:", lauthErr);
+      }
       console.log(`Order ${orderId} fulfilled successfully`);
     }
 
