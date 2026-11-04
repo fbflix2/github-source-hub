@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesBalanceTab from "@/components/admin/SalesBalanceTab";
+import LauthSoldAlert from "@/components/admin/LauthSoldAlert";
 import {
   Select,
   SelectContent,
@@ -412,6 +413,7 @@ export default function AdminPedidos() {
         </TabsList>
 
         <TabsContent value="pedidos" className="mt-6 space-y-6">
+      <LauthSoldAlert />
       {/* Filters */}
       <div className="glass-panel flex flex-col justify-between gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
         <div className="relative flex w-full max-w-lg items-center">
