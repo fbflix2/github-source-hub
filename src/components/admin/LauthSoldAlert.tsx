@@ -63,9 +63,9 @@ export default function LauthSoldAlert() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 font-semibold text-foreground">
-            <MessageCircle className="size-4 text-primary" /> Alerta de vendas — Lauth
+            <MessageCircle className="size-4 text-primary" /> Relatório diário de vendas — Lauth
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Enviar IDs de perfis pagos para (19) 99508-1355. Nenhum perfil será movido automaticamente.</p>
+          <p className="text-xs text-muted-foreground mt-1">Envio automático à meia-noite (Brasília) com os perfis pagos do dia anterior para (19) 99508-1355. Nenhum perfil será movido automaticamente.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input type="date" className="w-40" value={date} onChange={e => { setDate(e.target.value); setProfiles(null); setAlreadySent(false); }} />
@@ -77,7 +77,7 @@ export default function LauthSoldAlert() {
       </div>
       {settings && (
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span>Alertas automáticos: <strong className="text-foreground">{settings.alerts_enabled ? "Ativados" : "Desativados"}</strong></span>
+          <span>Relatório diário automático: <strong className="text-foreground">{settings.alerts_enabled ? "Ativados" : "Desativados"}</strong></span>
           <span>Movimentação Lauth: <strong className="text-foreground">{settings.movement_requires_approval ? "Somente após aprovação" : "Verificar configuração"}</strong></span>
         </div>
       )}
