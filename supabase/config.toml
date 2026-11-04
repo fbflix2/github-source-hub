@@ -158,4 +158,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.lauth-sold-alert]
-verify_jwt = true
+verify_jwt = false
