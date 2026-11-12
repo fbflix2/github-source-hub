@@ -114,15 +114,29 @@ export default function ProxyMaintenanceTab() {
     if (!allSubs) return [];
     const now = new Date();
     return allSubs.filter((s: any) => {
-      // Status filter
-      if (statusFilter === "active") {
+      // When an admin searches an IP, include its historical subscriptions
+      // regardless of the status dropdown, so expired/cancelled entries remain findable.
+      const query = search.trim().toLowerCase();
+      const raw = (s.raw_data || {}) as Record<string, any>;
+      const addresses = [raw.proxy_address, raw.ip, raw.proxy_host, raw.host, raw.proxy_ip]
+        .filter((value): value is string => typeof value === "string" && value.length > 0)
+        .map(value => value.toLowerCase());
+      const port = raw.port ?? raw.proxy_port;
+      const proxyMatches = addresses.some(address =>
+        address.includes(query) || (port != null && `${address}:${port}`.includes(query))
+      );
+      const searchingIp = /^\d{1,3}(?:\.\d{1,3}){1,3}(?::\d+)?$/.test(query);
+      const includeHistoricalIp = searchingIp && proxyMatches;
+
+      // Status filter (IP searches also show expired/cancelled subscriptions)
+      if (!includeHistoricalIp && statusFilter === "active") {
         if (s.status !== "active") return false;
         if (s.end_date && new Date(s.end_date) < now) return false;
-      } else if (statusFilter === "expired") {
+      } else if (!includeHistoricalIp && statusFilter === "expired") {
         if (s.status === "cancelled") return false;
         if (s.status === "active" && s.end_date && new Date(s.end_date) >= now) return false;
         if (s.status !== "active" && s.status !== "expired" && s.status !== "expiring") return false;
-      } else if (statusFilter === "cancelled") {
+      } else if (!includeHistoricalIp && statusFilter === "cancelled") {
         if (s.status !== "cancelled") return false;
       }
 
@@ -136,16 +150,7 @@ export default function ProxyMaintenanceTab() {
         const q = search.trim().toLowerCase();
         const clientName = (profileMap.get(s.user_id) || "").toLowerCase();
         const code = (s.name || "").toLowerCase();
-        const raw = (s.raw_data || {}) as Record<string, any>;
-        // Proxy providers store the address in different fields. Search the same
-        // address shown in the Proxy column, including optional host:port input.
-        const addresses = [raw.proxy_address, raw.ip, raw.proxy_host, raw.host, raw.proxy_ip]
-          .filter((value): value is string => typeof value === "string" && value.length > 0)
-          .map(value => value.toLowerCase());
-        const port = raw.port ?? raw.proxy_port;
-        const proxyMatches = addresses.some(address =>
-          address.includes(q) || (port != null && `${address}:${port}`.includes(q))
-        );
+
         if (!clientName.includes(q) && !code.includes(q) && !proxyMatches) return false;
       }
 
