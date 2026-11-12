@@ -133,12 +133,20 @@ export default function ProxyMaintenanceTab() {
 
       // Search
       if (search.trim()) {
-        const q = search.toLowerCase();
+        const q = search.trim().toLowerCase();
         const clientName = (profileMap.get(s.user_id) || "").toLowerCase();
         const code = (s.name || "").toLowerCase();
         const raw = (s.raw_data || {}) as Record<string, any>;
-        const ip = (raw.proxy_address || "").toLowerCase();
-        if (!clientName.includes(q) && !code.includes(q) && !ip.includes(q)) return false;
+        // Proxy providers store the address in different fields. Search the same
+        // address shown in the Proxy column, including optional host:port input.
+        const addresses = [raw.proxy_address, raw.ip, raw.proxy_host, raw.host, raw.proxy_ip]
+          .filter((value): value is string => typeof value === "string" && value.length > 0)
+          .map(value => value.toLowerCase());
+        const port = raw.port ?? raw.proxy_port;
+        const proxyMatches = addresses.some(address =>
+          address.includes(q) || (port != null && `${address}:${port}`.includes(q))
+        );
+        if (!clientName.includes(q) && !code.includes(q) && !proxyMatches) return false;
       }
 
       return true;
