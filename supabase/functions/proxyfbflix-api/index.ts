@@ -259,7 +259,7 @@ async function getAssignedProxyIds(supabase: any, userId?: string) {
   const { data: existSubs } = await supabase
     .from("subscriptions")
     .select("user_id, raw_data")
-    .in("status", ["active", "expiring", "processing", "past_due", "expired"]);
+    .in("status", ["active", "expiring", "processing", "past_due", "expired", "cancelled", "canceled"]);
 
   const assignedIds = new Set<string>();
   const assignedIPs = new Set<string>();
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
         endDate.setDate(endDate.getDate() + 30);
         const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i}` : ''}`;
 
-        await supabaseInternal.from("subscriptions").insert({
+        const { error: allocationError } = await supabaseInternal.from("subscriptions").insert({
           user_id: target_user_id,
           name: subName,
           type: "proxyfbflix",
@@ -396,6 +396,7 @@ Deno.serve(async (req) => {
             admin_allocated: true,
           },
         });
+        if (allocationError) throw new Error(allocationError.code === "23505" ? "Proxy já reservado para outro cliente. Refaça a alocação com outro IP." : "Falha ao reservar proxy: " + allocationError.message);
         allocated.push({ name: subName, ip: proxy.proxy_address, port: proxy.port, country: proxy.country_code });
       }
 
