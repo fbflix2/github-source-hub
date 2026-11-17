@@ -343,6 +343,112 @@ export type Database = {
         }
         Relationships: []
       }
+      bm_order_partners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      bm_supplier_order_items: {
+        Row: {
+          amount: number | null
+          bm_id: string
+          bm_link: string
+          created_at: string
+          id: string
+          link_key: string
+          notes: string
+          order_id: string
+          profile: string
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          bm_id: string
+          bm_link: string
+          created_at?: string
+          id?: string
+          link_key: string
+          notes?: string
+          order_id: string
+          profile?: string
+          status?: string
+        }
+        Update: {
+          amount?: number | null
+          bm_id?: string
+          bm_link?: string
+          created_at?: string
+          id?: string
+          link_key?: string
+          notes?: string
+          order_id?: string
+          profile?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_supplier_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "bm_supplier_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bm_supplier_orders: {
+        Row: {
+          created_at: string
+          id: string
+          number: number
+          partner_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          number?: number
+          partner_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          number?: number
+          partner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_supplier_orders_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "bm_order_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bm_tracking: {
         Row: {
           bm_link: string
@@ -1950,6 +2056,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lauth_auto_alerts: {
+        Row: {
+          created_at: string
+          error: string | null
+          message_id: string | null
+          order_id: string
+          profile_ids: string[]
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          message_id?: string | null
+          order_id: string
+          profile_ids?: string[]
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          message_id?: string | null
+          order_id?: string
+          profile_ids?: string[]
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lauth_auto_alerts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lauth_automation_settings: {
+        Row: {
+          alerts_enabled: boolean
+          id: number
+          movement_requires_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          alerts_enabled?: boolean
+          id?: number
+          movement_requires_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          alerts_enabled?: boolean
+          id?: number
+          movement_requires_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lauth_daily_reports: {
+        Row: {
+          created_at: string
+          error: string | null
+          profile_count: number
+          report_date: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          profile_count?: number
+          report_date: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          profile_count?: number
+          report_date?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       marketplace_bm_finance: {
         Row: {
@@ -6340,6 +6532,19 @@ export type Database = {
         Args: { _credit_wallet?: boolean; _order_id: string }
         Returns: Json
       }
+      bm_supplier_admin_update: {
+        Args: {
+          p_amount: number
+          p_item: string
+          p_notes: string
+          p_profile: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      bm_supplier_is_admin: { Args: never; Returns: boolean }
+      bm_supplier_my_partner: { Args: never; Returns: string }
+      bm_supplier_submit: { Args: { p_lines: Json }; Returns: Json }
       buy_extra_exchange_quota: {
         Args: { _qty: number; _subscription_id: string }
         Returns: Json
@@ -6527,6 +6732,10 @@ export type Database = {
               used_count: number
             }[]
           }
+      verify_lauth_daily_report_secret: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
