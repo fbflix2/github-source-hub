@@ -159,3 +159,6 @@ verify_jwt = true
 
 [functions.lauth-sold-alert]
 verify_jwt = false
+
+[functions.bm-supplier-access]
+verify_jwt = true
