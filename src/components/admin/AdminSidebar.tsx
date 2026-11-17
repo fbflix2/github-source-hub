@@ -105,6 +105,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Revisão de Envios", icon: PackageCheck, path: "/admin/fornecedor-revisao" },
     { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
     { title: "Compras Fornecedor", icon: Package, path: "/admin/compras-fornecedor" },
+    { title: "Recebimento BMs", icon: PackageCheck, path: "/admin/recebimento-bms" },
     { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   ]},
   { title: "Solicitações de Amizade", icon: Users, path: "/admin/solicitacoes-amizade" },
