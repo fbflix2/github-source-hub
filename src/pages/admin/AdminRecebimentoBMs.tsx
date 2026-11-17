@@ -24,11 +24,25 @@ export default function AdminRecebimentoBMs(){
  };
  useEffect(()=>{void load()},[]);
  const create=async()=>{
-  if(!name.trim()||password.length<6)return toast.error("Informe nome de acesso (sem espaços) e senha de no mínimo 6 caracteres");
+  const username=name.trim().toLowerCase();
+  if(!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username))return toast.error("O nome de acesso precisa ter 3 a 40 caracteres, sem espaços ou acentos.");
+  if(password.length<6)return toast.error("A senha precisa ter pelo menos 6 caracteres.");
   setCreating(true);
-  const {data,error}=await supabase.functions.invoke("bm-supplier-access",{body:{action:"create",name,username:name.trim().toLowerCase(),password}});
-  setCreating(false);
-  if(error||data?.error)return toast.error(data?.error||error?.message||"Erro ao criar acesso");
+  try {
+    const {data,error}=await supabase.functions.invoke("bm-supplier-access",{body:{action:"create",name,username,password}});
+    if(error){
+      let message=error.message;
+      const response=(error as {context?: Response}).context;
+      if(response && typeof response.json==="function"){
+        try { const details=await response.json(); message=details?.error||details?.message||message; } catch { /* Preserve the original error */ }
+      }
+      toast.error(message);return;
+    }
+    if(data?.error){toast.error(data.error);return;}
+  } catch(e) {
+    toast.error(e instanceof Error?e.message:"Erro ao criar acesso");return;
+  } finally {setCreating(false);}
+
   toast.success("Parceiro cadastrado");setName("");setPassword("");await load();
  };
  const visible=useMemo(()=>items.filter(i=>{
