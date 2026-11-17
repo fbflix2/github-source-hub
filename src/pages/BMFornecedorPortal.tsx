@@ -14,7 +14,7 @@ const parse = (raw:string) => {
   const id=parts[0].trim(),link=parts[1].trim();
   if(!/^\d{8,25}$/.test(id)){errors.push(`Linha ${index+1}: ID inválido`);return;}
   let key="";
-  try{const u=new URL(link);if(u.protocol!=="https:")throw Error();key=(u.origin+u.pathname.replace(/\/$/,"")).toLowerCase();}catch{errors.push(`Linha ${index+1}: link HTTPS inválido`);return;}
+  try{const u=new URL(link);if(u.protocol!=="https:")throw Error();key=u.origin.toLowerCase()+u.pathname.replace(/\/$/,"")+u.search;}catch{errors.push(`Linha ${index+1}: link HTTPS inválido`);return;}
   if(seenIds.has(id)||seenLinks.has(key)){errors.push(`Linha ${index+1}: ID ou link repetido`);return;}
   seenIds.add(id);seenLinks.add(key);items.push({id,link});
  });
