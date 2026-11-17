@@ -144,6 +144,8 @@ import AdminFornecedorRevisao from "./pages/admin/AdminFornecedorRevisao";
 import AdminFornecedores from "./pages/admin/AdminFornecedores";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
+import AdminRecebimentoBMs from "./pages/admin/AdminRecebimentoBMs";
+import BMFornecedorPortal from "./pages/BMFornecedorPortal";
 import AdminSolicitacoesAmizade from "./pages/admin/AdminSolicitacoesAmizade";
 import AdminBackupFb from "./pages/admin/AdminBackupFb";
 import AdminLGPD from "./pages/admin/AdminLGPD";
@@ -593,6 +595,7 @@ const App = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/2fa" element={<Public2FA />} />
                 <Route path="/fornecedor/portal" element={<FornecedorPublicPage />} />
+                <Route path="/fornecedor-bms" element={<BMFornecedorPortal />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/op/:slug" element={<PublicAmizades />} />
                 <Route path="/revenda/cadastro" element={<RevendaCadastro />} />
@@ -675,6 +678,7 @@ const App = () => {
                   <Route path="whatsapp-crm" element={<AdminWhatsAppCRM />} />
                   <Route path="configuracoes/departamentos" element={<AdminDepartments />} />
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
+                  <Route path="recebimento-bms" element={<AdminRecebimentoBMs />} />
                   <Route path="solicitacoes-amizade" element={<AdminSolicitacoesAmizade />} />
                   <Route path="backup-fb" element={<AdminBackupFb />} />
                   <Route path="openpix" element={<AdminOpenPix />} />
