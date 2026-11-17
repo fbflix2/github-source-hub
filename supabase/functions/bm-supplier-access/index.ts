@@ -17,12 +17,15 @@ Deno.serve(async(req)=>{
   const body=await req.json();
   if(body.action!=="create")return reply({error:"Ação inválida"},400);
   const name=String(body.name||"").trim().slice(0,120);
-  const email=String(body.email||"").trim().toLowerCase();
+  const username=String(body.username||"").trim().toLowerCase();
+  const email=`${username}@login.fbflix.com.br`;
   const password=String(body.password||"");
-  if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12)return reply({error:"Informe nome, e-mail e senha com no mínimo 12 caracteres"},400);
+  if(name.length<2||!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)||password.length<12)return reply({error:"Informe nome, usuário (3 a 40 caracteres, sem espaços) e senha de no mínimo 12 caracteres"},400);
+  const {data:existing}=await admin.from("bm_order_partners").select("id").eq("username",username).maybeSingle();
+  if(existing)return reply({error:"Nome de usuário já cadastrado"},409);
   const {data:created,error:createError}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:name}});
   if(createError||!created.user)return reply({error:createError?.message||"Falha ao criar usuário"},400);
-  const {error:insertError}=await admin.from("bm_order_partners").insert({user_id:created.user.id,name});
+  const {error:insertError}=await admin.from("bm_order_partners").insert({user_id:created.user.id,name,username});
   if(insertError){
    await admin.auth.admin.deleteUser(created.user.id);
    return reply({error:insertError.message},400);
