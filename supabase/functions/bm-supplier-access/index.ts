@@ -20,7 +20,7 @@ Deno.serve(async(req)=>{
   const username=String(body.username||"").trim().toLowerCase();
   const email=`${username}@login.fbflix.com.br`;
   const password=String(body.password||"");
-  if(name.length<2||!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)||password.length<12)return reply({error:"Informe nome, usuário (3 a 40 caracteres, sem espaços) e senha de no mínimo 12 caracteres"},400);
+  if(name.length<2||!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)||password.length<6)return reply({error:"Informe nome, usuário (3 a 40 caracteres, sem espaços) e senha de no mínimo 6 caracteres"},400);
   const {data:existing}=await admin.from("bm_order_partners").select("id").eq("username",username).maybeSingle();
   if(existing)return reply({error:"Nome de usuário já cadastrado"},409);
   const {data:created,error:createError}=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:name}});
