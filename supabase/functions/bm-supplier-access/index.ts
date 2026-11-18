@@ -15,6 +15,17 @@ Deno.serve(async(req)=>{
   const {data:allowed,error:roleError}=await admin.rpc("has_role",{_user_id:user.id,_role:"admin"});
   if(roleError||!allowed)return reply({error:"Acesso negado"},403);
   const body=await req.json();
+  if(body.action==="reset_password"){
+    const partnerId=String(body.partner_id||"");
+    const newPassword=String(body.password||"");
+    if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(partnerId)||newPassword.length<6)
+      return reply({error:"Informe o parceiro e uma nova senha com no mínimo 6 caracteres"},400);
+    const {data:partner,error:pError}=await admin.from("bm_order_partners").select("id,user_id,username,name").eq("id",partnerId).maybeSingle();
+    if(pError||!partner)return reply({error:"Parceiro não encontrado"},404);
+    const {error:updateError}=await admin.auth.admin.updateUserById(partner.user_id,{password:newPassword});
+    if(updateError)return reply({error:updateError.message||"Falha ao redefinir senha"},400);
+    return reply({ok:true,message:"Senha do parceiro redefinida com sucesso"});
+  }
   if(body.action!=="create")return reply({error:"Ação inválida"},400);
   const name=String(body.name||"").trim().slice(0,120);
   const username=String(body.username||"").trim().toLowerCase();
