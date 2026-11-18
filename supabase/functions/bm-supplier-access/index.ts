@@ -26,6 +26,21 @@ Deno.serve(async(req)=>{
     if(updateError)return reply({error:updateError.message||"Falha ao redefinir senha"},400);
     return reply({ok:true,message:"Senha do parceiro redefinida com sucesso"});
   }
+  if(body.action==="delete_partner"){
+    const partnerId=String(body.partner_id||"");
+    if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(partnerId))return reply({error:"Parceiro inválido"},400);
+    const {data:partner,error:lookupError}=await admin.from("bm_order_partners").select("id,user_id,active").eq("id",partnerId).maybeSingle();
+    if(lookupError||!partner)return reply({error:"Parceiro não encontrado"},404);
+    if(!partner.active)return reply({error:"Parceiro já excluído"},409);
+    const {error:banError}=await admin.auth.admin.updateUserById(partner.user_id,{ban_duration:"876000h"});
+    if(banError)return reply({error:banError.message||"Falha ao bloquear acesso"},400);
+    const {error:disableError}=await admin.from("bm_order_partners").update({active:false}).eq("id",partnerId);
+    if(disableError){
+      await admin.auth.admin.updateUserById(partner.user_id,{ban_duration:"none"});
+      return reply({error:disableError.message},400);
+    }
+    return reply({ok:true,message:"Parceiro excluído do acesso; ordens preservadas"});
+  }
   if(body.action!=="create")return reply({error:"Ação inválida"},400);
   const name=String(body.name||"").trim().slice(0,120);
   const username=String(body.username||"").trim().toLowerCase();
