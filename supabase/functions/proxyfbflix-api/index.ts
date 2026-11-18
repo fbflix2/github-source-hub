@@ -310,8 +310,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
-    if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY não configurada");
+    const WEBSHARE_API_KEY_RAW = Deno.env.get("WEBSHARE_API_KEY");
+    if (!WEBSHARE_API_KEY_RAW) throw new Error("WEBSHARE_API_KEY não configurada");
+    const WEBSHARE_API_KEY: string = WEBSHARE_API_KEY_RAW;
 
     // SECTION: INTERNAL ADMIN ALLOCATE (no user JWT needed)
     bodyText = await req.text();
@@ -1365,7 +1366,7 @@ Deno.serve(async (req) => {
       
       console.log(`[webshare-api] Admin allocation - target country: ${targetCountry || "any"}`);
 
-      const aAssignedIds = await getAssignedProxyIds(supabaseAdmin);
+      const { assignedIds: aAssignedIds } = await getAssignedProxyIds(supabaseAdmin);
 
       const aAvailable: any[] = [];
       let aPage = 1;
@@ -1447,7 +1448,7 @@ Deno.serve(async (req) => {
     // SECTION: GET AVAILABLE COUNT
     // Returns how many unassigned proxies are available for sale
     if (action === "get-available-count") {
-      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
+      const { assignedIds } = await getAssignedProxyIds(supabaseAdmin);
 
       // Count all proxies (we still need to iterate or fetch total for this specific count)
       const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
@@ -1465,7 +1466,7 @@ Deno.serve(async (req) => {
     // SECTION: GET AVAILABLE LOCATIONS
     // Returns a list of cities/countries that have available (unassigned) proxies
     if (action === "get-available-locations") {
-      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
+      const { assignedIds } = await getAssignedProxyIds(supabaseAdmin);
       const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
 
       const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));

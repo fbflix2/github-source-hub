@@ -177,6 +177,47 @@ Deno.serve(async (req) => {
       return false;
     }
   }
+
+  // Envio em background (usado por send-expiring-alerts via EdgeRuntime.waitUntil)
+  async function sendMessagesInBackground(queue: Array<{ phone: string; message: string; logData: any }>) {
+    for (let i = 0; i < queue.length; i++) {
+      const item = queue[i];
+      try {
+        const result = await wapiSendText(item.phone, item.message);
+        await admin.from("whatsapp_logs").insert({
+          template_id: item.logData?.template_id || null,
+          user_id: item.logData?.user_id || null,
+          phone: item.phone,
+          message_sent: item.message,
+          status: result.ok ? "sent" : "failed",
+          wapi_message_id: getMessageId(result),
+          error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+          event_key: item.logData?.event_key || null,
+          metadata: item.logData?.metadata || {},
+          message_type: "text",
+        });
+        console.log(`[bg-send] ${result.ok ? "sent" : "failed"} -> ${item.phone}`);
+      } catch (e) {
+        console.error(`[bg-send] exception for ${item.phone}: ${e}`);
+        await admin.from("whatsapp_logs").insert({
+          template_id: item.logData?.template_id || null,
+          user_id: item.logData?.user_id || null,
+          phone: item.phone,
+          message_sent: item.message,
+          status: "failed",
+          error_message: String(e),
+          event_key: item.logData?.event_key || null,
+          metadata: item.logData?.metadata || {},
+          message_type: "text",
+        });
+      }
+      // Jitter entre mensagens (5-15s) para comportamento natural
+      if (i < queue.length - 1) {
+        await new Promise((r) => setTimeout(r, 5000 + Math.random() * 10000));
+      }
+    }
+  }
+
    try {
      const body = await req.json();
      const { action } = body;

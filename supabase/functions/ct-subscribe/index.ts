@@ -299,7 +299,7 @@ function json(data: unknown, status = 200) {
  * - Se pool insuficiente, notifica admin
  */
 export async function assignPoolProxies(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   params: { ctClientId: string; userId: string; qty: number; planName?: string },
 ) {
   const { ctClientId, userId, qty, planName } = params;
@@ -354,7 +354,7 @@ export async function assignPoolProxies(
  * Prioriza reservas manuais para o usuário; depois o pool geral do plano.
  */
 export async function assignPoolComboItems(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   params: { ctClientId: string; userId: string; planId: string; comboConfig: Record<string, number>; planName?: string },
 ) {
   const { ctClientId, userId, planId, comboConfig, planName } = params;

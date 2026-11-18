@@ -155,7 +155,7 @@
        })
      }
 
-   } catch (error) {
+    } catch (error: any) {
      console.error('Function error:', error)
      return new Response(JSON.stringify({ success: false, message: error.message }), {
        headers: { ...corsHeaders, 'Content-Type': 'application/json' },

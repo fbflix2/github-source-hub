@@ -12,7 +12,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-async function resolveDns(name: string, type: "TXT" | "CNAME"): Promise<string[]> {
+async function resolveDns(name: string, type: "A" | "TXT" | "CNAME"): Promise<string[]> {
   try {
     const r = await fetch(
       `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`,

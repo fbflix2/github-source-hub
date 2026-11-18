@@ -266,7 +266,7 @@ import { chargeSavedCard } from "../_shared/stripe-offsession.ts";
      }
  
      return ok({ success: true, processed: vaults.length, results });
-   } catch (error) {
+   } catch (error: any) {
      console.error("[safe-bm-lifecycle] Error:", error);
      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
    }

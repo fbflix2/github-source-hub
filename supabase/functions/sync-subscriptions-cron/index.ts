@@ -575,7 +575,9 @@ Deno.serve(async (req) => {
                  console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
  
                  // 10. WhatsApp confirmation to client
-                 if (profile?.phone) {
+                 const renewPhone: string = profile?.phone || "";
+                  const renewName: string = profile?.full_name || "Cliente";
+                  if (renewPhone) {
                    try {
                      const { data: tpl } = await sb
                        .from("whatsapp_templates")
@@ -584,24 +586,25 @@ Deno.serve(async (req) => {
                        .eq("active", true)
                        .maybeSingle();
  
-                     if (tpl) {
+                     const renewTplId: string = tpl?.id || "";
+                     if (renewTplId) {
                        const productName = sub.product_id ? (await sb.from("products").select("name").eq("id", sub.product_id).maybeSingle()).data?.name : null;
                        const formattedExpDate = newEnd.toLocaleDateString("pt-BR");
                        
                        await sb.functions.invoke("wapi-send", {
                          body: {
                            action: "send-template",
-                           template_id: tpl.id,
-                           phone: profile.phone,
+                           template_id: renewTplId,
+                           phone: renewPhone,
                            user_id: sub.user_id,
                            variables: {
-                             nome: profile.full_name || "Cliente",
+                             nome: renewName,
                              produto: productName || sub.name,
                              vencimento: formattedExpDate
                            }
                          }
                        });
-                       console.log(`Auto-renewal: WhatsApp notification sent to ${profile.phone}`);
+                       console.log(`Auto-renewal: WhatsApp notification sent to ${renewPhone}`);
                      }
                    } catch (waErr: any) {
                      console.error(`Auto-renewal: WhatsApp notification error: ${waErr.message}`);
