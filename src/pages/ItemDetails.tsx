@@ -70,6 +70,7 @@ export default function ItemDetails() {
   const [searchParams] = useSearchParams();
   const comboProfileId = searchParams.get("profile"); // specific child stock_item_id
   const [showPassword, setShowPassword] = useState(false);
+  const [showAssetTerms, setShowAssetTerms] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
@@ -1637,18 +1638,44 @@ export default function ItemDetails() {
           <div className="glass-panel rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-blue-400 text-lg">shield</span>
-              <h3 className="text-sm font-bold text-foreground">Garantia de Reposição</h3>
+              <h3 className="text-sm font-bold text-foreground">Atenção: proteja seus ativos após a compra</h3>
             </div>
-            <p className="text-xs text-text-secondary mb-1">Cobrimos bloqueios imediatos, falhas no login ou itens fora da descrição.</p>
-            <p className="text-[10px] italic text-text-secondary/70 mb-3">Não cobrimos mau uso ou bloqueios após atividade publicitária.</p>
-            <button 
-              onClick={() => navigate("/tutorials")}
+            <p className="text-xs text-text-secondary mb-1">A segurança de perfis, BMs e acessos adquiridos exige sua ação: atualize senhas, e-mails, recuperação e 2FA assim que receber o produto.</p>
+            <p className="text-[10px] font-medium text-amber-400 mb-3">A FBFLIX vende ativos digitais; não oferece custódia ou proteção permanente de credenciais. Conheça suas responsabilidades e as condições da garantia.</p>
+            <button
+              onClick={() => setShowAssetTerms(true)}
               className="w-full py-2 rounded-lg border border-border hover:bg-muted/50 text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition-all group"
             >
               <span className="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">play_circle</span>
-              Assistir Termos de Garantia
+              Assistir Termos e Responsabilidades
             </button>
           </div>
+
+          {showAssetTerms && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-3 sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAssetTerms(false); }}>
+              <div role="dialog" aria-modal="true" aria-labelledby="asset-terms-title" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-background p-5 sm:p-6 text-foreground shadow-2xl">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div><h2 id="asset-terms-title" className="font-bold text-lg">Segurança dos ativos e responsabilidade do comprador</h2><p className="text-xs text-muted-foreground mt-1">Leia atentamente as condições após a entrega de perfis, BMs e outros ativos digitais.</p></div>
+                  <button type="button" aria-label="Fechar termos" className="rounded-md border border-border px-3 py-1.5 hover:bg-muted" onClick={() => setShowAssetTerms(false)}>✕</button>
+                </div>
+                <div className="aspect-video rounded-lg border border-border bg-black/70 flex flex-col items-center justify-center gap-3 mb-5">
+                  <span className="material-symbols-outlined text-5xl text-muted-foreground">play_circle</span>
+                  <strong className="text-sm">Vídeo explicativo — Em breve</strong>
+                  <p className="text-xs text-muted-foreground">Enquanto isso, consulte as orientações completas abaixo.</p>
+                </div>
+                <div className="space-y-4 text-sm text-text-secondary leading-relaxed">
+                  <section><h3 className="font-bold text-foreground mb-1">1. Natureza da compra e entrega</h3><p>A FBFLIX comercializa produtos digitais, como perfis, Business Managers (BMs) e outros ativos anunciados na plataforma. A compra e entrega desses produtos não constituem contratação de serviço permanente de guarda, monitoramento, manutenção, administração ou recuperação de credenciais.</p></section>
+                  <section><h3 className="font-bold text-foreground mb-1">2. Proteção imediata dos acessos</h3><p>Após o recebimento, o comprador deve conferir os dados entregues e, sempre que tecnicamente possível e permitido pela plataforma de origem, substituir as senhas do perfil e do e-mail principal, atualizar o e-mail alternativo, telefone e demais meios de recuperação, configurar ou renovar a autenticação em dois fatores (2FA), códigos de recuperação, tokens e sessões ativas, além de remover acessos de terceiros que não sejam necessários. Não compartilhe essas credenciais e guarde-as em local seguro.</p></section>
+                  <section><h3 className="font-bold text-foreground mb-1">3. Prazo contratual de garantia e reposição</h3><p>As condições comerciais de reposição e a cobertura contratual de até 7 (sete) dias, quando aplicáveis ao produto adquirido, são destinadas à análise de problemas cobertos, como falhas de acesso na entrega ou divergências com a descrição do item. Bloqueios decorrentes de uso indevido, alterações feitas pelo comprador ou atividades posteriores podem não estar cobertos, conforme as condições específicas do produto. O prazo contratual não elimina direitos e garantias previstos na legislação aplicável.</p></section>
+                  <section><h3 className="font-bold text-foreground mb-1">4. Responsabilidade após a aquisição</h3><p>O comprador é responsável pela administração cotidiana e pela segurança das credenciais sob seu controle. A FBFLIX não assume obrigação de manter cópias, guardar senhas, acompanhar sessões ou recuperar acessos por prazo indeterminado. Perdas, invasões ou acessos indevidos decorrentes de compartilhamento de dados, ausência de atualização de credenciais ou falhas de segurança sob controle do comprador não geram, por si só, direito automático à reposição.</p></section>
+                  <section><h3 className="font-bold text-foreground mb-1">5. Ocorrências posteriores e análise de responsabilidade</h3><p>Se houver invasão, perda de acesso ou suspeita de comprometimento, o comprador deve proteger os meios de recuperação disponíveis e comunicar o suporte com o número do pedido e as evidências. Cada ocorrência poderá ser analisada conforme sua causa, as condições da oferta e os direitos legais aplicáveis. Esta cláusula não exclui a responsabilidade da FBFLIX por defeitos do produto, falhas atribuíveis ao fornecedor ou outras obrigações que a lei não permita afastar.</p></section>
+                  <section><h3 className="font-bold text-foreground mb-1">6. Ciência das condições</h3><p>Ao adquirir e receber o produto, o comprador deve observar as orientações de segurança e os termos aplicáveis à compra. A responsabilidade pela proteção das credenciais sob seu controle é distinta das obrigações legais e contratuais da FBFLIX.</p></section>
+                  <p className="text-xs text-muted-foreground">Para consultar os termos gerais da plataforma, acesse <a className="underline text-primary" href="/termos" target="_blank" rel="noopener noreferrer">Termos de Serviço</a>.</p>
+                </div>
+                <button type="button" className="mt-5 w-full rounded-lg bg-primary text-primary-foreground py-2.5 text-sm font-semibold" onClick={() => setShowAssetTerms(false)}>Entendi</button>
+              </div>
+            </div>
+          )}
 
           {/* Warming Tracker - Admin Only */}
           {isStaff && orderUserId && (
