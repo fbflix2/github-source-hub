@@ -2474,7 +2474,7 @@ export type Database = {
       openpix_withdrawals: {
         Row: {
           amount: number
-          confirmation_code: string
+          confirmation_code: string | null
           confirmed_at: string | null
           created_at: string
           description: string | null
@@ -2491,7 +2491,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          confirmation_code: string
+          confirmation_code?: string | null
           confirmed_at?: string | null
           created_at?: string
           description?: string | null
@@ -2508,7 +2508,7 @@ export type Database = {
         }
         Update: {
           amount?: number
-          confirmation_code?: string
+          confirmation_code?: string | null
           confirmed_at?: string | null
           created_at?: string
           description?: string | null
