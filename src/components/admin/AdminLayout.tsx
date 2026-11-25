@@ -8,6 +8,7 @@ import { WapiDisconnectedAlert } from "./WapiDisconnectedAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
 import { PendingSafeBMPopup } from "./PendingSafeBMPopup";
 import { AdminSupportDock } from "./AdminSupportDock";
+import { AdminMfaSetup } from "./AdminMfaSetup";
 import { Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -85,6 +86,7 @@ export function AdminLayout() {
     return (
       <div className="admin-mobile-wrapper min-h-screen font-sans antialiased">
         <AdminMobileHeader />
+        <AdminMfaSetup />
         <main className="mt-20 px-5 pb-28 space-y-8">
           <Outlet />
         </main>
@@ -109,6 +111,7 @@ export function AdminLayout() {
       )}
 
       <AdminSidebar />
+      <AdminMfaSetup />
 
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {!hideHeader && !isAquecimento && <AdminHeader />}
