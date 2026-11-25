@@ -1,0 +1,11 @@
+alter table public.openpix_withdrawals alter column confirmation_code drop not null;
+update public.openpix_withdrawals set confirmation_code=null;
+revoke all on public.openpix_withdrawals from public, anon, authenticated;
+grant select (id, requested_by, amount, pix_key, pix_key_type, pix_key_name, description, expires_at, status, openpix_transaction_id, error_message, created_at, confirmed_at, executed_at) on public.openpix_withdrawals to authenticated;
+drop policy if exists "Admins manage withdrawals" on public.openpix_withdrawals;
+create policy "Admins read withdrawal history" on public.openpix_withdrawals for select to authenticated using (public.has_role(auth.uid(),'admin'::public.app_role));
+drop policy if exists "Authenticated can view pipelines" on public.pipeline_templates;
+drop policy if exists "Staff can manage pipelines" on public.pipeline_templates;
+create policy "Authorized staff manage pipelines" on public.pipeline_templates for all to authenticated using (public.has_role(auth.uid(),'admin'::public.app_role) or public.has_role(auth.uid(),'moderator'::public.app_role)) with check (public.has_role(auth.uid(),'admin'::public.app_role) or public.has_role(auth.uid(),'moderator'::public.app_role));
+drop policy if exists "Public can view reseller overrides" on public.reseller_price_overrides;
+;
