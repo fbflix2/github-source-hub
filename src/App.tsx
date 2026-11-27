@@ -68,6 +68,7 @@ import SocialSafeAccount from "./pages/socialsafe/SocialSafeAccount";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
+import AdminMfaLogin from "./pages/admin/AdminMfaLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminEstoque from "./pages/admin/AdminEstoque";
@@ -603,6 +604,7 @@ const App = () => {
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/mfa" element={<AdminMfaLogin />} />
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />
                   <Route path="produtos" element={<AdminProducts />} />

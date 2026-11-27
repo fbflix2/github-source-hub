@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ModeratorPermissionsModal from "@/components/admin/ModeratorPermissionsModal";
+import { AdminMfaSetup } from "@/components/admin/AdminMfaSetup";
 interface TeamMember {
   user_id: string;
   name: string;
@@ -269,6 +270,8 @@ export default function AdminConfiguracoes() {
           </p>
         </div>
       </header>
+
+      <AdminMfaSetup />
 
       {/* Team Members */}
       <section className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden p-6 md:p-8">

@@ -69,6 +69,15 @@ export function useAdminAuth() {
         if (cancelled) return;
 
         if (role) {
+          if (role === "admin") {
+            const { data: assurance, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (cancelled) return;
+            if (error || assurance?.currentLevel !== "aal2") {
+              setState({ isAdmin: false, loading: true, role: null });
+              navigate("/admin/mfa", { replace: true });
+              return;
+            }
+          }
           setState({ isAdmin: true, loading: false, role });
         } else {
           await supabase.auth.signOut({ scope: "local" });
@@ -82,12 +91,8 @@ export function useAdminAuth() {
             await new Promise(r => setTimeout(r, 2000));
             return checkAdmin(retryCount + 1);
           }
-          // If we previously authenticated, keep that state; otherwise send to login
-          setState(prev => {
-            if (prev.isAdmin) return prev;
-            navigate("/admin/login");
-            return { isAdmin: false, loading: false, role: null };
-          });
+          setState({ isAdmin: false, loading: false, role: null });
+          navigate("/admin/login", { replace: true });
         }
       }
     };
@@ -107,13 +112,9 @@ export function useAdminAuth() {
             navigate("/admin/login");
           }
         }).catch(() => {});
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        verifyRole(session.user.id).then(role => {
-          if (cancelled) return;
-          if (role) {
-            setState({ isAdmin: true, loading: false, role });
-          }
-        }).catch(() => {});
+      } else if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'MFA_CHALLENGE_VERIFIED') && session) {
+        // Recheck role and MFA together; never authorize from a role-only refresh.
+        setTimeout(() => { if (!cancelled) void checkAdmin(); }, 0);
       }
     });
 

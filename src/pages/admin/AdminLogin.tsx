@@ -142,6 +142,10 @@ export default function AdminLogin() {
         return;
       }
 
+      if (adminResult.data === true) {
+        window.location.replace("/admin/mfa");
+        return;
+      }
       toast.success("Login realizado com sucesso!");
       window.location.replace("/admin");
     } catch (error: unknown) {
