@@ -42,6 +42,66 @@ Deno.serve(async (req) => {
   const WAPI_INSTANCE_ID = Deno.env.get("WAPI_INSTANCE_ID");
   const WAPI_BASE = "https://api.w-api.app/v1";
 
+
+  // A notice is only claimed for a fresh, authenticated W-API received event.
+  // The database atomically excludes known contacts and deduplicates retries.
+  async function claimNewContactNotice(body: any, eventLower: string, phone: string, messageId: unknown, rawChat: string, messageType: string, fromMe: unknown): Promise<string | null> {
+    try {
+      const secret = new URL(req.url).searchParams.get("wa_notice_key") || "";
+      if (!WAPI_TOKEN || !WAPI_INSTANCE_ID || !/^[a-f0-9]{64}$/.test(secret)) return null;
+      if (eventLower !== "webhookreceived" || fromMe !== false || messageType === "reaction") return null;
+      if (String(body.instanceId || body.data?.instanceId || "") !== WAPI_INSTANCE_ID) return null;
+      if (/@g\.us|@broadcast|status@|@lid/i.test(rawChat) || !/^\d{8,15}$/.test(phone) || typeof messageId !== "string") return null;
+      if (String(body.connectedPhone || body.data?.connectedPhone || "").replace(/\D/g, "") === phone) return null;
+      const moment = Number(body.moment ?? body.data?.moment);
+      if (!Number.isFinite(moment) || moment <= 0) return null;
+      const eventAt = new Date(moment < 1e12 ? moment * 1000 : moment);
+      if (!Number.isFinite(eventAt.getTime())) return null;
+      const { data, error } = await admin.rpc("wa_claim_new_contact_notice", {
+        p_phone: phone, p_message_id: messageId, p_event_at: eventAt.toISOString(), p_secret: secret,
+      });
+      if (error) { console.error("Notice claim failed:", error.code); return null; }
+      return typeof data === "string" && data.trim() ? data : null;
+    } catch { return null; }
+  }
+
+  async function sendClaimedNotice(phone: string, messageId: string, message: string) {
+    let status = "unknown";
+    let providerId: string | null = null;
+    let failure: string | null = null;
+    try {
+      const url = new URL(WAPI_BASE + "/message/send-text");
+      url.searchParams.set("instanceId", WAPI_INSTANCE_ID!);
+      const response = await fetchWithTimeout(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + WAPI_TOKEN },
+        body: JSON.stringify({ phone, message }),
+      }, 10000);
+      const payload = await response.json().catch(() => null);
+      if (response.ok && payload && payload.error !== true && payload.success !== false) {
+        status = "sent";
+        const id = payload.key?.id || payload.message?.key?.id || payload.messageId || payload.id;
+        providerId = typeof id === "string" ? id : null;
+      } else {
+        status = response.ok ? "unknown" : "failed";
+        if (payload?.error === true || payload?.success === false) status = "failed";
+        failure = "W-API HTTP " + response.status + (status === "unknown" ? " / resposta não confirmada" : "");
+      }
+    } catch { failure = "Envio não confirmado; sem repetição automática."; }
+    const { error } = await admin.from("wa_new_contact_notice_attempts").update({
+      status, provider_message_id: providerId, error: failure, completed_at: new Date().toISOString(),
+    }).eq("phone", phone).eq("source_message_id", messageId).eq("status", "pending");
+    if (error) console.error("Notice result save failed:", error.code);
+    // Preserve one CRM message; delivery callbacks can update the same provider ID.
+    if (status === "sent" && providerId) {
+      const { error: crmError } = await admin.from("whatsapp_messages").upsert({
+        phone, wapi_message_id: providerId, direction: "out", from_me: true,
+        body: message, message_type: "text", status: "sent",
+      }, { onConflict: "wapi_message_id", ignoreDuplicates: true });
+      if (crmError) console.error("Notice CRM save failed:", crmError.code);
+    }
+  }
+
   // Bucket "whatsapp-media" já existe — não criar em runtime (causava contenção no Postgres)
 
   // Try W-API native download endpoint; returns { fileLink } or base64
@@ -315,10 +375,21 @@ Deno.serve(async (req) => {
             status: isIn ? "received" : "sent",
             raw: body,
           };
-          if (messageId) {
-            await admin.from("whatsapp_messages").upsert(row, { onConflict: "wapi_message_id" });
-          } else {
-            await admin.from("whatsapp_messages").insert(row);
+          const notice = isIn && !isOut ? await claimNewContactNotice(body, eventLower, phone, messageId, rawChatStr, msgType, fromMe) : null;
+          const saved = messageId
+            ? await admin.from("whatsapp_messages").upsert(row, { onConflict: "wapi_message_id" })
+            : await admin.from("whatsapp_messages").insert(row);
+          if (saved.error) {
+            if (notice) await admin.from("wa_new_contact_notice_attempts").update({
+              status: "failed", error: "Mensagem recebida não persistida no CRM.", completed_at: new Date().toISOString(),
+            }).eq("phone", phone).eq("source_message_id", messageId);
+            console.error("CRM insert error:", saved.error.code);
+          } else if (notice) {
+            // Do not block the W-API acknowledgment with an additional network request.
+            const job = sendClaimedNotice(phone, messageId, notice).catch(() => console.error("Notice send task failed"));
+            const runtime = (globalThis as any).EdgeRuntime;
+            if (typeof runtime?.waitUntil === "function") runtime.waitUntil(job);
+            else await job;
           }
         } catch (e) {
           console.error("CRM insert error:", e);

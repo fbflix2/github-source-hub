@@ -162,3 +162,6 @@ verify_jwt = false
 
 [functions.bm-supplier-access]
 verify_jwt = true
+
+[functions.wa-new-contact-notice]
+verify_jwt = false

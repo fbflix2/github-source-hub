@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WhatsAppFlows } from "@/components/admin/WhatsAppFlows";
+import { WhatsAppNewContactNotice } from "@/components/admin/WhatsAppNewContactNotice";
 
 const EVENT_KEYS = [
    { value: "proxy_expiring", label: "Vencimento de Proxy" },
@@ -1403,6 +1404,8 @@ export default function AdminWhatsApp() {
           </p>
         </div>
       )}
+
+      <WhatsAppNewContactNotice />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
