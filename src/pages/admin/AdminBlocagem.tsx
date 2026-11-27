@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StockItemBlockViewer } from "@/components/admin/StockItemBlockViewer";
 import ComboForm from "@/components/admin/ComboForm";
+import { downloadBlockFiles, safeBlockName, serializeBlockValue } from "@/lib/combo-blocks";
 import { extractBmNameFromInput, extractBmUrlFromInput, resolveBmDisplayName } from "@/lib/bm-link";
 
 interface Folder {
@@ -51,6 +52,7 @@ const itemTypes = [
 function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const FLASH_DRAFT_KEY = `flash_form_draft::${folder.id}`;
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [hasDraft, setHasDraft] = useState(() => !!localStorage.getItem(FLASH_DRAFT_KEY));
   const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; price?: number; default_image?: string; description?: string; tags?: string[] }[]>([]);
@@ -330,12 +332,11 @@ function FlashForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     });
   };
 
-  const generateTxt = async (data: Record<string, string>, cookies: string, fallbackName: string) => {
-    try {
+  const generateTxt = (data: Record<string, string>, cookies: string, fallbackName: string) => {
       const d: Record<string, string> = data;
       const nome = d.nomePerfil || "";
       const mockup = d.linkDocumento || "https://fbflix.com.br/ferramentas";
-      const cookiesOut = (cookies.trim() || d.cookies || "");
+      const cookiesOut = serializeBlockValue(cookies.trim() || d.cookies || "");
       // Todos os demais dados colados também entram no bloco
       const extraLines: string[] = [];
       if (d.tempoPlataforma) extraLines.push(`Tempo de plataforma: ${d.tempoPlataforma}`);
@@ -399,22 +400,12 @@ ${extrasBlock}--------------------------Acesso login--------------------------
 
 Cookies:
 ${cookiesOut}`;
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      // Nome do TXT deve ser SEMPRE o ID do perfil quando disponível
-      const idOnly = (data.idPerfil || "").toString().trim();
-      const idBase = idOnly || (fallbackName || "blocagem_flash");
-      const safeName = idBase.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 60) || "blocagem_flash";
-      a.download = `${safeName}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("Erro ao gerar TXT:", e);
-    }
+      return { name: safeBlockName(data.idPerfil || fallbackName, "blocagem_flash") + ".txt", content };
+  };
+
+  const downloadFlashBlocks = async (filled: { it: { rawText: string; cookiesText: string }; i: number; parsed: Record<string, string> }[]) => {
+    const files = filled.map(x => generateTxt(x.parsed, x.it.cookiesText, x.parsed.nomePerfil || x.parsed.emailAcesso || "Item_" + (x.i + 1)));
+    await downloadBlockFiles(files, comboName || "blocagem_flash", isCombo || filled.length > 1);
   };
 
   const buildChildInsert = (parsed: Record<string, string>, raw: string, cookies: string, comboIndex?: number, parentName?: string) => {
@@ -486,12 +477,10 @@ ${cookiesOut}`;
         const { error: cErr } = await supabase.from("stock_items").insert(childInserts as any);
         if (cErr) throw cErr;
 
-        // Download one TXT per child
-        for (const x of filled) {
-          const nm = x.parsed.nomePerfil || x.parsed.emailAcesso || `Item ${x.i + 1}`;
-          await generateTxt(x.parsed, x.it.cookiesText, nm);
-        }
-        toast.success(`Combo "${comboName}" com ${filled.length} itens criado!`);
+        try {
+          await downloadFlashBlocks(filled);
+          toast.success(`Combo "${comboName}" com ${filled.length} itens criado! ZIP gerado.`);
+        } catch { toast.warning("Combo salvo, mas não foi possível baixar o ZIP. Não cadastre novamente."); }
       } else {
         const x = filled[0];
         const insertData: any = {
@@ -506,8 +495,10 @@ ${cookiesOut}`;
         };
         const { error } = await supabase.from("stock_items").insert(insertData);
         if (error) throw error;
-        await generateTxt(x.parsed, x.it.cookiesText, insertData.name);
-        toast.success("Blocagem flash salva e TXT baixado!");
+        try {
+          await downloadBlockFiles([generateTxt(x.parsed, x.it.cookiesText, insertData.name)], insertData.name);
+          toast.success("Blocagem flash salva e TXT baixado!");
+        } catch { toast.warning("Blocagem salva, mas o download falhou. Não cadastre novamente."); }
       }
       setItems([{ rawText: "", cookiesText: "" }]);
       setComboName(""); setComboDescricao("");
@@ -530,11 +521,13 @@ ${cookiesOut}`;
       toast.error("Cole ao menos um item com dados no formato 'Chave: valor'.");
       return;
     }
-    for (const x of filled) {
-      const nm = x.parsed.nomePerfil || x.parsed.emailAcesso || `Item ${x.i + 1}`;
-      await generateTxt(x.parsed, x.it.cookiesText, nm);
-    }
-    toast.success(filled.length > 1 ? `${filled.length} TXTs baixados!` : "TXT baixado!");
+    if (downloading || saving) return;
+    setDownloading(true);
+    try {
+      await downloadFlashBlocks(filled);
+      toast.success(isCombo || filled.length > 1 ? `ZIP gerado com ${filled.length} blocos!` : "TXT baixado!");
+    } catch { toast.error("Não foi possível gerar o download."); }
+    finally { setDownloading(false); }
   };
 
   const exampleText = `Nome: João Silva
@@ -737,17 +730,17 @@ Descrição: Perfil verificado, sem restrições`;
             {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar como rascunho
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleDownloadOnly} disabled={totalRecognized === 0} className="text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 gap-1.5">
-            <Download className="h-3.5 w-3.5" /> Baixar TXT
+          <Button type="button" variant="outline" size="sm" onClick={handleDownloadOnly} disabled={totalRecognized === 0 || downloading || saving} className="text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 gap-1.5">
+            <Download className="h-3.5 w-3.5" /> {downloading ? "Gerando..." : isCombo ? "Baixar ZIP" : "Baixar TXT"}
           </Button>
           <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
           <Button
             onClick={handleSave}
-            disabled={saving || totalRecognized === 0}
+            disabled={saving || downloading || totalRecognized === 0}
             className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold gap-2"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-            {isCombo ? "Criar Combo e Baixar TXTs" : "Gerar e Salvar"}
+            {isCombo ? "Criar Combo e Baixar ZIP" : "Gerar e Salvar"}
           </Button>
         </div>
       </div>

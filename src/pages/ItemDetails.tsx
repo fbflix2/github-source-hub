@@ -18,6 +18,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatBlocoContent, resolveComboChildren, normalizeComboChild, downloadBlockFiles, safeBlockName, serializeBlockValue } from "@/lib/combo-blocks";
 
 interface StockData {
   emailAcesso?: string;
@@ -108,7 +109,8 @@ export default function ItemDetails() {
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
   const [isCombo, setIsCombo] = useState(false);
-  const [comboChildren, setComboChildren] = useState<any[]>([]);
+  const [comboChildren, setComboChildren] = useState<ReturnType<typeof normalizeComboChild>[]>([]);
+  const [downloadingBlock, setDownloadingBlock] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [showWarmingTracker, setShowWarmingTracker] = useState(false);
   const [orderUserId, setOrderUserId] = useState<string | null>(null);
@@ -119,6 +121,14 @@ export default function ItemDetails() {
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
+      setOrderItem(null);
+      setStockItemId(null);
+      setStockData({});
+      setIsCombo(false);
+      setComboChildren([]);
+      setIsBlocked(false);
+      setIsConfirmedOk(false);
       if (!orderId || !itemId) { setLoading(false); return; }
 
       const decodedCode = decodeURIComponent(orderId);
@@ -241,25 +251,29 @@ export default function ItemDetails() {
 
       const mainStockItem = preferredStockItem || stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
 
-      if (mainStockItem) {
-        // Check for combo: children may be in the same query OR need a separate fetch by parent_id
-        let children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
+      {
+        // Keep the existing order-scoped lookup; use only the already-authorized delivery snapshot as fallback.
+        let linkedChildren = mainStockItem ? stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [] : [];
         
         // If no children found in current results, fetch them separately by parent_id
-        if (children.length === 0 && (mainStockItem.type === "combo")) {
+        if (linkedChildren.length === 0 && mainStockItem?.type === "combo") {
           const { data: childItems } = await supabase
             .from("stock_items")
             .select("*")
             .eq("parent_id", mainStockItem.id);
-          children = childItems || [];
+          linkedChildren = childItems || [];
+        }
+        const children = resolveComboChildren(linkedChildren, orderItemDeliveryData?.comboItems);
+        if (comboProfileId && !children.some(child => child.id === comboProfileId)) {
+          setOrderItem(null); setLoading(false); return;
         }
 
         // If a specific combo profile is requested, show only that child as the main item
         if (comboProfileId && children.length > 0) {
           const targetChild = children.find((c: any) => c.id === comboProfileId);
           if (targetChild) {
-            setStockItemId(targetChild.id);
-            if (targetChild.status === "bloqueado") setIsBlocked(true);
+            setStockItemId(targetChild.stockItemId);
+            if (targetChild.status === "bloqueado" || mainStockItem?.status === "bloqueado") setIsBlocked(true);
             if (targetChild.status === "ok") setIsConfirmedOk(true);
             const childData = (targetChild.data && typeof targetChild.data === "object") ? targetChild.data as StockData : {} as StockData;
             if (targetChild.identification_link) childData.linkPerfil = targetChild.identification_link;
@@ -271,13 +285,13 @@ export default function ItemDetails() {
           }
         } else {
           // Default behavior: merge stock data with order_item delivery_data, giving precedence to the replacement data
-          setStockItemId(mainStockItem.id);
-          if (mainStockItem.status === "bloqueado") setIsBlocked(true);
-          if (mainStockItem.status === "ok") setIsConfirmedOk(true);
+          setStockItemId(mainStockItem?.id || null);
+          if (mainStockItem?.status === "bloqueado") setIsBlocked(true);
+          if (mainStockItem?.status === "ok") setIsConfirmedOk(true);
 
-          const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? { ...(mainStockItem.data as StockData) } : {} as StockData;
-          if (mainStockItem.identification_link && !baseData.linkPerfil) baseData.linkPerfil = mainStockItem.identification_link;
-          if (mainStockItem.identification && !baseData.idPerfil) baseData.idPerfil = mainStockItem.identification;
+          const baseData = (mainStockItem?.data && typeof mainStockItem.data === "object") ? { ...(mainStockItem.data as StockData) } : {} as StockData;
+          if (mainStockItem?.identification_link && !baseData.linkPerfil) baseData.linkPerfil = mainStockItem.identification_link;
+          if (mainStockItem?.identification && !baseData.idPerfil) baseData.idPerfil = mainStockItem.identification;
 
           const mergedData = { ...baseData } as StockData & Record<string, any>;
 
@@ -291,7 +305,7 @@ export default function ItemDetails() {
 
           setStockData(mergedData);
 
-          if (mainStockItem.type === "combo" || children.length > 0) {
+          if (mainStockItem?.type === "combo" || children.length > 0) {
             setIsCombo(true);
             setComboChildren(children);
 
@@ -474,7 +488,7 @@ export default function ItemDetails() {
       setLoading(false);
     }
     fetchData();
-  }, [orderId, itemId]);
+  }, [orderId, itemId, comboProfileId]);
 
   // Realtime: listen for delivery_data updates (admin confirming page)
   useEffect(() => {
@@ -676,7 +690,7 @@ export default function ItemDetails() {
 
   const downloadCookies = () => {
     if (!stockData.cookies) return;
-    const blob = new Blob([stockData.cookies], { type: "application/json" });
+    const blob = new Blob([serializeBlockValue(stockData.cookies)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -685,79 +699,34 @@ export default function ItemDetails() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadBloco = async () => {
-    let finalContent = "";
-
-    // Try to fetch default template
-    const { data: tpl } = await supabase
-      .from("block_templates" as any)
-      .select("content")
-      .eq("is_default", true)
-      .maybeSingle();
-
-    if (tpl && (tpl as any).content) {
-      // Use template with placeholder replacement
-      const alternateEmail =
-        stockData.emailAlternativo ||
-        (stockData as Record<string, any>).alternateEmail ||
-        (stockData as Record<string, any>).alternative_email ||
-        "—";
-
-      const replacements: Record<string, string> = {
-        "{{nomePerfil}}": stockData.nomePerfil || "—",
-        "{{emailAcesso}}": email,
-        "{{emailAlternativo}}": emailAlternativo,
-        "{{senha}}": senha,
-        "{{senhaEmail}}": stockData.senhaEmail || "—",
-        "{{token2fa}}": token2fa,
-        "{{dataNascimento}}": stockData.dataNascimento || "—",
-        "{{genero}}": stockData.genero || "—",
-        "{{tempoPlataforma}}": stockData.tempoPlataforma || "—",
-        "{{statusAtual}}": stockData.statusAtual || "—",
-        "{{descricao}}": descricao || "—",
-        "{{cookies}}": stockData.cookies || "—",
-        "{{linkDocumento}}": stockData.linkDocumento || "—",
-        "{{linkPerfil}}": stockData.linkPerfil || "—",
-        "{{idPerfil}}": stockData.idPerfil || "—",
-        "{{pedido}}": order?.code || "—",
-        "{{data}}": order?.created_at ? formatDate(order.created_at) : "—",
-        "{{nomeProduto}}": itemName,
-      };
-      finalContent = (tpl as any).content;
-      for (const [key, val] of Object.entries(replacements)) {
-        finalContent = finalContent.split(key).join(val);
-      }
-    } else {
-      // Fallback to hardcoded format
-      const lines = [
-        `=== ${itemName} ===`,
-        `Pedido: ${order?.code || "—"}`,
-        `Data: ${order?.created_at ? formatDate(order.created_at) : "—"}`,
-        "",
-        "--- Dados de Acesso ---",
-        `Login / Email: ${email}`,
-        `Senha: ${senha}`,
-        `Código 2FA: ${token2fa}`,
-      ];
-       if (emailAlternativo !== "—" && !isInstagram) lines.push(`Email Alternativo: ${emailAlternativo}`);
-       if (senhaEmail !== "—" && !isInstagram) lines.push(`Senha Email: ${senhaEmail}`);
-      if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
-      if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
-      if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
-      if (stockData.tempoPlataforma) lines.push(`Tempo de Plataforma: ${stockData.tempoPlataforma}`);
-      if (stockData.statusAtual) lines.push(`Status Atual: ${stockData.statusAtual}`);
-      if (descricao) { lines.push("", "--- Descrição ---", descricao); }
-      if (stockData.cookies) { lines.push("", "--- Cookies ---", stockData.cookies); }
-      finalContent = lines.join("\n");
+  const downloadBloco = async (selectedChild?: ReturnType<typeof normalizeComboChild>) => {
+    if (downloadingBlock || isBlocked || exchangeLocked || exchangePendingPayment || !order || !orderItem) return;
+    if (selectedChild && (selectedChild.status === "bloqueado" || !comboChildren.some(c => c.id === selectedChild.id))) {
+      toast.error("Este item não está disponível para download."); return;
     }
-
-    const blob = new Blob([finalContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${String(stockData.idPerfil || orderItem?.id || order?.code || "item").replace(/\s+/g, "_")}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setDownloadingBlock(true);
+    try {
+      const { data: tpl } = await supabase.from("block_templates" as any).select("content").eq("is_default", true).maybeSingle();
+      const template = typeof (tpl as any)?.content === "string" ? (tpl as any).content : null;
+      const orderDate = order.created_at ? formatDate(order.created_at) : undefined;
+      if (isCombo && !comboProfileId) {
+        const selected = (selectedChild ? [selectedChild] : comboChildren).filter(c => c.status !== "bloqueado" && c.type !== "bm");
+        if (!selected.length) { toast.error("Nenhum perfil disponível para download neste combo."); return; }
+        const files = selected.map((c, index) => ({
+          name: safeBlockName(c.identification || c.data.idPerfil || c.name, "perfil_" + (index + 1)) + ".txt",
+          content: formatBlocoContent(template, c.data, order.code, orderDate, itemName + " • " + c.name, isInstagram),
+        }));
+        await downloadBlockFiles(files, order.code + "_" + itemName, !selectedChild);
+        toast.success(selectedChild ? "Bloco baixado." : "ZIP gerado com " + files.length + " blocos.");
+      } else {
+        await downloadBlockFiles([{
+          name: safeBlockName(stockData.idPerfil || orderItem.id || order.code) + ".txt",
+          content: formatBlocoContent(template, { ...stockData, descricao }, order.code, orderDate, itemName, isInstagram),
+        }], itemName);
+      }
+    } catch {
+      toast.error("Não foi possível gerar o download. Tente novamente.");
+    } finally { setDownloadingBlock(false); }
   };
 
   const handleToggleBlocked = async () => {
@@ -1370,14 +1339,17 @@ export default function ItemDetails() {
                       </>
                     )}
                   </>
-                ) : isCombo && comboChildren.length > 0 ? (
+                ) : isCombo ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">
                       Perfis do Combo ({comboChildren.length})
                     </h3>
+                    {comboChildren.length === 0 && <p className="text-xs text-muted-foreground">Nenhum perfil vinculado disponível. Atualize a página ou procure o suporte.</p>}
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                       {comboChildren.map((child: any, idx: number) => {
-                        const cd = (child.data && typeof child.data === "object") ? child.data as StockData : {} as StockData;
+                        if (child.status === "bloqueado") return <div key={child.id} className="p-2.5 rounded-lg border border-border text-xs text-muted-foreground">Perfil #{idx + 1} — bloqueado</div>;
+                        if (child.type === "bm") return null;
+                        const cd = child.data as StockData;
                         const cEmail = cd.emailAcesso || "—";
                         const cSenha = cd.senha || "—";
                         const cToken = cd.token2fa || "—";
@@ -1427,14 +1399,15 @@ export default function ItemDetails() {
                                 </div>
                               </div>
                             )}
+                            <button type="button" disabled={downloadingBlock} onClick={() => requireDisclaimer(() => void downloadBloco(child))} className="w-full py-1.5 bg-muted/50 border border-border rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50"><span className="material-symbols-outlined text-[14px]">download</span> Baixar bloco deste perfil</button>
                           </div>
                         );
                       })}
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex gap-2">
-                      <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                      <button disabled={downloadingBlock || !comboChildren.some(c => c.status !== "bloqueado" && c.type !== "bm")} onClick={() => requireDisclaimer(() => void downloadBloco())} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
                         <span className="material-symbols-outlined text-[14px]">download</span>
-                        Baixar Bloco
+                        {downloadingBlock ? "Gerando..." : "Baixar todos os blocos (ZIP)"}
                       </button>
                     </div>
                   </>
@@ -1508,12 +1481,12 @@ export default function ItemDetails() {
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex gap-2">
                       {stockData.cookies && (
-                        <button onClick={() => requireDisclaimer(() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); })} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                        <button onClick={() => requireDisclaimer(() => { navigator.clipboard.writeText(serializeBlockValue(stockData.cookies)); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); })} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
                           <span className="material-symbols-outlined text-[14px]">{copied === 'cookies' ? 'check' : 'cookie'}</span>
                           {copied === 'cookies' ? 'Copiado!' : 'Copiar Cookies'}
                         </button>
                       )}
-                      <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                      <button disabled={downloadingBlock} onClick={() => requireDisclaimer(() => void downloadBloco())} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
                         <span className="material-symbols-outlined text-[14px]">download</span>
                         Baixar Bloco
                       </button>
