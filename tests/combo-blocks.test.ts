@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import JSZip from "jszip";
-import { formatBlocoContent, resolveComboChildren, uniqueBlockNames, createBlockZip } from "../src/lib/combo-blocks";
+import { formatBlocoContent, resolveComboChildren, uniqueBlockNames, createBlockZip, comboBlockFileName, blockArchiveName } from "../src/lib/combo-blocks";
 
 describe("downloads de combos", () => {
   it("usa os dados de cada filho e preserva as informações JSON", () => {
@@ -32,5 +32,20 @@ describe("downloads de combos", () => {
     const zip = await JSZip.loadAsync(await blob.arrayBuffer());
     expect(await zip.file("igual.txt")?.async("string")).toBe("A");
     expect(await zip.file("igual_2.txt")?.async("string")).toBe("B");
+  });
+});
+
+
+describe("nomes e dados alternativos", () => {
+  it("numera os arquivos e conserva o sufixo do arquivo compactado", () => {
+    expect(comboBlockFileName("perfil A", 0)).toBe("01_perfil_A.txt");
+    expect(comboBlockFileName("perfil A", 1)).toBe("02_perfil_A.txt");
+    expect(blockArchiveName("Combo A", "combo")).toBe("Combo_A_combo");
+    expect(blockArchiveName("Combo A", "blocos")).toBe("Combo_A_blocos");
+    expect(blockArchiveName("a".repeat(200), "blocos").endsWith("_blocos")).toBe(true);
+  });
+  it("usa a identificação atual e os campos alternativos de registros antigos", () => {
+    const [child] = resolveComboChildren([{ id: "a", name: "Exemplo", identification: "atual", data: { idPerfil: "antigo", email: "example.invalid", token: "fixture" } }], []);
+    expect(formatBlocoContent("{{nomePerfil}}|{{idPerfil}}|{{emailAcesso}}|{{token2fa}}", child.data)).toBe("Exemplo|atual|example.invalid|fixture");
   });
 });

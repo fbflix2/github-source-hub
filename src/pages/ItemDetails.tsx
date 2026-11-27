@@ -18,7 +18,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatBlocoContent, resolveComboChildren, normalizeComboChild, downloadBlockFiles, safeBlockName, serializeBlockValue } from "@/lib/combo-blocks";
+import { formatBlocoContent, resolveComboChildren, normalizeComboChild, downloadBlockFiles, safeBlockName, serializeBlockValue, comboBlockFileName, blockArchiveName } from "@/lib/combo-blocks";
 
 interface StockData {
   emailAcesso?: string;
@@ -713,11 +713,13 @@ export default function ItemDetails() {
         const selected = (selectedChild ? [selectedChild] : comboChildren).filter(c => c.status !== "bloqueado" && c.type !== "bm");
         if (!selected.length) { toast.error("Nenhum perfil disponível para download neste combo."); return; }
         const files = selected.map((c, index) => ({
-          name: safeBlockName(c.identification || c.data.idPerfil || c.name, "perfil_" + (index + 1)) + ".txt",
-          content: formatBlocoContent(template, c.data, order.code, orderDate, itemName + " • " + c.name, isInstagram),
+          name: selectedChild
+            ? safeBlockName(c.identification || c.data.idPerfil || c.name, "perfil_" + (index + 1)) + ".txt"
+            : comboBlockFileName(c.identification || c.data.idPerfil || c.name, index),
+          content: formatBlocoContent(template, { ...c.data, descricao: c.data.descricao || descricao }, order.code, orderDate, c.name, isInstagram),
         }));
-        await downloadBlockFiles(files, order.code + "_" + itemName, !selectedChild);
-        toast.success(selectedChild ? "Bloco baixado." : "ZIP gerado com " + files.length + " blocos.");
+        await downloadBlockFiles(files, blockArchiveName(itemName, "combo"), !selectedChild);
+        toast.success(selectedChild ? "Bloco do perfil baixado." : "ZIP gerado com " + files.length + " blocos disponíveis.");
       } else {
         await downloadBlockFiles([{
           name: safeBlockName(stockData.idPerfil || orderItem.id || order.code) + ".txt",
@@ -1349,10 +1351,10 @@ export default function ItemDetails() {
                       {comboChildren.map((child: any, idx: number) => {
                         if (child.status === "bloqueado") return <div key={child.id} className="p-2.5 rounded-lg border border-border text-xs text-muted-foreground">Perfil #{idx + 1} — bloqueado</div>;
                         if (child.type === "bm") return null;
-                        const cd = child.data as StockData;
-                        const cEmail = cd.emailAcesso || "—";
-                        const cSenha = cd.senha || "—";
-                        const cToken = cd.token2fa || "—";
+                        const cd = child.data;
+                        const cEmail = serializeBlockValue(cd.emailAcesso || cd.email) || "—";
+                        const cSenha = serializeBlockValue(cd.senha || cd.senhaFB) || "—";
+                        const cToken = serializeBlockValue(cd.token2fa || cd.token) || "—";
                         return (
                           <div key={child.id} className="p-2.5 rounded-lg bg-background/50 border border-border space-y-1.5">
                             <div className="flex items-center justify-between mb-1">
@@ -1399,15 +1401,30 @@ export default function ItemDetails() {
                                 </div>
                               </div>
                             )}
-                            <button type="button" disabled={downloadingBlock} onClick={() => requireDisclaimer(() => void downloadBloco(child))} className="w-full py-1.5 bg-muted/50 border border-border rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50"><span className="material-symbols-outlined text-[14px]">download</span> Baixar bloco deste perfil</button>
+                            <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                              <button type="button" disabled={downloadingBlock} onClick={() => requireDisclaimer(() => void downloadBloco(child))} className="px-2.5 py-1 bg-muted/40 hover:bg-muted text-foreground text-xs rounded border border-border flex items-center gap-1.5 disabled:opacity-50">
+                                <span className="material-symbols-outlined text-[14px]">download</span> Baixar Bloco (TXT)
+                              </button>
+                              {!!cd.cookies && (
+                                <button type="button" onClick={() => requireDisclaimer(() => {
+                                  void navigator.clipboard.writeText(serializeBlockValue(cd.cookies)).then(() => {
+                                    setCopied("combo-cookies-" + idx);
+                                    setTimeout(() => setCopied(null), 2000);
+                                  }).catch(() => toast.error("Não foi possível copiar os cookies."));
+                                })} className="px-2.5 py-1 bg-muted/40 hover:bg-muted text-foreground text-xs rounded border border-border flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-[14px]">{copied === "combo-cookies-" + idx ? "check" : "cookie"}</span>
+                                  {copied === "combo-cookies-" + idx ? "Copiado!" : "Copiar Cookies"}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex gap-2">
-                      <button disabled={downloadingBlock || !comboChildren.some(c => c.status !== "bloqueado" && c.type !== "bm")} onClick={() => requireDisclaimer(() => void downloadBloco())} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
-                        <span className="material-symbols-outlined text-[14px]">download</span>
-                        {downloadingBlock ? "Gerando..." : "Baixar todos os blocos (ZIP)"}
+                      <button disabled={downloadingBlock || !comboChildren.some(c => c.status !== "bloqueado" && c.type !== "bm")} onClick={() => requireDisclaimer(() => void downloadBloco())} className="flex-1 py-1.5 bg-primary/20 border border-primary/30 text-primary font-semibold rounded-lg hover:bg-primary/30 transition-all flex items-center justify-center gap-1.5 text-xs disabled:opacity-50">
+                        <span className="material-symbols-outlined text-[14px]">archive</span>
+                        {downloadingBlock ? "Gerando..." : "Baixar Todos os Blocos (.ZIP)"}
                       </button>
                     </div>
                   </>

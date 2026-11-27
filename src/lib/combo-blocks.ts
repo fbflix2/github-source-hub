@@ -16,12 +16,12 @@ export function formatBlocoContent(template: string | null, data: unknown, order
   const raw = text(d.dadosAdicionais || d.idPerfil);
   const oldEmail = raw.includes("@") && raw.includes(":") ? raw.split(":") : [];
   const values: Record<string, string> = {
-    nomePerfil: text(d.nomePerfil),
-    emailAcesso: text(d.emailAcesso) || (oldEmail[0] || "").trim(),
+    nomePerfil: text(d.nomePerfil || d.name),
+    emailAcesso: text(d.emailAcesso || d.email) || (oldEmail[0] || "").trim(),
     emailAlternativo: text(d.emailAlternativo || d.alternateEmail || d.alternative_email),
     senha: text(d.senha || d.senhaFB) || oldEmail.slice(1).join(":").trim(),
     senhaEmail: text(d.senhaEmail),
-    token2fa: text(d.token2fa),
+    token2fa: text(d.token2fa || d.token),
     dataNascimento: text(d.dataNascimento),
     genero: text(d.genero),
     tempoPlataforma: text(d.tempoPlataforma),
@@ -66,8 +66,9 @@ export function normalizeComboChild(value: unknown, index: number) {
   const type = text(source.type || data.type) || (data.linkBM || data.rawBmInput ? "bm" : "perfil");
   const identification = text(source.identification || data.idPerfil);
   const identification_link = text(source.identification_link || (type === "bm" ? data.linkBM : data.linkPerfil));
-  if (identification && !data.idPerfil && type !== "bm") data.idPerfil = identification;
-  if (identification_link && !data.linkPerfil && type !== "bm") data.linkPerfil = identification_link;
+  if (identification && type !== "bm") data.idPerfil = identification;
+  if (identification_link && type !== "bm") data.linkPerfil = identification_link;
+  if (!data.nomePerfil && type !== "bm" && source.name) data.nomePerfil = source.name;
   if (data.cookies != null) data.cookies = text(data.cookies);
   const actualId = text(source.stock_item_id || source.id);
   return {
@@ -84,13 +85,22 @@ export function normalizeComboChild(value: unknown, index: number) {
 
 export function resolveComboChildren(children: unknown[], snapshot: unknown): ReturnType<typeof normalizeComboChild>[] {
   const source = children.length ? children : Array.isArray(snapshot) ? snapshot : [];
-  return source.filter(item => item && typeof item === "object" && !Array.isArray(item)).map(normalizeComboChild);
+  return source.filter(item => item && typeof item === "object" && !Array.isArray(item) && !record(item).deleted_at).map(normalizeComboChild);
 }
 
 export function safeBlockName(value: unknown, fallback = "item"): string {
   return (text(value).normalize("NFKD").replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 100) || fallback);
 }
 export type BlockFile = { name: string; content: string };
+
+export function comboBlockFileName(value: unknown, index: number): string {
+  return String(index + 1).padStart(2, "0") + "_" + safeBlockName(value, "perfil") + ".txt";
+}
+
+// Keep the archive suffix even when the item name is very long.
+export function blockArchiveName(value: unknown, suffix: "combo" | "blocos"): string {
+  return safeBlockName(value, "combo").slice(0, 90) + "_" + suffix;
+}
 
 export function uniqueBlockNames(files: BlockFile[]): BlockFile[] {
   const used = new Set<string>();

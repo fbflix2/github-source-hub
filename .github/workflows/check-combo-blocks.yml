@@ -1,0 +1,26 @@
+name: Validar blocagem de combos
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/combo-blocks.ts'
+      - 'src/pages/ItemDetails.tsx'
+      - 'src/pages/admin/AdminBlocagem.tsx'
+      - 'src/components/admin/StockItemsModal.tsx'
+      - 'tests/combo-blocks.test.ts'
+      - '.github/workflows/check-combo-blocks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Testes de blocagem
+        run: bun test tests/combo-blocks.test.ts
+      - name: Build de produção
+        if: success() || failure()
+        run: bun run build

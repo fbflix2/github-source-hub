@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StockItemBlockViewer } from "@/components/admin/StockItemBlockViewer";
 import ComboForm from "@/components/admin/ComboForm";
-import { downloadBlockFiles, safeBlockName, serializeBlockValue } from "@/lib/combo-blocks";
+import { downloadBlockFiles, safeBlockName, serializeBlockValue, blockArchiveName } from "@/lib/combo-blocks";
 import { extractBmNameFromInput, extractBmUrlFromInput, resolveBmDisplayName } from "@/lib/bm-link";
 
 interface Folder {
@@ -405,7 +405,7 @@ ${cookiesOut}`;
 
   const downloadFlashBlocks = async (filled: { it: { rawText: string; cookiesText: string }; i: number; parsed: Record<string, string> }[]) => {
     const files = filled.map(x => generateTxt(x.parsed, x.it.cookiesText, x.parsed.nomePerfil || x.parsed.emailAcesso || "Item_" + (x.i + 1)));
-    await downloadBlockFiles(files, comboName || "blocagem_flash", isCombo || filled.length > 1);
+    await downloadBlockFiles(files, blockArchiveName(comboName || "blocagem_flash", "blocos"), isCombo || filled.length > 1);
   };
 
   const buildChildInsert = (parsed: Record<string, string>, raw: string, cookies: string, comboIndex?: number, parentName?: string) => {

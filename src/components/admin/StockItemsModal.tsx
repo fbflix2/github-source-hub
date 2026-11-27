@@ -10,7 +10,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
-import JSZip from "jszip";
+import { formatBlocoContent, normalizeComboChild, downloadBlockFiles, comboBlockFileName, blockArchiveName, safeBlockName } from "@/lib/combo-blocks";
 import { toast } from "sonner";
 
 
@@ -24,6 +24,7 @@ interface StockItem {
   order_item_id: string | null;
   created_at: string;
   childCount?: number;
+  type?: string;
 }
 
 interface StockItemsModalProps {
@@ -51,6 +52,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [expandedChildrenId, setExpandedChildrenId] = useState<string | null>(null);
   const [childrenMap, setChildrenMap] = useState<Record<string, StockItem[]>>({});
   const [loadingChildren, setLoadingChildren] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [destProduct, setDestProduct] = useState<string>("");
@@ -84,7 +86,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
     (async () => {
       const { data: parents } = await supabase
         .from("stock_items")
-        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .select("id, name, type, status, identification, identification_link, data, order_item_id, created_at")
         .eq("product_id", productId)
         .is("deleted_at", null)
         .is("parent_id", null)
@@ -117,7 +119,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
       setLoadingChildren(item.id);
       const { data } = await supabase
         .from("stock_items")
-        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .select("id, name, type, status, identification, identification_link, data, order_item_id, created_at")
         .eq("parent_id", item.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });
@@ -185,109 +187,44 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   };
 
   const generateTxtFromTemplate = (template: string | null, stockItem: StockItem) => {
-    const d = (stockItem.data as Record<string, unknown>) || {};
-    const alternateEmail = (d.emailAlternativo || d.alternateEmail || d.alternative_email || "—") as string;
-
-    if (template) {
-      const replacements: Record<string, string> = {
-        "{{nomePerfil}}": (d.nomePerfil as string) || "—",
-        "{{emailAcesso}}": (d.emailAcesso as string) || "—",
-        "{{emailAlternativo}}": alternateEmail,
-        "{{senha}}": (d.senha as string) || "—",
-        "{{senhaEmail}}": (d.senhaEmail as string) || "—",
-        "{{token2fa}}": (d.token2fa as string) || "—",
-        "{{dataNascimento}}": (d.dataNascimento as string) || "—",
-        "{{genero}}": (d.genero as string) || "—",
-        "{{tempoPlataforma}}": (d.tempoPlataforma as string) || "—",
-        "{{statusAtual}}": (d.statusAtual as string) || "—",
-        "{{descricao}}": (d.descricao as string) || "—",
-        "{{cookies}}": (d.cookies ? (typeof d.cookies === "string" ? d.cookies : JSON.stringify(d.cookies, null, 2)) : "—"),
-        "{{linkDocumento}}": (d.linkDocumento as string) || "—",
-        "{{linkPerfil}}": (stockItem.identification_link as string) || (d.linkPerfil as string) || "—",
-        "{{idPerfil}}": (stockItem.identification as string) || (d.idPerfil as string) || "—",
-        "{{pedido}}": "—",
-        "{{data}}": "—",
-        "{{nomeProduto}}": stockItem.name,
-      };
-      let content = template;
-      for (const [key, val] of Object.entries(replacements)) {
-        content = content.split(key).join(val);
-      }
-      return content;
+    const child = normalizeComboChild(stockItem, 0);
+    if (stockItem.type === "bm") {
+      return [stockItem.name, child.identification_link || "", child.identification || "", String(child.data.descricao || "")].filter(Boolean).join("\n");
     }
-
-    // Fallback
-    const lines: string[] = [];
-    lines.push(`=== ${stockItem.name} ===`);
-    lines.push("");
-    if (d.nomePerfil) lines.push(`Nome do Perfil: ${d.nomePerfil}`);
-    if (d.emailAcesso) lines.push(`Email de Acesso: ${d.emailAcesso}`);
-    if (d.senhaEmail) lines.push(`Senha do Email: ${d.senhaEmail}`);
-    if (d.senha) lines.push(`Senha: ${d.senha}`);
-    if (d.token2fa) lines.push(`Token 2FA: ${d.token2fa}`);
-    if (d.emailAlternativo) lines.push(`Email Alternativo: ${d.emailAlternativo}`);
-    if (stockItem.identification) lines.push(`ID: ${stockItem.identification}`);
-    if (stockItem.identification_link) lines.push(`Link: ${stockItem.identification_link}`);
-    if (d.dataNascimento) lines.push(`Data de Nascimento: ${d.dataNascimento}`);
-    if (d.genero) lines.push(`Gênero: ${d.genero}`);
-    if (d.tempoPlataforma) lines.push(`Tempo de Plataforma: ${d.tempoPlataforma}`);
-    if (d.descricao) lines.push(`\nDescrição:\n${d.descricao}`);
-    if (d.cookies) {
-      lines.push(`\nCookies:\n${typeof d.cookies === "string" ? d.cookies : JSON.stringify(d.cookies, null, 2)}`);
-    }
-    return lines.join("\n");
+    return formatBlocoContent(template, child.data, undefined, undefined, stockItem.name);
   };
 
   const generateTxt = (item: StockItem) => generateTxtFromTemplate(null, item);
 
   const handleDownloadTxt = async (item: StockItem) => {
-    // Fetch block template
-    const { data: tpl } = await supabase
-      .from("block_templates")
-      .select("content")
-      .eq("is_default", true)
-      .maybeSingle();
-    const template = (tpl as any)?.content || null;
-
-    // Check if combo (has children)
-    const { data: children } = await supabase
-      .from("stock_items")
-      .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
-      .eq("parent_id", item.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true });
-
-    if (children && children.length > 0) {
-      // Combo: generate ZIP with all children
-      const zip = new JSZip();
-      (children as unknown as StockItem[]).forEach((child, idx) => {
-        const content = generateTxtFromTemplate(template, child);
-        if (content) {
-          const fileName = `${String(idx + 1).padStart(2, "0")}_${child.identification || child.name.replace(/\s+/g, "_")}.txt`;
-          zip.file(fileName, content);
-        }
-      });
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${item.name.replace(/\s+/g, "_")}_combo.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success(`ZIP gerado com ${children.length} perfis`);
-    } else {
-      // Single item
-      const content = generateTxtFromTemplate(template, item);
-      if (!content) return;
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${item.identification || item.name.replace(/\s+/g, "_")}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    if (downloadingId) return;
+    setDownloadingId(item.id);
+    try {
+      const { data: tpl } = await supabase.from("block_templates").select("content").eq("is_default", true).maybeSingle();
+      const template = (tpl as any)?.content || null;
+      const { data: children, error } = await supabase.from("stock_items")
+        .select("id, name, type, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("parent_id", item.id).is("deleted_at", null).order("created_at", { ascending: true });
+      if (error) throw error;
+      const kids = (children ?? []) as unknown as StockItem[];
+      if (kids.length) {
+        const files = kids.map((child, idx) => ({
+          name: comboBlockFileName(child.identification || child.data?.idPerfil || child.name, idx),
+          content: generateTxtFromTemplate(template, child),
+        }));
+        await downloadBlockFiles(files, blockArchiveName(item.name, "combo"), true);
+        toast.success("ZIP gerado com " + files.length + " blocos.");
+      } else {
+        if (item.type === "combo" || item.childCount) { toast.error("Nenhum filho disponível neste combo."); return; }
+        await downloadBlockFiles([{
+          name: safeBlockName(item.identification || item.data?.idPerfil || item.name) + ".txt",
+          content: generateTxtFromTemplate(template, item),
+        }], item.name);
+        toast.success("Bloco baixado.");
+      }
+    } catch {
+      toast.error("Não foi possível gerar o bloco. Tente novamente.");
+    } finally { setDownloadingId(null); }
   };
 
   const available = items.filter(i => i.status === "revisado" && !i.order_item_id);
@@ -547,6 +484,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                                         <TableHead className="text-zinc-500 text-[10px]">NOME</TableHead>
                                         <TableHead className="text-zinc-500 text-[10px]">ID</TableHead>
                                         <TableHead className="text-zinc-500 text-[10px]">LINK</TableHead>
+                                        <TableHead className="text-zinc-500 text-[10px]">AÇÕES</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -561,6 +499,13 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                                                 {c.identification_link}
                                               </a>
                                             ) : "—"}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Button type="button" size="sm" variant="ghost" disabled={!!downloadingId}
+                                              title="Baixar bloco deste item" className="h-7 px-2 text-primary gap-1 text-xs"
+                                              onClick={() => setReplacementItem(c)}>
+                                              {downloadingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} TXT
+                                            </Button>
                                           </TableCell>
                                         </TableRow>
                                       ))}
